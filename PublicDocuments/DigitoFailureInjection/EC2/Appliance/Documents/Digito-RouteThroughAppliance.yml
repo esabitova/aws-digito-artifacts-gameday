@@ -1,0 +1,102 @@
+---
+description: 'Route through EC2 Appliance for injecting network errors'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  ApplianceInstanceId:
+    type: String
+    description: (Required) The instance id of the appliance through which traffic will be routed.
+  ApplicationSubnetIds:
+    type: StringList
+    description: (Required) List of application subnet ids which will be routed through appliance.
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Required) The ARN of the role that allows Automation to perform the
+      actions on your behalf.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Provide true to cleanup appliance created in previous execution.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: GetExistingRoutes
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: GetExistingRoutesPreviousExecution
+  - name: GetExistingRoutes
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: ExistingRouteTableResponse
+        Selector: $.Payload.ExistingRouteTableResponse
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: route_through_appliance.get_existing_routes
+      InputPayload:
+        ApplicationSubnetIds: '{{ApplicationSubnetIds}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: RouteThroughAppliance
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: 'step:CleanupCurrentExecution'
+    inputs:
+      Runtime: python3.6
+      Handler: route_through_appliance.route_through_appliance
+      InputPayload:
+        ApplicationSubnetIds: '{{ApplicationSubnetIds}}'
+        ApplianceInstanceId: '{{ApplianceInstanceId}}'
+        ExistingRouteTableResponse: '{{GetExistingRoutes.ExistingRouteTableResponse}}'
+      Attachment: digito_gameday_primitives.zip
+    isEnd: true
+  - name: CleanupCurrentExecution
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    inputs:
+      Runtime: python3.6
+      Handler: route_through_appliance.cleanup_to_previous_route
+      InputPayload:
+        ExistingRouteTableResponse: '{{GetExistingRoutes.ExistingRouteTableResponse}}'
+      Attachment: digito_gameday_primitives.zip
+    isEnd: true
+  - name: GetExistingRoutesPreviousExecution
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: ExistingRouteTableResponse
+        Selector: $.Payload.ExistingRouteTableResponse
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'GetExistingRoutes'
+        ResponseField: 'ExistingRouteTableResponse'
+      Attachment: digito_gameday_primitives.zip
+  - name: CleanupPreviousExecution
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    inputs:
+      Runtime: python3.6
+      Handler: route_through_appliance.cleanup_to_previous_route
+      InputPayload:
+        ExistingRouteTableResponse: '{{GetExistingRoutesPreviousExecution.ExistingRouteTableResponse}}'
+      Attachment: digito_gameday_primitives.zip
+    isEnd: true
+files:
+  digito_gameday_primitives.zip:
+    checksums:
+      sha256: e402e8ae95a5286c452179e035f6a274f16db6fd48b8da7f25e95a4198010de6
+    size: 1407

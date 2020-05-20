@@ -1,0 +1,205 @@
+---
+description: 'Add network latency using EC2 NAT Instance for injecting network errors'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  ApplianceSubnetId:
+    type: String
+    description: (Required) SubnetId to launch appliance with access to internet in vpc.
+  ApplianceSecurityGroup:
+    type: String
+    description: (Required) Security group for appliance. Application server security group should allow access to this.
+  ApplicationSubnetIds:
+    type: StringList
+    description: (Required) List of application subnet ids which will be routed through appliance.
+  NetworkLatencyDurationMinutes:
+    type: String
+    description: (Required) Duration of network latency test.
+  NetworkLatencyDelayMs:
+    type: String
+    description: (Required) Network delay to be added in ms.
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Provide true to cleanup appliance created in previous execution.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: CreateEC2Appliance
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: SelectCleanupScript
+  - name: CreateEC2Appliance
+    action: 'aws:executeAutomation'
+    onFailure: 'step:SelectCleanupScript'
+    inputs:
+      DocumentName: Digito-SetupEC2Appliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        SubnetId: '{{ApplianceSubnetId}}'
+        SecurityGroup: '{{ApplianceSecurityGroup}}'
+  - name: RouteThroughAppliance
+    action: 'aws:executeAutomation'
+    onFailure: 'step:SelectCleanupScript'
+    inputs:
+      DocumentName: Digito-RouteThroughAppliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        ApplianceInstanceId: '{{CreateEC2Appliance.Output}}'
+        ApplicationSubnetIds: '{{ApplicationSubnetIds}}'
+  - name: AddNetworkLatency
+    action: 'aws:runCommand'
+    onFailure: 'step:SelectCleanupScript'
+    inputs:
+      DocumentName: Digito-AddNetworkLatency
+      InstanceIds:
+        - '{{CreateEC2Appliance.Output}}'
+      Parameters:
+        DurationInMinutes: '{{NetworkLatencyDurationMinutes}}'
+        DelayInMs: '{{NetworkLatencyDelayMs}}'
+  - name: Sleep
+    action: 'aws:sleep'
+    onFailure: 'step:SelectCleanupScript'
+    inputs:
+      Duration: 'PT{{NetworkLatencyDurationMinutes}}M'
+  - name: SelectCleanupScript
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionCreateEC2ApplianceDetails
+          Variable: '{{IsRollback}}'
+          StringEquals: 'true'
+        - NextStep: CleanupCurrentExecutionRouteThroughAppliance
+          Not:
+            Variable: '{{RouteThroughAppliance.Status}}'
+            StringEquals: 'Pending'
+        - NextStep: CleanupCurrentExecutionEC2Appliance
+          Not:
+            Variable: '{{CreateEC2Appliance.Status}}'
+            StringEquals: 'Pending'
+      Default: NoCleanupRequired
+  - name: CleanupCurrentExecutionRouteThroughAppliance
+    action: 'aws:executeAutomation'
+    maxAttempts: 3
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-RouteThroughAppliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        ApplianceInstanceId: '{{CreateEC2Appliance.Output}}'
+        ApplicationSubnetIds: '{{ApplicationSubnetIds}}'
+        IsRollback: true
+        PreviousExecutionId: '{{RouteThroughAppliance.ExecutionId}}'
+  - name: CleanupCurrentExecutionEC2Appliance
+    action: 'aws:executeAutomation'
+    maxAttempts: 3
+    inputs:
+      DocumentName: Digito-SetupEC2Appliance
+      RuntimeParameters:
+        SubnetId: '{{ApplianceSubnetId}}'
+        SecurityGroup: '{{ApplianceSecurityGroup}}'
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        IsRollback: true
+        PreviousExecutionId: '{{CreateEC2Appliance.ExecutionId}}'
+    isEnd: true
+  - name: GetPreviousExecutionCreateEC2ApplianceDetails
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: ExecutionId
+        Selector: $.Payload.ExecutionId
+        Type: String
+      - Name: InstanceId
+        Selector: $.Payload.Output
+        Type: String
+      - Name: Status
+        Selector: $.Payload.Status
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'CreateEC2Appliance'
+        ResponseField: 'ExecutionId,Output,Status'
+      Attachment: digito_gameday_primitives.zip
+  - name: GetPreviousExecutionRouteThroughApplianceDetails
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    isCritical: false
+    onFailure: step:CleanupPreviousExecutionBranch
+    outputs:
+      - Name: ExecutionId
+        Selector: $.Payload.ExecutionId
+        Type: String
+      - Name: Status
+        Selector: $.Payload.Status
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'RouteThroughAppliance'
+        ResponseField: 'ExecutionId,Status'
+      Attachment: digito_gameday_primitives.zip
+  - name: CleanupPreviousExecutionBranch
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: CleanupPreviousExecutionRouteThroughAppliance
+          Not:
+            Variable: '{{GetPreviousExecutionRouteThroughApplianceDetails.Status}}'
+            StringEquals: 'Pending'
+        - NextStep: CleanupPreviousExecutionEC2Appliance
+          Not:
+            Variable: '{{GetPreviousExecutionCreateEC2ApplianceDetails.Status}}'
+            StringEquals: 'Pending'
+      Default: NoCleanupRequired
+  - name: CleanupPreviousExecutionRouteThroughAppliance
+    action: 'aws:executeAutomation'
+    maxAttempts: 3
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-RouteThroughAppliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        ApplianceInstanceId: '{{GetPreviousExecutionCreateEC2ApplianceDetails.InstanceId}}'
+        ApplicationSubnetIds: '{{ApplicationSubnetIds}}'
+        IsRollback: true
+        PreviousExecutionId: '{{GetPreviousExecutionRouteThroughApplianceDetails.ExecutionId}}'
+  - name: CleanupPreviousExecutionEC2Appliance
+    action: 'aws:executeAutomation'
+    maxAttempts: 3
+    inputs:
+      DocumentName: Digito-SetupEC2Appliance
+      RuntimeParameters:
+        SubnetId: '{{ApplianceSubnetId}}'
+        SecurityGroup: '{{ApplianceSecurityGroup}}'
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        IsRollback: true
+        PreviousExecutionId: '{{GetPreviousExecutionCreateEC2ApplianceDetails.ExecutionId}}'
+    isEnd: true
+  - name: NoCleanupRequired
+    action: 'aws:sleep'
+    inputs:
+      Duration: PT1S
+    isEnd: true
+files:
+  digito_gameday_primitives.zip:
+    checksums:
+      sha256: e402e8ae95a5286c452179e035f6a274f16db6fd48b8da7f25e95a4198010de6
+    size: 1407

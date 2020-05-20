@@ -1,0 +1,23 @@
+---
+schemaVersion: '2.2'
+description: Adding latency on the network (default eth0)
+parameters:
+  Interface:
+    type: String
+    description: Specify the interface to add delay to. (Required)
+    default: eth0
+  DelayInMs:
+    type: String
+    description: The delay to add to the interface in milliseconds.
+    default: "200"
+  DurationInMinutes:
+    type: String
+    description: The duration - in minutes - of the attack. (Required)
+    default: "1"
+mainSteps:
+  - action: aws:runShellScript
+    name: ChaosLatencyAttack
+    inputs:
+      runCommand:
+        - echo "tc qdisc del dev {{ Interface }} root netem delay {{ DelayInMs }}ms" | at now + {{ DurationInMinutes }} minutes
+        - tc qdisc add dev {{ Interface }} root netem delay {{ DelayInMs }}ms
