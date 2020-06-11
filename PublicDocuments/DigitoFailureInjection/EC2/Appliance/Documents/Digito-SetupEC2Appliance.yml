@@ -25,7 +25,7 @@ parameters:
     default: 't2.micro'
   LatestAmi:
     type: String
-    default: '{{ssm:/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2}}'
+    default: 'ami-009816cdbb1e74ceb'
     description: (Optional) Ami for nat instance.
   IsRollback:
     type: String
@@ -72,18 +72,6 @@ mainSteps:
         Tags:
         - Key: Name
           Value: DigitoNatInstance
-  - name: ConfigureApplianceEnableIPTrafficForwarding
-    action: 'aws:runCommand'
-    maxAttempts: 2
-    onFailure: 'step:SelectCleanupScript'
-    inputs:
-      DocumentName: AWS-RunShellScript
-      InstanceIds: '{{CreateEC2Appliance.InstanceIds}}'
-      Parameters:
-        commands:
-          - sudo sysctl -w net.ipv4.ip_forward=1
-          - sudo sysctl -w net.ipv6.conf.all.forwarding=1
-          - sudo yum -y install tc
   - name: ConfigureApplianceDisableSourceDestCheck
     action: 'aws:executeScript'
     maxAttempts: 2
