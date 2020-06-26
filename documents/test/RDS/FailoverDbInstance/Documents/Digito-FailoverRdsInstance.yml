@@ -29,36 +29,36 @@ parameters:
       actions on your behalf.
     default: ''
 mainSteps:
-  -
-    name: AssertNotRebooting
-    action: aws:assertAwsResourceProperty
-    isCritical: false
-    onFailure: step:RebootDbInstanceWithFailover
-    nextStep: WaitForAvailableState
-    inputs:
-      Service: rds
-      Api: DescribeDBInstances
-      DBInstanceIdentifier: "{{DbInstanceId}}"
-      PropertySelector: "$.DBInstances[0].DBInstanceStatus"
-      DesiredValues: ["rebooting"]
-  -
-    name: RebootDbInstanceWithFailover
-    action: aws:executeAwsApi
-    inputs:
-      Service: rds
-      Api: RebootDBInstance
-      DBInstanceIdentifier: "{{DbInstanceId}}"
-      ForceFailover: true
-  -
-    name: WaitForAvailableState
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
-    onFailure: Abort
-    inputs:
-      Service: rds
-      Api: DescribeDBInstances
-      DBInstanceIdentifier: "{{DbInstanceId}}"
-      PropertySelector: "$.DBInstances[0].DBInstanceStatus"
-      DesiredValues: ["available"]
-    isEnd: true
+-
+  name: AssertNotRebooting
+  action: aws:assertAwsResourceProperty
+  isCritical: false
+  onFailure: step:RebootDbInstanceWithFailover
+  nextStep: WaitForAvailableState
+  inputs:
+    Service: rds
+    Api: DescribeDBInstances
+    DBInstanceIdentifier: "{{DbInstanceId}}"
+    PropertySelector: "$.DBInstances[0].DBInstanceStatus"
+    DesiredValues: ["rebooting"]
+-
+  name: RebootDbInstanceWithFailover
+  action: aws:executeAwsApi
+  inputs:
+    Service: rds
+    Api: RebootDBInstance
+    DBInstanceIdentifier: "{{DbInstanceId}}"
+    ForceFailover: true
+-
+  name: WaitForAvailableState
+  action: aws:waitForAwsResourceProperty
+  maxAttempts: 10
+  timeoutSeconds: 600
+  onFailure: Abort
+  inputs:
+    Service: rds
+    Api: DescribeDBInstances
+    DBInstanceIdentifier: "{{DbInstanceId}}"
+    PropertySelector: "$.DBInstances[0].DBInstanceStatus"
+    DesiredValues: ["available"]
+  isEnd: true

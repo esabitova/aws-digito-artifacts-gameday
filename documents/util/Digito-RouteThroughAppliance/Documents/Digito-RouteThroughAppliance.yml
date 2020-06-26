@@ -95,8 +95,3 @@ mainSteps:
         ExistingRouteTableResponse: '{{GetExistingRoutesPreviousExecution.ExistingRouteTableResponse}}'
       Attachment: digito_gameday_primitives.zip
     isEnd: true
-files:
-  digito_gameday_primitives.zip:
-    checksums:
-      sha256: e402e8ae95a5286c452179e035f6a274f16db6fd48b8da7f25e95a4198010de6
-    size: 1407
