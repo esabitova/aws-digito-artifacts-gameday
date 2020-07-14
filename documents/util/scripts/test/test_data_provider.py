@@ -1,3 +1,5 @@
+from datetime import datetime, timezone, timedelta
+
 AUTOMATION_EXECUTION_ID = '123e4567-e89b-12d3-a456-426614174000'
 STEP_NAME = 'StepName'
 MISSING_STEP_NAME = 'MissingStepName'
@@ -10,6 +12,12 @@ ROUTE_TABLE_ID = 'rtb-12345'
 NAT_GATEWAY_ID = 'nat-12345'
 IGW_ID = 'igw-12345'
 INTERNET_DESTINATION = '0.0.0.0/0'
+STEP_DURATION = 8
+EXECUTION_START_TIME = datetime.now(timezone.utc) - timedelta(seconds=STEP_DURATION)
+EXECUTION_END_TIME = datetime.now(timezone.utc)
+DB_INSTANCE_ID = 'db'
+TARGET_DB_INSTANCE_ID = 'db-new'
+RECOVERY_POINT = 300
 
 def get_sample_ssm_execution_response():
     step_execution_outputs = {}
@@ -19,6 +27,8 @@ def get_sample_ssm_execution_response():
     step_execution = {}
     step_execution['Outputs'] = step_execution_outputs
     step_execution['StepName'] = STEP_NAME
+    step_execution['ExecutionStartTime'] = EXECUTION_START_TIME
+    step_execution['ExecutionEndTime'] = EXECUTION_END_TIME
 
     automation_execution = {}
     automation_execution['StepExecutions'] = [step_execution]
@@ -60,3 +70,24 @@ def get_sample_route_table_response():
     route_table_response['RouteTables'] = [route_table_1, route_table_2]
 
     return route_table_response
+
+def get_sample_describe_db_instances_response():
+    db_instances_response = {}
+
+    vpc_security_group = {}
+    vpc_security_group['VpcSecurityGroupId'] = 'sg-12345'
+
+    db_subnet_group = {}
+    db_subnet_group['DBSubnetGroupName'] = 'db-subnet-group'
+
+    db_instance = {}
+    db_instance['LatestRestorableTime'] = datetime.now(timezone.utc) - timedelta(seconds=RECOVERY_POINT)
+    db_instance['MultiAZ'] = True
+    db_instance['PubliclyAccessible'] = True
+    db_instance['CopyTagsToSnapshot'] = True
+    db_instance['VpcSecurityGroups'] = [vpc_security_group]
+    db_instance['DBSubnetGroup'] = db_subnet_group
+
+    db_instances_response['DBInstances'] = [db_instance]
+
+    return db_instances_response

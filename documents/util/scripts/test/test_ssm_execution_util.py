@@ -3,7 +3,7 @@ from test import test_data_provider
 from unittest.mock import patch
 from unittest.mock import MagicMock
 
-from src.ssm_execution_util import get_output_from_ssm_step_execution
+from src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations
 
 class TestSsmExecutionUtil(unittest.TestCase):
     def setUp(self):
@@ -40,3 +40,23 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events['ResponseField'] = test_data_provider.RESPONSE_FIELD_1 + ',' + test_data_provider.RESPONSE_FIELD_2
 
         self.assertRaises(Exception, get_output_from_ssm_step_execution, events, None)
+
+    def test_get_step_durations(self):
+        events = {}
+        events['ExecutionId'] = test_data_provider.AUTOMATION_EXECUTION_ID
+        events['StepName'] =  test_data_provider.STEP_NAME
+
+        duration = get_step_durations(events, None)
+        self.assertEqual(str(test_data_provider.STEP_DURATION), duration['duration'])
+
+    def test_get_step_durations_fail_missing_input(self):
+        events = {}
+
+        self.assertRaises(KeyError, get_step_durations, events, None)
+
+    def test_get_step_durations_fail_missing_step_name(self):
+        events = {}
+        events['ExecutionId'] = test_data_provider.AUTOMATION_EXECUTION_ID
+        events['StepName'] =  test_data_provider.MISSING_STEP_NAME
+
+        self.assertRaises(Exception, get_step_durations, events, None)
