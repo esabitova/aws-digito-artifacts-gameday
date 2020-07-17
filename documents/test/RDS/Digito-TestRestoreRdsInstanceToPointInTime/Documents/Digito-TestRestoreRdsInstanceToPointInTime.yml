@@ -1,0 +1,184 @@
+---
+description: 'Test for Restore Rds Instance to point in time SOP'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  DbInstanceIdentifier:
+    type: String
+    description: (Required) The identifier for the db instance.
+  ApplicationAlarmName:
+    type: String
+    description: (Required) Name for the Application Synthetics Alarm.
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Optional) The ARN of the role that allows Automation to perform the
+      actions on your behalf.
+    default: ''
+outputs:
+  - CalculateRecoveryPoint.RecoveryPoint
+  - CalculateRecoveryTime.RecoveryTime
+mainSteps:
+  - name: RestoreDbInstance
+    action: 'aws:executeAutomation'
+    inputs:
+      DocumentName: Digito-RestoreRdsInstanceToPointInTime
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        DbInstanceIdentifier: '{{DbInstanceIdentifier}}'
+  - name: WaitForAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: 'step:DeleteOldDatabase'
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+      - "{{ApplicationAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["ALARM"]
+  - name: WaitForAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: 'step:DeleteOldDatabase'
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+      - "{{ApplicationAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+  - name: CalculateRecoveryPoint
+    action: aws:executeScript
+    onFailure: 'step:CalculateRecoveryTime'
+    outputs:
+      - Name: RecoveryPoint
+        Selector: $.Payload.RecoveryPoint
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{RestoreDbInstance.ExecutionId}}'
+        StepName: 'RestoreToPointInTime'
+        ResponseField: 'RecoveryPoint'
+      Script: |-
+        import boto3
+
+        def get_output_from_ssm_step_execution(events, context):
+          print('Creating ssm client')
+          print(events)
+          ssm = boto3.client('ssm')
+
+          if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
+            raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
+
+          print('Fetching SSM response for execution')
+          ssmResponse = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+          print('SSM response for execution : ', ssmResponse)
+          for step in ssmResponse['AutomationExecution']['StepExecutions']:
+            if step['StepName'] == events['StepName']:
+              responseFields = events['ResponseField'].split(',')
+              output = {}
+              for responseField in responseFields:
+                stepOutput = step['Outputs'][responseField][0]
+                output[responseField] = stepOutput
+
+              return output
+
+          # Could not find step name
+          raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+
+        def get_step_durations(events, context):
+          ssm = boto3.client('ssm')
+
+          if 'ExecutionId' not in events or 'StepName' not in events:
+            raise KeyError('Requires ExecutionId, StepName in events')
+
+          ssmResponse = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+          print('SSM response for execution : ', ssmResponse)
+
+          stepNames = events['StepName'].split(',')
+          duration = 0
+          for step in ssmResponse['AutomationExecution']['StepExecutions']:
+            if step['StepName'] in stepNames:
+              duration += step['ExecutionEndTime'] - step['ExecutionStartTime']
+
+          if duration > 0:
+            output = {}
+            output['duration'] = str(round(duration))
+            return output
+
+          raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+  - name: CalculateRecoveryTime
+    action: aws:executeScript
+    onFailure: 'step:DeleteOldDatabase'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload.duration
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_step_durations
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+        StepName: 'RestoreDbInstance,WaitForAlarmToBeRed,WaitForAlarmToBeGreen'
+      Script: |-
+        import boto3
+
+        def get_output_from_ssm_step_execution(events, context):
+          print('Creating ssm client')
+          print(events)
+          ssm = boto3.client('ssm')
+
+          if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
+            raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
+
+          print('Fetching SSM response for execution')
+          ssmResponse = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+          print('SSM response for execution : ', ssmResponse)
+          for step in ssmResponse['AutomationExecution']['StepExecutions']:
+            if step['StepName'] == events['StepName']:
+              responseFields = events['ResponseField'].split(',')
+              output = {}
+              for responseField in responseFields:
+                stepOutput = step['Outputs'][responseField][0]
+                output[responseField] = stepOutput
+
+              return output
+
+          # Could not find step name
+          raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+
+        def get_step_durations(events, context):
+          ssm = boto3.client('ssm')
+
+          if 'ExecutionId' not in events or 'StepName' not in events:
+            raise KeyError('Requires ExecutionId, StepName in events')
+
+          ssmResponse = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+          print('SSM response for execution : ', ssmResponse)
+
+          stepNames = events['StepName'].split(',')
+          duration = 0
+          for step in ssmResponse['AutomationExecution']['StepExecutions']:
+            if step['StepName'] in stepNames:
+              duration += (step['ExecutionEndTime'] - step['ExecutionStartTime']).seconds
+
+          if duration > 0:
+            output = {}
+            output['duration'] = str(round(duration))
+            return output
+
+          raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+  - name: DeleteOldDatabase
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: rds
+      Api: DeleteDBInstance
+      DBInstanceIdentifier: "{{DbInstanceIdentifier}}-old-{{RestoreDbInstance.ExecutionId}}"
+      SkipFinalSnapshot: True
+    isEnd: true

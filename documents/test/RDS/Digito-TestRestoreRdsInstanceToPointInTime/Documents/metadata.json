@@ -1,0 +1,7 @@
+{
+  "documentName": "Digito-TestRestoreRdsInstanceToPointInTime",
+  "documentType": "Automation",
+  "documentContentPath": "Digito-TestRestoreRdsInstanceToPointInTime.yml",
+  "documentFormat": "YAML",
+  "dependsOn": "Digito-RestoreRdsInstanceToPointInTime"
+}

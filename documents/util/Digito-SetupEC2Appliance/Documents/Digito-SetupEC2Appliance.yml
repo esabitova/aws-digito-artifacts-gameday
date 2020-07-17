@@ -1,0 +1,136 @@
+---
+description: 'Add network latency using EC2 NAT Instance for injecting network errors'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  SubnetId:
+    type: String
+    description: (Required) Subnet id for the instance.
+  SecurityGroup:
+    type: String
+    description: (Required) Security group for the instance.
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Required) The ARN of the role that allows Automation to perform the
+      actions on your behalf.
+  IamInstanceProfileArn:
+    type: String
+    description: >-
+      (Optional) Arn of IAM instance profile with access to AmazonSSMManagedInstanceCore policy.
+    default: 'arn:aws:iam::{{global:ACCOUNT_ID}}:instance-profile/AmazonSSMRoleForInstancesQuickSetup'
+  InstanceType:
+    type: String
+    description: (Optional) Instance type for the instance.
+    default: 't2.micro'
+  LatestAmi:
+    type: String
+    default: 'ami-009816cdbb1e74ceb'
+    description: (Optional) Ami for nat instance.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Provide true to cleanup appliance created in previous execution.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+outputs:
+  - CreateEC2Appliance.InstanceIds
+mainSteps:
+  -
+    name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: CreateEC2Appliance
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: SelectCleanupScript
+  -
+    name: CreateEC2Appliance
+    action: 'aws:runInstances'
+    maxAttempts: 3
+    timeoutSeconds: 1200
+    onFailure: Abort
+    inputs:
+      ImageId: '{{LatestAmi}}'
+      InstanceType: '{{InstanceType}}'
+      MinInstanceCount: 1
+      MaxInstanceCount: 1
+      IamInstanceProfileArn: '{{IamInstanceProfileArn}}'
+      NetworkInterfaces:
+      - DeviceIndex: 0
+        SubnetId: '{{SubnetId}}'
+        AssociatePublicIpAddress: True
+        Groups:
+        - '{{SecurityGroup}}'
+      TagSpecifications:
+      - ResourceType: instance
+        Tags:
+        - Key: Name
+          Value: DigitoNatInstance
+  - name: ConfigureApplianceDisableSourceDestCheck
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: 'step:SelectCleanupScript'
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      InputPayload:
+        InstanceIds: '{{CreateEC2Appliance.InstanceIds}}'
+      Script: |-
+        import boto3
+        def script_handler(events, context):
+          ec2 = boto3.client('ec2')
+          for instanceId in events['InstanceIds']:
+            ec2.modify_instance_attribute(
+              SourceDestCheck={
+                'Value': False
+              },
+              InstanceId=instanceId
+            )
+    isEnd: true
+  - name: SelectCleanupScript
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: GetInstanceIdsPreviousExecution
+          Variable: '{{IsRollback}}'
+          StringEquals: 'true'
+      Default: CleanupCurrentExecution
+  - name: CleanupCurrentExecution
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: ec2
+      Api: terminate_instances
+      InstanceIds: '{{CreateEC2Appliance.InstanceIds}}'
+    isEnd: true
+  - name: GetInstanceIdsPreviousExecution
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: InstanceIds
+        Selector: $.Payload.InstanceIds
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'CreateEC2Appliance'
+        ResponseField: 'InstanceIds'
+      Attachment: digito_gameday_primitives.zip
+  - name: CleanupPreviousExecution
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: ec2
+      Api: terminate_instances
+      InstanceIds:
+      - '{{GetInstanceIdsPreviousExecution.InstanceIds}}'
+    isEnd: true

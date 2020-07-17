@@ -1,0 +1,6 @@
+{
+    "documentName": "Digito-FailoverRdsInstance",
+    "documentType": "Automation",
+    "documentContentPath": "Digito-FailoverRdsInstance.yml",
+    "documentFormat": "YAML"
+}

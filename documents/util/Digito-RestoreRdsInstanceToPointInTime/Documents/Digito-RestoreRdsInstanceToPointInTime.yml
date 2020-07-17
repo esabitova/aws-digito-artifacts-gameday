@@ -1,0 +1,62 @@
+---
+description: 'Restore Rds Instance to point in time SOP'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  DbInstanceIdentifier:
+    type: String
+    description: (Required) The identifier for the db instance.
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Optional) The ARN of the role that allows Automation to perform the
+      actions on your behalf.
+    default: ''
+mainSteps:
+  - name: RestoreToPointInTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryPoint
+        Selector: $.Payload.RecoveryPoint
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: rds_util.restore_to_pit
+      InputPayload:
+        DbInstanceIdentifier: '{{DbInstanceIdentifier}}'
+        TargetDbInstanceIdentifier: '{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: WaitForNewDatabaseToBeAvailable
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      Service: rds
+      Api: DescribeDBInstances
+      DBInstanceIdentifier: "{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}"
+      PropertySelector: "$.DBInstances[0].DBInstanceStatus"
+      DesiredValues: ["available"]
+  - name: RenamePreviousDatabaseToOld
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: rds
+      Api: ModifyDBInstance
+      DBInstanceIdentifier: "{{DbInstanceIdentifier}}"
+      NewDBInstanceIdentifier: "{{DbInstanceIdentifier}}-old-{{automation:EXECUTION_ID}}"
+      ApplyImmediately: True
+  - name: WaitForDatabaseToBeRenamed
+    action: 'aws:sleep'
+    inputs:
+      Duration: 'PT2M'
+  - name: RenameNewDatabaseToExisting
+    action: 'aws:executeAwsApi'
+    maxAttempts: 10
+    inputs:
+      Service: rds
+      Api: ModifyDBInstance
+      DBInstanceIdentifier: "{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}"
+      NewDBInstanceIdentifier: "{{DbInstanceIdentifier}}"
+      ApplyImmediately: True
+    isEnd: true
