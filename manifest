@@ -1,4 +1,6 @@
 Digito-FailoverRdsInstance
 Digito-AuroraFailoverCluster
 Digito-AddNetworkLatencyUsingAppliance
+Digito-AddNetworkLatencyFromAsg
+Digito-AddNetworkLatencyFromAsgUsingAppliance
 Digito-TestRestoreRdsInstanceToPointInTime

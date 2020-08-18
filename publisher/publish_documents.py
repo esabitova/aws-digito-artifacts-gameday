@@ -158,7 +158,10 @@ class PublishDocuments:
         for file in files:
             document_metadata = self.read_metadata(file)
             if ('dependsOn' in document_metadata and document_metadata['documentName'] in desiredDocumentsList):
-                desiredDocumentsList.extend(document_metadata['dependsOn'].split(','))
+                dependent_documents = document_metadata['dependsOn'].split(',')
+                for dependent_document in dependent_documents:
+                    if (dependent_document not in desiredDocumentsList):
+                        desiredDocumentsList.append(dependent_document)
 
         logger.info('Desired documents list including required documents : %s' % desiredDocumentsList)
         for file in files:

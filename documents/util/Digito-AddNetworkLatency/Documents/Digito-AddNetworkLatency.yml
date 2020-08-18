@@ -9,15 +9,42 @@ parameters:
   DelayInMs:
     type: String
     description: The delay to add to the interface in milliseconds.
-    default: "200"
+    default: "20"
   DurationInMinutes:
     type: String
-    description: The duration - in minutes - of the attack. (Required)
+    description: The duration - in minutes - of the attack. Default 1 minute.
     default: "1"
+  IpAddressRanges:
+    type: String
+    description: The ip address range of dependency. Default all destination 0.0.0.0/0
+    default: "0.0.0.0/0"
 mainSteps:
   - action: aws:runShellScript
-    name: ChaosLatencyAttack
+    name: LatencyAttack
+    precondition:
+      StringEquals:
+        - platformType
+        - Linux
     inputs:
       runCommand:
-        - echo "tc qdisc del dev {{ Interface }} root netem delay {{ DelayInMs }}ms" | at now + {{ DurationInMinutes }} minutes
-        - tc qdisc add dev {{ Interface }} root netem delay {{ DelayInMs }}ms
+        - "#!/bin/bash"
+        - "sudo yum -y install tc"
+        - "priority=0"
+        - "# Schedule cleanup scripts using at to be executed after test duration"
+        - "for ipAddressRange in {{IpAddressRanges}}"
+        - "do"
+        - "  echo $ipAddressRange"
+        - "  priority=$((priority+1))"
+        - "  echo \"tc filter del dev {{ Interface }} protocol ip parent 1:0 prio $priority u32 match ip dst $ipAddressRange flowid 1:1\" | at now + {{ DurationInMinutes }} minutes"
+        - "done"
+        - "echo \"tc qdisc del dev {{ Interface }} parent 1:1 handle 10: netem delay {{ DelayInMs }}ms\" | at now + {{ DurationInMinutes }} minutes"
+        - "echo \"tc qdisc del dev {{ Interface }} root handle 1: prio priomap 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2\" | at now + {{ DurationInMinutes }} minutes"
+        - "# Start doing setup for adding latency"
+        - "tc qdisc add dev {{ Interface }} root handle 1: prio priomap 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2"
+        - "tc qdisc add dev {{ Interface }} parent 1:1 handle 10: netem delay {{ DelayInMs }}ms"
+        - "priority=0"
+        - "for ipAddressRange in {{IpAddressRanges}}"
+        - "do"
+        - "  priority=$((priority+1))"
+        - "  tc filter add dev {{ Interface }} protocol ip parent 1:0 prio $priority u32 match ip dst $ipAddressRange flowid 1:1"
+        - "done"

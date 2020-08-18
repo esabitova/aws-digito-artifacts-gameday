@@ -1,0 +1,119 @@
+---
+description: 'Add network latency to EC2 instances behind ASG. TODO Add link to spec'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  AutoScalingGroupName:
+    type: String
+    description: (Required) Name of AutoScalingGroup.
+  NetworkLatencyDurationMinutes:
+    type: String
+    description: (Required) Duration of network latency test.
+  NetworkLatencyDelayMs:
+    type: String
+    description: (Required) Network delay to be added in ms.
+  AwsServiceName:
+    type: String
+    description: (Optional) Valid AWS Service from https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html to which latency will be added.
+    default: ''
+  DestinationIpAddressRanges:
+    type: String
+    description: (Optional) Destination ip address to which latency will be added.
+    default: ''
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Provide true to cleanup appliance created in previous execution.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: GetIpAddressRanges
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: IpAddressRanges
+        Selector: $.Payload.IpAddressRanges
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ip_ranges_util.get_ip_ranges
+      InputPayload:
+        AwsServiceName: '{{AwsServiceName}}'
+        DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        Region: '{{global:REGION}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: GetInstanceIdsInAsg
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: GetPreviousExecutionDetails
+  - name: GetInstanceIdsInAsg
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: InstanceIds
+        Selector: $.Payload.InstanceIds
+        Type: StringList
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.get_instance_ids_in_asg
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: AddNetworkLatency
+    action: 'aws:runCommand'
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-AddNetworkLatency
+      InstanceIds:
+        - '{{GetInstanceIdsInAsg.InstanceIds}}'
+      Parameters:
+        DurationInMinutes: '{{NetworkLatencyDurationMinutes}}'
+        DelayInMs: '{{NetworkLatencyDelayMs}}'
+        IpAddressRanges: '{{GetIpAddressRanges.IpAddressRanges}}'
+  - name: WaitForTestCompletion
+    action: 'aws:sleep'
+    onFailure: Abort
+    inputs:
+      Duration: 'PT{{NetworkLatencyDurationMinutes}}M'
+    isEnd: true
+  - name: GetPreviousExecutionDetails
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: InstanceIds
+        Selector: $.Payload.InstanceIds
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'GetInstanceIdsInAsg'
+        ResponseField: 'InstanceIds'
+      Attachment: digito_gameday_primitives.zip
+  - name: RemoveNetworkLatency
+    action: 'aws:runCommand'
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-RemoveNetworkLatency
+      InstanceIds:
+        - '{{GetPreviousExecutionDetails.InstanceIds}}'
+      Parameters:
+        DurationInMinutes: '{{NetworkLatencyDurationMinutes}}'
+        DelayInMs: '{{NetworkLatencyDelayMs}}'
+        IpAddressRanges: '{{GetIpAddressRanges.IpAddressRanges}}'
+    isEnd: true

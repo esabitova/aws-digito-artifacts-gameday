@@ -2,12 +2,12 @@
 This package provides SSM documents for injecting failures in different aws resources.
 
 # Publishing Documents
-* Use below command to publish all documents in us-west-2 region to your account
-python publisher/publish_documents.py --region us-west-2
+* Use below command to publish all documents in us-west-2 region to your account. Needs python3.6 or later
+python3 publisher/publish_documents.py --region us-west-2
 
 * Use below command to publish limited number of documents in different file. We will provide this file during
   recommendations for relevant test documents
-python publisher/publish_documents.py --region us-west-2 --file-name ec2-manifest --log-level INFO
+python3 publisher/publish_documents.py --region us-west-2 --file-name ec2-manifest --log-level INFO
 
 * Setting up automated publish to account
   TBD. Setup CodeBuild process for publishing documents automatically to account when there is a change
