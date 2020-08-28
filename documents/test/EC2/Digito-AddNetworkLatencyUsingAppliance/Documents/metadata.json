@@ -4,5 +4,6 @@
     "documentContentPath": "Digito-AddNetworkLatencyUsingAppliance.yml",
     "documentFormat": "YAML",
     "attachments": "digito_gameday_primitives.zip",
-    "dependsOn": "Digito-SetupEC2Appliance,Digito-RouteThroughAppliance,Digito-AddNetworkLatency"
+    "dependsOn": "Digito-SetupEC2Appliance,Digito-RouteThroughAppliance,Digito-AddNetworkLatency",
+    "tag": "tbd"
 }

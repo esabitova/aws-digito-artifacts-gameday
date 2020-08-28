@@ -29,19 +29,20 @@ class PublishDocuments:
             name = document_metadata['documentName']
             type = document_metadata['documentType']
             format = document_metadata['documentFormat']
+            tag_value = document_metadata['tag']
             s3AttachmentUrl = None
             document_content = self.get_document_content(document_metadata)
             if ('attachments' in document_metadata):
                 s3AttachmentUrl = 'https://s3.amazonaws.com/' + self.get_bucket_name() + '/' + SCRIPT_ZIP_FILE_NAME
             if (self.document_exists(name)):
                 if (self.has_document_content_changed(name, format, document_content)):
-                    update_document_version = self.update_document(name, document_content, format, s3AttachmentUrl)
+                    update_document_version = self.update_document(name, document_content, format, s3AttachmentUrl, tag_value)
                     self.update_document_default_version(name, update_document_version)
                     logger.info('Updated document %s' % name)
                 else:
                     logger.info('Document content has not changed for document name, %s' % name)
             else:
-                self.create_document(name, document_content, type, format, s3AttachmentUrl)
+                self.create_document(name, document_content, type, format, s3AttachmentUrl, tag_value)
                 logger.info('Created document %s' % name)
 
     def get_document_content(self, document_metadata):
@@ -52,13 +53,19 @@ class PublishDocuments:
 
             return document_content
 
-    def create_document(self, name, content, type, format, s3AttachmentUrl):
+    def create_document(self, name, content, type, format, s3AttachmentUrl, tag_value):
         if (s3AttachmentUrl == None):
             self.ssm.create_document(
                 Content = content,
                 Name = name,
                 DocumentType = type,
-                DocumentFormat = format
+                DocumentFormat = format,
+                Tags=[
+                    {
+                        'Key': 'Digito-reference-id',
+                        'Value': tag_value
+                    },
+                ]
             )
         else:
             self.ssm.create_document(
@@ -74,10 +81,16 @@ class PublishDocuments:
                 ],
                 Name = name,
                 DocumentType = type,
-                DocumentFormat = format
+                DocumentFormat = format,
+                Tags=[
+                    {
+                        'Key': 'Digito-reference-id',
+                        'Value': tag_value
+                    },
+                ]
             )
 
-    def update_document(self, name, content, format, s3AttachmentUrl):
+    def update_document(self, name, content, format, s3AttachmentUrl, tagValue):
         update_document_response = {}
 
         if (s3AttachmentUrl == None):
@@ -104,6 +117,16 @@ class PublishDocuments:
                 DocumentFormat = format
             )
 
+        self.ssm.add_tags_to_resource(
+            ResourceType='Document',
+            ResourceId=name,
+            Tags=[
+                {
+                    'Key': 'Digito-reference-id',
+                    'Value': tagValue
+                },
+            ]
+        )
         return update_document_response['DocumentDescription']['DocumentVersion']
 
     def update_document_default_version(self, name, version):

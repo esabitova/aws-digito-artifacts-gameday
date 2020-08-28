@@ -4,5 +4,6 @@
   "documentContentPath": "Digito-AddNetworkLatencyFromAsgUsingAppliance.yml",
   "documentFormat": "YAML",
   "attachments": "digito_gameday_primitives.zip",
-  "dependsOn": "Digito-AddNetworkLatencyUsingAppliance"
+  "dependsOn": "Digito-AddNetworkLatencyUsingAppliance",
+  "tag": "tbd"
 }

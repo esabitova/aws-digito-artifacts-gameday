@@ -39,6 +39,8 @@ LAUNCH_CONFIGURATION_NAME = 'launchConfigurationName'
 ACCOUNT_ID = '123456789123'
 VPC_ID = 'vpc-12345'
 PUBLIC_SUBNET_ID = 'subnet-public'
+INSTANCE_REFRESH_ID = 'refresh-id'
+AZ_USW2A = 'us-west-2a'
 
 def get_sample_ssm_execution_response():
     step_execution_outputs = {}
@@ -177,6 +179,41 @@ def get_sample_describe_auto_scaling_groups_response():
 
     return describe_auto_scaling_groups_response
 
+def get_sample_describe_auto_scaling_groups_response():
+    describe_auto_scaling_groups_response = {}
+
+    instance = {}
+    instance['InstanceId'] = INSTANCE_ID
+    instance['AvailabilityZone'] = AZ_USW2A
+
+    auto_scaling_group = {}
+    auto_scaling_group['Instances'] = [instance]
+    auto_scaling_group['VPCZoneIdentifier'] = SUBNET_GROUPS
+    auto_scaling_group['LaunchConfigurationName'] = LAUNCH_CONFIGURATION_NAME
+    auto_scaling_group['SuspendedProcesses'] = []
+
+    describe_auto_scaling_groups_response['AutoScalingGroups'] = [auto_scaling_group]
+
+    return describe_auto_scaling_groups_response
+
+def get_sample_describe_auto_scaling_groups_response_with_suspended_processes():
+    describe_auto_scaling_groups_response = {}
+
+    instance = {}
+    instance['InstanceId'] = INSTANCE_ID
+
+    auto_scaling_group = {}
+    auto_scaling_group['Instances'] = [instance]
+    auto_scaling_group['VPCZoneIdentifier'] = SUBNET_GROUPS
+    auto_scaling_group['LaunchConfigurationName'] = LAUNCH_CONFIGURATION_NAME
+
+    suspended_process = {}
+    auto_scaling_group['SuspendedProcesses'] = [suspended_process]
+
+    describe_auto_scaling_groups_response['AutoScalingGroups'] = [auto_scaling_group]
+
+    return describe_auto_scaling_groups_response
+
 def get_sample_describe_launch_configurations_response():
     launch_configurations_response = {}
 
@@ -211,3 +248,13 @@ def get_sample_describe_subnets_response():
 
     describe_subnets_response['Subnets'] = [subnet]
     return describe_subnets_response
+
+def get_sample_describe_instance_refreshes_response(status):
+    describe_instance_refreshes_response = {}
+
+    instance_refresh = {}
+    instance_refresh['Status'] = status
+    instance_refresh['InstanceRefreshId'] = INSTANCE_REFRESH_ID
+
+    describe_instance_refreshes_response['InstanceRefreshes'] = [instance_refresh]
+    return describe_instance_refreshes_response

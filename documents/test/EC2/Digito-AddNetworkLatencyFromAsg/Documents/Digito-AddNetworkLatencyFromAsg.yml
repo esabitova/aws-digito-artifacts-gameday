@@ -1,5 +1,5 @@
 ---
-description: 'Add network latency to EC2 instances behind ASG. TODO Add link to spec'
+description: 'Add network latency to EC2 instances behind ASG.'
 schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
@@ -31,8 +31,7 @@ parameters:
     default: 'false'
   PreviousExecutionId:
     type: String
-    description: >-
-      (Optional) Previous execution id for which resources need to be cleaned up.
+    description: (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
 mainSteps:
   - name: GetIpAddressRanges

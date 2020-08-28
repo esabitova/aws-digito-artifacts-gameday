@@ -1,0 +1,107 @@
+---
+description: 'Test that the application stays up even if all instances are replaced. This proves that the app will work even with fresh installs.'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  AutoScalingGroupName:
+    type: String
+    description: (Required) Name of AutoScalingGroup.
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should stay green during this test.
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  PercentageOfInstances:
+    type: Integer
+    description: (Optional) Percentage of instances to replace at once.
+    default: 20
+  IsRollback:
+    type: String
+    description: (Optional) Provide true to cleanup appliance created in previous execution.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: AssertNoSuspendedProcesses
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.assert_no_suspended_process
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: AssertNoRefreshInProgress
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.assert_no_refresh_in_progress
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: StartInstanceRefresh
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: CancelInstanceRefresh
+  - name: StartInstanceRefresh
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: InstanceRefreshId
+        Selector: $.Payload.InstanceRefreshId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.start_instance_refresh
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+        PercentageOfInstances: '{{PercentageOfInstances}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: WaitForRefreshToFinish
+    action: 'aws:executeScript'
+    onFailure: 'step:CancelInstanceRefresh'
+    maxAttempts: 10
+    timeoutSeconds: 900
+    onFailure: Abort
+    outputs:
+      - Name: InstanceRefreshStatus
+        Selector: $.Payload.InstanceRefreshStatus
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.wait_for_refresh_to_finish
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+        InstanceRefreshId: '{{StartInstanceRefresh.InstanceRefreshId}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: AssertAlarmToBeGreen
+    action: aws:assertAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+      - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+    isEnd: true
+  - name: CancelInstanceRefresh
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.cancel_instance_refresh
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      Attachment: digito_gameday_primitives.zip
+    isEnd: true
