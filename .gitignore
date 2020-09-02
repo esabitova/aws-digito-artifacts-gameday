@@ -1,0 +1,7 @@
+digito_gameday_primitives.zip
+AwsDigitoSsmDocumentSamples.iml
+documents/util/scripts/documentation/
+documents/util/scripts/.coverage*
+documents/util/scripts/test/__pycache__/
+documents/util/scripts/src/__pycache__/
+documents/util/scripts/src/AwsDigitoSsmDocumentSamples.egg-info

@@ -26,11 +26,12 @@ parameters:
     type: String
     description: (Optional) The DB instance to promote to the primary instance.
     default: ''
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should be green after test.
   AutomationAssumeRole:
     type: String
-    description: >-
-      (Optional) The ARN of the role that allows Automation to perform the
-      actions on your behalf.
+    description: (Optional) The ARN of the role that allows Automation to perform the actions on your behalf.
     default: ''
 mainSteps:
   - name: WaitForAvailableStateBeforeFailover
@@ -79,4 +80,17 @@ mainSteps:
       PropertySelector: '$.DBClusters[0].Status'
       DesiredValues:
         - available
+  - name: WaitForAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+      - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
     isEnd: true
+

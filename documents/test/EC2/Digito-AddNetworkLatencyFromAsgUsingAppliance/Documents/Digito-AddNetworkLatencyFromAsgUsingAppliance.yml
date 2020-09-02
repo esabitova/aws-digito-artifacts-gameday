@@ -1,0 +1,141 @@
+---
+description: 'Add network latency to EC2 instances behind ASG.'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  AutoScalingGroupName:
+    type: String
+    description: (Required) Name of AutoScalingGroup.
+  NetworkLatencyDurationMinutes:
+    type: String
+    description: (Required) Duration of network latency test.
+  NetworkLatencyDelayMs:
+    type: String
+    description: (Required) Network delay to be added in ms.
+  AwsServiceName:
+    type: String
+    description: (Optional) Valid AWS Service from https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html to which latency will be added.
+    default: ''
+  DestinationIpAddressRanges:
+    type: String
+    description: (Optional) Destination ip address to which latency will be added.
+    default: ''
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Provide true to cleanup appliance created in previous execution.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: GetNetworkingConfigurationOfAsg
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: SubnetIds
+        Selector: $.Payload.SubnetIds
+        Type: StringList
+      - Name: SecurityGroup
+        Selector: $.Payload.SecurityGroup
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: asg_util.get_networking_configuration_from_asg
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: GetPublicSubnetIdInAsgVpc
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: PublicSubnetId
+        Selector: $.Payload.PublicSubnetId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: vpc_util.get_public_subnet_in_private_subnet_vpc
+      InputPayload:
+        SubnetIds: '{{GetNetworkingConfigurationOfAsg.SubnetIds}}'
+      Attachment: digito_gameday_primitives.zip
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: AddNetworkLatencyUsingAppliance
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: GetPreviousExecutionDetails
+  - name: AddNetworkLatencyUsingAppliance
+    action: 'aws:executeAutomation'
+    onFailure: 'step:CleanupCurrentExecution'
+    inputs:
+      DocumentName: Digito-AddNetworkLatencyUsingAppliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        ApplianceSubnetId: '{{GetPublicSubnetIdInAsgVpc.PublicSubnetId}}'
+        ApplianceSecurityGroup: '{{GetNetworkingConfigurationOfAsg.SecurityGroup}}'
+        ApplicationSubnetIds: '{{GetNetworkingConfigurationOfAsg.SubnetIds}}'
+        NetworkLatencyDurationMinutes: '{{NetworkLatencyDurationMinutes}}'
+        NetworkLatencyDelayMs: '{{NetworkLatencyDelayMs}}'
+        AwsServiceName: '{{AwsServiceName}}'
+        DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+    isEnd: true
+  - name: CleanupCurrentExecution
+    action: 'aws:executeAutomation'
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-AddNetworkLatencyUsingAppliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        ApplianceSubnetId: '{{GetPublicSubnetIdInAsgVpc.PublicSubnetId}}'
+        ApplianceSecurityGroup: '{{GetNetworkingConfigurationOfAsg.SecurityGroup}}'
+        ApplicationSubnetIds: '{{GetNetworkingConfigurationOfAsg.SubnetIds}}'
+        NetworkLatencyDurationMinutes: '{{NetworkLatencyDurationMinutes}}'
+        NetworkLatencyDelayMs: '{{NetworkLatencyDelayMs}}'
+        AwsServiceName: '{{AwsServiceName}}'
+        DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        IsRollback: true
+        PreviousExecutionId: '{{AddNetworkLatencyUsingAppliance.ExecutionId}}'
+    isEnd: true
+  - name: GetPreviousExecutionDetails
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    outputs:
+      - Name: ExecutionId
+        Selector: $.Payload.ExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'AddNetworkLatencyUsingAppliance'
+        ResponseField: 'ExecutionId'
+      Attachment: digito_gameday_primitives.zip
+  - name: CleanupPreviousExecution
+    action: 'aws:executeAutomation'
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-AddNetworkLatencyUsingAppliance
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        ApplianceSubnetId: '{{GetPublicSubnetIdInAsgVpc.PublicSubnetId}}'
+        ApplianceSecurityGroup: '{{GetNetworkingConfigurationOfAsg.SecurityGroup}}'
+        ApplicationSubnetIds: '{{GetNetworkingConfigurationOfAsg.SubnetIds}}'
+        NetworkLatencyDurationMinutes: '{{NetworkLatencyDurationMinutes}}'
+        NetworkLatencyDelayMs: '{{NetworkLatencyDelayMs}}'
+        AwsServiceName: '{{AwsServiceName}}'
+        DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        IsRollback: true
+        PreviousExecutionId: '{{GetPreviousExecutionDetails.ExecutionId}}'
+    isEnd: true
