@@ -5,3 +5,9 @@ documents/util/scripts/.coverage*
 documents/util/scripts/test/__pycache__/
 documents/util/scripts/src/__pycache__/
 documents/util/scripts/src/AwsDigitoSsmDocumentSamples.egg-info
+.coverage
+.idea/
+FETCH_HEAD
+documents/test/RDS/FailoverAuroraCluster/Tests/__pycache__/
+mainline
+publisher/__pycache__/
