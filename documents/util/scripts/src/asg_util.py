@@ -141,7 +141,7 @@ def assert_no_refresh_in_progress(events, context):
     for instance_refresh in instance_refreshes['InstanceRefreshes']:
         if instance_refresh ['Status'] in ['Pending', 'InProgress', 'Cancelling']:
             raise Exception('Instance refresh in progress, refresh status %, refresh id %',
-                instance_refresh_status['InstanceRefreshes'][0]['Status'], instance_refresh_status['InstanceRefreshes'][0]['InstanceRefreshId'])
+                instance_refreshes['InstanceRefreshes'][0]['Status'], instance_refreshes['InstanceRefreshes'][0]['InstanceRefreshId'])
 
 def assert_no_suspended_process(events, context):
     if 'AutoScalingGroupName' not in events:
