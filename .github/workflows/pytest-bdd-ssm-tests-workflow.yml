@@ -34,6 +34,10 @@ jobs:
         pip install pytest_bdd
         pip install pytest_html
         pip install pytest-cov
+        cd ./documents/util/scripts
+        pip install -r ./requirements.txt
+        cd ../../..
+        
     #- name: Lint with flake8
       #run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -45,6 +49,7 @@ jobs:
 
         cd ./documents/util/scripts
         pytest --cov=src/ --cov-report term --cov-report html
+        cd ../../..
         
         mkdir -p ~/.aws
         touch ~/.aws/credentials
@@ -53,7 +58,9 @@ jobs:
         aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" > ~/.aws/credentials
         BUCKET_ID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
         aws s3api create-bucket --bucket $BUCKET_ID --region us-west-2 --create-bucket-configuration LocationConstraint=us-west-2
+        
         aws s3 cp ./documentation/coverage/ s3://$BUCKET_ID/ --region us-west-2 --recursive > ./aws.log
+        
         rm -rf ~/.aws
         
         echo "====================== Coverage Report ================="
