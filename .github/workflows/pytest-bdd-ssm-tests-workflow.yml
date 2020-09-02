@@ -57,9 +57,10 @@ jobs:
         aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" > ~/.aws/credentials
         BUCKET_ID=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
-        aws s3api create-bucket --bucket $BUCKET_ID --region us-west-2 --create-bucket-configuration LocationConstraint=us-west-2
         
-        aws s3 cp ./documentation/coverage/ s3://$BUCKET_ID/ --region us-west-2 --recursive > ./aws.log
+        # aws s3api create-bucket --bucket $BUCKET_ID --region us-west-2 --create-bucket-configuration LocationConstraint=us-west-2
+        
+        # aws s3 cp ./documentation/coverage/ s3://$BUCKET_ID/ --region us-west-2 --recursive > ./aws.log
         
         rm -rf ~/.aws
         
