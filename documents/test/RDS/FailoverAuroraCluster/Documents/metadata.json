@@ -2,5 +2,6 @@
     "documentName": "Digito-AuroraFailoverCluster",
     "documentType": "Automation",
     "documentContentPath": "Digito-AuroraFailoverCluster.yml",
-    "documentFormat": "YAML"
+    "documentFormat": "YAML",
+    "tag": "rds:test:force_aurora_failover:2020/04/01"
 }

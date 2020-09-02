@@ -15,13 +15,16 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: 'Failover RDS instance'
+description: 'Test that the application automatically recovers in case of an automatic MAZ failover'
 schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
   DbInstanceId:
     type: String
     description: (Required) Identifies the db instance subject to action.
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should be green after test.
   AutomationAssumeRole:
     type: String
     description: >-
@@ -29,36 +32,45 @@ parameters:
       actions on your behalf.
     default: ''
 mainSteps:
--
-  name: AssertNotRebooting
-  action: aws:assertAwsResourceProperty
-  isCritical: false
-  onFailure: step:RebootDbInstanceWithFailover
-  nextStep: WaitForAvailableState
-  inputs:
-    Service: rds
-    Api: DescribeDBInstances
-    DBInstanceIdentifier: "{{DbInstanceId}}"
-    PropertySelector: "$.DBInstances[0].DBInstanceStatus"
-    DesiredValues: ["rebooting"]
--
-  name: RebootDbInstanceWithFailover
-  action: aws:executeAwsApi
-  inputs:
-    Service: rds
-    Api: RebootDBInstance
-    DBInstanceIdentifier: "{{DbInstanceId}}"
-    ForceFailover: true
--
-  name: WaitForAvailableState
-  action: aws:waitForAwsResourceProperty
-  maxAttempts: 10
-  timeoutSeconds: 600
-  onFailure: Abort
-  inputs:
-    Service: rds
-    Api: DescribeDBInstances
-    DBInstanceIdentifier: "{{DbInstanceId}}"
-    PropertySelector: "$.DBInstances[0].DBInstanceStatus"
-    DesiredValues: ["available"]
-  isEnd: true
+  - name: AssertNotRebooting
+    action: aws:assertAwsResourceProperty
+    isCritical: false
+    onFailure: step:RebootDbInstanceWithFailover
+    nextStep: WaitForAvailableState
+    inputs:
+      Service: rds
+      Api: DescribeDBInstances
+      DBInstanceIdentifier: "{{DbInstanceId}}"
+      PropertySelector: "$.DBInstances[0].DBInstanceStatus"
+      DesiredValues: ["rebooting"]
+  - name: RebootDbInstanceWithFailover
+    action: aws:executeAwsApi
+    inputs:
+      Service: rds
+      Api: RebootDBInstance
+      DBInstanceIdentifier: "{{DbInstanceId}}"
+      ForceFailover: true
+  - name: WaitForAvailableState
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      Service: rds
+      Api: DescribeDBInstances
+      DBInstanceIdentifier: "{{DbInstanceId}}"
+      PropertySelector: "$.DBInstances[0].DBInstanceStatus"
+      DesiredValues: ["available"]
+  - name: WaitForAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+      - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+    isEnd: true

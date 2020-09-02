@@ -23,10 +23,6 @@ parameters:
     type: String
     description: (Optional) Instance type for the instance.
     default: 't2.micro'
-  LatestAmi:
-    type: String
-    default: 'ami-009816cdbb1e74ceb'
-    description: (Optional) Ami for nat instance.
   IsRollback:
     type: String
     description: >-
@@ -45,10 +41,23 @@ mainSteps:
     action: 'aws:branch'
     inputs:
       Choices:
-        - NextStep: CreateEC2Appliance
+        - NextStep: GetNatInstanceAmi
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
       Default: SelectCleanupScript
+  -
+    name: GetNatInstanceAmi
+    action: 'aws:executeScript'
+    outputs:
+      - Name: AmiId
+        Selector: $.Payload.AmiId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ami_util.get_ami_id
+      InputPayload:
+        AmiName: 'amzn-ami-vpc-nat-2018.03.0.20200206.0-x86_64-ebs'
+      Attachment: digito_gameday_primitives.zip
   -
     name: CreateEC2Appliance
     action: 'aws:runInstances'
@@ -56,7 +65,7 @@ mainSteps:
     timeoutSeconds: 1200
     onFailure: Abort
     inputs:
-      ImageId: '{{LatestAmi}}'
+      ImageId: '{{GetNatInstanceAmi.AmiId}}'
       InstanceType: '{{InstanceType}}'
       MinInstanceCount: 1
       MaxInstanceCount: 1

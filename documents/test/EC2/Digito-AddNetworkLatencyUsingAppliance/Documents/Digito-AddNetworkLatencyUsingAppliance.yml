@@ -18,6 +18,14 @@ parameters:
   NetworkLatencyDelayMs:
     type: String
     description: (Required) Network delay to be added in ms.
+  AwsServiceName:
+    type: String
+    description: (Optional) Valid AWS Service from https://docs.aws.amazon.com/general/latest/gr/aws-ip-ranges.html to which latency will be added.
+    default: ''
+  DestinationIpAddressRanges:
+    type: StringList
+    description: (Optional) Destination ip address to which latency will be added.
+    default: []
   AutomationAssumeRole:
     type: String
     description: >-
@@ -33,14 +41,40 @@ parameters:
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
 mainSteps:
+  - name: GetIpAddressRanges
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: IpAddressRanges
+        Selector: $.Payload.IpAddressRanges
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: ip_ranges_util.get_ip_ranges
+      InputPayload:
+        AwsServiceName: '{{AwsServiceName}}'
+        DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        Region: '{{global:REGION}}'
+      Attachment: digito_gameday_primitives.zip
   - name: SelectExecutionMode
     action: 'aws:branch'
     inputs:
       Choices:
-        - NextStep: CreateEC2Appliance
+        - NextStep: ConfigureSecurityGroupToAllowAccessToSelf
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
       Default: SelectCleanupScript
+  - name: ConfigureSecurityGroupToAllowAccessToSelf
+    action: 'aws:executeScript'
+    maxAttempts: 2
+    onFailure: Abort
+    inputs:
+      Runtime: python3.6
+      Handler: security_group_util.allow_access_to_self
+      InputPayload:
+        SecurityGroupId: '{{ApplianceSecurityGroup}}'
+        AccountId: '{{global:ACCOUNT_ID}}'
+      Attachment: digito_gameday_primitives.zip
   - name: CreateEC2Appliance
     action: 'aws:executeAutomation'
     onFailure: 'step:SelectCleanupScript'
@@ -69,7 +103,8 @@ mainSteps:
       Parameters:
         DurationInMinutes: '{{NetworkLatencyDurationMinutes}}'
         DelayInMs: '{{NetworkLatencyDelayMs}}'
-  - name: Sleep
+        IpAddressRanges: '{{GetIpAddressRanges.IpAddressRanges}}'
+  - name: WaitForTestCompletion
     action: 'aws:sleep'
     onFailure: 'step:SelectCleanupScript'
     inputs:
