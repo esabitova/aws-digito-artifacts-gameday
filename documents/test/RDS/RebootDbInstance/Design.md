@@ -1,19 +1,19 @@
-# https://github.com/aws-samples/aws-digito-artifacts-spec/blob/master/components/databases/rds/rds-gameday.adoc#test---force-maz-failover
+# https://github.com/aws-samples/aws-digito-artifacts-spec/blob/master/components/databases/rds/rds-gameday.adoc#test---recover-from-rds-reboot
 
 # Id
-rds:test:force_maz_failover:2020-04-01
+rds:test:instance_reboot:2020-04-01
 
 ## Intent
 Test that the application automatically recovers in case of an automatic MAZ failover
 
 ## Type
-AZ Failure Test
+HW Instance Failure Test
 
 ## Risk
-Medium
+Small
 
 ## Requirements
-* RDS database with maz setup
+* RDS database
 * There is a synthetic alarm setup for application
 * Application should be able to reconnect to db instance after temporary network errors.
 
@@ -38,7 +38,7 @@ No.
   * Type: String
 
 ## Details
-  * Force MAZ failover (reboot with failover)
+  * Reboot db instance
   * Wait for instance to come back up.
   * Verify that Synthetic monitor turns green within x minutes.
 

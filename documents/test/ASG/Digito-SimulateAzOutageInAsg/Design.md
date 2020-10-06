@@ -1,7 +1,7 @@
 # https://github.com/aws-samples/aws-digito-artifacts-spec/blob/master/components/compute/stateless/compute-stateless-gameday.adoc#test---availability-zone-outage-asg 
 
 # Id
-stateless_compute:test:asg-availability_zone_outage:2020/07/23
+stateless_compute:test:asg-availability_zone_outage:2020-07-23
 
 ## Intent
 Test that the application can withstand az outage in ASG

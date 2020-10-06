@@ -70,7 +70,6 @@ mainSteps:
     onFailure: 'step:CancelInstanceRefresh'
     maxAttempts: 10
     timeoutSeconds: 900
-    onFailure: Abort
     outputs:
       - Name: InstanceRefreshStatus
         Selector: $.Payload.InstanceRefreshStatus

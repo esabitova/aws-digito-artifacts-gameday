@@ -1,6 +1,6 @@
 # https://github.com/aws-samples/aws-digito-artifacts-spec/blob/master/components/compute/stateless/compute-stateless-gameday.adoc#test---recover-after-all-nodes-replaced
 # Id
-stateless_compute:test:asg-node_replace:2020/07/23
+stateless_compute:test:asg-node_replace:2020-07-23
 
 ## Intent
 Test that the application stays up even if all instances are replaced. This proves that the app will work even with fresh installs.

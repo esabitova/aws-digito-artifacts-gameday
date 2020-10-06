@@ -1,7 +1,7 @@
 {
-    "documentName": "Digito-FailoverRdsInstance",
+    "documentName": "Digito-RebootRdsInstance",
     "documentType": "Automation",
-    "documentContentPath": "Digito-FailoverRdsInstance.yml",
+    "documentContentPath": "Digito-RebootRdsInstance.yml",
     "documentFormat": "YAML",
     "tag": "rds:test:force_maz_failover:2020-04-01"
 }
