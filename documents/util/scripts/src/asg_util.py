@@ -1,6 +1,7 @@
 import boto3
 import time
 import random
+from math import ceil
 
 def get_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events:
@@ -19,6 +20,57 @@ def get_instance_ids_in_asg(events, context):
 
     for instance in auto_scaling_groups['AutoScalingGroups'][0]['Instances']:
         output['InstanceIds'].append(instance['InstanceId'])
+    return output
+
+def get_healthy_instance_ids_in_asg(events, context):
+    if 'AutoScalingGroupName' not in events:
+        raise KeyError('Requires AutoScalingGroupName in events')
+
+    autoscaling = boto3.client('autoscaling')
+
+    auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[
+            events['AutoScalingGroupName']
+        ]
+    )
+
+    # Take all healthy ASG EC2 instances
+    asg_healty_instances = []
+    for instance in auto_scaling_groups['AutoScalingGroups'][0]['Instances']:
+        if instance['HealthStatus'] == 'Healthy' and instance['LifecycleState'] == 'InService':
+            asg_healty_instances.append(instance['InstanceId'])
+
+    output={}
+    output['InstanceIds'] = asg_healty_instances
+    return output
+
+def filter_healthy_instance_ids_in_asg(events, context):
+    if 'AutoScalingGroupName' not in events or 'InstanceIds' not in events:
+        raise KeyError('Requires AutoScalingGroupName, InsatnceIds in events')
+
+    autoscaling = boto3.client('autoscaling')
+
+    auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[
+            events['AutoScalingGroupName']
+        ]
+    )
+
+    # Take all healthy ASG EC2 instances
+    asg_healty_instances = []
+    for instance in auto_scaling_groups['AutoScalingGroups'][0]['Instances']:
+        if instance['HealthStatus'] == 'Healthy' and instance['LifecycleState'] == 'InService':
+            asg_healty_instances.append(instance['InstanceId'])
+
+
+    output={}
+    output['InstanceIds'] = []
+    given_instance_ids = events['InstanceIds']
+    # Take only healthy given EC2 instances
+    for instance_id in given_instance_ids:
+        if instance_id in asg_healty_instances:
+            output['InstanceIds'].append(instance_id)
+
     return output
 
 def get_instance_ids_in_asg_random_az(events, context):
@@ -156,3 +208,20 @@ def assert_no_suspended_process(events, context):
 
     if len(auto_scaling_groups['AutoScalingGroups'][0]['SuspendedProcesses']) > 0:
         raise Exception('ASG % has suspended processes', events['AutoScalingGroupName'])
+
+def get_instance_ids_by_percentage(events, context):
+    if 'InstanceIds' not in events or 'Percentage' not in events:
+        raise KeyError('Requires InstanceIds and Percentage in events')
+    instanceIds = events['InstanceIds']
+    percentage = events['Percentage']
+    instance_count = len(instanceIds)
+    output = {}
+    output['InstanceIds'] = []
+    if instance_count < 1:
+        raise  Exception('No given EC2 instances')
+    if percentage < 1:
+        raise  Exception('Given percentage should not be lower than 1%')
+    instance_count = ceil(instance_count / 100 * percentage)
+    for i in range(instance_count):
+        output['InstanceIds'].append(instanceIds[i])
+    return output

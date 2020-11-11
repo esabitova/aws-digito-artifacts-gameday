@@ -1,0 +1,9 @@
+{
+    "documentName": "Digito-KillStressOnHealthyInstances",
+    "documentType": "Automation",
+    "documentContentPath": "Digito-KillStressOnHealthyInstances.yml",
+    "documentFormat": "YAML",
+    "dependsOn": "Digito-RunMemoryStress,Digito-RunCpuStress,Digito-KillStressCommand",
+    "attachments": "digito_gameday_primitives.zip",
+    "tag": "tbd"
+}

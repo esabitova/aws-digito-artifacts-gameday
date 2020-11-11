@@ -1,4 +1,5 @@
 import boto3
+import json
 
 def get_output_from_ssm_step_execution(events, context):
     print('Creating ssm client')
@@ -45,3 +46,17 @@ def get_step_durations(events, context):
         return output
 
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+
+def run_command_document_async(events, context):
+    if 'DocumentName' not in events or 'InstanceIds' not in events:
+        raise KeyError('Requires DocumentName, InstanceIds, Parameters in events')
+
+    params = json.loads(events['DocumentParameters']) if 'DocumentParameters' in events else {}
+    ssm = boto3.client('ssm')
+    response = ssm.send_command(
+        InstanceIds=events['InstanceIds'],
+        DocumentName=events['DocumentName'],
+        Parameters=params
+    )
+    return {'CommandId': response['Command']['CommandId']}
+

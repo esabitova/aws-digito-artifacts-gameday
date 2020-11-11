@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
 
 from src.ami_util import get_ami_id
 
+@pytest.mark.unit_test
 class TestAmiUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')

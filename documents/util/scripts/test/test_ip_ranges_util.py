@@ -1,4 +1,5 @@
 import unittest
+import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
@@ -6,6 +7,8 @@ from test import test_data_provider
 import urllib3
 from src.ip_ranges_util import get_ip_ranges
 
+
+@pytest.mark.unit_test
 class TestIpRangesUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('urllib3.PoolManager')

@@ -1,10 +1,11 @@
 import unittest
+import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
-
 from src.asg_util import *
 
+@pytest.mark.unit_test
 class TestAsgUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
@@ -111,3 +112,45 @@ class TestAsgUtil(unittest.TestCase):
             .get_sample_describe_auto_scaling_groups_response_with_suspended_processes()
 
         self.assertRaises(Exception, assert_no_suspended_process, events, None)
+
+    def test_get_instances_by_percentage_50_percent_success(self):
+        events = {}
+        events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(10)
+        events['Percentage'] = 50
+        output = get_instance_ids_by_percentage(events, None)
+
+        self.assertEqual(len(output['InstanceIds']), 5)
+
+    def test_get_instances_by_percentage_1_percent_success(self):
+        events = {}
+        events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(10)
+        events['Percentage'] = 1
+        output = get_instance_ids_by_percentage(events, None)
+
+        self.assertEqual(len(output['InstanceIds']), 1)
+
+    def test_get_instances_by_percentage_100_percent_success(self):
+        events = {}
+        events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(10)
+        events['Percentage'] = 100
+        output = get_instance_ids_by_percentage(events, None)
+
+        self.assertEqual(len(output['InstanceIds']), 10)
+
+    def test_get_instances_by_percentage_0_percent_fail(self):
+        events = {}
+        events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(10)
+        events['Percentage'] = 0
+        self.assertRaises(Exception, get_instance_ids_by_percentage, events, None)
+
+    def test_get_instances_by_percentage_0_instances_fail(self):
+        events = {}
+        events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(0)
+        events['Percentage'] = 10
+        self.assertRaises(Exception, get_instance_ids_by_percentage, events, None)
+
+    def test_get_instances_by_percentage_negative_percent_fail(self):
+        events = {}
+        events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(10)
+        events['Percentage'] = -10
+        self.assertRaises(Exception, get_instance_ids_by_percentage, events, None)

@@ -1,0 +1,29 @@
+---
+description: Run a CPU stress on EC2 instance
+schemaVersion: '2.2'
+parameters:
+  Duration:
+    type: String
+    description: (Optional) The duration of the attack in seconds
+    default: '300'
+  CpuLoadPercentage:
+    type: String
+    description: (Required) CPU load percentage
+    default:
+  NumCpuCores:
+    type: String
+    description: (Optional) Number of CPU cores to be impacted (default 0 - all)
+    default: '0'
+mainSteps:
+- action: aws:runShellScript
+  name: ExecuteStressNg
+  precondition:
+    StringEquals:
+      - platformType
+      - Linux
+  inputs:
+    runCommand:
+    # https://www.mankier.com/1/stress-ng#Examples
+    - "sudo amazon-linux-extras install epel -y"
+    - "sudo yum install stress-ng -y"
+    - "stress-ng --cpu {{ NumCpuCores }} -l {{ CpuLoadPercentage }} --cpu-method matrixprod -t {{ Duration }}s"

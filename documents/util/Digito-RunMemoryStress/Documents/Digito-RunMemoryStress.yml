@@ -1,0 +1,28 @@
+---
+description: Run a Memory stress on EC2 instance
+schemaVersion: '2.2'
+parameters:
+  Duration:
+    type: String
+    description: (Required) The duration of the attack in seconds.
+    default: '300'
+  MemoryLoadPercentage:
+    type: String
+    description: (Required) Memory load percentage.
+  Vm:
+    type: String
+    description: (Optional) Number of VM stressors.
+    default: '1'
+mainSteps:
+- action: aws:runShellScript
+  name: ExecuteStressNg
+  precondition:
+    StringEquals:
+      - platformType
+      - Linux
+  inputs:
+    runCommand:
+    # https://www.mankier.com/1/stress-ng#Examples
+    - "sudo amazon-linux-extras install epel -y"
+    - "sudo yum install stress-ng -y"
+    - "stress-ng --vm {{ Vm }} --vm-bytes {{ MemoryLoadPercentage }}% -t {{ Duration }}s"

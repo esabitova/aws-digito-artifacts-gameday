@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from test import test_data_provider
 from unittest.mock import patch
 from unittest.mock import MagicMock
-
 from src.rds_util import restore_to_pit
 
+
+@pytest.mark.unit_test
 class TestRdsUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
