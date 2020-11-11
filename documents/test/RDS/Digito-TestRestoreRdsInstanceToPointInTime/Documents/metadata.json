@@ -1,0 +1,9 @@
+{
+  "documentName": "Digito-TestRestoreRdsInstanceToPointInTime",
+  "documentType": "Automation",
+  "documentContentPath": "Digito-TestRestoreRdsInstanceToPointInTime.yml",
+  "documentFormat": "YAML",
+  "dependsOn": "Digito-RestoreRdsInstanceToPointInTime",
+  "attachments": "digito_gameday_primitives.zip",
+  "tag": "rds:test:restore_to_pit_sop:20/04/01"
+}

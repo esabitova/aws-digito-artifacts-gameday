@@ -1,0 +1,8 @@
+{
+  "documentName": "Digito-RestoreRdsInstanceToPointInTime",
+  "documentType": "Automation",
+  "documentContentPath": "Digito-RestoreRdsInstanceToPointInTime.yml",
+  "attachments": "digito_gameday_primitives.zip",
+  "documentFormat": "YAML",
+  "tag": "tbd"
+}
