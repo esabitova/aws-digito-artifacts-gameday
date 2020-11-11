@@ -258,3 +258,9 @@ def get_sample_describe_instance_refreshes_response(status):
 
     describe_instance_refreshes_response['InstanceRefreshes'] = [instance_refresh]
     return describe_instance_refreshes_response
+
+def get_instance_ids_by_count(count):
+    ec2_instnce_ids = []
+    for i in range(count):
+        ec2_instnce_ids.append('test-ec2-instance-'+str(i))
+    return ec2_instnce_ids

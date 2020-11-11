@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
-
 from src.vpc_util import get_public_subnet_in_private_subnet_vpc
 
+
+@pytest.mark.unit_test
 class TestVpcUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')

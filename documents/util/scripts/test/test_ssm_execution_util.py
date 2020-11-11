@@ -1,10 +1,11 @@
 import unittest
+import pytest
 from test import test_data_provider
 from unittest.mock import patch
 from unittest.mock import MagicMock
-
 from src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations
 
+@pytest.mark.unit_test
 class TestSsmExecutionUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')

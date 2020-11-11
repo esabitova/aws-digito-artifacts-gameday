@@ -10,4 +10,5 @@ documents/util/scripts/src/AwsDigitoSsmDocumentSamples.egg-info
 FETCH_HEAD
 documents/test/RDS/FailoverAuroraCluster/Tests/__pycache__/
 mainline
-publisher/__pycache__/
+__pycache__/
+build

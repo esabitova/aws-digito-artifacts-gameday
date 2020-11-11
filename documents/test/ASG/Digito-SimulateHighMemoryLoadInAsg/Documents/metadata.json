@@ -1,0 +1,9 @@
+{
+  "documentName": "Digito-SimulateHighMemoryLoadInAsg",
+  "documentType": "Automation",
+  "documentContentPath": "Digito-SimulateHighMemoryLoadInAsg.yml",
+  "documentFormat": "YAML",
+  "dependsOn": "Digito-RunMemoryStress,Digito-KillStressCommand",
+  "attachments": "digito_gameday_primitives.zip",
+  "tag": "stateless-compute:test:ec2-inject_memory_load:2020/07/28"
+}

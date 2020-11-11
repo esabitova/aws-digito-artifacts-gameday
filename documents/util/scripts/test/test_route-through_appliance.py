@@ -1,12 +1,13 @@
-import json
 import unittest
+import pytest
 from test import test_data_provider
 from unittest.mock import call
 from unittest.mock import patch
 from unittest.mock import MagicMock
-
 from src import route_through_appliance
 
+
+@pytest.mark.unit_test
 class TestSsmExecutionUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')

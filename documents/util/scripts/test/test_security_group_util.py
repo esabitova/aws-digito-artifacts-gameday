@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
-
 from src.security_group_util import allow_access_to_self
 
+
+@pytest.mark.unit_test
 class TestSecurityGroupUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
