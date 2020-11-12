@@ -47,6 +47,8 @@ Resources:
               - 'autoscaling:DescribeAutoScalingGroups'
               - 'autoscaling:SuspendProcesses'
               - 'autoscaling:ResumeProcesses'
+              - 'ec2:TerminateInstances'
+              - 'ec2:DescribeInstanceStatus'
               - 'cloudwatch:DescribeAlarms'
       Roles:
         - Ref: DigitoSimulateAzOutageInAsgAssumeRole
