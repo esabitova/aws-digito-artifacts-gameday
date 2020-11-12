@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Memory Simulation
+Description: Role for SSM Simulate AZ Outage In ASG Instances
 Outputs:
-  DigitoSimulateHighMemoryLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighMemoryLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighMemoryLoadInAsgAssumeRole.Arn
+  DigitoSimulateAzOutageInAsgAssumeRole:
+    Description: DigitoSimulateAzOutageInAsg Automation Assume Role ARN
+    Value: !GetAtt DigitoSimulateAzOutageInAsgAssumeRole.Arn
 Resources:
-  DigitoSimulateHighMemoryLoadInAsgAssumeRole:
+  DigitoSimulateAzOutageInAsgAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,19 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighMemoryLoadInAsgAssumePolicy:
+  DigitoSimulateAzOutageInAsgAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighMemoryLoadInAsgAssumePolicy"
+      PolicyName: "DigitoSimulateAzOutageInAsgAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:DescribeInstanceInformation'
-              - 'ssm:SendCommand'
-              - 'ssm:ListCommands'
-              - 'ssm:ListCommandInvocations'
-              - 'ssm:GetAutomationExecution'
-              - 'ssm:StartAutomationExecution'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
               - 'autoscaling:DescribeAutoScalingGroups'
-              - 'iam:PassRole'
+              - 'autoscaling:SuspendProcesses'
+              - 'autoscaling:ResumeProcesses'
+              - 'cloudwatch:DescribeAlarms'
       Roles:
-        - Ref: DigitoSimulateHighMemoryLoadInAsgAssumeRole
+        - Ref: DigitoSimulateAzOutageInAsgAssumeRole
