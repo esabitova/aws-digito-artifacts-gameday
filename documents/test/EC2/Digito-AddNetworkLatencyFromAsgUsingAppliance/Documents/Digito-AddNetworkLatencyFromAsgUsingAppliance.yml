@@ -24,6 +24,11 @@ parameters:
     type: String
     description: >-
       (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  IamInstanceProfileArn:
+    type: String
+    description: >-
+      (Optional) Arn of IAM instance profile with access to AmazonSSMManagedInstanceCore policy.
+    default: 'arn:aws:iam::{{global:ACCOUNT_ID}}:instance-profile/AmazonSSMRoleForInstancesQuickSetup'
   IsRollback:
     type: String
     description: >-
@@ -88,6 +93,7 @@ mainSteps:
         NetworkLatencyDelayMs: '{{NetworkLatencyDelayMs}}'
         AwsServiceName: '{{AwsServiceName}}'
         DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        IamInstanceProfileArn: '{{IamInstanceProfileArn}}'
     isEnd: true
   - name: CleanupCurrentExecution
     action: 'aws:executeAutomation'
@@ -103,6 +109,7 @@ mainSteps:
         NetworkLatencyDelayMs: '{{NetworkLatencyDelayMs}}'
         AwsServiceName: '{{AwsServiceName}}'
         DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        IamInstanceProfileArn: '{{IamInstanceProfileArn}}'
         IsRollback: true
         PreviousExecutionId: '{{AddNetworkLatencyUsingAppliance.ExecutionId}}'
     isEnd: true
@@ -136,6 +143,7 @@ mainSteps:
         NetworkLatencyDelayMs: '{{NetworkLatencyDelayMs}}'
         AwsServiceName: '{{AwsServiceName}}'
         DestinationIpAddressRanges: '{{DestinationIpAddressRanges}}'
+        IamInstanceProfileArn: '{{IamInstanceProfileArn}}'
         IsRollback: true
         PreviousExecutionId: '{{GetPreviousExecutionDetails.ExecutionId}}'
     isEnd: true

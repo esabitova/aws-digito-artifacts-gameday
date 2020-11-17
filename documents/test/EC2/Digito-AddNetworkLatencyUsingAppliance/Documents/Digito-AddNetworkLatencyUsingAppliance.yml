@@ -30,6 +30,11 @@ parameters:
     type: String
     description: >-
       (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  IamInstanceProfileArn:
+    type: String
+    description: >-
+      (Optional) Arn of IAM instance profile with access to AmazonSSMManagedInstanceCore policy.
+    default: 'arn:aws:iam::{{global:ACCOUNT_ID}}:instance-profile/AmazonSSMRoleForInstancesQuickSetup'
   IsRollback:
     type: String
     description: >-
@@ -84,6 +89,7 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SubnetId: '{{ApplianceSubnetId}}'
         SecurityGroup: '{{ApplianceSecurityGroup}}'
+        IamInstanceProfileArn: '{{IamInstanceProfileArn}}'
   - name: RouteThroughAppliance
     action: 'aws:executeAutomation'
     onFailure: 'step:SelectCleanupScript'

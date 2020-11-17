@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Cpu Simulation
+Description: Role for SSM Asg High Memory Simulation
 Outputs:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighCpuLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+  DigitoSimulateHighMemoryLoadInAsgAssumeRole:
+    Description: DigitoSimulateHighMemoryLoadInAsg Automation Assume Role ARN
+    Value: !GetAtt DigitoSimulateHighMemoryLoadInAsgAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
+  DigitoSimulateHighMemoryLoadInAsgAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+  DigitoSimulateHighMemoryLoadInAsgAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+      PolicyName: "DigitoSimulateHighMemoryLoadInAsgAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -55,4 +55,4 @@ Resources:
               - 'autoscaling:DescribeAutoScalingGroups'
               - 'iam:PassRole'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+        - Ref: DigitoSimulateHighMemoryLoadInAsgAssumeRole

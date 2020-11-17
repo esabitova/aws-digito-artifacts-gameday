@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Cpu Simulation
+Description: Role for SSM Failover Rds Instance
 Outputs:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighCpuLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+  DigitoFailoverRdsInstanceAssumeRole:
+    Description: DigitoFailoverRdsInstance Automation Assume Role ARN
+    Value: !GetAtt DigitoFailoverRdsInstanceAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
+  DigitoFailoverRdsInstanceAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,18 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+  DigitoFailoverRdsInstanceAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+      PolicyName: "DigitoFailoverRdsInstanceAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:DescribeInstanceInformation'
-              - 'ssm:SendCommand'
-              - 'ssm:ListCommands'
-              - 'ssm:ListCommandInvocations'
-              - 'ssm:GetAutomationExecution'
-              - 'ssm:StartAutomationExecution'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
-              - 'autoscaling:DescribeAutoScalingGroups'
-              - 'iam:PassRole'
+             - 'rds:DescribeDBInstances'
+             - 'rds:RebootDBInstance'
+             - 'cloudwatch:DescribeAlarms'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+        - Ref: DigitoFailoverRdsInstanceAssumeRole

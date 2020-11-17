@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Cpu Simulation
+Description: Role for SSM Add Network Latency From Asg
 Outputs:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighCpuLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+  DigitoAddNetworkLatencyFromAsgAssumeRole:
+    Description: DigitoAddNetworkLatencyFromAsg Automation Assume Role ARN
+    Value: !GetAtt DigitoAddNetworkLatencyFromAsgAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
+  DigitoAddNetworkLatencyFromAsgAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,21 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+  DigitoAddNetworkLatencyFromAsgAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+      PolicyName: "DigitoAddNetworkLatencyFromAsgAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:DescribeInstanceInformation'
               - 'ssm:SendCommand'
+              - 'ssm:DescribeInstanceInformation'
               - 'ssm:ListCommands'
               - 'ssm:ListCommandInvocations'
               - 'ssm:GetAutomationExecution'
-              - 'ssm:StartAutomationExecution'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
               - 'autoscaling:DescribeAutoScalingGroups'
-              - 'iam:PassRole'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+        - Ref: DigitoAddNetworkLatencyFromAsgAssumeRole

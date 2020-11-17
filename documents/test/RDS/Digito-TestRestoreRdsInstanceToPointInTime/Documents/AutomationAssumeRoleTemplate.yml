@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Cpu Simulation
+Description: Role for SSM Test Restore Rds Instance To Point In Time
 Outputs:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighCpuLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+  DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole:
+    Description: DigitoTestRestoreRdsInstanceToPointInTime Automation Assume Role ARN
+    Value: !GetAtt DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
+  DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,23 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+  DigitoTestRestoreRdsInstanceToPointInTimeAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+      PolicyName: "DigitoTestRestoreRdsInstanceToPointInTimeAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:DescribeInstanceInformation'
-              - 'ssm:SendCommand'
-              - 'ssm:ListCommands'
-              - 'ssm:ListCommandInvocations'
-              - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
-              - 'autoscaling:DescribeAutoScalingGroups'
+              - 'ssm:GetAutomationExecution'
               - 'iam:PassRole'
+              - 'rds:DescribeDBInstances'
+              - 'rds:DeleteDBInstance'
+              - 'rds:RestoreDBInstanceToPointInTime'
+              - 'rds:ModifyDBInstance'
+              - 'cloudwatch:DescribeAlarms'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+        - Ref: DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole

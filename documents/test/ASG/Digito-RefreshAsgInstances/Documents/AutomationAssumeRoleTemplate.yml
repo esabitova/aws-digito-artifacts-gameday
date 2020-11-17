@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Cpu Simulation
+Description: Role for SSM Refresh ASG Instances
 Outputs:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighCpuLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+  DigitoRefreshAsgInstancesAssumeRole:
+    Description: DigitoRefreshAsgInstances Automation Assume Role ARN
+    Value: !GetAtt DigitoRefreshAsgInstancesAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
+  DigitoRefreshAsgInstancesAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,20 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+  DigitoRefreshAsgInstancesAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+      PolicyName: "DigitoRefreshAsgInstancesAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:DescribeInstanceInformation'
-              - 'ssm:SendCommand'
-              - 'ssm:ListCommands'
-              - 'ssm:ListCommandInvocations'
-              - 'ssm:GetAutomationExecution'
-              - 'ssm:StartAutomationExecution'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
               - 'autoscaling:DescribeAutoScalingGroups'
-              - 'iam:PassRole'
+              - 'autoscaling:DescribeInstanceRefreshes'
+              - 'autoscaling:StartInstanceRefresh'
+              - 'autoscaling:CancelInstanceRefresh'
+              - 'cloudwatch:DescribeAlarms'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+        - Ref: DigitoRefreshAsgInstancesAssumeRole

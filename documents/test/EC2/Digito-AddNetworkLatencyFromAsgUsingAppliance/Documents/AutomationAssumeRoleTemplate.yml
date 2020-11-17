@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Cpu Simulation
+Description: Role for SSM Add Network Latency From Asg Using Appliance
 Outputs:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
-    Description: DigitoSimulateHighCpuLoadInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+  DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole:
+    Description: DigitoAddNetworkLatencyFromAsgUsingAppliance Automation Assume Role ARN
+    Value: !GetAtt DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInAsgAssumeRole:
+  DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,35 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+  DigitoAddNetworkLatencyFromAsgUsingApplianceAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+      PolicyName: "DigitoAddNetworkLatencyFromAsgUsingApplianceAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:DescribeInstanceInformation'
               - 'ssm:SendCommand'
+              - 'ssm:DescribeInstanceInformation'
               - 'ssm:ListCommands'
               - 'ssm:ListCommandInvocations'
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
               - 'autoscaling:DescribeAutoScalingGroups'
+              - 'autoscaling:DescribeLaunchConfigurations'
+              - 'ec2:DescribeSubnets'
+              - 'ec2:DescribeRouteTables'
+              - 'ec2:DescribeSecurityGroups'
+              - 'ec2:AuthorizeSecurityGroupIngress'
+              - 'ec2:DescribeImages'
+              - 'ec2:RunInstances'
+              - 'ec2:CreateTags'
+              - 'ec2:DescribeInstanceStatus'
+              - 'ec2:ModifyInstanceAttribute'
+              - 'ec2:TerminateInstances'
+              - 'ec2:ReplaceRoute'
               - 'iam:PassRole'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+        - Ref: DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole
