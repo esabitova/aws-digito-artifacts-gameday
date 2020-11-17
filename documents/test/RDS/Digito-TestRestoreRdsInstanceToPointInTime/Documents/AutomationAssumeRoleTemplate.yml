@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Add Network Latency Using Appliance
+Description: Role for SSM Test Restore Rds Instance To Point In Time
 Outputs:
-  DigitoAddNetworkLatencyUsingApplianceAssumeRole:
-    Description: DigitoAddNetworkLatencyUsingAppliance Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateAzOutageInAsgAssumeRole.Arn
+  DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole:
+    Description: DigitoTestRestoreRdsInstanceToPointInTime Automation Assume Role ARN
+    Value: !GetAtt DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole.Arn
 Resources:
-  DigitoAddNetworkLatencyUsingApplianceAssumeRole:
+  DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,21 +34,23 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoAddNetworkLatencyUsingApplianceAssumePolicy:
+  DigitoTestRestoreRdsInstanceToPointInTimeAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoAddNetworkLatencyUsingApplianceAssumePolicy"
+      PolicyName: "DigitoTestRestoreRdsInstanceToPointInTimeAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-             - 'ssm:SendCommand'
-#              - 'autoscaling:SuspendProcesses'
-#              - 'autoscaling:ResumeProcesses'
-#              - 'ec2:TerminateInstances'
-#              - 'ec2:DescribeInstanceStatus'
-#              - 'cloudwatch:DescribeAlarms'
+              - 'ssm:StartAutomationExecution'
+              - 'ssm:GetAutomationExecution'
+              - 'iam:PassRole'
+              - 'rds:DescribeDBInstances'
+              - 'rds:DeleteDBInstance'
+              - 'rds:RestoreDBInstanceToPointInTime'
+              - 'rds:ModifyDBInstance'
+              - 'cloudwatch:DescribeAlarms'
       Roles:
-        - Ref: DigitoAddNetworkLatencyUsingApplianceAssumeRole
+        - Ref: DigitoTestRestoreRdsInstanceToPointInTimeAssumeRole

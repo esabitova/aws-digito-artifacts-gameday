@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Add Network Latency Using Appliance
+Description: Role for SSM Failover Rds Instance
 Outputs:
-  DigitoAddNetworkLatencyUsingApplianceAssumeRole:
-    Description: DigitoAddNetworkLatencyUsingAppliance Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateAzOutageInAsgAssumeRole.Arn
+  DigitoFailoverRdsInstanceAssumeRole:
+    Description: DigitoFailoverRdsInstance Automation Assume Role ARN
+    Value: !GetAtt DigitoFailoverRdsInstanceAssumeRole.Arn
 Resources:
-  DigitoAddNetworkLatencyUsingApplianceAssumeRole:
+  DigitoFailoverRdsInstanceAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,21 +34,18 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoAddNetworkLatencyUsingApplianceAssumePolicy:
+  DigitoFailoverRdsInstanceAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoAddNetworkLatencyUsingApplianceAssumePolicy"
+      PolicyName: "DigitoFailoverRdsInstanceAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-             - 'ssm:SendCommand'
-#              - 'autoscaling:SuspendProcesses'
-#              - 'autoscaling:ResumeProcesses'
-#              - 'ec2:TerminateInstances'
-#              - 'ec2:DescribeInstanceStatus'
-#              - 'cloudwatch:DescribeAlarms'
+             - 'rds:DescribeDBInstances'
+             - 'rds:RebootDBInstance'
+             - 'cloudwatch:DescribeAlarms'
       Roles:
-        - Ref: DigitoAddNetworkLatencyUsingApplianceAssumeRole
+        - Ref: DigitoFailoverRdsInstanceAssumeRole
