@@ -134,6 +134,8 @@ mainSteps:
       Service: autoscaling
       Api: ResumeProcesses
       AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      ScalingProcesses:
+      - 'Launch'
   - name: WaitForAzOutageAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10
