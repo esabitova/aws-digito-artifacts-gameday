@@ -1,8 +1,0 @@
-{
-    "documentName": "Digito-RouteThroughAppliance",
-    "documentType": "Automation",
-    "documentContentPath": "Digito-RouteThroughAppliance.yml",
-    "documentFormat": "YAML",
-    "attachments": "digito_gameday_primitives.zip",
-    "tag": "tbd"
-}

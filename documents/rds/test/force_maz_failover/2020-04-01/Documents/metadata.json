@@ -1,0 +1,8 @@
+{
+    "documentName": "Digito-FailoverRdsInstance",
+    "documentType": "Automation",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "tag": "rds:test:force_maz_failover:2020-04-01",
+    "minorVersion": "001"
+}

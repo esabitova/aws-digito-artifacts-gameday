@@ -1,0 +1,10 @@
+{
+  "documentName": "Digito-AddNetworkLatencyFromAsgUsingAppliance",
+  "documentType": "Automation",
+  "documentContentPath": "Digito-AddNetworkLatencyFromAsgUsingAppliance.yml",
+  "documentFormat": "YAML",
+  "attachments": "digito_gameday_primitives.zip",
+  "dependsOn": "Digito-AddNetworkLatencyUsingAppliance",
+  "tag": "tbd",
+  "minorVersion": "001"
+}

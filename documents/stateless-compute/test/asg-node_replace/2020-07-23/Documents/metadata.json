@@ -1,0 +1,9 @@
+{
+  "documentName": "Digito-RefreshAsgInstances",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "attachments": "digito_gameday_primitives.zip",
+  "tag": "stateless-compute:test:asg-node_replace:2020-07-23",
+  "minorVersion": "001"
+}

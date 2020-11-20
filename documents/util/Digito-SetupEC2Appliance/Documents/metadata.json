@@ -1,8 +1,0 @@
-{
-    "documentName": "Digito-SetupEC2Appliance",
-    "documentType": "Automation",
-    "documentContentPath": "Digito-SetupEC2Appliance.yml",
-    "documentFormat": "YAML",
-    "attachments": "digito_gameday_primitives.zip",
-    "tag": "tbd"
-}

@@ -8,7 +8,6 @@ documents/util/scripts/src/AwsDigitoSsmDocumentSamples.egg-info
 .coverage
 .idea/
 FETCH_HEAD
-documents/test/RDS/FailoverAuroraCluster/Tests/__pycache__/
 mainline
 __pycache__/
 build
