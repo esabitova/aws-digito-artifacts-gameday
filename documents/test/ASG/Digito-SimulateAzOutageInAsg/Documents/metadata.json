@@ -1,8 +1,0 @@
-{
-  "documentName": "Digito-SimulateAzOutageInAsg",
-  "documentType": "Automation",
-  "documentContentPath": "Digito-SimulateAzOutageInAsg.yml",
-  "documentFormat": "YAML",
-  "attachments": "digito_gameday_primitives.zip",
-  "tag": "stateless_compute:test:asg-availability_zone_outage:2020-07-23"
-}

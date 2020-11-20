@@ -1,0 +1,8 @@
+{
+    "documentName": "Digito-RunCpuStress",
+    "documentType": "Command",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "tag": "tbd",
+    "minorVersion": "001"
+}

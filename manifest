@@ -1,9 +1,11 @@
 Digito-FailoverRdsInstance
-Digito-RebootRdsInstance
 Digito-AuroraFailoverCluster
 Digito-AddNetworkLatencyUsingAppliance
 Digito-AddNetworkLatencyFromAsg
 Digito-AddNetworkLatencyFromAsgUsingAppliance
 Digito-RefreshAsgInstances
+Digito-SimulateHighCpuLoadInAsg
+Digito-SimulateHighMemoryLoadInAsg
+Digito-KillStressOnHealthyInstances
 Digito-SimulateAzOutageInAsg
 Digito-TestRestoreRdsInstanceToPointInTime

@@ -1,0 +1,8 @@
+{
+    "documentName": "Digito-RemoveNetworkLatency",
+    "documentType": "Command",
+    "documentContentPath": "Digito-RemoveNetworkLatency.yml",
+    "documentFormat": "YAML",
+    "tag": "tbd",
+    "minorVersion": "001"
+}
