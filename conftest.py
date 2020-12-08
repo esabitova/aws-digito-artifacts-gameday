@@ -1,7 +1,11 @@
 import pytest
 import logging
-from pytest_bdd import (given,
-                        parsers)
+import re
+from pytest_bdd import (
+    when,
+    parsers,
+    given
+)
 from sttable import parse_str_table
 from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.ssm_document import SsmDocument
@@ -85,7 +89,7 @@ def ssm_test_cache():
     cache = dict()
     return cache
 
-@given(parsers.parse('the CloudFormation template "{cf_template_name}" as test resources with following input parameters:\n{cf_input_parameters}'))
+@given(parsers.parse('the CloudFormation template "{cf_template_name}" as test resources\n{cf_input_parameters}'))
 def set_up_cf_template(cf_template_name, cf_input_parameters, resource_manager):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
@@ -97,3 +101,29 @@ def set_up_cf_template(cf_template_name, cf_input_parameters, resource_manager):
     """
     cf_input_params = parse_str_table(cf_input_parameters).rows[0]
     resource_manager.add_cf_template(cf_template_name, **cf_input_params)
+
+@given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
+def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ssm_test_cache, ssm_input_parameters):
+    """
+    Common step to execute SSM document. This step can be reused by multiple scenarios.
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param ssm_document_name The SSM document name
+    :param resource_manager The resource manager object to manipulate with testing resources
+    :param ssm_test_cache The custom test cache
+    :param ssm_input_parameters The SSM execution input parameters
+    """
+    cfn_output = resource_manager.get_cf_output_params()
+    parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, ssm_input_parameters)
+    return ssm_document.execute(ssm_document_name, parameters)
+
+@when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'))
+def verify_ssm_automation_execution_in_status(ssm_document_name, expected_status, ssm_document, ssm_execution_id):
+    """
+    Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
+    :param ssm_document_name The SSM document name
+    :param expected_status The expected SSM document execution status
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param ssm_execution_id The SSM document execution id to track
+    """
+    actual_status = ssm_document.wait_for_execution_completion(ssm_execution_id, ssm_document_name)
+    assert expected_status == actual_status

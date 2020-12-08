@@ -2,6 +2,9 @@ import boto3
 import logging
 import time
 import resource_manager.src.constants as constants
+import resource_manager.src.util.param_utils as param_utils
+import re
+from sttable import parse_str_table
 
 
 class SsmDocument:
@@ -27,13 +30,13 @@ class SsmDocument:
                 # DocumentVersion=version,
                 Parameters=input_params
             )['AutomationExecutionId']
-            return self._wait_for_execution_completion(execution_id, document_name)
+            return execution_id
         else:
             error_msg = "SSM document with name [{}] does not exist.".format(document_name)
             logging.error(error_msg)
             raise Exception(error_msg)
 
-    def _wait_for_execution_completion(self, execution_id, document_name):
+    def wait_for_execution_completion(self, execution_id, document_name):
         """
         Returns SSM document final execution status, if status is in PROGRESS/PENDING
         it will wait till SSM document execution will be completed.
@@ -49,6 +52,23 @@ class SsmDocument:
             time.sleep(constants.sleep_time_secs)
             status = self._get_execution_status(execution_id, document_name)
         return status
+
+    def parse_input_parameters(self, cf_output, cache, input_parameters):
+        """
+        Function to parse given SSM document input parameters based. Parameters could be of 3 types:
+        * cached - in case if given parameter value is pointing to cache (Example: {{cache:valueKeyA>valueKeyB}})
+        * cloud formation output - in case if given parameter value is pointing to cloud formation output (Example: {{output:paramNameA}})
+        * simple value - in case if given parameter value is simple value
+        :param resource_manager - The resource manager, used to get cloud formation stack output parameters
+        :param ssm_test_cache - The cache, used to get cached values by given keys.
+        :param input_parameters - The SSM input parameters as described in scenario feature file.
+        """
+        input_params = parse_str_table(input_parameters).rows[0]
+        parameters = {}
+        for param, param_val_ref in input_params.items():
+            value = param_utils.parse_param_value(param_val_ref, {'cache': cache, 'cfn-output': cf_output})
+            parameters[param] = [value]
+        return parameters
 
     def _get_execution_status(self, execution_id, document_name):
         """

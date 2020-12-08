@@ -58,7 +58,10 @@ class ResourceManager:
         parameters = {}
         for resource in resources:
             for out in resource.attribute_values['cf_output_parameters']:
-                parameters[out['OutputKey']] = [out['OutputValue']]
+                cf_template_name = self._get_cf_template_file_name(resource.cf_template_name)
+                if parameters.get(cf_template_name) is None:
+                    parameters[cf_template_name] = {}
+                parameters[cf_template_name][out['OutputKey']] = out['OutputValue']
         return parameters
 
     def pull_resources(self):

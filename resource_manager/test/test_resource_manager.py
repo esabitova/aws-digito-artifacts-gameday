@@ -13,7 +13,6 @@ class TestResourceManager(unittest.TestCase):
         self.os_path_mock = self.os_path_patcher.start()
         self.test_template_name = 'test_cf_template_name'
         self.os_path_mock.isfile.return_value = True
-        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
 
         self.client_patcher = patch('boto3.client')
         self.client = self.client_patcher.start()
@@ -42,6 +41,8 @@ class TestResourceManager(unittest.TestCase):
     @patch('resource_manager.src.s3.S3.upload_file')
     def test_pull_resources_by_template_name_missing_template_index_success(self, s3_mock, cf_mock,
                                                                             create_mock, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=1, status=ResourceModel.Status.AVAILABLE.name)
         query_mock.return_value = [r1]
@@ -62,7 +63,7 @@ class TestResourceManager(unittest.TestCase):
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_by_template_name_success(self, query_mock):
-
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.LEASED.name)
 
@@ -83,6 +84,7 @@ class TestResourceManager(unittest.TestCase):
     @patch('resource_manager.src.s3.S3.upload_file')
     def test_pull_resources_by_template_name_create_success(self, s3_mock, cf_mock,
                                                             create_mock, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.LEASED.name)
         query_mock.return_value = [r1]
@@ -103,6 +105,7 @@ class TestResourceManager(unittest.TestCase):
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_by_template_name_timeout_fail(self, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.LEASED.name)
 
@@ -116,6 +119,7 @@ class TestResourceManager(unittest.TestCase):
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_success(self, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
 
@@ -147,6 +151,8 @@ class TestResourceManager(unittest.TestCase):
     @patch('resource_manager.src.cloud_formation.CloudFormationTemplate.deploy_cf_stack')
     @patch('resource_manager.src.s3.S3.upload_file')
     def test_pull_resources_create_success(self, s3_mock, cf_mock, create_mock, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
 
@@ -175,22 +181,37 @@ class TestResourceManager(unittest.TestCase):
         s3_mock.assert_called_once()
         cf_mock.assert_called_once()
 
-
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_get_cf_output_params_success(self, query_mock):
+
+        base_names = {
+            'resource_manager/cloud_formation_templates/test_cf_template_name': self.test_template_name+'.yml',
+            'resource_manager/cloud_formation_templates/test_cf_template_name_1': self.test_template_name+'_1.yml'
+        }
+        self.os_path_mock.basename.side_effect = lambda path: base_names.get(path)
+
+        file_names = {
+            self.test_template_name + '.yml':(self.test_template_name, 'yml'),
+            self.test_template_name + '_1.yml': (self.test_template_name+'_1', 'yml'),
+        }
+        self.os_path_mock.splitext.side_effect = lambda base_name: file_names.get(base_name)
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
+                          cf_template_name=self.test_template_name,
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_1',
                                                                       'OutputValue': 'test_value_1'}]})
         r2 = MagicMock()
         r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.LEASED.name,
+                          cf_template_name=self.test_template_name,
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_2',
                                                                       'OutputValue': 'test_value_2'}]})
         r3 = MagicMock()
         r3.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
+                          cf_template_name=self.test_template_name + '_1',
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_3',
                                                                       'OutputValue': 'test_value_3'}]})
-        client_side_effect_map= {
+        client_side_effect_map = {
             self.test_template_name: [r1, r2],
             self.test_template_name + '_1': [r3]
         }
@@ -202,10 +223,13 @@ class TestResourceManager(unittest.TestCase):
 
         resources_params = rm.get_cf_output_params()
         self.assertEqual(len(resources_params), 2)
-        self.assertIsNotNone(resources_params.get('test_key_1'))
-        self.assertIsNotNone(resources_params.get('test_key_3'))
-        self.assertEqual(resources_params['test_key_3'][0], 'test_value_3')
-        self.assertEqual(resources_params['test_key_1'][0], 'test_value_1')
+        self.assertIsNotNone(resources_params.get(self.test_template_name + '_1'))
+        self.assertIsNotNone(resources_params.get(self.test_template_name))
+
+        self.assertIsNotNone(resources_params.get(self.test_template_name).get('test_key_1'))
+        self.assertIsNotNone(resources_params.get(self.test_template_name + '_1').get('test_key_3'))
+        self.assertEqual(resources_params.get(self.test_template_name + '_1')['test_key_3'], 'test_value_3')
+        self.assertEqual(resources_params.get(self.test_template_name)['test_key_1'], 'test_value_1')
         r3.save.assert_called_once()
         r1.save.assert_called_once()
 
@@ -245,5 +269,7 @@ class TestResourceManager(unittest.TestCase):
 
 
 
-
+    def test_my_test(self):
+        items = [('a','b'), ('z','g')]
+        print(items.pop())
 

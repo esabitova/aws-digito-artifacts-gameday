@@ -19,7 +19,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for Aurora failover
 Outputs:
   ClusterId:
-    Description: Database Instance state
+    Description: Database Cluster Id
     Value:
       Ref: DatabaseCluster
   AutomationAssumeRole:
