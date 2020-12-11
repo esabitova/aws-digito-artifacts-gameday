@@ -44,16 +44,20 @@ class TestResourceManager(unittest.TestCase):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
 
         r1 = MagicMock()
-        r1.configure_mock(cf_stack_index=1, status=ResourceModel.Status.AVAILABLE.name)
+        r1.configure_mock(cf_stack_index=1,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.AVAILABLE.name)
         query_mock.return_value = [r1]
 
         r2 = MagicMock()
-        r2.configure_mock(cf_stack_index=0)
+        r2.configure_mock(cf_stack_index=0,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name)
         create_mock.return_value = r2
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
-        resource = rm.pull_resource_by_template_name(self.test_template_name, 2, 5)
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND,
+                           test_param='test_param_value')
+        resource = rm.pull_resource_by_template_name(self.test_template_name, 2, ResourceManager.ResourceType.ON_DEMAND, 5)
         self.assertEqual(resource.cf_stack_index, 0)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r2.save.assert_called_once()
@@ -65,15 +69,21 @@ class TestResourceManager(unittest.TestCase):
     def test_pull_resources_by_template_name_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
-        r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.LEASED.name)
+        r1.configure_mock(cf_stack_index=0,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.LEASED.name)
 
         r2 = MagicMock()
-        r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.AVAILABLE.name)
+        r2.configure_mock(cf_stack_index=1,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.AVAILABLE.name)
         query_mock.return_value = [r1, r2]
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
-        resource = rm.pull_resource_by_template_name(self.test_template_name, 2, 5)
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND.name,
+                           test_param='test_param_value')
+        resource = rm.pull_resource_by_template_name(self.test_template_name, 2,
+                                                     ResourceManager.ResourceType.ON_DEMAND, 5)
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r2.save.assert_called_once()
@@ -86,16 +96,22 @@ class TestResourceManager(unittest.TestCase):
                                                             create_mock, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
-        r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.LEASED.name)
+        r1.configure_mock(cf_stack_index=0,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.LEASED.name)
         query_mock.return_value = [r1]
 
         r2 = MagicMock()
-        r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.AVAILABLE.name)
+        r2.configure_mock(cf_stack_index=1,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.AVAILABLE.name)
         create_mock.return_value = r2
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
-        resource = rm.pull_resource_by_template_name(self.test_template_name, 2, 5)
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND,
+                           test_param='test_param_value')
+        resource = rm.pull_resource_by_template_name(self.test_template_name, 2,
+                                                     ResourceManager.ResourceType.ON_DEMAND, 5)
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r2.save.assert_called_once()
@@ -107,27 +123,38 @@ class TestResourceManager(unittest.TestCase):
     def test_pull_resources_by_template_name_timeout_fail(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
-        r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.LEASED.name)
+        r1.configure_mock(cf_stack_index=0,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.LEASED.name)
 
         r2 = MagicMock()
-        r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.LEASED.name)
+        r2.configure_mock(cf_stack_index=1,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.LEASED.name)
         query_mock.return_value = [r1, r2]
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND,
+                           test_param='test_param_value')
         self.assertRaises(Exception, rm.pull_resource_by_template_name, self.test_template_name, 2, 5)
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()
-        r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
+        r1.configure_mock(cf_stack_index=0,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.AVAILABLE.name)
 
         r2 = MagicMock()
-        r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.LEASED.name)
+        r2.configure_mock(cf_stack_index=1,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.LEASED.name)
 
         r3 = MagicMock()
-        r3.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
+        r3.configure_mock(cf_stack_index=0,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
+                          status=ResourceModel.Status.AVAILABLE.name)
 
         client_side_effect_map = {
             self.test_template_name: [r1, r2],
@@ -136,8 +163,8 @@ class TestResourceManager(unittest.TestCase):
         query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
-        rm.add_cf_template(self.test_template_name+'_1', test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND, test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name + '_1', ResourceManager.ResourceType.ON_DEMAND, test_param='test_param_value')
 
         resources = rm.pull_resources()
         self.assertEqual(len(resources), 2)
@@ -154,10 +181,14 @@ class TestResourceManager(unittest.TestCase):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
 
         r1 = MagicMock()
-        r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
+        r1.configure_mock(cf_stack_index=0,
+                          status=ResourceModel.Status.AVAILABLE.name,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name)
 
         r2 = MagicMock()
-        r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.LEASED.name)
+        r2.configure_mock(cf_stack_index=1,
+                          status=ResourceModel.Status.LEASED.name,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name)
 
         client_side_effect_map = {
             self.test_template_name: [r1, r2],
@@ -170,8 +201,8 @@ class TestResourceManager(unittest.TestCase):
         create_mock.return_value = mock
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
-        rm.add_cf_template(self.test_template_name + '_1', test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND, test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name + '_1', ResourceManager.ResourceType.ON_DEMAND, test_param='test_param_value')
 
         resources = rm.pull_resources()
         self.assertEqual(len(resources), 2)
@@ -185,8 +216,8 @@ class TestResourceManager(unittest.TestCase):
     def test_get_cf_output_params_success(self, query_mock):
 
         base_names = {
-            'resource_manager/cloud_formation_templates/test_cf_template_name': self.test_template_name+'.yml',
-            'resource_manager/cloud_formation_templates/test_cf_template_name_1': self.test_template_name+'_1.yml'
+            'test_cf_template_name': self.test_template_name+'.yml',
+            'test_cf_template_name_1': self.test_template_name+'_1.yml'
         }
         self.os_path_mock.basename.side_effect = lambda path: base_names.get(path)
 
@@ -199,16 +230,19 @@ class TestResourceManager(unittest.TestCase):
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
                           cf_template_name=self.test_template_name,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_1',
                                                                       'OutputValue': 'test_value_1'}]})
         r2 = MagicMock()
         r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.LEASED.name,
                           cf_template_name=self.test_template_name,
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_2',
                                                                       'OutputValue': 'test_value_2'}]})
         r3 = MagicMock()
         r3.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
                           cf_template_name=self.test_template_name + '_1',
+                          type=ResourceManager.ResourceType.ON_DEMAND.name,
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_3',
                                                                       'OutputValue': 'test_value_3'}]})
         client_side_effect_map = {
@@ -218,8 +252,8 @@ class TestResourceManager(unittest.TestCase):
         query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
 
         rm = ResourceManager()
-        rm.add_cf_template(self.test_template_name, test_param='test_param_value')
-        rm.add_cf_template(self.test_template_name + '_1', test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name, ResourceManager.ResourceType.ON_DEMAND, test_param='test_param_value')
+        rm.add_cf_template(self.test_template_name + '_1', ResourceManager.ResourceType.ON_DEMAND, test_param='test_param_value')
 
         resources_params = rm.get_cf_output_params()
         self.assertEqual(len(resources_params), 2)
@@ -267,9 +301,10 @@ class TestResourceManager(unittest.TestCase):
         get_bucket_name_mock.assert_called_once()
         delete_bucket_mock.assert_called_once()
 
+    def test_resource_type_from_string_success(self):
+        actual_type = ResourceManager.ResourceType.from_string('ON_DEMAND')
+        self.assertEqual(actual_type, ResourceManager.ResourceType.ON_DEMAND)
 
-
-    def test_my_test(self):
-        items = [('a','b'), ('z','g')]
-        print(items.pop())
+    def test_resource_type_from_string_fail(self):
+        self.assertRaises(Exception, ResourceManager.ResourceType.from_string, 'NOT_SUPPORTED')
 

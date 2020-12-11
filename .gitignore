@@ -11,3 +11,4 @@ FETCH_HEAD
 mainline
 __pycache__/
 build
+.DS_Store

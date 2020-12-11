@@ -37,6 +37,7 @@ class ResourceModel(Model):
     cf_input_parameters = JSONAttribute(null=True)
     cf_output_parameters = JSONAttribute(null=True)
     cf_stack_name = UnicodeAttribute()
+    type = UnicodeAttribute()
     status = UnicodeAttribute()
     leased_on = UTCDateTimeAttribute()
     created_on = UTCDateTimeAttribute()

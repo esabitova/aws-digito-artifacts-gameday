@@ -22,9 +22,6 @@ Outputs:
     Description: Database Cluster Id
     Value:
       Ref: DatabaseCluster
-  AutomationAssumeRole:
-    Description: Automation Assume Role ARN
-    Value: !GetAtt AutomationAssumeRole.Arn
   SyntheticAlarmName:
     Description: Database Alarm based on DMLThroughput metric
     Value: !Ref DatabaseWriterDMLThroughputAlarm
@@ -36,33 +33,6 @@ Parameters:
     Description: Specifies the allocated storage size specified in gibibytes
     Type: String
 Resources:
-  AutomationAssumeRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - ssm.amazonaws.com
-            Action:
-              - sts:AssumeRole
-  AutomationAssumePolicy:
-    Type: 'AWS::IAM::Policy'
-    Properties:
-      PolicyName: "AutomationAssumePolicy"
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Resource: '*'
-            Action:
-              - 'rds:DescribeDBClusters'
-              - 'rds:FailoverDBCluster'
-              - 'cloudwatch:DescribeAlarms'
-      Roles:
-        - Ref: AutomationAssumeRole
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret
     Properties:

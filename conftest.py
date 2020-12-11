@@ -79,6 +79,7 @@ def ssm_document():
     '''
     return SsmDocument()
 
+
 @pytest.fixture(scope='function')
 def ssm_test_cache():
     '''
@@ -89,18 +90,29 @@ def ssm_test_cache():
     cache = dict()
     return cache
 
-@given(parsers.parse('the CloudFormation template "{cf_template_name}" as test resources\n{cf_input_parameters}'))
-def set_up_cf_template(cf_template_name, cf_input_parameters, resource_manager):
+
+@given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
+def set_up_cf_template_as_resources(resource_manager, cfn_input_parameters):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    :param cf_template_name: The cloud formation template file name.
-    :param cf_input_parameters: The table of parameters as input for cloud formation template
     :param resource_manager: The resource manager which will take care of managing given template deployment and providing reosurces for tests
+    :param cfn_input_parameters: The table of parameters as input for cloud formation template
     """
-    cf_input_params = parse_str_table(cf_input_parameters).rows[0]
-    resource_manager.add_cf_template(cf_template_name, **cf_input_params)
+    for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
+        if cfn_params_row.get('CfnTemplatePath') is None or len(cfn_params_row.get('CfnTemplatePath')) < 1 \
+                or cfn_params_row.get('ResourceType') is None or len(cfn_params_row.get('ResourceType')) < 1:
+            raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
+        cf_template_path = cfn_params_row.pop('CfnTemplatePath')
+        resource_type = cfn_params_row.pop('ResourceType')
+        cf_input_params = {}
+        for key, value in cfn_params_row.items():
+            if len(value) > 0:
+                cf_input_params[key] = value
+        rm_resource_type = ResourceManager.ResourceType.from_string(resource_type)
+        resource_manager.add_cf_template(cf_template_path, rm_resource_type, **cf_input_params)
+
 
 @given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
 def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ssm_test_cache, ssm_input_parameters):
@@ -115,6 +127,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ss
     cfn_output = resource_manager.get_cf_output_params()
     parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, ssm_input_parameters)
     return ssm_document.execute(ssm_document_name, parameters)
+
 
 @when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'))
 def verify_ssm_automation_execution_in_status(ssm_document_name, expected_status, ssm_document, ssm_execution_id):
