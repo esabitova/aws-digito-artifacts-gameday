@@ -49,7 +49,7 @@ class CloudFormationTemplate:
             self._create(stack_name, cf_template_s3_url, parameters)
         except ClientError as e:
             if e.response['Error']['Code'] == 'AlreadyExistsException':
-                logging.warning('Stack [%s] already exists, updating...', stack_name)
+                logging.info('Stack [%s] already exists, updating...', stack_name)
                 self._update(stack_name, cf_template_s3_url, parameters)
             else:
                 logging.error(e)
@@ -87,7 +87,7 @@ class CloudFormationTemplate:
         except ClientError as e:
             err_message = e.response['Error']['Message']
             if 'No updates are to be performed.' in err_message and e.response['Error']['Code'] == 'ValidationError':
-                logging.warning("Stack [{}] already updated.".format(stack_name))
+                logging.info("Stack [{}] already updated.".format(stack_name))
             else:
                 logging.error(e)
                 raise e
@@ -130,8 +130,7 @@ class CloudFormationTemplate:
         """
         Deletes cloud formation stack which is associated with
         this class instance, waits till completion.
-        :param resource:
-        :return:
+        :param stack_name The stack name to delete.
         """
         cf_client = boto3.client('cloudformation')
         cf_client.delete_stack(StackName=stack_name)

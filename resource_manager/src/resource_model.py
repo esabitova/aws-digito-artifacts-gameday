@@ -29,6 +29,8 @@ class ResourceModel(Model):
         AVAILABLE = 1,
         LEASED = 2,
         CREATING = 3,
+        UPDATING = 4,
+        DELETING = 5
 
     cf_stack_index = NumberAttribute(range_key=True)
     cf_template_name = UnicodeAttribute(hash_key=True)

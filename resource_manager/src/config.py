@@ -1,3 +1,11 @@
+
+"""
+Static cloud formation template path for assume roles. We want to combine all defined roles into single template.
+Reason - reduce number of CFN stacks to be deployed to avoid reaching a limit of CFN stacks.
+NOTE: DO NOT CHANGE IT!
+"""
+ssm_assume_role_cfn_s3_path = 'resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml'
+
 """
   The cloud formation template pool size limit configuration. It is represented 
   as a KEY=VALUE pair. In which case:\n
@@ -12,5 +20,6 @@ pool_size = dict(
    # The pool size configuration for RdsAuroraFailoverTestTemplate.yml (file name with no extension)
    RdsAuroraFailoverTestTemplate=3
 )
+
 
 

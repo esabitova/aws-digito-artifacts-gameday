@@ -3,3 +3,5 @@ setuptools
 pytest_bdd
 pytest_html
 pytest-cov
+cfn_tools
+sttable

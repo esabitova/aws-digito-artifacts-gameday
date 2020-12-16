@@ -1,7 +1,7 @@
 import logging
 import boto3
-import botocore
 from botocore.exceptions import ClientError
+from cfn_tools import dump_yaml
 
 
 class S3:
@@ -10,7 +10,7 @@ class S3:
     """
 
     @staticmethod
-    def upload_file(file_name):
+    def upload_file(file_name: str, content: dict):
 
         """
         Uploads Cloud Formation template file to S3 to be used for template stack deployment.
@@ -22,10 +22,10 @@ class S3:
                 S3._create_bucket(bucket_name)
             # In case if template already exist it is possible that we want to update it.
             logging.info('Uploading CF template [%s] to S3 bucket [%s]', file_name, bucket_name)
-            S3._get_client().upload_file(file_name, bucket_name, file_name)
+            S3.put_object_as_yaml(bucket_name, file_name, content)
             return S3._get_file_url(file_name)
-        except Exception as e:
-            logging.error('Failed to upload CF template [%s] to S3 bucket [%s]', file_name, bucket_name)
+        except ClientError as e:
+            logging.error('Failed to upload CF template [%s] to S3 bucket [%s]:\n %s', file_name, bucket_name, e.response)
             raise e
 
     @staticmethod
@@ -35,11 +35,18 @@ class S3:
         https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/s3.html#S3.Client.create_bucket
         :param bucket_name: The S3 bucket name
         """
-        if S3._get_region() == 'us-east-1':
-            S3._get_client().create_bucket(Bucket=bucket_name)
-        else:
-            config = {'LocationConstraint': S3._get_region()}
-            S3._get_client().create_bucket(Bucket=bucket_name, CreateBucketConfiguration=config)
+        try:
+            region = S3._get_region()
+            if region == 'us-east-1':
+                S3._get_client().create_bucket(Bucket=bucket_name)
+            else:
+                config = {'LocationConstraint': region}
+                S3._get_client().create_bucket(Bucket=bucket_name, CreateBucketConfiguration=config)
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
+                logging.warning("Bucket with name [{}] for region [{}] already exist.".format(bucket_name, region))
+            else:
+                raise e
 
     @staticmethod
     def _get_file_url(file_name):
@@ -47,7 +54,7 @@ class S3:
         Returns cloud formation template URL located in S3 bucket.
         :return: The cloud formation template URL
         """
-        # TODO(semiond): Secure bucket by appending UUID, so that attcker will not be able to guess name:
+        # TODO(semiond): Secure bucket by appending UUID, so that attacker will not be able to guess name:
         # https://issues.amazon.com/issues/Digito-1287
         return 'https://{}.s3-{}.amazonaws.com/{}'.format(S3.get_bucket_name(), S3._get_region(), file_name)
 
@@ -127,3 +134,20 @@ class S3:
             if bucket_name == bucket.name:
                 return True
         return False
+
+    @staticmethod
+    def get_file_content(bucket_name, file_name):
+        try:
+            s3_object = S3._get_resource().Object(bucket_name, file_name)
+            return s3_object.get()['Body'].read().decode('utf-8')
+        except ClientError as e:
+            if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == 'NoSuchKey':
+                return None
+            else:
+                raise e
+
+    @staticmethod
+    def put_object_as_yaml(bucket_name:str, file_name:str, content:dict):
+        s3_object = S3._get_resource().Object(bucket_name, file_name)
+        s3_object.put(Body=(bytes(dump_yaml(content).encode('UTF-8'))))
+

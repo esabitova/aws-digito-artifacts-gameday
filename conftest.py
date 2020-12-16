@@ -111,7 +111,7 @@ def set_up_cf_template_as_resources(resource_manager, cfn_input_parameters):
             if len(value) > 0:
                 cf_input_params[key] = value
         rm_resource_type = ResourceManager.ResourceType.from_string(resource_type)
-        resource_manager.add_cf_template(cf_template_path, rm_resource_type, **cf_input_params)
+        resource_manager.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 
 @given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
@@ -124,7 +124,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ss
     :param ssm_test_cache The custom test cache
     :param ssm_input_parameters The SSM execution input parameters
     """
-    cfn_output = resource_manager.get_cf_output_params()
+    cfn_output = resource_manager.get_cfn_output_params()
     parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, ssm_input_parameters)
     return ssm_document.execute(ssm_document_name, parameters)
 
