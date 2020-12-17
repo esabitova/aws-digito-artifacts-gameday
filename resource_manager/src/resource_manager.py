@@ -97,7 +97,7 @@ class ResourceManager:
         """
         Pulls 'AVAILABLE' resources from Dynamo DB table by cloud formation template name,
         if resource is not available it waits.
-        :param cf_template_path: The cloud formation template path
+        :param cfn_template_path: The cloud formation template path
         :param time_out_sec: The amount of seconds to wait for resource before time out
         :param pool_size The pool size for resource (limit of available copies of given cloud formation template)
         :param resource_type The type of the resource.
@@ -128,27 +128,33 @@ class ResourceManager:
                         existing_assume_roles = self._get_s3_cfn_content(config.ssm_assume_role_cfn_s3_path)
                         merged_roles = self._merge_assume_roles(existing_assume_roles, passed_assume_role)
                         if not yaml_util.is_equal(merged_roles, existing_assume_roles):
-                            return self._update_resource(i, cfn_template_path, merged_roles, resource)
-                        return resource
+                            resource = self._update_resource(i, cfn_template_path, merged_roles, resource)
+                            if resource is not None:
+                                return resource
+                        else:
+                            return resource
                     # In case if resource type is ON_DEMAND
                     elif resource.type == ResourceManager.ResourceType.ON_DEMAND.name:
                         passed_resource = yaml_util.file_loads_yaml(cfn_template_path)
                         existing_resource = self._get_s3_cfn_content(cfn_template_path)
                         if not yaml_util.is_equal(passed_resource, existing_resource):
-                            return self._update_resource(i, cfn_template_path, passed_resource, resource)
-                        try:
-                            resource.leased_times = resource.leased_times + 1
-                            resource.status = ResourceModel.Status.LEASED.name
-                            resource.leased_on = datetime.now()
-                            resource.updated_on = datetime.now()
-                            resource.save()
-                            return resource
-                        except PutError as e:
-                            # In case if object already exist, do nothing
-                            pass
-                        except Exception as e:
-                            logging.error(e)
-                            raise e
+                            resource = self._update_resource(i, cfn_template_path, passed_resource, resource)
+                            if resource is not None:
+                                return resource
+                        else:
+                            try:
+                                resource.leased_times = resource.leased_times + 1
+                                resource.status = ResourceModel.Status.LEASED.name
+                                resource.leased_on = datetime.now()
+                                resource.updated_on = datetime.now()
+                                resource.save()
+                                return resource
+                            except PutError as e:
+                                # In case if object already exist, do nothing
+                                pass
+                            except Exception as e:
+                                logging.error(e)
+                                raise e
             logging.info("No template [%s] resource available with pool size [%d], sleeping for [%d] seconds...",
                          cfn_template_path,
                          pool_size,
