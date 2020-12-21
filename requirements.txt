@@ -1,7 +1,10 @@
 boto3
 setuptools
+pytest
 pytest_bdd
 pytest_html
 pytest-cov
-cfn_tools
+cfn_flip
 sttable
+pynamodb
+pytest-parallel
