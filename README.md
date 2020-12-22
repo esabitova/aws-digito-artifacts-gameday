@@ -82,7 +82,7 @@ Example:
 * minorVersion - minor version of document (should be increased every time plan to commit a change).
 
 ## Adding New Python Script
-* Install requirements by running 'python -m pip install -r requirements.txt'
+* Install requirements by running 'python3.8 -m pip install -r requirements.txt'
 * Add new scripts to documents/util/scripts/src folder and corresponding unit test to documents/util/scripts/test
 * Run unit tests by running 'coverage run setup.py test'
 * Look at test coverage report by running 'coverage report -m' and detailed report by running 'coverage html'
@@ -311,7 +311,7 @@ markers =
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
-> python3 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources
+> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources
 
 * -m pytest - (Required) Use [pytest](https://docs.pytest.org/en/stable/) module for test execution.
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
@@ -320,6 +320,7 @@ Integration test execution command line:
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 
 #TODO List
+* https://issues.amazon.com/issues/Digito-1557 - [SSM Testing Framework] Implement ability to use AWS profiled credentials/configuration.
 * https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
 * https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination
 * https://issues.amazon.com/issues/Digito-1546 - [SSM Testing Framework] Implement ability to override pool size over CLI
