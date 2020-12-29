@@ -5,9 +5,9 @@ import copy
 import resource_manager.src.config as config
 import resource_manager.src.constants as constants
 import resource_manager.src.util.yaml_util as yaml_util
-from resource_manager.src.cloud_formation import CloudFormationTemplate
-from resource_manager.src.s3 import S3
-from resource_manager.src.resource_model import ResourceModel
+from .cloud_formation import CloudFormationTemplate
+from .s3 import S3
+from .resource_model import ResourceModel
 from pynamodb.exceptions import PutError
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -26,21 +26,26 @@ class ResourceManager:
 
         @staticmethod
         def from_string(resource_type):
-         for rt in ResourceManager.ResourceType:
-            if rt.name == resource_type:
-                return rt
-         raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
+            for rt in ResourceManager.ResourceType:
+                if rt.name == resource_type:
+                    return rt
+            raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
 
-    def __init__(self):
+    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3):
+        self.cfn_helper = cfn_helper
+        self.s3_helper = s3_helper
         self.cfn_templates = dict()
         self.cfn_resources = dict()
 
-    @staticmethod
-    def init_ddb_tables():
+
+
+    def init_ddb_tables(self, boto3_session):
         """
         Creates DDB tables to be used by tests.
+        :param boto3_session The AWS boto3 session
         """
         logging.info("Creating DDB tables.")
+        ResourceModel.configure(boto3_session)
         ResourceModel.create_ddb_table()
 
     def add_cfn_template(self, cfn_template_path, resource_type: ResourceType, **cf_input_params):
@@ -93,7 +98,8 @@ class ResourceManager:
             resources.append(self.cfn_resources[cfn_template_path])
         return resources
 
-    def pull_resource_by_template(self, cfn_template_path: str, pool_size: int, resource_type: ResourceType, time_out_sec: int):
+    def pull_resource_by_template(self, cfn_template_path: str, pool_size: int, resource_type: ResourceType,
+                                  time_out_sec: int):
         """
         Pulls 'AVAILABLE' resources from Dynamo DB table by cloud formation template name,
         if resource is not available it waits.
@@ -188,14 +194,13 @@ class ResourceManager:
             if resource.type != ResourceManager.ResourceType.ASSUME_ROLE.name:
                 ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
-    @staticmethod
-    def fix_stalled_resources():
+    def fix_stalled_resources(self):
         """
         Releases stalled resources - in case if test was cancelled or
         failed we want to release resources for next test iteration.
         """
         logging.info("Releasing all stalled resources.")
-        for resource in ResourceModel.scan():
+        for resource in ResourceModel().scan():
             # If resource was not released because of failure or cancellation
             if resource.status == ResourceModel.Status.LEASED.name:
                 ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
@@ -204,8 +209,7 @@ class ResourceManager:
             elif resource.status == ResourceModel.Status.CREATING.name:
                 resource.delete()
 
-    @staticmethod
-    def destroy_all_resources():
+    def destroy_all_resources(self):
         """
         Destroys all created resources by executed test.
         This should be performed during testing session completion step.
@@ -221,23 +225,24 @@ class ResourceManager:
         with ThreadPoolExecutor(max_workers=10) as t_executor:
             for index in range(resource_count):
                 resource = resources[index]
-                t_executor.submit(ResourceManager._delete_cf_stack, resource)
+                t_executor.submit(ResourceManager._delete_cf_stack, resource, self.cfn_helper)
 
         # Deleting tables
         logging.info("Deleting DDB table [%s].", ResourceModel.Meta.table_name)
         ResourceModel.delete_table()
 
         # Deleting S3 bucket
-        S3.delete_bucket(S3.get_bucket_name())
+        bucket_name = self.s3_helper.get_bucket_name()
+        self.s3_helper.delete_bucket(bucket_name)
 
     @staticmethod
-    def _delete_cf_stack(resource):
+    def _delete_cf_stack(resource, cfn_helper):
         """
         Deleting Cloud Formation stack.
         :param resource: The stack resource record.
         """
         logging.info("Destroying [%s] stack.", resource.cf_stack_name)
-        CloudFormationTemplate.delete_cf_stack(resource.cf_stack_name)
+        cfn_helper.delete_cf_stack(resource.cf_stack_name)
 
     def _get_resource_pool_size(self, cf_template_name, resource_type: ResourceType):
         """
@@ -276,8 +281,10 @@ class ResourceManager:
             resource.save()
 
             # Updating cloud formation stack stack
-            logging.info("Updating stack [%s:%s] input params: [%s]", resource_type.name, cfn_stack_name, cfn_input_params)
-            return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name, cfn_input_params)
+            logging.info("Updating stack [%s:%s] input params: [%s]", resource_type.name, cfn_stack_name,
+                         cfn_input_params)
+            return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name,
+                                               cfn_input_params)
         except PutError as e:
             return None
         except Exception as e:
@@ -312,8 +319,10 @@ class ResourceManager:
             )
 
             # Creating cloud formation stack stack
-            logging.info("Creating stack [%s:%s] with input params [%s]", resource_type.name, cfn_stack_name, cfn_input_params)
-            return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name, cfn_input_params)
+            logging.info("Creating stack [%s:%s] with input params [%s]", resource_type.name, cfn_stack_name,
+                         cfn_input_params)
+            return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name,
+                                               cfn_input_params)
         except PutError as e:
             return None
         except Exception as e:
@@ -332,8 +341,8 @@ class ResourceManager:
         :param cfn_input_params The cloud formation input parameters
         """
 
-        cfn_template_s3_url = S3.upload_file(cfn_template_name, cfn_content)
-        cf_output_params = CloudFormationTemplate.deploy_cf_stack(cfn_template_s3_url,
+        cfn_template_s3_url = self.s3_helper.upload_file(cfn_template_name, cfn_content)
+        cf_output_params = self.cfn_helper.deploy_cf_stack(cfn_template_s3_url,
                                                                   cfn_stack_name,
                                                                   **cfn_input_params)
         resource.status = ResourceModel.Status.AVAILABLE.name if \
@@ -362,14 +371,13 @@ class ResourceManager:
         :param cfn_template_path The cloud formation template file path in S3
         :return The cloud formation file content from S3
         """
-        existing_assume_roles_content = S3.get_file_content(S3.get_bucket_name(), cfn_template_path)
+        bucket_name = self.s3_helper.get_bucket_name()
+        existing_assume_roles_content = self.s3_helper.get_file_content(bucket_name, cfn_template_path)
         if existing_assume_roles_content is None:
-            return {
-                "AWSTemplateFormatVersion": "2010-09-09",
-                "Description": "Assume Roles for SSM automation execution.",
-                "Outputs": {},
-                "Resources": {}
-            }
+            return yaml_util.loads_yaml('{"AWSTemplateFormatVersion": "2010-09-09",'
+                                        '"Description": "Assume Roles for SSM automation execution.",'
+                                        '"Outputs": {},'
+                                        '"Resources": {}}')
         return yaml_util.loads_yaml(existing_assume_roles_content)
 
     def _merge_assume_roles(self, base_assume_role_cfn_json, add_assume_role_cfn_json):

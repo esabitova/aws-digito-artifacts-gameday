@@ -7,17 +7,16 @@ import resource_manager.src.util.rds_util as rds_util
 class TestRdsUtil(unittest.TestCase):
 
     def setUp(self):
-        self.client_patcher = patch('boto3.client')
-        self.client = self.client_patcher.start()
+        self.session_mock = MagicMock()
         self.mock_rds_service = MagicMock()
         self.client_side_effect_map = {
             'rds': self.mock_rds_service,
 
         }
-        self.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
-        self.client_patcher.stop()
+        pass
 
     def test_get_reader_writer(self):
         db_reader_id = 'db-reader-1'
@@ -30,7 +29,7 @@ class TestRdsUtil(unittest.TestCase):
                                                                          'DBInstanceIdentifier': db_writer_id}
                                                                       ]}
                                                                     ]}
-        reader, writer = rds_util.get_reader_writer('test-db-cluster-id')
+        reader, writer = rds_util.get_reader_writer('test-db-cluster-id', self.session_mock)
         self.assertEqual(db_reader_id, reader)
         self.assertEqual(db_writer_id, writer)
 

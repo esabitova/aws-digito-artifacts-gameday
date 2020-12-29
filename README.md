@@ -30,7 +30,7 @@ python3 publisher/publish_documents.py --region us-west-2
 
 * Use below command to publish limited number of documents in different file. We will provide this file during
   recommendations for relevant test documents
-python3 publisher/publish_documents.py --region us-west-2 --file-name ec2-manifest --log-level INFO
+python3.8 publisher/publish_documents.py --region us-west-2 --file-name ec2-manifest --log-level INFO
 
 * Setting up automated publish to account
   TBD. Setup CodeBuild process for publishing documents automatically to account when there is a change
@@ -311,16 +311,16 @@ markers =
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
-> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources
+> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name
 
 * -m pytest - (Required) Use [pytest](https://docs.pytest.org/en/stable/) module for test execution.
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
 * --run_integration_tests (Required) - Required in case if running integration tests. This wll trigger creation AWS resources to support integration test framework: S3 bucket, DynamoDB table. 
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
+* --aws_profile - (Optional) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
 
 #TODO List
-* https://issues.amazon.com/issues/Digito-1557 - [SSM Testing Framework] Implement ability to use AWS profiled credentials/configuration.
 * https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
 * https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination
 * https://issues.amazon.com/issues/Digito-1546 - [SSM Testing Framework] Implement ability to override pool size over CLI
