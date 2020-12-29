@@ -31,7 +31,7 @@ Feature: SSM automation document for Aurora cluster failover.
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
     And SSM automation document "Digito-AuroraFailoverCluster" executed
-      |ClusterId                                             |AutomationAssumeRole                                             |SyntheticAlarmName                                             |
+      |ClusterId                                             |AutomationAssumeRole                                                             |SyntheticAlarmName                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoAuroraFailoverClusterAssumeRole}}|{{cfn-output:RdsAuroraFailoverTestTemplate>SyntheticAlarmName}}|
 
     When SSM automation document "Digito-AuroraFailoverCluster" execution in status "Success"

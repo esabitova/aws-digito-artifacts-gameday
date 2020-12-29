@@ -9,25 +9,23 @@ from botocore.exceptions import ClientError
 class TestCloudFormation(unittest.TestCase):
 
     def setUp(self):
-        self.client_patcher = patch('boto3.client')
-        self.client = self.client_patcher.start()
+        self.session_mock = MagicMock()
         self.cf_service_mock = MagicMock()
         self.client_side_effect_map = {
             'cloudformation': self.cf_service_mock,
         }
-        self.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
 
-        self.resource_patcher = patch('boto3.resource')
-        self.resource = self.resource_patcher.start()
         self.cf_resource = MagicMock()
         self.resource_side_effect_map = {
             'cloudformation': self.cf_resource
         }
-        self.resource.side_effect = lambda service_name: self.resource_side_effect_map.get(service_name)
+        self.session_mock.resource.side_effect = lambda service_name: self.resource_side_effect_map.get(service_name)
+
+        self.cfn_helper = CloudFormationTemplate(self.session_mock)
 
     def tearDown(self):
-        self.client_patcher.stop()
-        self.resource_patcher.stop()
+        pass
 
     def test_deploy_cf_stack_new_success(self):
         self.cf_service_mock.describe_stacks.side_effect = [
@@ -35,7 +33,7 @@ class TestCloudFormation(unittest.TestCase):
             {'Stacks': [{'StackStatus': 'COMPLETED'}]},
             {'Stacks': [{'StackStatus': 'COMPLETED'}]}
         ]
-        CloudFormationTemplate.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
+        self.cfn_helper.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
         self.cf_service_mock.create_stack.assert_called_once()
         self.cf_service_mock.describe_stacks.assert_has_calls([call(StackName='test_stack_name'),
@@ -51,7 +49,7 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response,
                                                                     operation_name='CreateStack')
 
-        CloudFormationTemplate.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
+        self.cfn_helper.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
         self.cf_service_mock.create_stack.assert_called_once()
         self.cf_service_mock.update_stack.assert_called_once()
@@ -72,7 +70,7 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.update_stack.side_effect = ClientError(error_response=err_response_2,
                                                                     operation_name='UpdateStack')
 
-        CloudFormationTemplate.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
+        self.cfn_helper.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
         self.cf_service_mock.create_stack.assert_called_once()
         self.cf_service_mock.update_stack.assert_called_once()
@@ -91,7 +89,7 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.update_stack.side_effect = ClientError(error_response=err_response_2,
                                                                     operation_name='UpdateStack')
 
-        self.assertRaises(Exception,  CloudFormationTemplate.deploy_cf_stack,
+        self.assertRaises(Exception,  self.cfn_helper.deploy_cf_stack,
                           'test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
     def test_deploy_cf_stack_create_fail(self):
@@ -103,11 +101,11 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response,
                                                                     operation_name='CreateStack')
 
-        self.assertRaises(Exception, CloudFormationTemplate.deploy_cf_stack, 'test_template_url', 'test_stack_name',
+        self.assertRaises(Exception, self.cfn_helper.deploy_cf_stack, 'test_template_url', 'test_stack_name',
                           test_in_param='test_in_val')
 
     def test_delete_cf_stack_success(self):
-        CloudFormationTemplate.delete_cf_stack('test_stack_name')
+        self.cfn_helper.delete_cf_stack('test_stack_name')
 
         self.cf_service_mock.delete_stack.assert_called_once()
         self.cf_service_mock.get_waiter.assert_called_once()

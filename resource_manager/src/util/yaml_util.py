@@ -1,4 +1,5 @@
 from cfn_tools import load_yaml
+from cfn_tools.odict import ODict
 
 
 def loads_yaml(file_content):
@@ -23,7 +24,7 @@ def file_loads_yaml(file_path):
             file.close()
 
 
-def is_equal(obj_1: dict, obj_2: dict):
+def is_equal(obj_1: ODict, obj_2: ODict):
     """
     Verifies if given dict objects are equal and returns True is equal, False otherwise
     :param obj_1 The dict object
@@ -39,7 +40,7 @@ def _ordered(obj):
     Orders dict object
     :param obj The dict object to order
     """
-    if isinstance(obj, dict):
+    if isinstance(obj, ODict):
         return sorted((k, _ordered(v)) for k, v in obj.items())
     if isinstance(obj, list):
         return sorted(_ordered(x) for x in obj)

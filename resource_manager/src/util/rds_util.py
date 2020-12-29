@@ -1,7 +1,7 @@
 import boto3
 
 
-def get_reader_writer(db_cluster_id):
+def get_reader_writer(db_cluster_id, boto3_session):
     # TODO(semiond): Fix RDS cluster instance retrieval helper function to
     #  fetch all instances available in cluster:
     #  https://issues.amazon.com/issues/Digito-1528
@@ -11,7 +11,7 @@ def get_reader_writer(db_cluster_id):
     :param db_cluster_id: The RDS cluster id
     :return: The tuple of reader/writer instance IDs
     """
-    rds_client = boto3.client('rds')
+    rds_client = boto3_session.client('rds')
     db_cluster_state = rds_client.describe_db_clusters(DBClusterIdentifier=db_cluster_id)
     db_instances = db_cluster_state['DBClusters'][0]['DBClusterMembers']
 

@@ -1,6 +1,6 @@
 import pytest
 import logging
-import re
+import boto3
 from pytest_bdd import (
     when,
     parsers,
@@ -9,6 +9,8 @@ from pytest_bdd import (
 from sttable import parse_str_table
 from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.ssm_document import SsmDocument
+from resource_manager.src.s3 import S3
+from resource_manager.src.cloud_formation import CloudFormationTemplate
 
 
 def pytest_addoption(parser):
@@ -20,6 +22,10 @@ def pytest_addoption(parser):
                      action="store_true",
                      default=False,
                      help="Flag to execute integration tests.")
+    parser.addoption("--aws_profile",
+                     action="store",
+                     default='default',
+                     help="Boto3 session profile name")
     parser.addoption("--keep_test_resources",
                      action="store_true",
                      default=False,
@@ -27,6 +33,7 @@ def pytest_addoption(parser):
     parser.addoption("--pool_size",
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of pool size (Example: template_1=3, template_2=4)")
+
 
 def pytest_sessionstart(session):
     '''
@@ -36,8 +43,12 @@ def pytest_sessionstart(session):
     '''
     # Execute only when running integration tests
     if session.config.option.run_integration_tests:
-        ResourceManager.init_ddb_tables()
-        ResourceManager.fix_stalled_resources()
+        boto3_session = get_boto3_session(session.config.option.aws_profile)
+        cfn_helper = CloudFormationTemplate(boto3_session)
+        s3_helper = S3(boto3_session)
+        rm = ResourceManager(cfn_helper, s3_helper)
+        rm.init_ddb_tables(boto3_session)
+        rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -47,37 +58,52 @@ def pytest_sessionfinish(session, exitstatus):
     :param exitstatus (int): The status which pytest will return to the system.
     :return:
     '''
-
     # Execute only when running integration tests
     if session.config.option.run_integration_tests:
+        boto3_session = get_boto3_session(session.config.option.aws_profile)
+        cfn_helper = CloudFormationTemplate(boto3_session)
+        s3_helper = S3(boto3_session)
+        rm = ResourceManager(cfn_helper, s3_helper)
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
-            ResourceManager.fix_stalled_resources()
+            rm.fix_stalled_resources()
         else:
             logging.info("Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
-            ResourceManager.destroy_all_resources()
+            rm.destroy_all_resources()
 
 
-@pytest.fixture(scope='function', autouse=True)
-def resource_manager(request):
+@pytest.fixture(scope='session')
+def boto3_session(request):
+    '''
+    Creates session for given profile name. More about how to configure AWS profile:
+    https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
+    :param request The pytest request object
+    '''
+    return get_boto3_session(request.config.option.aws_profile)
+
+
+@pytest.fixture(scope='function')
+def resource_manager(request, boto3_session):
     '''
     Creates ResourceManager fixture for every test case.
     :param request: The pytest request object
     :return: The resource manager fixture
     '''
-    rm = ResourceManager()
+    cfn_helper = CloudFormationTemplate(boto3_session)
+    s3_helper = S3(boto3_session)
+    rm = ResourceManager(cfn_helper, s3_helper)
     yield rm
     # Release resources after test execution is completed
     rm.release_resources()
 
 
 @pytest.fixture(scope='function')
-def ssm_document():
+def ssm_document(boto3_session):
     '''
     Creates SsmDocument fixture to for every test case.
     :return:
     '''
-    return SsmDocument()
+    return SsmDocument(boto3_session)
 
 
 @pytest.fixture(scope='function')
@@ -91,8 +117,17 @@ def ssm_test_cache():
     return cache
 
 
+def get_boto3_session(aws_profile):
+    '''
+    Helper to create boto3 session based on given AWS profile.
+    :param The AWS profile name.
+    '''
+    logging.info("Creating boto3 session for [{}] profile.".format(aws_profile))
+    return boto3.Session(profile_name=aws_profile)
+
+
 @given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
-def set_up_cf_template_as_resources(resource_manager, cfn_input_parameters):
+def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.

@@ -1,9 +1,7 @@
-import boto3
 import logging
 import time
 import resource_manager.src.constants as constants
 import resource_manager.src.util.param_utils as param_utils
-import re
 from sttable import parse_str_table
 
 
@@ -12,8 +10,8 @@ class SsmDocument:
     Class for SSM automation document manipulation.
     """
 
-    def __init__(self):
-        self.ssm_client = boto3.client('ssm')
+    def __init__(self, boto3_session):
+        self.ssm_client = boto3_session.client('ssm')
 
     def execute(self, document_name, input_params):
         """

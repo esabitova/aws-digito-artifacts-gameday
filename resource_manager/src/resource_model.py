@@ -9,15 +9,18 @@ from pynamodb.attributes import (
     VersionAttribute)
 from datetime import datetime
 from enum import Enum
-from boto3.session import Session
+
 
 class ResourceModel(Model):
     """
     Pynamo DB model for CloudFormation created resources outputs.
     """
 
+    @staticmethod
+    def configure(boto3_session):
+        ResourceModel.Meta.region = boto3_session.region_name
+
     class Meta:
-        region = Session().region_name
         table_name = 'ssm-test-resources'
         # All attributes are projected
         projection = AllProjection()

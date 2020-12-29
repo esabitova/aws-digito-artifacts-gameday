@@ -10,21 +10,21 @@ class CloudFormationTemplate:
     Cloud formation template manipulation functionality.
     """
 
-    def __init__(self):
-        self.cf_client = boto3.client('cloudformation')
+    def __init__(self, boto3_session):
+        self.client = boto3_session.client('cloudformation')
+        self.resource = boto3_session.resource('cloudformation')
 
-    @staticmethod
-    def deploy_cf_stack(cf_template_s3_url, stack_name, **kwargs):
+    def deploy_cf_stack(self, cfn_template_s3_url, stack_name, **kwargs):
         """
         Deploys cloud formation stack by given cloud formation template
         file name and input parameters.
-        :param stack_name: The cloud formation stack name
-        :param kwargs: The cloud formation input parameters.
+        :param cfn_template_s3_url The S3 cloud formation template location url.
+        :param stack_name The cloud formation stack name.
+        :param kwargs The cloud formation input parameters.
         """
-        cf = CloudFormationTemplate()
-        cf._create_cf_stack(cf_template_s3_url, stack_name, **kwargs)
-        return cf._get_cf_stack_outputs(stack_name)
 
+        self._create_cf_stack(cfn_template_s3_url, stack_name, **kwargs)
+        return self._get_cf_stack_outputs(stack_name)
 
     def _get_cf_stack_outputs(self, stack_name):
         """
@@ -32,10 +32,8 @@ class CloudFormationTemplate:
         associated with this class instance, to be used as SSM automation documents inputs.
         :return: The cloud formation outupts
         """
-        cloudformation = boto3.resource('cloudformation')
-        stack = cloudformation.Stack(stack_name)
+        stack = self.resource.Stack(stack_name)
         return stack.outputs
-
 
     def _create_cf_stack(self, cf_template_s3_url, stack_name, **kwargs):
         """
@@ -63,7 +61,7 @@ class CloudFormationTemplate:
         :param parameters The input parameters for cloud formation stack
         """
         self._wait_stack_operation_completion(stack_name)
-        self.cf_client.create_stack(
+        self.client.create_stack(
             StackName=stack_name,
             TemplateURL=cf_template_s3_url,
             Capabilities=['CAPABILITY_IAM'],
@@ -78,7 +76,7 @@ class CloudFormationTemplate:
         :param parameters The input parameters for cloud formation stack
         """
         try:
-            self.cf_client.update_stack(
+            self.client.update_stack(
                 StackName=stack_name,
                 Capabilities=['CAPABILITY_IAM'],
                 TemplateURL=cf_template_s3_url,
@@ -112,28 +110,27 @@ class CloudFormationTemplate:
         :param stack_name The cloud formation stack name
         """
         try:
-            response = self.cf_client.describe_stacks(StackName=stack_name)
+            response = self.client.describe_stacks(StackName=stack_name)
             stack_status = response['Stacks'][0]['StackStatus']
             while not stack_status or 'IN_PROGRESS' in stack_status:
                 logging.info("Waiting for stack [%s] event [%s] to be completed, sleeping [%d] seconds.", stack_name,
                              stack_status, constants.cf_operation_sleep_time_secs)
                 time.sleep(constants.cf_operation_sleep_time_secs)
-                response = self.cf_client.describe_stacks(StackName=stack_name)
+                response = self.client.describe_stacks(StackName=stack_name)
                 stack_status = response['Stacks'][0]['StackStatus']
         except ClientError as e:
             # Do nothing as stack doesn't exist.
             # TODO(semiond): Investigate better exception handling: https://issues.amazon.com/issues/Digito-1212
             pass
 
-    @staticmethod
-    def delete_cf_stack(stack_name):
+    def delete_cf_stack(self, stack_name):
         """
         Deletes cloud formation stack which is associated with
         this class instance, waits till completion.
         :param stack_name The stack name to delete.
         """
-        cf_client = boto3.client('cloudformation')
-        cf_client.delete_stack(StackName=stack_name)
-        waiter = cf_client.get_waiter('stack_delete_complete')
+
+        self.client.delete_stack(StackName=stack_name)
+        waiter = self.client.get_waiter('stack_delete_complete')
         waiter.wait(StackName=stack_name)
 
