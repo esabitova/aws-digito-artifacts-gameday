@@ -1,4 +1,3 @@
-import boto3
 
 
 def get_reader_writer(db_cluster_id, boto3_session):

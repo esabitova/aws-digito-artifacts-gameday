@@ -1,4 +1,3 @@
-import boto3
 import logging
 import time
 from botocore.exceptions import ClientError

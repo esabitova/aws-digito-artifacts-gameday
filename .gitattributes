@@ -1,1 +1,4 @@
 Config merge=ours
+build-tools/bin/python-builds merge=ours
+setup.py merge=ours
+setup.cfg merge=ours

@@ -1,7 +1,8 @@
 import unittest
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock
 import resource_manager.src.util.rds_util as rds_util
+
 
 @pytest.mark.unit_test
 class TestRdsUtil(unittest.TestCase):

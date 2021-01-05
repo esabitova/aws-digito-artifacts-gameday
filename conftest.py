@@ -35,13 +35,22 @@ def pytest_addoption(parser):
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of pool size (Example: template_1=3, template_2=4)")
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):
+    # In case if running integration tests we don't report coverage
+    if config.option.run_integration_tests:
+        cov_plugin = config.pluginmanager.get_plugin("_cov")
+        if cov_plugin:
+            cov_plugin.options.no_cov = True
+
+
 def pytest_sessionstart(session):
     '''
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     For this case we want to create test DDB tables before running any test.
     :param session: Tests session
     '''
-    # Execute only when running integration tests
+    # Execute when running integration tests
     if session.config.option.run_integration_tests:
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)

@@ -1,6 +1,6 @@
 import unittest
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call
 from resource_manager.src.ssm_document import SsmDocument
 
 

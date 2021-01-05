@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import patch, mock_open
 import resource_manager.src.util.yaml_util as yaml_util
 
+
 @pytest.mark.unit_test
 class TestYamlUtil(unittest.TestCase):
 

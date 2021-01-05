@@ -1,8 +1,6 @@
 import unittest
 import pytest
-from unittest.mock import patch
 from unittest.mock import MagicMock
-from unittest.mock import PropertyMock
 from resource_manager.src.s3 import S3
 
 

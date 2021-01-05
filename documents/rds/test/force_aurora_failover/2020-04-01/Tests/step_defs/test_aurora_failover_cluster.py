@@ -9,7 +9,7 @@ from pytest_bdd import (
 )
 import resource_manager.src.util.rds_util as rds_util
 import resource_manager.src.util.param_utils as param_utils
-from sttable import parse_str_table
+from resource_manager.src.sttable import parse_str_table
 
 
 @scenario('../../Tests/features/aurora_failover_cluster.feature','Create AWS resources using CloudFormation template and execute SSM automation document to failover RDS cluster with primary')
