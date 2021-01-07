@@ -23,12 +23,9 @@ data_files.append(('.', [SCRIPT_ZIP_FILE_NAME]))
 setup(
     name="AwsDigitoArtifactsGameday",
     version="1.0",
-    # Use the pytest brazilpython runner. Provided by BrazilPython-Pytest.
 
-    # TODO (semiond): Temp workaround to trigger brazil build instead running tests, till following done:
-    # https://issues.amazon.com/issues/Digito-1565
-    # test_command="brazilpython_pytest",
-    test_command="build",
+    # Use the pytest brazilpython runner. Provided by BrazilPython-Pytest.
+    test_command="brazilpython_pytest",
 
     # include data files
     data_files=data_files,

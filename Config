@@ -18,6 +18,7 @@ package.AwsDigitoArtifactsGameday = {
             Python = default;
             BrazilPython-setuptools = default;
             Boto3 = 1.x;
+            Python-sttable = 0.x;
         };
     };
 
