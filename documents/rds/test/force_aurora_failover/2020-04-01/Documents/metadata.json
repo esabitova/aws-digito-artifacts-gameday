@@ -3,6 +3,7 @@
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
+    "attachments": "digito_gameday_primitives.zip",
     "tag": "rds:test:force_aurora_failover:2020-04-01",
     "minorVersion": "001"
 }

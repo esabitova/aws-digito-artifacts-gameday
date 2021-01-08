@@ -46,6 +46,19 @@ mainSteps:
       PropertySelector: '$.DBClusters[0].Status'
       DesiredValues:
         - available
+  - name: GetClusterWriterId
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: WriterId
+        Selector: $.Payload.WriterId
+        Type: String
+    inputs:
+        Runtime: python3.6
+        Handler: rds_util.get_cluster_writer_id
+        InputPayload:
+          ClusterId: '{{ClusterId}}'
+        Attachment: digito_gameday_primitives.zip
   - name: PrimaryInstanceSelector
     action: 'aws:branch'
     inputs:
@@ -61,25 +74,24 @@ mainSteps:
       Api: FailoverDBCluster
       DBClusterIdentifier: '{{ClusterId}}'
       TargetDBInstanceIdentifier: '{{InstanceId}}'
-    nextStep: WaitForAvailableStateAfterFailover
+    nextStep: WaitClusterFailoverCompleted
   - name: FailoverClusterDefault
     action: 'aws:executeAwsApi'
     inputs:
       Service: rds
       Api: FailoverDBCluster
       DBClusterIdentifier: '{{ClusterId}}'
-  - name: WaitForAvailableStateAfterFailover
-    action: 'aws:waitForAwsResourceProperty'
-    maxAttempts: 10
-    timeoutSeconds: 600
+  - name: WaitClusterFailoverCompleted
+    action: 'aws:executeScript'
     onFailure: Abort
+    timeoutSeconds: 600
     inputs:
-      Service: rds
-      Api: DescribeDBClusters
-      DBClusterIdentifier: '{{ClusterId}}'
-      PropertySelector: '$.DBClusters[0].Status'
-      DesiredValues:
-        - available
+      Runtime: python3.6
+      Handler: rds_util.wait_cluster_failover_completed
+      InputPayload:
+        ClusterId: '{{ClusterId}}'
+        WriterId: '{{GetClusterWriterId.WriterId}}'
+      Attachment: digito_gameday_primitives.zip
   - name: WaitForAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10
@@ -93,4 +105,3 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
     isEnd: true
-

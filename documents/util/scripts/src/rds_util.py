@@ -1,5 +1,7 @@
 import boto3
 from datetime import datetime, timezone
+from time import sleep
+
 
 def restore_to_pit(events, context):
     rds = boto3.client('rds')
@@ -27,3 +29,39 @@ def restore_to_pit(events, context):
     output = {}
     output['RecoveryPoint'] = str(recovery_point_in_seconds)
     return output
+
+
+def get_cluster_writer_id(events, context):
+    if 'ClusterId' not in events:
+        raise KeyError('Requires ClusterId in events')
+    rds = boto3.client('rds')
+    clusters = rds.describe_db_clusters(DBClusterIdentifier=events['ClusterId'])
+    return {'WriterId': _parse_writer_id(clusters)}
+
+
+def wait_cluster_failover_completed(events, context):
+    '''
+    Failover times are typically 60–120 seconds, should not be a problem for lambda
+    (Lambda is used for execution SSM scripts):
+    https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZ.html
+    '''
+    if 'ClusterId' not in events or 'WriterId' not in events:
+        raise KeyError('Requires ClusterId, WriterId in events')
+    rds = boto3.client('rds')
+    clusters = rds.describe_db_clusters(DBClusterIdentifier=events['ClusterId'])
+    current_writer_id = _parse_writer_id(clusters)
+    status = clusters['DBClusters'][0]['Status']
+    while current_writer_id == events['WriterId'] or status != 'available':
+        sleep(5)
+        clusters = rds.describe_db_clusters(DBClusterIdentifier=events['ClusterId'])
+        current_writer_id = _parse_writer_id(clusters)
+        status = clusters['DBClusters'][0]['Status']
+
+
+def _parse_writer_id(clusters):
+    for member in clusters['DBClusters'][0]['DBClusterMembers']:
+        if member['IsClusterWriter'] is True:
+            return member['DBInstanceIdentifier']
+
+
+
