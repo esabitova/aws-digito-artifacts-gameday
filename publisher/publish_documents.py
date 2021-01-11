@@ -92,42 +92,45 @@ class PublishDocuments:
 
     def update_document(self, name, content, format, s3AttachmentUrl, tagValue):
         update_document_response = {}
+        try:
+            if (s3AttachmentUrl == None):
+                update_document_response = self.ssm.update_document(
+                    Content=content,
+                    Name=name,
+                    DocumentVersion='$LATEST',
+                    DocumentFormat=format
+                )
+            else:
+                update_document_response = self.ssm.update_document(
+                    Content = content,
+                    Attachments = [
+                        {
+                            'Key': 'S3FileUrl',
+                            'Values': [
+                               s3AttachmentUrl
+                            ],
+                            'Name': SCRIPT_ZIP_FILE_NAME
+                        },
+                    ],
+                    Name = name,
+                    DocumentVersion = '$LATEST',
+                    DocumentFormat = format
+                )
 
-        if (s3AttachmentUrl == None):
-            update_document_response = self.ssm.update_document(
-                Content = content,
-                Name = name,
-                DocumentVersion = '$LATEST',
-                DocumentFormat = format
-            )
-        else:
-            update_document_response = self.ssm.update_document(
-                Content = content,
-                Attachments = [
-                    {
-                        'Key': 'S3FileUrl',
-                        'Values': [
-                            s3AttachmentUrl
-                        ],
-                        'Name': SCRIPT_ZIP_FILE_NAME
-                    },
-                ],
-                Name = name,
-                DocumentVersion = '$LATEST',
-                DocumentFormat = format
-            )
-
-        self.ssm.add_tags_to_resource(
-            ResourceType='Document',
-            ResourceId=name,
-            Tags=[
-                {
-                    'Key': 'Digito-reference-id',
-                    'Value': tagValue
-                },
-            ]
-        )
-        return update_document_response['DocumentDescription']['DocumentVersion']
+                self.ssm.add_tags_to_resource(
+                    ResourceType='Document',
+                    ResourceId=name,
+                    Tags=[
+                        {
+                            'Key': 'Digito-reference-id',
+                            'Value': tagValue
+                        },
+                    ]
+                )
+                return update_document_response['DocumentDescription']['DocumentVersion']
+        except ClientError as e:
+            logger.error('Failed to update [{}] document.'.format(name))
+        raise e
 
     def update_document_default_version(self, name, version):
         self.ssm.update_document_default_version(
@@ -169,36 +172,37 @@ class PublishDocuments:
 
     def get_list_of_documents(self, file_name):
         list_document_metadata = []
-        desiredDocumentsList = []
+        desired_documents_list = []
         # Include documents from file name
-        with open(self.rootdir + '/' + file_name,"r") as f:
-            desiredDocumentsList.extend(f.read().splitlines())
+        with open(self.rootdir + '/' + file_name, "r") as f:
+            desired_documents_list.extend(f.read().splitlines())
 
         files = glob.glob(self.rootdir + '/**/metadata.json', recursive=True)
 
-        logger.info('Desired documents list %s' % desiredDocumentsList)
+        logger.info('Desired documents list %s' % desired_documents_list)
         # Find additional documents that are needed for desired documents
         for file in files:
             document_metadata = self.read_metadata(file)
-            if ('dependsOn' in document_metadata and document_metadata['documentName'] in desiredDocumentsList):
+            if 'dependsOn' in document_metadata and document_metadata['documentName'] in desired_documents_list:
                 dependent_documents = document_metadata['dependsOn'].split(',')
                 for dependent_document in dependent_documents:
-                    if (dependent_document not in desiredDocumentsList):
-                        desiredDocumentsList.append(dependent_document)
+                    if dependent_document not in desired_documents_list:
+                        desired_documents_list.append(dependent_document)
 
-        logger.info('Desired documents list including required documents : %s' % desiredDocumentsList)
+        logger.info('Desired documents list including required documents : %s' % desired_documents_list)
+        existing_document_names = []
         for file in files:
             document_metadata = self.read_metadata(file)
-            if (document_metadata['documentName'] in desiredDocumentsList):
+            existing_document_names.append(document_metadata['documentName'])
+            if document_metadata['documentName'] in desired_documents_list:
                 document_metadata['location'] = os.path.dirname(file)
                 list_document_metadata.append(document_metadata)
             else:
                 logger.debug('Not publishing %s' % document_metadata['documentName'])
 
-        if (len(desiredDocumentsList) != len(list_document_metadata)):
-            logger.info('Desired documents list %s' % desiredDocumentsList)
-            logger.info('Found documents metadata list %s' % list_document_metadata)
-            raise Exception('Expected same number of documents')
+        for desired_document_name in desired_documents_list:
+            if desired_document_name not in existing_document_names:
+                raise Exception("Document with name [{}] does not exist.".format(desired_document_name))
 
         return list_document_metadata
 

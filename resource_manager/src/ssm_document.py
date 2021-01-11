@@ -65,7 +65,7 @@ class SsmDocument:
         parameters = {}
         for param, param_val_ref in input_params.items():
             value = param_utils.parse_param_value(param_val_ref, {'cache': cache, 'cfn-output': cf_output})
-            parameters[param] = [value]
+            parameters[param] = [str(value)]
         return parameters
 
     def _get_execution_status(self, execution_id, document_name):
