@@ -1,8 +1,10 @@
 {
-    "documentName": "Digito-RebootRdsInstance",
+    "documentName": "Digito-RebootRdsInstance_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
     "tag": "rds:test:instance_reboot:2020-04-01",
+    "failureType": "HARDWARE",
+    "risk": "SMALL",
     "minorVersion": "001"
 }

@@ -1,9 +1,11 @@
 {
-  "documentName": "Digito-RefreshAsgInstances",
+  "documentName": "Digito-RefreshAsgInstances_2020-07-23",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:asg-node_replace:2020-07-23",
+  "failureType": "HARDWARE",
+  "risk": "SMALL",
   "minorVersion": "001"
 }
