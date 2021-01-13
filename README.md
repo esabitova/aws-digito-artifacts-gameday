@@ -62,23 +62,29 @@ python3.8 publisher/publish_documents.py --region us-west-2 --file-name ec2-mani
 Example:
 ````
 {
-  "documentName": "Digito-SimulateHighMemoryLoadInAsg",
+  "documentName": "Digito-SimulateHighMemoryLoadInAsg_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "dependsOn": "Digito-RunMemoryStress,Digito-KillStressCommand",
+  "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
   "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:ec2-inject_memory_load:2020-07-28",
+  "failureType": "HARDWARE",
+  "risk": "SMALL",
   "minorVersion": "001"
 }
 ````
-* documentName -- SSM automation document name 
+<b>File location:</b>.../AwsDigitoArtifactsGameday/documents/stateless-compute/test/ec2-inject_memory_load/2020-07-28/Documents/metadata.json
+
+* documentName -- SSM automation document name with major version, major version should correspond to date added to tag.
 * documentType -- Command or Automation
 * documentContentPath -- Document file name
 * documentFormat -- YAML or JSON
 * dependsOn -- Add other documents that this document requires.
 * attachments -- Script attachment if required for document
 * tag - reference to specification of automation document
+* failureType - Failure type, valid values: SOFTWARE/HARDWARE/AZ/REGION
+* risk - Risk, valid values: SMALL/MEDIUM/HIGH
 * minorVersion - minor version of document (should be increased every time plan to commit a change).
 
 ## Adding New Python Script
