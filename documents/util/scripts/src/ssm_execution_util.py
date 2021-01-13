@@ -1,6 +1,7 @@
 import boto3
 import json
 
+
 def get_output_from_ssm_step_execution(events, context):
     print('Creating ssm client')
     print(events)
@@ -10,9 +11,9 @@ def get_output_from_ssm_step_execution(events, context):
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
 
     print('Fetching SSM response for execution')
-    ssmResponse = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssmResponse)
-    for step in ssmResponse['AutomationExecution']['StepExecutions']:
+    ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+    print('SSM response for execution : ', ssm_response)
+    for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == events['StepName']:
             responseFields = events['ResponseField'].split(',')
             output = {}
@@ -25,19 +26,20 @@ def get_output_from_ssm_step_execution(events, context):
     # Could not find step name
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
 
+
 def get_step_durations(events, context):
     ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'StepName' not in events:
         raise KeyError('Requires ExecutionId, StepName in events')
 
-    ssmResponse = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssmResponse)
+    ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+    print('SSM response for execution : ', ssm_response)
 
-    stepNames = events['StepName'].split(',')
+    step_names = events['StepName'].split(',')
     duration = 0
-    for step in ssmResponse['AutomationExecution']['StepExecutions']:
-        if step['StepName'] in stepNames:
+    for step in ssm_response['AutomationExecution']['StepExecutions']:
+        if step['StepName'] in step_names:
             duration += (step['ExecutionEndTime'] - step['ExecutionStartTime']).seconds
 
     if duration > 0:
@@ -46,6 +48,7 @@ def get_step_durations(events, context):
         return output
 
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+
 
 def run_command_document_async(events, context):
     if 'DocumentName' not in events or 'InstanceIds' not in events:
@@ -59,4 +62,3 @@ def run_command_document_async(events, context):
         Parameters=params
     )
     return {'CommandId': response['Command']['CommandId']}
-

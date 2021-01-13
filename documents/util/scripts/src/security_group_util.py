@@ -1,5 +1,6 @@
 import boto3
 
+
 def allow_access_to_self(events, context):
     ec2 = boto3.client('ec2')
 
@@ -10,11 +11,11 @@ def allow_access_to_self(events, context):
 
     for ip_permission in security_groups['SecurityGroups'][0]['IpPermissions']:
         for user_id_group_pair in ip_permission['UserIdGroupPairs']:
-            #check for self security group present
-            if (user_id_group_pair['GroupId'] == events['SecurityGroupId'] and ip_permission['IpProtocol'] == "-1"):
+            # Check for self security group present
+            if user_id_group_pair['GroupId'] == events['SecurityGroupId'] and ip_permission['IpProtocol'] == "-1":
                 return
 
-    #Could not find rule to authorize access to self, adding a rule
+    # Could not find rule to authorize access to self, adding a rule
     ec2.authorize_security_group_ingress(
         GroupId=events['SecurityGroupId'],
         IpPermissions=[{
