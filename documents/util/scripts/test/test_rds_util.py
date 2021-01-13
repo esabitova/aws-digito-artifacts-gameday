@@ -16,7 +16,8 @@ class TestRdsUtil(unittest.TestCase):
             'rds': self.mock_rds
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
-        self.mock_rds.describe_db_instances.return_value = test_data_provider.get_sample_describe_db_instances_response()
+        self.mock_rds.describe_db_instances.return_value = \
+            test_data_provider.get_sample_describe_db_instances_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -24,7 +25,7 @@ class TestRdsUtil(unittest.TestCase):
     def test_restore_to_pit(self):
         events = {}
         events['DbInstanceIdentifier'] = test_data_provider.DB_INSTANCE_ID
-        events['TargetDbInstanceIdentifier'] =  test_data_provider.TARGET_DB_INSTANCE_ID
+        events['TargetDbInstanceIdentifier'] = test_data_provider.TARGET_DB_INSTANCE_ID
 
         restore_output = restore_to_pit(events, None)
         self.assertEqual(str(test_data_provider.RECOVERY_POINT), restore_output['RecoveryPoint'])
@@ -60,30 +61,17 @@ class TestRdsUtil(unittest.TestCase):
         test_cluster_id = 'test_cluster_id'
         events = {'ClusterId': test_cluster_id, 'WriterId': test_writer_id}
 
-        execution_1 = {'DBClusters': [
-            {'Status': 'failing_over',
-             'DBClusterMembers': [
-                {'IsClusterWriter': True,
-                 'DBInstanceIdentifier': test_writer_id}
-        ]}]}
+        execution_1 = {'DBClusters': [{'Status': 'failing_over', 'DBClusterMembers':
+                       [{'IsClusterWriter': True, 'DBInstanceIdentifier': test_writer_id}]}]}
 
-        execution_2 = {'DBClusters': [
-            {'Status': 'available',
-             'DBClusterMembers': [
-                 {'IsClusterWriter': True,
-                  'DBInstanceIdentifier': test_writer_id}
-        ]}]}
+        execution_2 = {'DBClusters': [{'Status': 'available', 'DBClusterMembers':
+                       [{'IsClusterWriter': True, 'DBInstanceIdentifier': test_writer_id}]}]}
 
-        execution_3 = {'DBClusters': [
-            {'Status': 'available',
-             'DBClusterMembers': [
-                 {'IsClusterWriter': True,
-                  'DBInstanceIdentifier': 'failed_over_id'}
-        ]}]}
+        execution_3 = {'DBClusters': [{'Status': 'available', 'DBClusterMembers':
+                       [{'IsClusterWriter': True, 'DBInstanceIdentifier': 'failed_over_id'}]}]}
 
         self.mock_rds.describe_db_clusters.side_effect = [execution_1, execution_2, execution_3]
         wait_cluster_failover_completed(events, None)
         self.mock_rds.describe_db_clusters.assert_has_calls([call(DBClusterIdentifier=test_cluster_id),
                                                              call(DBClusterIdentifier=test_cluster_id),
                                                              call(DBClusterIdentifier=test_cluster_id)])
-

@@ -43,9 +43,9 @@ class TestSsmExecutionUtil(unittest.TestCase):
         self.assertEqual(2, self.mock_ec2.replace_route.call_count)
 
         self.mock_ec2.replace_route.assert_called_with(
-            DestinationCidrBlock = route_through_appliance.INTERNET_DESTINATION,
-            InstanceId = test_data_provider.INSTANCE_ID,
-            RouteTableId = test_data_provider.ROUTE_TABLE_ID)
+            DestinationCidrBlock=route_through_appliance.INTERNET_DESTINATION,
+            InstanceId=test_data_provider.INSTANCE_ID,
+            RouteTableId=test_data_provider.ROUTE_TABLE_ID)
 
     def test_cleanup_to_previous_route(self):
         get_existing_routes_events = {}
@@ -58,6 +58,8 @@ class TestSsmExecutionUtil(unittest.TestCase):
         route_through_appliance.cleanup_to_previous_route(events, None)
         self.assertEqual(2, self.mock_ec2.replace_route.call_count)
 
-        expected_calls = [call(DestinationCidrBlock=route_through_appliance.INTERNET_DESTINATION, NatGatewayId=test_data_provider.NAT_GATEWAY_ID, RouteTableId='rtb-12345'),
-            call(DestinationCidrBlock=test_data_provider.INTERNET_DESTINATION, GatewayId=test_data_provider.IGW_ID, RouteTableId=test_data_provider.ROUTE_TABLE_ID)]
+        expected_calls = [call(DestinationCidrBlock=route_through_appliance.INTERNET_DESTINATION,
+                               NatGatewayId=test_data_provider.NAT_GATEWAY_ID, RouteTableId='rtb-12345'),
+                          call(DestinationCidrBlock=test_data_provider.INTERNET_DESTINATION,
+                               GatewayId=test_data_provider.IGW_ID, RouteTableId=test_data_provider.ROUTE_TABLE_ID)]
         self.assertEqual(expected_calls, self.mock_ec2.replace_route.call_args_list)

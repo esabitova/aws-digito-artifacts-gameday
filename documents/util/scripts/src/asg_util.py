@@ -3,6 +3,7 @@ import time
 import random
 from math import ceil
 
+
 def get_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
@@ -22,6 +23,7 @@ def get_instance_ids_in_asg(events, context):
         output['InstanceIds'].append(instance['InstanceId'])
     return output
 
+
 def get_healthy_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
@@ -35,14 +37,15 @@ def get_healthy_instance_ids_in_asg(events, context):
     )
 
     # Take all healthy ASG EC2 instances
-    asg_healty_instances = []
+    asg_healthy_instances = []
     for instance in auto_scaling_groups['AutoScalingGroups'][0]['Instances']:
         if instance['HealthStatus'] == 'Healthy' and instance['LifecycleState'] == 'InService':
-            asg_healty_instances.append(instance['InstanceId'])
+            asg_healthy_instances.append(instance['InstanceId'])
 
-    output={}
-    output['InstanceIds'] = asg_healty_instances
+    output = {}
+    output['InstanceIds'] = asg_healthy_instances
     return output
+
 
 def filter_healthy_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events or 'InstanceIds' not in events:
@@ -57,21 +60,21 @@ def filter_healthy_instance_ids_in_asg(events, context):
     )
 
     # Take all healthy ASG EC2 instances
-    asg_healty_instances = []
+    asg_healthy_instances = []
     for instance in auto_scaling_groups['AutoScalingGroups'][0]['Instances']:
         if instance['HealthStatus'] == 'Healthy' and instance['LifecycleState'] == 'InService':
-            asg_healty_instances.append(instance['InstanceId'])
+            asg_healthy_instances.append(instance['InstanceId'])
 
-
-    output={}
+    output = {}
     output['InstanceIds'] = []
     given_instance_ids = events['InstanceIds']
     # Take only healthy given EC2 instances
     for instance_id in given_instance_ids:
-        if instance_id in asg_healty_instances:
+        if instance_id in asg_healthy_instances:
             output['InstanceIds'].append(instance_id)
 
     return output
+
 
 def get_instance_ids_in_asg_random_az(events, context):
     if 'AutoScalingGroupName' not in events:
@@ -92,6 +95,7 @@ def get_instance_ids_in_asg_random_az(events, context):
     output = {}
     output['InstanceIds'] = random.choice(list(instances_by_az.values()))
     return output
+
 
 def get_networking_configuration_from_asg(events, context):
     if 'AutoScalingGroupName' not in events:
@@ -120,6 +124,7 @@ def get_networking_configuration_from_asg(events, context):
     output['SecurityGroup'] = security_group
     return output
 
+
 def suspend_launch(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
@@ -132,6 +137,7 @@ def suspend_launch(events, context):
         ]
     )
 
+
 def start_instance_refresh(events, context):
     if 'AutoScalingGroupName' not in events or 'PercentageOfInstances' not in events:
         raise KeyError('Requires AutoScalingGroupName, PercentageOfInstances in events')
@@ -140,14 +146,13 @@ def start_instance_refresh(events, context):
     refresh_response = autoscaling.start_instance_refresh(
         AutoScalingGroupName=events['AutoScalingGroupName'],
         Strategy='Rolling',
-        Preferences={
-            'MinHealthyPercentage': 100-events['PercentageOfInstances']
-        }
+        Preferences={'MinHealthyPercentage': (100 - events['PercentageOfInstances'])}
     )
 
     output = {}
     output['InstanceRefreshId'] = refresh_response['InstanceRefreshId']
     return output
+
 
 def cancel_instance_refresh(events, context):
     if 'AutoScalingGroupName' not in events:
@@ -158,13 +163,12 @@ def cancel_instance_refresh(events, context):
         AutoScalingGroupName=events['AutoScalingGroupName']
     )
 
+
 def wait_for_refresh_to_finish(events, context):
-    if 'AutoScalingGroupName' not in events  or 'InstanceRefreshId' not in events:
+    if 'AutoScalingGroupName' not in events or 'InstanceRefreshId' not in events:
         raise KeyError('Requires AutoScalingGroupName, InstanceRefreshId in events')
 
     autoscaling = boto3.client('autoscaling')
-
-
     while True:
         instance_refresh_status = autoscaling.describe_instance_refreshes(
             AutoScalingGroupName=events['AutoScalingGroupName'],
@@ -175,11 +179,12 @@ def wait_for_refresh_to_finish(events, context):
         if instance_refresh_status['InstanceRefreshes'][0]['Status'] not in ['Pending', 'InProgress']:
             if instance_refresh_status['InstanceRefreshes'][0]['Status'] not in ['Successful']:
                 raise Exception('Instance refresh failed, refresh status %, refresh id %',
-                    instance_refresh_status['InstanceRefreshes'][0]['Status'], instance_refresh_status['InstanceRefreshes'][0]['InstanceRefreshId'])
+                                instance_refresh_status['InstanceRefreshes'][0]['Status'],
+                                instance_refresh_status['InstanceRefreshes'][0]['InstanceRefreshId'])
             break
-
-        #Sleep for 30 seconds
+        # Sleep for 30 seconds
         time.sleep(30)
+
 
 def assert_no_refresh_in_progress(events, context):
     if 'AutoScalingGroupName' not in events:
@@ -191,9 +196,11 @@ def assert_no_refresh_in_progress(events, context):
     )
 
     for instance_refresh in instance_refreshes['InstanceRefreshes']:
-        if instance_refresh ['Status'] in ['Pending', 'InProgress', 'Cancelling']:
+        if instance_refresh['Status'] in ['Pending', 'InProgress', 'Cancelling']:
             raise Exception('Instance refresh in progress, refresh status %, refresh id %',
-                instance_refreshes['InstanceRefreshes'][0]['Status'], instance_refreshes['InstanceRefreshes'][0]['InstanceRefreshId'])
+                            instance_refreshes['InstanceRefreshes'][0]['Status'],
+                            instance_refreshes['InstanceRefreshes'][0]['InstanceRefreshId'])
+
 
 def assert_no_suspended_process(events, context):
     if 'AutoScalingGroupName' not in events:
@@ -209,6 +216,7 @@ def assert_no_suspended_process(events, context):
     if len(auto_scaling_groups['AutoScalingGroups'][0]['SuspendedProcesses']) > 0:
         raise Exception('ASG % has suspended processes', events['AutoScalingGroupName'])
 
+
 def get_instance_ids_by_percentage(events, context):
     if 'InstanceIds' not in events or 'Percentage' not in events:
         raise KeyError('Requires InstanceIds and Percentage in events')
@@ -218,9 +226,9 @@ def get_instance_ids_by_percentage(events, context):
     output = {}
     output['InstanceIds'] = []
     if instance_count < 1:
-        raise  Exception('No given EC2 instances')
+        raise Exception('No given EC2 instances')
     if percentage < 1:
-        raise  Exception('Given percentage should not be lower than 1%')
+        raise Exception('Given percentage should not be lower than 1%')
     instance_count = ceil(instance_count / 100 * percentage)
     for i in range(instance_count):
         output['InstanceIds'].append(instanceIds[i])

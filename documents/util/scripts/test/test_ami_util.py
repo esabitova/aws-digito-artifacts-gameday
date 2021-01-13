@@ -6,6 +6,7 @@ from test import test_data_provider
 
 from src.ami_util import get_ami_id
 
+
 @pytest.mark.unit_test
 class TestAmiUtil(unittest.TestCase):
     def setUp(self):

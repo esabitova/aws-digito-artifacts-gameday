@@ -109,9 +109,7 @@ class PublishDocuments:
                     Attachments=[
                         {
                             'Key': 'S3FileUrl',
-                            'Values': [
-                               s3_attachment_url
-                            ],
+                            'Values': [s3_attachment_url],
                             'Name': SCRIPT_ZIP_FILE_NAME
                         },
                     ],
@@ -132,7 +130,7 @@ class PublishDocuments:
                 return update_document_response['DocumentDescription']['DocumentVersion']
         except ClientError as e:
             logger.error('Failed to update [{}] document.'.format(name))
-        raise e
+            raise e
 
     def update_document_default_version(self, name, version):
         self.ssm.update_document_default_version(
@@ -146,7 +144,7 @@ class PublishDocuments:
                 Name=name
             )
             return True
-        except ClientError as e:
+        except ClientError:
             return False
 
     def has_document_content_changed(self, name, doc_format, new_document_content):
@@ -167,7 +165,7 @@ class PublishDocuments:
 
     def file_exists(self, file_path):
         try:
-            with open(file_path) as f:
+            with open(file_path):
                 return True
         except IOError:
             return False
@@ -254,8 +252,8 @@ class PublishDocuments:
 
     def generate_file_checksum(self):
         with open(self.root_dir + '/' + SCRIPT_ZIP_FILE_NAME, "rb") as f:
-            bytes = f.read() # read entire file as bytes
-            readable_hash = hashlib.sha256(bytes).hexdigest()
+            # read entire file as bytes
+            readable_hash = hashlib.sha256(f.read()).hexdigest()
             return readable_hash
 
     def get_file_size(self):
@@ -264,7 +262,8 @@ class PublishDocuments:
     def get_files_attachment_snippet_in_document(self, doc_format):
         if doc_format == 'YAML':
             with open(self.root_dir + '/publisher/FilesAttachmentSnippetYaml.yml', "r") as f:
-                snippet = f.read() # read file
+                # read file
+                snippet = f.read()
                 snippet = snippet.replace('SHA256_PLACEHOLDER', self.generate_file_checksum())
                 snippet = snippet.replace('SIZE_PLACEHOLDER', str(self.get_file_size()))
                 return snippet
@@ -277,7 +276,7 @@ def main(argv):
     log_level = logging.INFO
     file_name = 'manifest'
     try:
-        opts, args = getopt.getopt(argv,"hr:l:f:", ["region=","log-level=","file-name="])
+        opts, args = getopt.getopt(argv, "hr:l:f:", ["region=", "log-level=", "file-name="])
     except getopt.GetoptError:
         logger.info('usage: publish_document.py -r <region> -l <log-level> -f <file-name>')
         sys.exit(2)
@@ -315,4 +314,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

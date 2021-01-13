@@ -142,8 +142,10 @@ class S3:
 
     def _put_object_as_yaml(self, bucket_name: str, file_name: str, content: dict):
         '''
-
+        Uploads yamml file to S3.
+        :param bucket_name The S3 bucket name
+        :param file_name The name of the file to uploaded
+        :param content The content of the file to be uploaded
         '''
         s3_object = self.resource.Object(bucket_name, file_name)
         s3_object.put(Body=(bytes(dump_yaml(content).encode('UTF-8'))))
-

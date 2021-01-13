@@ -35,5 +35,3 @@ class TestYamlUtil(unittest.TestCase):
         cont_1 = yaml_util.loads_yaml(self.file_data_dummy_1)
         cont_2 = yaml_util.loads_yaml(self.file_data_dummy_1)
         self.assertTrue(yaml_util.is_equal(cont_1, cont_2))
-
-
