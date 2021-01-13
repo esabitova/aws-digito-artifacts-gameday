@@ -3,7 +3,7 @@ Digito-AuroraFailoverCluster_2020-04-01
 Digito-RebootRdsInstance_2020-04-01
 Digito-RefreshAsgInstances_2020-07-23
 Digito-SimulateHighCpuLoadInAsg_2020-07-28
-Digito-SimulateHighMemoryLoadInAsg_2020-07-23
+Digito-SimulateHighMemoryLoadInAsg_2020-07-28
 Digito-KillStressOnHealthyInstances_2020-07-28
 Digito-SimulateAzOutageInAsg_2020-07-23
 

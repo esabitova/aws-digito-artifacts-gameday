@@ -10,11 +10,11 @@ Feature: SSM automation document for Aurora cluster failover.
     And cache DB cluster "dbReaderId" and "dbWriterId" "before" SSM automation execution
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
-    And SSM automation document "Digito-AuroraFailoverCluster_2020_04_01" executed
+    And SSM automation document "Digito-AuroraFailoverCluster_2020-04-01" executed
       |ClusterId                                             |InstanceId                 |AutomationAssumeRole                                                             |SyntheticAlarmName                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|{{cache:before>dbReaderId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoAuroraFailoverClusterAssumeRole}}|{{cfn-output:RdsAuroraFailoverTestTemplate>SyntheticAlarmName}}|
 
-    When SSM automation document "Digito-AuroraFailoverCluster_2020_04_01" execution in status "Success"
+    When SSM automation document "Digito-AuroraFailoverCluster_2020-04-01" execution in status "Success"
     And cache DB cluster "dbReaderId" and "dbWriterId" "after" SSM automation execution
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
@@ -30,11 +30,11 @@ Feature: SSM automation document for Aurora cluster failover.
     And cache DB cluster "dbReaderId" and "dbWriterId" "before" SSM automation execution
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
-    And SSM automation document "Digito-AuroraFailoverCluster_2020_04_01" executed
+    And SSM automation document "Digito-AuroraFailoverCluster_2020-04-01" executed
       |ClusterId                                             |AutomationAssumeRole                                                             |SyntheticAlarmName                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoAuroraFailoverClusterAssumeRole}}|{{cfn-output:RdsAuroraFailoverTestTemplate>SyntheticAlarmName}}|
 
-    When SSM automation document "Digito-AuroraFailoverCluster_2020_04_01" execution in status "Success"
+    When SSM automation document "Digito-AuroraFailoverCluster_2020-04-01" execution in status "Success"
     And cache DB cluster "dbReaderId" and "dbWriterId" "after" SSM automation execution
      |ClusterId                                             |
      |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
