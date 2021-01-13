@@ -32,7 +32,8 @@ def pytest_addoption(parser):
                      help="Flag to keep test resources (created by Resource Manager) after all tests. Default False.")
     parser.addoption("--pool_size",
                      action="store",
-                     help="Comma separated key=value pair of cloud formation file template names mapped to number of pool size (Example: template_1=3, template_2=4)")
+                     help="Comma separated key=value pair of cloud formation file template names mapped to number of "
+                          "pool size (Example: template_1=3, template_2=4)")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -77,7 +78,8 @@ def pytest_sessionfinish(session, exitstatus):
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
         else:
-            logging.info("Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
+            logging.info(
+                "Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
             rm.destroy_all_resources()
 
 
@@ -141,7 +143,8 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    :param resource_manager: The resource manager which will take care of managing given template deployment and providing reosurces for tests
+    :param resource_manager: The resource manager which will take care of managing given template deployment
+    and providing reosurces for tests
     :param cfn_input_parameters: The table of parameters as input for cloud formation template
     """
     for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
@@ -158,7 +161,8 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
         resource_manager.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 
-@given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
+@given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'),
+       target_fixture='ssm_execution_id')
 def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ssm_test_cache, ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.

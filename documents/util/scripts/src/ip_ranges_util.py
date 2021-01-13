@@ -1,6 +1,7 @@
 import json
 import urllib3
 
+
 def get_ip_ranges(events, context):
     if 'Region' not in events or 'AwsServiceName' not in events or 'DestinationIpAddressRanges' not in events:
         raise KeyError('Requires Region,AwsServiceName,DestinationIpAddressRanges  in events')
@@ -13,7 +14,7 @@ def get_ip_ranges(events, context):
 
     ips = []
     for item in ip_ranges:
-        if (item["service"] == events['AwsServiceName'] and item["region"] == events['Region']):
+        if item["service"] == events['AwsServiceName'] and item["region"] == events['Region']:
             ips.append(item['ip_prefix'])
 
     # Add additional ip ranges specified

@@ -21,7 +21,8 @@ class TestSsmDocument(unittest.TestCase):
         pass
 
     def test_execute_not_existing_document_fail(self):
-        self.assertRaises(Exception, self.ssm_document.execute, 'test_document_name', {'test_param_1': ['test_value_1']})
+        self.assertRaises(Exception, self.ssm_document.execute, 'test_document_name',
+                          {'test_param_1': ['test_value_1']})
 
     def test_wait_for_execution_completion(self):
         execution_1 = {'AutomationExecution':
@@ -54,4 +55,3 @@ class TestSsmDocument(unittest.TestCase):
         execution_id = self.ssm_document.execute('test_document_name', {'test_param_1': ['test_value_1']})
         self.assertEqual('123456', execution_id)
         self.mock_ssm.start_automation_execution.assert_called_once()
-

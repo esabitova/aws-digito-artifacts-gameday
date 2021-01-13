@@ -59,9 +59,3 @@ class TestParamUtils(unittest.TestCase):
         expected_value = 'simple_value'
         actual_value = param_utils.parse_param_value(expected_value, containers)
         self.assertEqual(expected_value, actual_value)
-
-
-
-
-
-

@@ -2,6 +2,7 @@ import boto3
 import time
 from datetime import datetime, timedelta
 
+
 def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_time_utc):
     """
     Returns metric data point witch represents highest data point value for given metric name and EC2 instance id.
@@ -15,20 +16,13 @@ def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_t
     response = cw.get_metric_statistics(
         Namespace="AWS/EC2",
         MetricName=metric_name,
-        Dimensions=[
-             {
-               "Name": "InstanceId",
-               "Value": instance_id
-             },
-        ],
+        Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
         # CPU metric delay is 5 minutes
         StartTime=start_time_utc,
         EndTime=end_time_utc,
         # Minimum period for CPU/Memory metric - 5 minutes
         Period=300,
-        Statistics=[
-               "Maximum",
-        ],
+        Statistics=["Maximum"],
         Unit='Percent'
     )
     max_datapoint = 0.0
@@ -56,6 +50,7 @@ def describe_metric_alarm_state(alarm_name):
         raise Exception("MetricAlarm [{}] does not exist.".format(alarm_name))
     return metric_alarms[0]['StateValue']
 
+
 def verify_cpu_stress(events, context):
     """
     Verify CPU stress for given instances.
@@ -75,6 +70,7 @@ def verify_cpu_stress(events, context):
 
     verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, 360, 'CPUUtilization', exp_recovery_time)
 
+
 def verify_memory_stress(events, context):
     """
     Monitors Memory stress behaviour for given instances.
@@ -89,7 +85,9 @@ def verify_memory_stress(events, context):
 
     raise Exception('Not implemented: https://issues.amazon.com/issues/Digito-1279')
 
-def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric_delay, metric_name, exp_recovery_time):
+
+def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric_delay, metric_name,
+                      exp_recovery_time):
     """
     Helper to verify stress test execution based on metric (CPU/Memory Utilization). Metric indicates whether stress
     testing was performed to specified load level, if not test is failed.
@@ -118,8 +116,3 @@ def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric
                 "Instance [{}] expected [{}] load [{}%] but was [{}%]".format(instance_id, metric_name,
                                                                               exp_load_percentage,
                                                                               actual_cpu_load))
-
-
-
-
-

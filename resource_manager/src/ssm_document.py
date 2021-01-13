@@ -55,7 +55,8 @@ class SsmDocument:
         """
         Function to parse given SSM document input parameters based. Parameters could be of 3 types:
         * cached - in case if given parameter value is pointing to cache (Example: {{cache:valueKeyA>valueKeyB}})
-        * cloud formation output - in case if given parameter value is pointing to cloud formation output (Example: {{output:paramNameA}})
+        * cloud formation output - in case if given parameter value is pointing to cloud
+        formation output (Example: {{output:paramNameA}})
         * simple value - in case if given parameter value is simple value
         :param resource_manager - The resource manager, used to get cloud formation stack output parameters
         :param ssm_test_cache - The cache, used to get cached values by given keys.

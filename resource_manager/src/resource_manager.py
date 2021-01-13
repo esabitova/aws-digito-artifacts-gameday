@@ -37,8 +37,6 @@ class ResourceManager:
         self.cfn_templates = dict()
         self.cfn_resources = dict()
 
-
-
     def init_ddb_tables(self, boto3_session):
         """
         Creates DDB tables to be used by tests.
@@ -155,7 +153,7 @@ class ResourceManager:
                                 resource.updated_on = datetime.now()
                                 resource.save()
                                 return resource
-                            except PutError as e:
+                            except PutError:
                                 # In case if object already exist, do nothing
                                 pass
                             except Exception as e:
@@ -285,7 +283,7 @@ class ResourceManager:
                          cfn_input_params)
             return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name,
                                                cfn_input_params)
-        except PutError as e:
+        except PutError:
             return None
         except Exception as e:
             logging.error(e)
@@ -323,7 +321,7 @@ class ResourceManager:
                          cfn_input_params)
             return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name,
                                                cfn_input_params)
-        except PutError as e:
+        except PutError:
             return None
         except Exception as e:
             logging.error(e)
@@ -343,8 +341,8 @@ class ResourceManager:
 
         cfn_template_s3_url = self.s3_helper.upload_file(cfn_template_name, cfn_content)
         cf_output_params = self.cfn_helper.deploy_cf_stack(cfn_template_s3_url,
-                                                                  cfn_stack_name,
-                                                                  **cfn_input_params)
+                                                           cfn_stack_name,
+                                                           **cfn_input_params)
         resource.status = ResourceModel.Status.AVAILABLE.name if \
             resource_type == ResourceManager.ResourceType.ASSUME_ROLE else ResourceModel.Status.LEASED.name
         resource.cf_template_url = cfn_template_s3_url
@@ -354,7 +352,7 @@ class ResourceManager:
         resource.save()
         return resource
 
-    def _get_cfn_template_name_by_type(self, cfn_template_path: str,  resource_type: ResourceType):
+    def _get_cfn_template_name_by_type(self, cfn_template_path: str, resource_type: ResourceType):
         """
         Returns template name used in DDB based on resource type.
         For ASSUME_ROLE type we use static path defined 'config.ssm_assume_role_cfn_s3_path'.

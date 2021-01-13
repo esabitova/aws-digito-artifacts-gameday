@@ -3,7 +3,11 @@ import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
-from src.asg_util import *
+from src.asg_util import get_instance_ids_by_percentage, get_instance_ids_in_asg_random_az
+from src.asg_util import start_instance_refresh, cancel_instance_refresh, assert_no_refresh_in_progress
+from src.asg_util import wait_for_refresh_to_finish, assert_no_suspended_process, get_instance_ids_in_asg
+from src.asg_util import get_networking_configuration_from_asg, suspend_launch
+
 
 @pytest.mark.unit_test
 class TestAsgUtil(unittest.TestCase):
@@ -15,8 +19,10 @@ class TestAsgUtil(unittest.TestCase):
             'autoscaling': self.mock_autoscaling
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
-        self.mock_autoscaling.describe_auto_scaling_groups.return_value = test_data_provider.get_sample_describe_auto_scaling_groups_response()
-        self.mock_autoscaling.describe_launch_configurations.return_value = test_data_provider.get_sample_describe_launch_configurations_response()
+        self.mock_autoscaling.describe_auto_scaling_groups.return_value = \
+            test_data_provider.get_sample_describe_auto_scaling_groups_response()
+        self.mock_autoscaling.describe_launch_configurations.return_value = \
+            test_data_provider.get_sample_describe_launch_configurations_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -50,7 +56,6 @@ class TestAsgUtil(unittest.TestCase):
         suspend_launch(events, None)
         self.mock_autoscaling.suspend_processes.assert_called_once()
 
-
     def test_start_instance_refresh(self):
         events = {}
         events['AutoScalingGroupName'] = test_data_provider.ASG_NAME
@@ -71,7 +76,8 @@ class TestAsgUtil(unittest.TestCase):
         events['AutoScalingGroupName'] = test_data_provider.ASG_NAME
         events['InstanceRefreshId'] = test_data_provider.INSTANCE_REFRESH_ID
 
-        self.mock_autoscaling.describe_instance_refreshes.return_value = test_data_provider.get_sample_describe_instance_refreshes_response('Successful')
+        self.mock_autoscaling.describe_instance_refreshes.return_value = \
+            test_data_provider.get_sample_describe_instance_refreshes_response('Successful')
         wait_for_refresh_to_finish(events, None)
         self.mock_autoscaling.describe_instance_refreshes.assert_called_once()
 
@@ -80,7 +86,8 @@ class TestAsgUtil(unittest.TestCase):
         events['AutoScalingGroupName'] = test_data_provider.ASG_NAME
         events['InstanceRefreshId'] = test_data_provider.INSTANCE_REFRESH_ID
 
-        self.mock_autoscaling.describe_instance_refreshes.return_value = test_data_provider.get_sample_describe_instance_refreshes_response('Cancelled')
+        self.mock_autoscaling.describe_instance_refreshes.return_value = \
+            test_data_provider.get_sample_describe_instance_refreshes_response('Cancelled')
         self.assertRaises(Exception, wait_for_refresh_to_finish, events, None)
 
     def test_assert_no_refresh_in_progress_success(self):
@@ -94,7 +101,8 @@ class TestAsgUtil(unittest.TestCase):
         events = {}
         events['AutoScalingGroupName'] = test_data_provider.ASG_NAME
 
-        self.mock_autoscaling.describe_instance_refreshes.return_value = test_data_provider.get_sample_describe_instance_refreshes_response('Pending')
+        self.mock_autoscaling.describe_instance_refreshes.return_value = \
+            test_data_provider.get_sample_describe_instance_refreshes_response('Pending')
         self.assertRaises(Exception, assert_no_refresh_in_progress, events, None)
 
     def test_assert_no_suspended_process_success(self):

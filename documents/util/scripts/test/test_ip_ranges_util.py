@@ -3,8 +3,6 @@ import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test import test_data_provider
-
-import urllib3
 from src.ip_ranges_util import get_ip_ranges
 
 
@@ -24,17 +22,20 @@ class TestIpRangesUtil(unittest.TestCase):
     def test_get_ip_ranges_all_input_provided_success(self):
         events = {}
         events['AwsServiceName'] = 'DYNAMODB'
-        events['Region'] =  'us-west-2'
-        events['DestinationIpAddressRanges'] = [test_data_provider.ADDITIONAL_IP_PREFIX_1, test_data_provider.ADDITIONAL_IP_PREFIX_2]
+        events['Region'] = 'us-west-2'
+        events['DestinationIpAddressRanges'] = [test_data_provider.ADDITIONAL_IP_PREFIX_1,
+                                                test_data_provider.ADDITIONAL_IP_PREFIX_2]
 
         output = get_ip_ranges(events, None)
-        self.assertEqual(" ".join([test_data_provider.DYNAMODB_USW2_IP_PREFIX, test_data_provider.ADDITIONAL_IP_PREFIX_1,
-            test_data_provider.ADDITIONAL_IP_PREFIX_2]), output['IpAddressRanges'])
+        self.assertEqual(" ".join([test_data_provider.DYNAMODB_USW2_IP_PREFIX,
+                                   test_data_provider.ADDITIONAL_IP_PREFIX_1,
+                                   test_data_provider.ADDITIONAL_IP_PREFIX_2]),
+                         output['IpAddressRanges'])
 
     def test_get_ip_ranges_no_input_provided_success(self):
         events = {}
         events['AwsServiceName'] = ''
-        events['Region'] =  'us-west-2'
+        events['Region'] = 'us-west-2'
         events['DestinationIpAddressRanges'] = []
 
         output = get_ip_ranges(events, None)

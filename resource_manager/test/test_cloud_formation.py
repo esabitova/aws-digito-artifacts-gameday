@@ -1,6 +1,6 @@
 import unittest
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from botocore.exceptions import ClientError
 
@@ -89,7 +89,7 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.update_stack.side_effect = ClientError(error_response=err_response_2,
                                                                     operation_name='UpdateStack')
 
-        self.assertRaises(Exception,  self.cfn_helper.deploy_cf_stack,
+        self.assertRaises(Exception, self.cfn_helper.deploy_cf_stack,
                           'test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
     def test_deploy_cf_stack_create_fail(self):

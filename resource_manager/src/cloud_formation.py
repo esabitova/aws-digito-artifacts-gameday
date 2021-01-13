@@ -117,7 +117,7 @@ class CloudFormationTemplate:
                 time.sleep(constants.cf_operation_sleep_time_secs)
                 response = self.client.describe_stacks(StackName=stack_name)
                 stack_status = response['Stacks'][0]['StackStatus']
-        except ClientError as e:
+        except ClientError:
             # Do nothing as stack doesn't exist.
             # TODO(semiond): Investigate better exception handling: https://issues.amazon.com/issues/Digito-1212
             pass
@@ -132,4 +132,3 @@ class CloudFormationTemplate:
         self.client.delete_stack(StackName=stack_name)
         waiter = self.client.get_waiter('stack_delete_complete')
         waiter.wait(StackName=stack_name)
-
