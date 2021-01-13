@@ -1,10 +1,12 @@
 {
-  "documentName": "Digito-SimulateHighCpuLoadInAsg",
+  "documentName": "Digito-SimulateHighCpuLoadInAsg_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "dependsOn": "Digito-RunCpuStress,Digito-KillStressCommand",
+  "dependsOn": "Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
   "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:asg-inject_cpu_load:2020-07-28",
+  "failureType": "HARDWARE",
+  "risk": "SMALL",
   "minorVersion": "001"
 }

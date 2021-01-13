@@ -1,8 +1,8 @@
 {
-    "documentName": "Digito-RunCpuStress",
+    "documentName": "Digito-RunCpuStress_2020-07-28",
     "documentType": "Command",
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
-    "tag": "tbd",
+    "tag": "util:run_cpu_stress:2020-07-28",
     "minorVersion": "001"
 }

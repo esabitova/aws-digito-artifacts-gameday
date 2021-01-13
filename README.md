@@ -299,13 +299,14 @@ And SSM automation document "Digito-AuroraFailoverCluster" executed
 ##Tests Isolation
 Usually when we write tests we don’t want to execute all tests to verify them. Instead we want to execute only those tests which we want. In this case test [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios) can help. You can register your in following way:
 ```
-[pytest]
+[tool:pytest]
+...
 markers =
     rds    
     failover    
     integration
 ```
-<b>File location:</b> .../AwsDigitoArtifactsGameday/pytest.ini
+<b>File location:</b> .../AwsDigitoArtifactsGameday/setup.cfg
 
 ##Integration Test Execution 
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.

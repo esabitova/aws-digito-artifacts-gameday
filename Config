@@ -1,6 +1,6 @@
 package.AwsDigitoArtifactsGameday = {
     interfaces = (1.0);
- 
+
     # Use BrazilPython3. See https://w.amazon.com/?BrazilPython3
     build-system = brazilpython;
     build-tools = {
@@ -8,7 +8,7 @@ package.AwsDigitoArtifactsGameday = {
             BrazilPython = 3.0;
         };
     };
- 
+
     # Use runtime-dependencies for when you want to bring in additional
     # packages when deploying.
     # Use dependencies instead if you intend for these dependencies to
@@ -38,7 +38,7 @@ package.AwsDigitoArtifactsGameday = {
         };
     };
 
- 
+
     runtime-dependencies = {
         1.0 = {
         };

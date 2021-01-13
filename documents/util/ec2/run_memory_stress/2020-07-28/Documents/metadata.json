@@ -1,8 +1,8 @@
 {
-    "documentName": "Digito-RunMemoryStress",
+    "documentName": "Digito-RunMemoryStress_2020-07-28",
     "documentType": "Command",
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
-    "tag": "tbd",
+    "tag": "util:run_memory_stress:2020-07-28",
     "minorVersion": "001"
 }
