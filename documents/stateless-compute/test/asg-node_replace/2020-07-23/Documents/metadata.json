@@ -3,9 +3,16 @@
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:asg-node_replace:2020-07-23",
   "failureType": "HARDWARE",
   "risk": "SMALL",
+  "intent": "Test that the application stays up even if all instances are replaced. This proves that the app will work even with fresh installs.",
+  "details": {
+      "1": "Stop/Terminate each instance in the ASG (not all at once. use percent of instances).",
+      "2": "Wait for instances to be replaced.",
+      "3": "Verify monitor stays green."
+  },
   "minorVersion": "001"
 }
