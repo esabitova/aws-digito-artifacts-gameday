@@ -35,6 +35,14 @@ package.AwsDigitoArtifactsGameday = {
             # Integration Testing Framework.
             Python-cfn-flip = 1.x;
             PynamoDB = 4.x;
+
+            # Provides the Brazil formatting checks
+            BrazilPython-formatters = 1.0;
+            Python-black = no1;
+            Python-isort = 4.3.x;
+
+            # Enable build-time linting
+            BrazilPython-Flake8 = 3.7.x;
         };
     };
 

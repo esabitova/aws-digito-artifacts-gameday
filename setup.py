@@ -1,6 +1,6 @@
 import os
 import zipfile
-from setuptools import setup, find_packages
+from setuptools import setup
 
 SCRIPT_DIR = '/documents/util/scripts/src'
 SCRIPT_ZIP_FILE_NAME = 'digito_gameday_primitives.zip'
@@ -23,11 +23,13 @@ data_files.append(('.', [SCRIPT_ZIP_FILE_NAME]))
 setup(
     name="AwsDigitoArtifactsGameday",
     version="1.0",
-
     # Use the pytest brazilpython runner. Provided by BrazilPython-Pytest.
     test_command="brazilpython_pytest",
-
     # include data files
     data_files=data_files,
-    root_script_source_version='python3.7'
+    root_script_source_version='python3.7',
+    # Enable build-time format checking
+    check_format=True,
+    # Enable linting at build time
+    test_flake8=True
 )
