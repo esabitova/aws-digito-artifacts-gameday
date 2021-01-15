@@ -3,9 +3,18 @@
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:asg-availability_zone_outage:2020-07-23",
   "failureType": "AZ",
   "risk": "MEDIUM",
+  "intent": "Simulate an outage in a whole AZ.",
+  "details": {
+      "1": "Select AZ where majority of instances are in.",
+      "2": "Inject an error to all instances in AZ together (cause network to be unavailable on instances).",
+      "3": "Prevent new instances in AZ from turning on (use suspendLaunch API).",
+      "4": "Verify alarms alert in (alarms a).",
+      "5": "Potentially verify that Synthetic monitor stays green / turns green within x minutes."
+  },
   "minorVersion": "001"
 }
