@@ -331,7 +331,7 @@ class ResourceManager:
                                cfn_template_name: str, cfn_stack_name: str, cfn_input_params):
         """
         Updating resource stack and state based on given parameters.
-        :param resource The resource record model from DDB.
+        :param resource The resource record model from DDB
         :param resource_type The resource type
         :param cfn_content The content of cloud formation template
         :param cfn_template_name The cloud formation template name to be stored in DDB.
