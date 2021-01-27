@@ -5,7 +5,6 @@
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "dependsOn": "Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
-  "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:asg-inject_cpu_load:2020-07-28",
   "failureType": "HARDWARE",
   "risk": "SMALL",
@@ -15,5 +14,5 @@
       "2": "Start a CPU hog on instances for X minutes.",
       "3": "Verify monitor stays green or returns to green in Y minutes."
   },
-  "minorVersion": "001"
+  "minorVersion": "002"
 }

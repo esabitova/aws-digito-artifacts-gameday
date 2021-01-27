@@ -30,19 +30,25 @@ mainSteps:
     onFailure: Abort
     inputs:
       Runtime: python3.6
-      Handler: asg_util.assert_no_suspended_process
+      Handler: assert_no_suspended_process
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.assert_no_suspended_process
   - name: AssertNoRefreshInProgress
     action: 'aws:executeScript'
     onFailure: Abort
     inputs:
       Runtime: python3.6
-      Handler: asg_util.assert_no_refresh_in_progress
+      Handler: assert_no_refresh_in_progress
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.assert_no_refresh_in_progress
   - name: SelectExecutionMode
     action: 'aws:branch'
     inputs:
@@ -60,11 +66,14 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: asg_util.start_instance_refresh
+      Handler: start_instance_refresh
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
         PercentageOfInstances: '{{PercentageOfInstances}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.start_instance_refresh
   - name: WaitForRefreshToFinish
     action: 'aws:executeScript'
     onFailure: 'step:CancelInstanceRefresh'
@@ -76,11 +85,14 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: asg_util.wait_for_refresh_to_finish
+      Handler: wait_for_refresh_to_finish
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
         InstanceRefreshId: '{{StartInstanceRefresh.InstanceRefreshId}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.wait_for_refresh_to_finish
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
     maxAttempts: 10
@@ -99,8 +111,11 @@ mainSteps:
     onFailure: Abort
     inputs:
       Runtime: python3.6
-      Handler: asg_util.cancel_instance_refresh
+      Handler: cancel_instance_refresh
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.cancel_instance_refresh
     isEnd: true
