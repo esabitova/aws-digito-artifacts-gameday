@@ -54,11 +54,14 @@ mainSteps:
         Selector: $.Payload.WriterId
         Type: String
     inputs:
-        Runtime: python3.6
-        Handler: rds_util.get_cluster_writer_id
-        InputPayload:
-          ClusterId: '{{ClusterId}}'
-        Attachment: digito_gameday_primitives.zip
+      Runtime: python3.6
+      Handler: get_cluster_writer_id
+      InputPayload:
+        ClusterId: '{{ClusterId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::rds_util.imports
+
+        SCRIPT_PLACEHOLDER::rds_util.get_cluster_writer_id
   - name: PrimaryInstanceSelector
     action: 'aws:branch'
     inputs:
@@ -87,11 +90,14 @@ mainSteps:
     timeoutSeconds: 600
     inputs:
       Runtime: python3.6
-      Handler: rds_util.wait_cluster_failover_completed
+      Handler: wait_cluster_failover_completed
       InputPayload:
         ClusterId: '{{ClusterId}}'
         WriterId: '{{GetClusterWriterId.WriterId}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::rds_util.imports
+
+        SCRIPT_PLACEHOLDER::rds_util.wait_cluster_failover_completed
   - name: WaitForAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10

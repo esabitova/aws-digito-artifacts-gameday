@@ -4,7 +4,6 @@
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-  "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:asg-availability_zone_outage:2020-07-23",
   "failureType": "AZ",
   "risk": "MEDIUM",
@@ -16,5 +15,5 @@
       "4": "Verify alarms alert in (alarms a).",
       "5": "Potentially verify that Synthetic monitor stays green / turns green within x minutes."
   },
-  "minorVersion": "001"
+  "minorVersion": "002"
 }
