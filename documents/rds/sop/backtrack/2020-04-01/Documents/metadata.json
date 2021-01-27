@@ -1,0 +1,12 @@
+{
+    "displayName": "Backtrack",
+    "documentName": "Digito-RdsBacktrack_2020-04-01",
+    "documentType": "Automation",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+    "tag": "rds:sop:backtrack:2020-04-01",
+    "intent": "SOP from Digito to backtrack an RDS Aurora cluster.",
+    "minorVersion": "001",
+    "setup": "If backtrack was not enabled at cluster creation, it will not be available. In order to enable backtracking, the cluster must be created again or restored from snapshot"
+}
