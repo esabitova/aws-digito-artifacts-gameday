@@ -1,0 +1,11 @@
+{
+    "displayName": "Restore from Backup",
+    "documentName": "Digito-RdsRestoreFromBackup_2020-04-01",
+    "documentType": "Automation",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+    "tag": "rds:sop:restore_from_backup:2020-04-01",
+    "intent": "SOP from Digito to restore an RDS DB from backup",
+    "minorVersion": "001"
+}
