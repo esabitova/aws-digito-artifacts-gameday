@@ -1,0 +1,10 @@
+{
+  "displayName": "Low memory",
+  "alarmName": "Digito-LowMemory_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "rds:alarms:health-memory:2020-04-01",
+  "description": "Reports when database free memory is low",
+  "minorVersion": "001"
+}

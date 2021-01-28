@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DBInstanceIdentifier:
+    Type: String
+    Default: '${DBInstanceIdentifier}'
+  SNSTopicARN:
+    Type: String
+  BandWidth:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  ConnectionSpikeAnomalyDetector:
+    Type: 'AWS::CloudWatch::AnomalyDetector'
+    Properties:
+      MetricName: DatabaseConnections
+      Namespace: AWS/RDS
+      Stat: Maximum
+  ConnectionSpikeAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when connections are anomalous with band width ', Ref: BandWidth ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoRdsConnectionSpike-', Ref: DBInstanceIdentifier ] ]
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 5
+      Metrics:
+        - Expression:
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: DatabaseConnections
+              Namespace: AWS/RDS
+              Dimensions:
+                - Name: DBInstanceIdentifier
+                  Value:
+                    Ref: DBInstanceIdentifier
+            Period: 60
+            Stat: Maximum
+      ThresholdMetricId: ad1
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'rds:alarms:health-connections:2020-04-01'
