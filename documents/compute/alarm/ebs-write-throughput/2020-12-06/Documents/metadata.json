@@ -1,0 +1,10 @@
+{
+  "displayName": "SumVolumeWriteBytes",
+  "alarmName": "Digito-SumVolumeWriteBytes_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "stateful-compute:alarm:ebs-write-throughput:2020-12-06",
+  "description": "Reports when volume write throughput is anomalous with band width",
+  "minorVersion": "001"
+}

@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  LoadBalancerName:
+    Type: String
+    Default: '${LoadBalancerName}'
+  SNSTopicARN:
+    Type: String
+  Threshold:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  UnHealthyHostCountAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when an ASG has many unhealthy hosts' ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoAsgMultipleDyingHosts-', Ref: LoadBalancerName ] ]
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 180
+      DatapointsToAlarm: 30
+      Dimensions:
+        - Name: LoadBalancerName
+          Value:
+            Ref: LoadBalancerName
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Period: 60
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'compute:alarm:asg-many-unhealthy-hosts:2020-07-13'

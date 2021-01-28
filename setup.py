@@ -11,6 +11,9 @@ ROOT_DIR = os.getcwd()
 # Adding data files documents, artifacts under build folder.
 data_files = []
 for root, dirs, files in os.walk("documents"):
+    if "alarm" in dirs:
+        dirs.remove("alarm")
+
     for f in files:
         data_files.append((root, [os.path.join(root, f)]))
 

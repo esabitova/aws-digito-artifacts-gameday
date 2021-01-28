@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  TargetGroup:
+    Type: String
+    Default: ${TargetGroup}
+  SNSTopicARN:
+    Type: String
+  BandWidth:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  AbnormalRequestPerTargetAnomalyDetector:
+    Type: 'AWS::CloudWatch::AnomalyDetector'
+    Properties:
+      MetricName: RequestCountPerTarget
+      Namespace: AWS/ApplicationELB
+      Stat: Average
+  AbnormalRequestPerTargetAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when target group request count is anomalous with band width ', Ref: BandWidth ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoAsgAbnormalRequestPerTarget-', Ref: TargetGroup ] ]
+      ComparisonOperator: GreaterThanUpperThreshold
+      EvaluationPeriods: 15
+      DatapointsToAlarm: 10
+      Metrics:
+        - Expression:
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: RequestCountPerTarget
+              Namespace: AWS/ApplicationELB
+              Dimensions:
+                - Name: TargetGroup
+                  Value:
+                    Ref: TargetGroup
+            Period: 60
+            Stat: Average
+      ThresholdMetricId: ad1
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'compute:alarm:asg-many-unhealthy-hosts:2020-07-13'
