@@ -1,0 +1,10 @@
+{
+  "displayName": "Aurora replica lag",
+  "alarmName": "Digito-AuroraReplicaLag_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "rds:alarms:recovery-aurora_replica_lag:2020-04-01",
+  "description": "Reports when Aurora database replica lag is high",
+  "minorVersion": "001"
+}

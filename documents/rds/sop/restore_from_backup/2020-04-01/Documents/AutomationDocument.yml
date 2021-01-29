@@ -1,0 +1,248 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: SOP from Digito to restore an RDS DB from backup
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  Dryrun:
+    type: Boolean
+    default: false
+  AutomationAssumeRole:
+    type: String
+    description: "The ARN of the role that allows Automation to perform\
+         \ the actions on your behalf"
+    default:
+      Fn::GetAtt: DigitoRdsRestoreFromBackupAssumeRole.Arn
+  DbInstanceIdentifier:
+    type: String
+    description: The identifier of the DB instance to be replaced, or base name if dry run
+  SnapshotId:
+    type: String
+    description: The identifier of the snapshot to restore
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+mainSteps:
+  # 1. Dry run start branch
+  - name: Dryrun_TrafficRedirectionBranch
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: TrafficRedirectionPause
+          Variable: '{{Dryrun}}'
+          BooleanEquals: false
+        - NextStep: RecordStartTime
+          Variable: '{{Dryrun}}'
+          BooleanEquals: true
+    description: ''
+
+  # 1.1. Wet run start
+  - name: TrafficRedirectionPause
+    action: 'aws:pause'
+    inputs:
+      Message: Resume execution once traffic has been redirected from the resource
+
+
+  # 2. Shared steps
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          from datetime import datetime, timezone
+          return datetime.now(timezone.utc).isoformat()
+  - name: RestoreSnapshot
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          import boto3
+          rds = boto3.client('rds')
+          db_instance_response = rds.describe_db_instances(DBInstanceIdentifier = events['SourceDBInstanceIdentifier'])['DBInstances'][0]
+          rds.restore_db_instance_from_db_snapshot(
+            Engine = db_instance_response['Engine'],
+            StorageType = db_instance_response['StorageType'],
+            DBSnapshotIdentifier = events['DBSnapshotIdentifier'],
+            DBInstanceIdentifier = events['TargetDBInstanceIdentifier'],
+            DBInstanceClass = db_instance_response['DBInstanceClass'],
+            DBSubnetGroupName = db_instance_response['DBSubnetGroup']['DBSubnetGroupName'],
+            AvailabilityZone = db_instance_response['AvailabilityZone'],
+            Port = db_instance_response["Endpoint"]['Port'],
+            MultiAZ = db_instance_response['MultiAZ'],
+            CopyTagsToSnapshot = db_instance_response['CopyTagsToSnapshot'],
+            VpcSecurityGroupIds = [db_instance_response['VpcSecurityGroups'][0]['VpcSecurityGroupId']]
+          )
+      InputPayload:
+        SourceDBInstanceIdentifier: '{{DbInstanceIdentifier}}'
+        TargetDBInstanceIdentifier: '{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}'
+        DBSnapshotIdentifier: '{{SnapshotId}}'
+  - name: WaitForNewDatabaseToBeAvailable
+    action: 'aws:waitForAwsResourceProperty'
+    timeoutSeconds: 1800
+    inputs:
+      Service: rds
+      Api: DescribeDBInstances
+      DBInstanceIdentifier: '{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}'
+      PropertySelector: "$.DBInstances[0].DBInstanceStatus"
+      DesiredValues:
+        - available
+  - name: RenameParameters
+    action: 'aws:executeScript'
+    outputs:
+      - Name: MasterSourceId
+        Selector: $.Payload.MasterSourceId
+        Type: String
+      - Name: MasterTargetId
+        Selector: $.Payload.MasterTargetId
+        Type: String
+      - Name: ReplicaSourceId
+        Selector: $.Payload.ReplicaSourceId
+        Type: String
+      - Name: ReplicaTargetId
+        Selector: $.Payload.ReplicaTargetId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          masterId = events['DbInstanceIdentifier']
+          dryrun = events['Dryrun']
+          automation_id = events['AutomationId']
+          return {
+            'MasterSourceId' : masterId + '-new-' + automation_id if dryrun else masterId,
+            'MasterTargetId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId + '-old' + automation_id,
+            'ReplicaSourceId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId  + '-new-' + automation_id,
+            'ReplicaTargetId' : masterId + '-new-' + automation_id + '-2' if dryrun else masterId
+          }
+      InputPayload:
+        Dryrun: '{{Dryrun}}'
+        DbInstanceIdentifier: '{{DbInstanceIdentifier}}'
+        AutomationId: '{{automation:EXECUTION_ID}}'
+  - name: RenamePreviousDatabaseToOld
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: rds
+      Api: ModifyDBInstance
+      DBInstanceIdentifier: '{{RenameParameters.MasterSourceId}}'
+      NewDBInstanceIdentifier: '{{RenameParameters.MasterTargetId}}'
+      ApplyImmediately: true
+  - name: WaitForMasterToBeRenamedToOld
+    action: 'aws:executeScript'
+    timeoutSeconds: 600
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          import boto3, time
+          rds = boto3.client('rds')
+          while True:
+            try:
+              if rds.describe_db_instances(DBInstanceIdentifier=events["DBInstanceIdentifier"])["DBInstances"][0]["DBInstanceStatus"] == "available":
+                return "Instance successfully renamed to %s" % (events["DBInstanceIdentifier"])
+            except rds.exceptions.DBInstanceNotFoundFault:
+              pass
+            finally:
+              time.sleep(30)
+      InputPayload:
+        DBInstanceIdentifier: '{{RenameParameters.MasterTargetId}}'
+  - name: RenameNewDatabaseToNoSuffix
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: rds
+      Api: ModifyDBInstance
+      DBInstanceIdentifier: '{{RenameParameters.ReplicaSourceId}}'
+      NewDBInstanceIdentifier: '{{RenameParameters.ReplicaTargetId}}'
+      ApplyImmediately: true
+  - name: WaitForNewToBeRenamedToMaster
+    action: 'aws:executeScript'
+    timeoutSeconds: 600
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          import boto3, time
+          rds = boto3.client('rds')
+          while True:
+            try:
+              if rds.describe_db_instances(DBInstanceIdentifier=events["DBInstanceIdentifier"])["DBInstances"][0]["DBInstanceStatus"] == "available":
+                return "Instance successfully renamed to %s" % (events["DBInstanceIdentifier"])
+            except rds.exceptions.DBInstanceNotFoundFault:
+              pass
+            finally:
+              time.sleep(30)
+      InputPayload:
+        DBInstanceIdentifier: '{{RenameParameters.ReplicaTargetId}}'
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          from datetime import datetime, timezone
+          from dateutil import parser
+          return (datetime.now(timezone.utc) - parser.parse(events['StartTime'])).seconds
+      InputPayload:
+        StartTime: '{{RecordStartTime.StartTime}}'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+
+
+  # 3. Dryrun end branch
+  - name: Dryrun_EndBranch
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: EmptyStepForWetrunEnd
+          Variable: '{{Dryrun}}'
+          BooleanEquals: false
+        - NextStep: DeleteRestoredInstance
+          Variable: '{{Dryrun}}'
+          BooleanEquals: true
+
+  # 3.1. Wet run end
+  - name: EmptyStepForWetrunEnd
+    action: "aws:sleep"
+    isEnd: true
+    inputs:
+      Duration: "PT1S"
+
+  # 3.2. Dry run end
+  - name: DeleteRestoredInstance
+    action: 'aws:executeAwsApi'
+    maxAttempts: 3
+    inputs:
+      Service: rds
+      Api: DeleteDBInstance
+      DBInstanceIdentifier: '{{RenameParameters.ReplicaTargetId}}'
+      SkipFinalSnapshot: true
+      DeleteAutomatedBackups: true

@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DBInstanceIdentifier:
+    Type: String
+    Default: '${DBInstanceIdentifier}'
+  SNSTopicARN:
+    Type: String
+  Threshold:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  LowMemoryAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when database free memory is under ', Ref: Threshold, 'MB' ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoRdsLowMemory-', Ref: DBInstanceIdentifier ] ]
+      ComparisonOperator: LessThanOrEqualToThreshold
+      DatapointsToAlarm: 3
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value:
+            Ref: DBInstanceIdentifier
+      EvaluationPeriods: 5
+      MetricName: FreeableMemory
+      Namespace: AWS/RDS
+      Period: 60
+      Statistic: Minimum
+      Threshold:
+        Ref: Threshold
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Alarm':
+        recommendationId: 'rds:alarms:health-memory:2020-04-01'

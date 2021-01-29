@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  FunctionName:
+    Type: String
+    Default: '${FunctionName}'
+  SNSTopicARN:
+    Type: String
+  Threshold:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  ErrorsCountAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when sustained errors occur' ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoLambdaErrors-', Ref: FunctionName ] ]
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 3
+      Dimensions:
+        - Name: FunctionName
+          Value:
+            Ref: FunctionName
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Period: 60
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'stateless-compute:alarm:lambda-errors:2020-07-13'

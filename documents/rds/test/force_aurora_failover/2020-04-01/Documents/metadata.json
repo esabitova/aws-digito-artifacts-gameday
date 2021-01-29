@@ -4,7 +4,6 @@
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
     "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-    "attachments": "digito_gameday_primitives.zip",
     "tag": "rds:test:force_aurora_failover:2020-04-01",
     "failureType": "AZ",
     "risk": "SMALL",
@@ -14,5 +13,5 @@
         "2": "Wait for operation to complete.",
         "3": "Wait for synthetic application monitor to turn green again."
     },
-    "minorVersion": "001"
+    "minorVersion": "002"
 }

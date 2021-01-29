@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  InstanceId:
+    Type: String
+    Default: '${InstanceId}'
+  SNSTopicARN:
+    Type: String
+  Threshold:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  FailedInstanceAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when instance status check is failing' ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoEc2FailedInstance-', Ref: InstanceId ] ]
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: InstanceId
+          Value:
+            Ref: InstanceId
+      MetricName: StatusCheckFailed
+      Namespace: AWS/EC2
+      Period: 300
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'compute:alarm:ec2-failed-instance:2020-07-13'

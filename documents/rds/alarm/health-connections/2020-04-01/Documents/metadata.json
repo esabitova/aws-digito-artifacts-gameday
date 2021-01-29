@@ -1,0 +1,10 @@
+{
+  "displayName": "Connection spike",
+  "alarmName": "Digito-ConnectionSpike_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "rds:alarms:health-connections:2020-04-01",
+  "description": "Reports when database connection count is anomalous",
+  "minorVersion": "001"
+}

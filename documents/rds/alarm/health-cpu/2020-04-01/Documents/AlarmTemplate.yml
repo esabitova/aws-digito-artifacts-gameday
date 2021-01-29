@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  DBInstanceIdentifier:
+    Type: String
+    Default: '${DBInstanceIdentifier}'
+  SNSTopicARN:
+    Type: String
+  Threshold:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  OverUtilizedCPUAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when database CPU utilization is over ', Ref: Threshold, '%' ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoRdsOverUtilizedCPU-', Ref: DBInstanceIdentifier ] ]
+      ComparisonOperator: GreaterThanThreshold
+      DatapointsToAlarm: 3
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value:
+            Ref: DBInstanceIdentifier
+      EvaluationPeriods: 5
+      MetricName: CPUUtilization
+      Namespace: AWS/RDS
+      Period: 60
+      Statistic: Maximum
+      Threshold:
+        Ref: Threshold
+      TreatMissingData: missing
+      Unit: Percent
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'rds:alarms:health-cpu:2020-04-01'

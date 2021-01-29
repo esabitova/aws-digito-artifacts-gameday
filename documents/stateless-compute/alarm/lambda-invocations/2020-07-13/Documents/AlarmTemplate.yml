@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  FunctionName:
+    Type: String
+    Default: '${FunctionName}'
+  SNSTopicARN:
+    Type: String
+  BandWidth:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  ConnectionSpikeAnomalyDetector:
+    Type: 'AWS::CloudWatch::AnomalyDetector'
+    Properties:
+      MetricName: Invocations
+      Namespace: AWS/Lambda
+      Stat: Sum
+  InvocationsAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when invocation count is anomalous with band width ', Ref: BandWidth ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoLambdaInvocations-', Ref: FunctionName ] ]
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      Metrics:
+        - Expression:
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: Invocations
+              Namespace: AWS/Lambda
+              Dimensions:
+                - Name: FunctionName
+                  Value:
+                    Ref: FunctionName
+            Period: 300
+            Stat: Sum
+      ThresholdMetricId: ad1
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'stateless-compute:alarm:lambda-invocations:2020-07-13'

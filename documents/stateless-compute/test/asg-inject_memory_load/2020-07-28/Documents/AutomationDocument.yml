@@ -74,10 +74,13 @@ mainSteps:
         Type: StringList
     inputs:
       Runtime: python3.6
-      Handler: asg_util.get_healthy_instance_ids_in_asg
+      Handler: get_healthy_instance_ids_in_asg
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.get_healthy_instance_ids_in_asg
   - name: GetInstancesByPercentage
     action: 'aws:executeScript'
     onFailure: Abort
@@ -87,11 +90,14 @@ mainSteps:
         Type: StringList
     inputs:
       Runtime: python3.6
-      Handler: asg_util.get_instance_ids_by_percentage
+      Handler: get_instance_ids_by_percentage
       InputPayload:
         InstanceIds: '{{GetAsgInstanceIds.InstanceIds}}'
         Percentage: '{{PercentageOfInstances}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.get_instance_ids_by_percentage
   - name: RunMemoryStress
     action: aws:runCommand
     maxAttempts: 3
@@ -132,7 +138,10 @@ mainSteps:
         StressPercentage: '{{MemoryLoadPercentage}}'
         StressDuration: '{{Duration}}'
         ExpectedRecoveryTime: '{{ExpectedRecoveryTime}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_memory_stress
     isEnd: true
   - name: GetPreviousExecutionDetails
     action: 'aws:executeScript'
@@ -144,12 +153,15 @@ mainSteps:
       Type: String
     inputs:
       Runtime: python3.6
-      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{PreviousExecutionId}}'
         StepName: 'GetAsgInstanceIds'
         ResponseField: 'InstanceIds'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
   - name: TerminateMemoryStressing
     action: 'aws:executeAutomation'
     onFailure: Abort

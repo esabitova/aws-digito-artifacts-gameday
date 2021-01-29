@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  VolumeId:
+    Type: String
+    Default: '${VolumeId}'
+  SNSTopicARN:
+    Type: String
+  BandWidth:
+    Type: Number
+    Default: ${BandWidth}
+Resources:
+  VolumeReadBytes:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when volume read throughput is anomalous with band width ', Ref: BandWidth ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoSumVolumeReadBytes-', Ref: VolumeId ] ]
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      Metrics:
+        - Expression:
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: VolumeReadBytes
+              Namespace: AWS/EC2
+              Dimensions:
+                - Name: VolumeId
+                  Value:
+                    Ref: VolumeId
+            Period: 300
+            Stat: Sum
+      ThresholdMetricId: ad1
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'stateful-compute:alarm:ebs-read-throughput:2020-12-06'

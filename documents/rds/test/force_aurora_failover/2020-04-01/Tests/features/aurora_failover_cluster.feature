@@ -15,6 +15,8 @@ Feature: SSM automation document for Aurora cluster failover.
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|{{cache:before>dbReaderId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoAuroraFailoverClusterAssumeRole}}|{{cfn-output:RdsAuroraFailoverTestTemplate>SyntheticAlarmName}}|
 
     When SSM automation document "Digito-AuroraFailoverCluster_2020-04-01" execution in status "Success"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
     And cache DB cluster "dbReaderId" and "dbWriterId" "after" SSM automation execution
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
@@ -35,9 +37,11 @@ Feature: SSM automation document for Aurora cluster failover.
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoAuroraFailoverClusterAssumeRole}}|{{cfn-output:RdsAuroraFailoverTestTemplate>SyntheticAlarmName}}|
 
     When SSM automation document "Digito-AuroraFailoverCluster_2020-04-01" execution in status "Success"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
     And cache DB cluster "dbReaderId" and "dbWriterId" "after" SSM automation execution
-     |ClusterId                                             |
-     |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
+      |ClusterId                                             |
+      |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
 
     Then assert DB cluster "dbReaderId" instance "before" failover became "dbWriterId" instance "after" failover
     And assert DB cluster "dbWriterId" instance "before" failover became "dbReaderId" instance "after" failover

@@ -1,0 +1,10 @@
+{
+  "displayName": "Low storage",
+  "alarmName": "Digito-LowStorage_2020-04-01",
+  "alarmType": "Event",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "rds:alarms:health-storage:2020-04-01",
+  "description": "Reports when database free storage is low",
+  "minorVersion": "001"
+}

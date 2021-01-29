@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  InstanceId:
+    Type: String
+    Default: '${InstanceId}'
+  SNSTopicARN:
+    Type: String
+  BandWidth:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  CpuUtilizationAnomalyDetector:
+    Type: 'AWS::CloudWatch::AnomalyDetector'
+    Properties:
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Stat: Average
+  CpuUtilizationAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when CPU utilization is anomalous with band width ', Ref: BandWidth ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoEc2CpuUtilization-', Ref: InstanceId ] ]
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      Metrics:
+        - Expression:
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: CPUUtilization
+              Namespace: AWS/EC2
+              Dimensions:
+                - Name: InstanceId
+                  Value:
+                    Ref: InstanceId
+            Period: 60
+            Stat: Average
+      ThresholdMetricId: ad1
+      TreatMissingData: missing
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'compute:alarm:ec2-cpu-util:2020-07-13'
