@@ -127,7 +127,7 @@ class PublishDocuments:
                         },
                     ]
                 )
-                return update_document_response['DocumentDescription']['DocumentVersion']
+            return update_document_response['DocumentDescription']['DocumentVersion']
         except ClientError as e:
             logger.error('Failed to update [{}] document.'.format(name))
             raise e
@@ -177,7 +177,7 @@ class PublishDocuments:
         with open(self.root_dir + '/' + file_name, "r") as f:
             desired_documents_list.extend(f.read().splitlines())
 
-        files = glob.glob(self.root_dir + '/**/metadata.json', recursive=True)
+        files = glob.glob(self.root_dir + '/documents/**/metadata.json', recursive=True)
 
         logger.info('Desired documents list %s' % desired_documents_list)
         # Find additional documents that are needed for desired documents

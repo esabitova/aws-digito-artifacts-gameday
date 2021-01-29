@@ -97,7 +97,7 @@ mainSteps:
     maxAttempts: 3
     onFailure: Abort
     inputs:
-      DocumentName: Digito-RunMemoryStress
+      DocumentName: Digito-RunMemoryStress_2020-07-28
       InstanceIds:
         - '{{GetInstancesByPercentage.InstanceIds}}'
       Parameters:
@@ -154,7 +154,7 @@ mainSteps:
     action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:
-      DocumentName: Digito-KillStressOnHealthyInstances
+      DocumentName: Digito-KillStressOnHealthyInstances_2020-07-28
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         AutoScalingGroupName: '{{AutoScalingGroupName}}'

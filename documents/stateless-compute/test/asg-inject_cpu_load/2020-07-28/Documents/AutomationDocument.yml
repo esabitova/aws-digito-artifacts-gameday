@@ -97,7 +97,7 @@ mainSteps:
     maxAttempts: 3
     onFailure: Abort
     inputs:
-      DocumentName: Digito-RunCpuStress
+      DocumentName: Digito-RunCpuStress_2020-07-28
       InstanceIds:
         - '{{GetInstancesByPercentage.InstanceIds}}'
       Parameters:
@@ -141,7 +141,7 @@ mainSteps:
     outputs:
     - Name: InstanceIds
       Selector: $.Payload.InstanceIds
-      Type: String
+      Type: StringList
     inputs:
       Runtime: python3.6
       Handler: ssm_execution_util.get_output_from_ssm_step_execution
@@ -154,7 +154,7 @@ mainSteps:
     action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:
-      DocumentName: Digito-KillStressOnHealthyInstances
+      DocumentName: Digito-KillStressOnHealthyInstances_2020-07-28
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         AutoScalingGroupName: '{{AutoScalingGroupName}}'

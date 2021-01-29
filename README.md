@@ -26,7 +26,7 @@ This package provides SSM documents for injecting failures in different aws reso
 
 # Publishing Documents
 * Use below command to publish all documents in us-west-2 region to your account. Needs python3.6 or later
-python3 publisher/publish_documents.py --region us-west-2
+python3.8 publisher/publish_documents.py --region us-west-2
 
 * Use below command to publish limited number of documents in different file. We will provide this file during
   recommendations for relevant test documents

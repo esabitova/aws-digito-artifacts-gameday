@@ -48,7 +48,7 @@ mainSteps:
     maxAttempts: 3
     onFailure: Abort
     inputs:
-      DocumentName: Digito-KillStressCommand
+      DocumentName: Digito-KillStressCommand_2020-07-28
       InstanceIds:
         - '{{ FilterHealthyAsgInstances.InstanceIds }}'
 
