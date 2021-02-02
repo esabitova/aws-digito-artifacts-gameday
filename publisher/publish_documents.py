@@ -65,8 +65,9 @@ class PublishDocuments:
                     },
                 ]
             )
-        except Exception as e:
-            raise Exception('Failed to create [{}] document'.format(name))
+        except ClientError as e:
+            logger.error('Failed to create [{}] document.'.format(name))
+            raise e
 
     def update_document(self, name, content, doc_format, tag_value):
         update_document_response = {}
