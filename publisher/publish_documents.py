@@ -52,18 +52,21 @@ class PublishDocuments:
         return updated_document_content
 
     def create_document(self, name, content, doc_type, doc_format, tag_value):
-        self.ssm.create_document(
-            Content=content,
-            Name=name,
-            DocumentType=doc_type,
-            DocumentFormat=doc_format,
-            Tags=[
-                {
-                    'Key': 'Digito-reference-id',
-                    'Value': tag_value
-                },
-            ]
-        )
+        try:
+            self.ssm.create_document(
+                Content=content,
+                Name=name,
+                DocumentType=doc_type,
+                DocumentFormat=doc_format,
+                Tags=[
+                    {
+                        'Key': 'Digito-reference-id',
+                        'Value': tag_value
+                    },
+                ]
+            )
+        except Exception as e:
+            raise Exception('Failed to create [{}] document'.format(name))
 
     def update_document(self, name, content, doc_format, tag_value):
         update_document_response = {}
@@ -117,7 +120,7 @@ class PublishDocuments:
         with open(self.root_dir + '/' + file_name, "r") as f:
             desired_documents_list.extend(f.read().splitlines())
 
-        files = glob.glob(self.root_dir + '/**/metadata.json', recursive=True)
+        files = glob.glob(self.root_dir + '/documents/**/metadata.json', recursive=True)
 
         logger.info('Desired documents list %s' % desired_documents_list)
         # Find additional documents that are needed for desired documents
@@ -132,13 +135,16 @@ class PublishDocuments:
         logger.info('Desired documents list including required documents : %s' % desired_documents_list)
         existing_document_names = []
         for file in files:
-            document_metadata = self.read_metadata(file)
-            existing_document_names.append(document_metadata['documentName'])
-            if document_metadata['documentName'] in desired_documents_list:
-                document_metadata['location'] = os.path.dirname(file)
-                list_document_metadata.append(document_metadata)
-            else:
-                logger.debug('Not publishing %s' % document_metadata['documentName'])
+            # Skipping alarms (alarms are not SSM automation documents):
+            # https://issues.amazon.com/issues/Digito-1743
+            if 'alarm' not in str(file):
+                document_metadata = self.read_metadata(file)
+                existing_document_names.append(document_metadata['documentName'])
+                if document_metadata['documentName'] in desired_documents_list:
+                    document_metadata['location'] = os.path.dirname(file)
+                    list_document_metadata.append(document_metadata)
+                else:
+                    logger.debug('Not publishing %s' % document_metadata['documentName'])
 
         for desired_document_name in desired_documents_list:
             if desired_document_name not in existing_document_names:
