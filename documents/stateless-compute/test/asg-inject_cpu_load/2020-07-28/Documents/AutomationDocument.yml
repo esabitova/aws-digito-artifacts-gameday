@@ -73,11 +73,14 @@ mainSteps:
         Selector: $.Payload.InstanceIds
         Type: StringList
     inputs:
-        Runtime: python3.6
-        Handler: asg_util.get_healthy_instance_ids_in_asg
-        InputPayload:
-          AutoScalingGroupName: '{{AutoScalingGroupName}}'
-        Attachment: digito_gameday_primitives.zip
+      Runtime: python3.6
+      Handler: get_healthy_instance_ids_in_asg
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.get_healthy_instance_ids_in_asg
   - name: GetInstancesByPercentage
     action: 'aws:executeScript'
     onFailure: Abort
@@ -86,18 +89,21 @@ mainSteps:
         Selector: $.Payload.InstanceIds
         Type: StringList
     inputs:
-        Runtime: python3.6
-        Handler: asg_util.get_instance_ids_by_percentage
-        InputPayload:
-          InstanceIds: '{{GetAsgInstanceIds.InstanceIds}}'
-          Percentage: '{{PercentageOfInstances}}'
-        Attachment: digito_gameday_primitives.zip
+      Runtime: python3.6
+      Handler: get_instance_ids_by_percentage
+      InputPayload:
+        InstanceIds: '{{GetAsgInstanceIds.InstanceIds}}'
+        Percentage: '{{PercentageOfInstances}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.get_instance_ids_by_percentage
   - name: RunCpuStress
     action: aws:runCommand
     maxAttempts: 3
     onFailure: Abort
     inputs:
-      DocumentName: Digito-RunCpuStress
+      DocumentName: Digito-RunCpuStress_2020-07-28
       InstanceIds:
         - '{{GetInstancesByPercentage.InstanceIds}}'
       Parameters:
@@ -126,13 +132,18 @@ mainSteps:
     onFailure: Abort
     inputs:
       Runtime: python3.6
-      Handler: cloudwatch_util.verify_cpu_stress
+      Handler: verify_cpu_stress
       InputPayload:
         InstanceIds: '{{GetInstancesByPercentage.InstanceIds}}'
         StressPercentage: '{{CpuLoadPercentage}}'
         StressDuration: '{{Duration}}'
         ExpectedRecoveryTime: '{{ExpectedRecoveryTime}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_cpu_stress
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_ec2_stress
     isEnd: true
   - name: GetPreviousExecutionDetails
     action: 'aws:executeScript'
@@ -144,17 +155,20 @@ mainSteps:
       Type: String
     inputs:
       Runtime: python3.6
-      Handler: ssm_execution_util.get_output_from_ssm_step_execution
+      Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{PreviousExecutionId}}'
         StepName: 'GetAsgInstanceIds'
         ResponseField: 'InstanceIds'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
   - name: TerminateCpuStressing
     action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:
-      DocumentName: Digito-KillStressOnHealthyInstances
+      DocumentName: Digito-KillStressOnHealthyInstances_2020-07-28
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         AutoScalingGroupName: '{{AutoScalingGroupName}}'

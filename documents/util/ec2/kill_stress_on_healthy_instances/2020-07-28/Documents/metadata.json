@@ -4,7 +4,6 @@
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
     "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
-    "attachments": "digito_gameday_primitives.zip",
     "tag": "util:kill_stress_on_healthy_instances:2020-07-28",
-    "minorVersion": "001"
+    "minorVersion": "002"
 }

@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  AutoScalingGroupName:
+    Type: String
+    Default: '${AutoScalingGroupName}'
+  SNSTopicARN:
+    Type: String
+  Threshold:
+    Type: Number
+    Default: ${Threshold}
+Resources:
+  HighCpuUtilizationAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+        - Ref: SNSTopicARN
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when autoscale group CPU utilization is over ', Ref: Threshold, '%' ] ]
+      AlarmName:
+        Fn::Join: [ '', [ 'DigitoAsgHighCpuUtilization-', Ref: AutoScalingGroupName ] ]
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: AutoScalingGroupName
+      MetricName: CPUUtilization
+      Namespace: AWS/EC2
+      Period: 60
+      Statistic: Average
+      Threshold:
+        Ref: Threshold
+      TreatMissingData: missing
+      Unit: Percent
+    Metadata:
+      'AWS::Digito::Monitoring':
+        recommendationId: 'compute:alarm:asg-cpu-util:2020-07-13'

@@ -15,7 +15,7 @@ class SsmDocument:
 
     def execute(self, document_name, input_params):
         """
-         Execcutes SSM document for gievn document name and input paramaters.
+         Executes SSM document for given document name and input parameters.
         :param document_name: The SSM document name
         :param input_params: The SSM document input parameters
         :return: The SSM execution final status
@@ -46,7 +46,7 @@ class SsmDocument:
         status = self._get_execution_status(execution_id, document_name)
 
         # Wait for execution to be completed
-        while status == 'InProgress' or status == 'Pending':
+        while status == 'InProgress' or status == 'Pending' or status == 'Cancelling':
             time.sleep(constants.sleep_time_secs)
             status = self._get_execution_status(execution_id, document_name)
         return status
@@ -58,8 +58,8 @@ class SsmDocument:
         * cloud formation output - in case if given parameter value is pointing to cloud
         formation output (Example: {{output:paramNameA}})
         * simple value - in case if given parameter value is simple value
-        :param resource_manager - The resource manager, used to get cloud formation stack output parameters
-        :param ssm_test_cache - The cache, used to get cached values by given keys.
+        :param cf_output - The CFN outputs
+        :param cache - The cache, used to get cached values by given keys.
         :param input_parameters - The SSM input parameters as described in scenario feature file.
         """
         input_params = parse_str_table(input_parameters).rows[0]

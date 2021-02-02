@@ -2,9 +2,11 @@ import unittest
 import time
 import pytest
 from src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint, verify_ec2_stress
+from src.cloudwatch_util import get_metric_wait_secs
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test.test_data_provider import get_instance_ids_by_count
+import datetime
 
 
 @pytest.mark.unit_test
@@ -25,9 +27,11 @@ class TestCloudWatchUtil(unittest.TestCase):
     def test_verify_ec2_stress_low_cpu_failed(self):
         expected_cpu_load = 95
         actual_cpu_load = '50'
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints': [{'Maximum': actual_cpu_load},
-                                                                          {'Maximum': '3'},
-                                                                          {'Maximum': '8'}]}
+        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
+                                                           [{'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
+                                                            {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
+                                                            {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}]}
 
         stress_duration = 3
         exp_recovery_time = 10
@@ -39,25 +43,30 @@ class TestCloudWatchUtil(unittest.TestCase):
     def test_verify_ec2_stress_metric_wait_time_10_success(self):
         expected_cpu_load = 95
         actual_cpu_load = '95'
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints': [{'Maximum': actual_cpu_load},
-                                                                          {'Maximum': '3'},
-                                                                          {'Maximum': '8'}]}
+        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
+                                                           [{'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
+                                                            {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
+                                                            {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}]}
         stress_duration = 3
         exp_recovery_time = 10
         instance_ids = get_instance_ids_by_count(5)
         metric_delay_secs = 5
 
         start_time = time.time()
-        verify_ec2_stress(instance_ids, stress_duration, expected_cpu_load, metric_delay_secs, 'CPUUtilization',
-                          exp_recovery_time)
+        verify_ec2_stress(instance_ids, stress_duration, expected_cpu_load,
+                          metric_delay_secs, 'CPUUtilization', exp_recovery_time)
         end_time = time.time()
         self.assertEqual(round(end_time - start_time), 0)
 
     def test_verify_ec2_stress_metric_wait_time_1_success(self):
         expected_cpu_load = 95
         actual_cpu_load = '95'
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints': [{'Maximum': actual_cpu_load},
-                                                                          {'Maximum': '3'}, {'Maximum': '8'}]}
+        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
+                                                           [{'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
+                                                            {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
+                                                            {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}]}
 
         stress_duration = 3
         exp_recovery_time = 1
@@ -68,7 +77,7 @@ class TestCloudWatchUtil(unittest.TestCase):
         verify_ec2_stress(instance_ids, stress_duration, expected_cpu_load, metric_delay_secs, 'CPUUtilization',
                           exp_recovery_time)
         end_time = time.time()
-        self.assertEqual(round(end_time - start_time), 2)
+        self.assertEqual(round(end_time - start_time), 5)
 
     def test_describe_metric_alarm_state_ok_success(self):
         self.cw_mock.describe_alarms.return_value = {'MetricAlarms': [{'StateValue': 'OK'}]}
@@ -85,10 +94,12 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.assertRaises(Exception, describe_metric_alarm_state, 'TestAlarm-1')
 
     def test_get_ec2_cpu_metric_max_datapoint_success(self):
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints': [{'Maximum': '10'},
-                                                                          {'Maximum': '5'},
-                                                                          {'Maximum': '100'},
-                                                                          {'Maximum': '7'}]}
+        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
+                                                           [{'Maximum': '10', 'Timestamp': datetime.datetime.utcnow()},
+                                                            {'Maximum': '5', 'Timestamp': datetime.datetime.utcnow()},
+                                                            {'Maximum': '100', 'Timestamp': latest_timestamp},
+                                                            {'Maximum': '7', 'Timestamp': datetime.datetime.utcnow()}]}
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)
         self.assertEqual(dp, 100)
 
@@ -96,3 +107,15 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.cw_mock.get_metric_statistics.return_value = {'Datapoints': []}
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)
         self.assertEqual(dp, 0.0)
+
+    def test_get_metric_wait_secs_zero_success(self):
+        events = {'MetricDelay': '10', 'StressDuration': '15'}
+        expected_wait_time = '0'
+        actual_wait_time = get_metric_wait_secs(events, None)['MetricWaitTimeSecs']
+        self.assertEqual(expected_wait_time, actual_wait_time)
+
+    def test_get_metric_wait_secs_five_success(self):
+        events = {'MetricDelay': '15', 'StressDuration': '5'}
+        expected_wait_time = '10'
+        actual_wait_time = get_metric_wait_secs(events, None)['MetricWaitTimeSecs']
+        self.assertEqual(expected_wait_time, actual_wait_time)

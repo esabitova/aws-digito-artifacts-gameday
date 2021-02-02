@@ -1,4 +1,20 @@
 import re
+from sttable import parse_str_table
+
+
+def parse_param_values_from_table(data_table, param_containers):
+    """
+    Parsing given data table parameters for each row. As explained in :func:`~resource_manager.src.util.param_utils.parse_param_value`
+    :param data_table The table which contains parameters to parse
+    :param param_containers The containers with parameter values where parameter value references are pointing to
+    """
+    parameters = []
+    for data_row in parse_str_table(data_table).rows:
+        param_row = {}
+        for param_name, value_ref in data_row.items():
+            param_row[param_name] = str(parse_param_value(value_ref, param_containers))
+        parameters.append(param_row)
+    return parameters
 
 
 def parse_param_value(param_value, param_containers):

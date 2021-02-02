@@ -26,7 +26,7 @@ This package provides SSM documents for injecting failures in different aws reso
 
 # Publishing Documents
 * Use below command to publish all documents in us-west-2 region to your account. Needs python3.6 or later
-python3 publisher/publish_documents.py --region us-west-2
+python3.8 publisher/publish_documents.py --region us-west-2
 
 * Use below command to publish limited number of documents in different file. We will provide this file during
   recommendations for relevant test documents
@@ -37,9 +37,8 @@ python3.8 publisher/publish_documents.py --region us-west-2 --file-name ec2-mani
 
 * What does publisher do?
 ** Gets list of documents to publish based on manifest file.
-** Upload scripts zip file to S3
-** Append documents that need attachment to include the checksum, size and name of scripts zip file
-** Check documents which have changed and create or update document as needed to publish
+** Replace script_placeholder in ssm documents with script code.
+** Check documents which have changed and create or update document as needed to publish.
 
 # Contributing To This Package
 ## Package Organization
@@ -67,7 +66,6 @@ Example:
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
-  "attachments": "digito_gameday_primitives.zip",
   "tag": "stateless-compute:test:ec2-inject_memory_load:2020-07-28",
   "failureType": "HARDWARE",
   "risk": "SMALL",
@@ -81,7 +79,6 @@ Example:
 * documentContentPath -- Document file name
 * documentFormat -- YAML or JSON
 * dependsOn -- Add other documents that this document requires.
-* attachments -- Script attachment if required for document
 * tag - reference to specification of automation document
 * failureType - Failure type, valid values: SOFTWARE/HARDWARE/AZ/REGION
 * risk - Risk, valid values: SMALL/MEDIUM/HIGH
@@ -92,6 +89,16 @@ Example:
 * Add new scripts to documents/util/scripts/src folder and corresponding unit test to documents/util/scripts/test
 * Run unit tests by running 'coverage run setup.py test'
 * Look at test coverage report by running 'coverage report -m' and detailed report by running 'coverage html'
+
+## Including python script in SSM documents
+* Check documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationDocument.yml for an example of how to include script in SSM document.
+```
+Script: |-
+  SCRIPT_PLACEHOLDER::rds_util.imports
+
+  SCRIPT_PLACEHOLDER::rds_util.get_cluster_writer_id
+```
+
 
 # Integration Tests
 * In order to verify SSM automation document validity we want to have way to test documents against real AWS resources. 

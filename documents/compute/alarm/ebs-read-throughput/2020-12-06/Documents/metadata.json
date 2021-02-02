@@ -1,0 +1,10 @@
+{
+  "displayName": "Sum volume read bytes",
+  "alarmName": "Digito-SumVolumeReadBytes_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "stateful-compute:alarm:ebs-read-throughput:2020-12-06",
+  "description": "Reports when volume read throughput is anomalous with band width",
+  "minorVersion": "001"
+}

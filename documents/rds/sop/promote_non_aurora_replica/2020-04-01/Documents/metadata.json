@@ -1,0 +1,11 @@
+{
+    "displayName": "Promote non-Aurora Replica",
+    "documentName": "Digito-RdsPromoteReadReplica_2020-04-01",
+    "documentType": "Automation",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+    "tag": "rds:sop:promote_non_aurora_replica:2020-04-01",
+    "intent": "SOP from Digito to recover an instance by promoting a replica to master in case of failure in the master instance",
+    "minorVersion": "001"
+}

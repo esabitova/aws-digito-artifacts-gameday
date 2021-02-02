@@ -9,9 +9,6 @@ parameters:
   SyntheticAlarmName:
     type: String
     description: (Required) Alarm which should stay green during this test.
-  AzOutageAlarmName:
-    type: String
-    description: (Required) Alarm which should go red during the test and green after the test.
   TestDurationInMinutes:
     type: String
     description: (Required) Test duration in minutes.
@@ -40,10 +37,13 @@ mainSteps:
     onFailure: Abort
     inputs:
       Runtime: python3.6
-      Handler: asg_util.assert_no_suspended_process
+      Handler: assert_no_suspended_process
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.assert_no_suspended_process
   - name: AssertSyntheticAlarmToBeGreenBeforeTest
     action: aws:assertAwsResourceProperty
     maxAttempts: 10
@@ -54,18 +54,6 @@ mainSteps:
       Api: DescribeAlarms
       AlarmNames:
       - "{{SyntheticAlarmName}}"
-      PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["OK"]
-  - name: AssertAzOutageAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
-    onFailure: Abort
-    inputs:
-      Service: cloudwatch
-      Api: DescribeAlarms
-      AlarmNames:
-      - "{{AzOutageAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
   - name: SuspendLaunchProcessInAsg
@@ -88,10 +76,13 @@ mainSteps:
         Type: StringList
     inputs:
       Runtime: python3.6
-      Handler: asg_util.get_instance_ids_in_asg_random_az
+      Handler: get_instance_ids_in_asg_random_az
       InputPayload:
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.get_instance_ids_in_asg_random_az
   - name: TerminateInstances
     action: 'aws:changeInstanceState'
     onFailure: 'step:ResumeLaunchProcessInAsg'
@@ -115,18 +106,6 @@ mainSteps:
       - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
-  - name: WaitForAzOutageAlarmToBeRed
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
-    onFailure: 'step:ResumeLaunchProcessInAsg'
-    inputs:
-      Service: cloudwatch
-      Api: DescribeAlarms
-      AlarmNames:
-      - "{{AzOutageAlarmName}}"
-      PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["ALARM"]
   - name: ResumeLaunchProcessInAsg
     action: 'aws:executeAwsApi'
     onFailure: Abort
@@ -136,16 +115,4 @@ mainSteps:
       AutoScalingGroupName: '{{AutoScalingGroupName}}'
       ScalingProcesses:
       - 'Launch'
-  - name: WaitForAzOutageAlarmToBeGreen
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
-    onFailure: Abort
-    inputs:
-      Service: cloudwatch
-      Api: DescribeAlarms
-      AlarmNames:
-      - "{{AzOutageAlarmName}}"
-      PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["OK"]
     isEnd: true

@@ -3,7 +3,7 @@ import pytest
 from test import test_data_provider
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations
+from src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations, get_inputs_from_ssm_step_execution, cancel_command_execution
 
 
 @pytest.mark.unit_test
@@ -62,3 +62,7 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events['StepName'] = test_data_provider.MISSING_STEP_NAME
 
         self.assertRaises(Exception, get_step_durations, events, None)
+
+
+
+

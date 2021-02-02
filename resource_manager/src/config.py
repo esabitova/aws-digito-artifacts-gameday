@@ -18,5 +18,6 @@ pool_size = dict(
  # In case if template name is not listed default pool size applied
  default=1,
  # The pool size configuration for RdsAuroraFailoverTestTemplate.yml (file name with no extension)
- RdsAuroraFailoverTestTemplate=3
+ RdsAuroraFailoverTestTemplate=3,
+ Ec2InstanceCfnTemplate=1
 )

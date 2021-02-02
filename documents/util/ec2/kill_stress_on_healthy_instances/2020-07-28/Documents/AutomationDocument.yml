@@ -38,17 +38,20 @@ mainSteps:
         Type: StringList
     inputs:
       Runtime: python3.6
-      Handler: asg_util.filter_healthy_instance_ids_in_asg
+      Handler: filter_healthy_instance_ids_in_asg
       InputPayload:
         InstanceIds: '{{InstanceIds}}'
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Attachment: digito_gameday_primitives.zip
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+
+        SCRIPT_PLACEHOLDER::asg_util.filter_healthy_instance_ids_in_asg
   - name: ExecutingCommand
     action: aws:runCommand
     maxAttempts: 3
     onFailure: Abort
     inputs:
-      DocumentName: Digito-KillStressCommand
+      DocumentName: Digito-KillStressCommand_2020-07-28
       InstanceIds:
         - '{{ FilterHealthyAsgInstances.InstanceIds }}'
 
