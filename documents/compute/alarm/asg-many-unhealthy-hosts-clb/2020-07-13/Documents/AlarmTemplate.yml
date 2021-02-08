@@ -32,6 +32,3 @@ Resources:
       Threshold:
         Ref: Threshold
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'compute:alarm:asg-many-unhealthy-hosts:2020-07-13'

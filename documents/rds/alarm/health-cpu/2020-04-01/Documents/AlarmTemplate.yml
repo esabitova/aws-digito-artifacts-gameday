@@ -33,6 +33,3 @@ Resources:
         Ref: Threshold
       TreatMissingData: missing
       Unit: Percent
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'rds:alarms:health-cpu:2020-04-01'

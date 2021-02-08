@@ -1,0 +1,11 @@
+{
+    "displayName": "ASG scale-out",
+    "documentName": "Digito-ASG-ScaleOut_2020-04-01",
+    "documentType": "Automation",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+    "tag": "compute:sop:asg-scale_out:2020-11-20",
+    "intent": "SOP By Digito. Manually force an ASG to scale out, increase the number of instances.",
+    "minorVersion": "001"
+}
