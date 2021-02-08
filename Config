@@ -26,7 +26,7 @@ package.AwsDigitoArtifactsGameday = {
         1.0 = {
             # Run tests with py.test in BrazilPython.
             BrazilPython-Pytest = 5.x;
-            Pytest-bdd = 3.x;
+            Pytest-bdd = 4.x;
 
             # Coverage for Python tests.
             Python-Pytest-cov = 2.x;

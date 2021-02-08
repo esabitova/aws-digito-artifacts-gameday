@@ -1,5 +1,4 @@
 import os
-import zipfile
 import json
 from setuptools import setup
 
@@ -39,20 +38,21 @@ for root, dirs, files in os.walk("documents"):
                                 found_method = False
 
                                 for line in script_lines:
-                                    if (before_first_method and "def " in line):
-                                       before_first_method = False
+                                    if before_first_method and "def " in line:
+                                        before_first_method = False
 
                                     # found another method, break
-                                    if (found_method and ("def " in line)):
+                                    if found_method and ("def " in line):
                                         break
 
-                                    if ("def " + script_method_name + "(" in line):
-                                       found_method = True
+                                    if "def " + script_method_name + "(" in line:
+                                        found_method = True
 
                                     # Add all lines before first method if it is imports
                                     # part of the method in script_placeholder
-                                    if ((before_first_method and script_method_name == "imports") or found_method):
-                                        # Add 8 spaces to all lines except first line so that it aligns with ssm document yaml format
+                                    if (before_first_method and script_method_name == "imports") or found_method:
+                                        # Add 8 spaces to all lines except first line so that it
+                                        # aligns with ssm document yaml format
                                         if (is_first_line):
                                             is_first_line = False
                                         else:
@@ -60,7 +60,8 @@ for root, dirs, files in os.walk("documents"):
                                         script_lines_to_be_included += line + "\n"
 
                             script_content = script_lines_to_be_included
-                            automation_document_content_line = automation_document_content_line.replace(script_placeholder, script_content)
+                            automation_document_content_line = automation_document_content_line\
+                                .replace(script_placeholder, script_content)
 
                         automation_document_content_final += automation_document_content_line + "\n"
                     with open(os.path.join(root, AUTOMATION_DOCUMENT_FINAL_NAME), 'w') as automation_document_output:

@@ -77,7 +77,7 @@ class TestCloudWatchUtil(unittest.TestCase):
         verify_ec2_stress(instance_ids, stress_duration, expected_cpu_load, metric_delay_secs, 'CPUUtilization',
                           exp_recovery_time)
         end_time = time.time()
-        self.assertEqual(round(end_time - start_time), 5)
+        self.assertEqual(round(end_time - start_time), 2)
 
     def test_describe_metric_alarm_state_ok_success(self):
         self.cw_mock.describe_alarms.return_value = {'MetricAlarms': [{'StateValue': 'OK'}]}
