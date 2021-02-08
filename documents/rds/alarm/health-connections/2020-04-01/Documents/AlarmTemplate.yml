@@ -44,6 +44,3 @@ Resources:
             Stat: Maximum
       ThresholdMetricId: ad1
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'rds:alarms:health-connections:2020-04-01'

@@ -40,4 +40,4 @@ Resources:
       TreatMissingData: missing
     Metadata:
       'AWS::Digito::Monitoring':
-        recommendationId: 'stateful-compute:alarm:ebs-read-throughput:2020-12-06'
+        recommendationId: 'compute:alarm:ebs-read-throughput:2020-12-06'

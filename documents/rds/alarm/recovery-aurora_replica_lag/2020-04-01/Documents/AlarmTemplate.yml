@@ -32,6 +32,3 @@ Resources:
       Threshold:
         Ref: Threshold
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'rds:alarms:recovery-aurora_replica_lag:2020-04-01'
