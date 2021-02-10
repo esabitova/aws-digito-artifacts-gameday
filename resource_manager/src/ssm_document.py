@@ -112,4 +112,9 @@ class SsmDocument:
                    ['DocumentIdentifiers']) == 1
 
     def _build_execution_url(self, execution_id):
+        """
+        Build and return URL of SSM Automation Execution page
+        :param execution_id: The SSM document execution id
+        :return: Built URL of Automation Execution page
+        """
         return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}'
