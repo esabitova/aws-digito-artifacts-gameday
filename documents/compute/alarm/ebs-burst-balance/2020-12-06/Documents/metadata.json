@@ -4,7 +4,7 @@
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
-  "tag": "stateful-compute:alarm:ebs-burst-balance:2020-12-06",
+  "tag": "compute:alarm:ebs-burst-balance:2020-12-06",
   "description": "Reports when drained burst balance is below threshold",
   "minorVersion": "001"
 }

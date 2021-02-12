@@ -24,7 +24,8 @@ parameters:
     default: '300'
   CpuLoadPercentage:
     type: String
-    description: (Required) CPU load percentage
+    description: (Optional) CPU load percentage
+    default: "1"
   NumCpuCores:
     type: String
     description: (Optional) Number of CPU cores to be impacted (default 0 - all)

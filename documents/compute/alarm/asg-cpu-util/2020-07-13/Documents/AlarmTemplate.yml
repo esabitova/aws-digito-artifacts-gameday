@@ -33,6 +33,3 @@ Resources:
         Ref: Threshold
       TreatMissingData: missing
       Unit: Percent
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'compute:alarm:asg-cpu-util:2020-07-13'

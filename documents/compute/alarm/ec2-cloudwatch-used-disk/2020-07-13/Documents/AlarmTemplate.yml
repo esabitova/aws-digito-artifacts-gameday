@@ -32,6 +32,3 @@ Resources:
       Threshold:
         Ref: Threshold
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Alarm':
-        recommendationId: compute:alarm:ec2-cloudwatch-used-disk:2020-07-13

@@ -1,0 +1,18 @@
+{
+  "documentName": "Digito-KillProcessEc2_2020-07-28",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "stateless-compute:test:ec2-kill_process:2020-07-28",
+  "failureType": "HARDWARE",
+  "risk": "SMALL",
+  "intent": "Test app if process suddenly dies.",
+  "dependsOn": "Digito-KillProcessCommand_2020-07-28",
+  "details": {
+      "1": "Figure out the process id to kill.",
+      "2": "Send the signal to the processes.",
+      "3": "Verify app recovered within recovery time."
+  },
+  "minorVersion": "001"
+}

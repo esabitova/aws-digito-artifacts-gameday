@@ -1,17 +1,22 @@
 import pytest
 import logging
 import boto3
+import time
 from pytest_bdd import (
     when,
     parsers,
-    given
+    given,
+    then
 )
 from sttable import parse_str_table
+from datetime import timedelta, datetime
 from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.s3 import S3
+from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 
 
 def pytest_addoption(parser):
@@ -95,6 +100,14 @@ def boto3_session(request):
 
 
 @pytest.fixture(scope='function')
+def cfn_output_params(resource_manager):
+    """
+    Fixture for cfn_output_params from resource manager.
+    :param resource_manager The resource manager
+    """
+    return resource_manager.get_cfn_output_params()
+
+@pytest.fixture(scope='function')
 def resource_manager(request, boto3_session):
     '''
     Creates ResourceManager fixture for every test case.
@@ -127,11 +140,6 @@ def ssm_test_cache():
     '''
     cache = dict()
     return cache
-
-@pytest.fixture(scope='function')
-def cfn_output_params(resource_manager):
-
-    return resource_manager.get_cfn_output_params()
 
 
 def get_boto3_session(aws_profile):
@@ -197,38 +205,22 @@ def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ss
     return execution_id
 
 
-@when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{parameters}'))
-def wait_for_execution_completion(ssm_document_name, expected_status, ssm_document, ssm_test_cache, parameters):
-    """
-    Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
-    :param ssm_document_name The SSM document name
-    :param expected_status The expected SSM document execution status
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
-    :param ssm_test_cache The custom test cache
-    :param parameters The input parameters
-    """
-    cfn_output = resource_manager.get_cfn_output_params()
-    parameters = parse_param_values_from_table(parameters, {'cache': ssm_test_cache, 'cfn-output': cfn_output})
-    if len(parameters) < 1 or parameters[0].get['ExecutionId'] is None:
-        raise Exception('Parameter with name [ExecutionId] should be provided')
-    actual_status = ssm_document.wait_for_execution_completion(parameters[0].get['ExecutionId'], ssm_document_name)
-    assert expected_status == actual_status
-
-
+@given(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
 @when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
-def wait_for_execution_completion_with_params(resource_manager, ssm_document_name, expected_status,
+@then(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
+def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_name, expected_status,
                                               ssm_document, input_parameters, ssm_test_cache):
     """
     Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
-    :param resource_manager The resource manager object to manipulate with testing resources
+    :param cfn_output_params The cfn output params from resource manager
     :param ssm_document_name The SSM document name
     :param input_parameters The input parameters
     :param expected_status The expected SSM document execution status
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_test_cache The custom test cache
     """
-    cfn_output = resource_manager.get_cfn_output_params()
-    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache, 'cfn-output': cfn_output})
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
@@ -236,3 +228,73 @@ def wait_for_execution_completion_with_params(resource_manager, ssm_document_nam
     assert expected_status == actual_status
 
 
+@given(parsers.parse('the cached input parameters\n{input_parameters}'))
+def given_cached_input_parameters(ssm_test_cache, input_parameters):
+    for parm_name, param_val in parse_str_table(input_parameters).rows[0].items():
+        ssm_test_cache[parm_name] = str(param_val)
+
+
+@then(parsers.parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
+def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+    ssm = boto3_session.client('ssm')
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, input_parameters)
+    ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
+
+
+@when(parsers.parse('SSM automation document "{ssm_document_name}" executed with rollback\n{ssm_input_parameters}'))
+def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_cache, cfn_output_params, ssm_document):
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
+    execution_id = ssm_document.execute(ssm_document_name, parameters)
+    ssm_test_cache['SsmRollbackExecutionId'] = execution_id
+    return execution_id
+
+
+@then(parsers.parse('sleep for "{seconds}" seconds'))
+def sleep_secons(seconds):
+    # Need to wait for more than 5 minutes for metric to be reported
+    logging.info('Sleeping for [{}] seconds'.format(seconds))
+    time.sleep(int(seconds))
+
+
+@then(parsers.parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"\n{parameters}'))
+def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters):
+    params = parse_param_values_from_table(parameters, {'cache': ssm_test_cache})
+    current_step_status = get_ssm_step_status(boto3_session, params[0]['ExecutionId'], step_name)
+    assert expected_step_status == current_step_status
+
+
+@when(parsers.parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
+@then(parsers.parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
+def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input_params, ssm_test_cache, boto3_session):
+    """
+    Asserts if particular metric reached desired point.
+    :param exp_perc The expected metric  percentage point
+    :param cfn_output_params The cfn output parameters from resource manager
+    :param input_params The input parameters from step definition
+    :param ssm_test_cache The test cache
+    :param boto3_session The boto3 session
+    :param metric_name The metric name to assert
+    :param operator The operator to use for assertion
+    """
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    input_param_row = params[0]
+    exec_id = input_param_row.pop('ExecutionId')
+    metric_namespace = input_param_row.pop('Namespace')
+    step_name = input_param_row.pop('StepName')
+    metric_period = int(input_param_row.pop('MetricPeriod'))
+
+    exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
+    # Reported command execution start time given in SSM is delayed, so we need exclude that delay to find metric
+    exec_start = exec_start - timedelta(seconds=60)
+    act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
+                                            metric_namespace, metric_name, input_param_row, metric_period)
+    if operator == 'greaterOrEqual':
+        assert int(act_perc) >= int(exp_perc)
+    elif operator == 'greater':
+        assert int(act_perc) > int(exp_perc)
+    elif operator == 'lessOrEqual':
+        assert int(act_perc) <= int(exp_perc)
+    elif operator == 'less':
+        assert int(act_perc) < int(exp_perc)
+    else:
+        raise Exception('Operator for [{}] is not supported'.format(operator))
