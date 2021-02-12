@@ -42,16 +42,18 @@ def given_cached_input_parameters(ssm_test_cache, input_parameters):
 
 @when(parsers.parse('assert "{metric_name}" metric reached "{exp_perc}" percent(s)\n{input_params}'))
 @then(parsers.parse('assert "{metric_name}" metric reached "{exp_perc}" percent(s)\n{input_params}'))
-def assert_utilization(exp_perc, resource_manager, input_params, ssm_test_cache, boto3_session, metric_name):
-    cf_output = resource_manager.get_cfn_output_params()
-    params = parse_param_values_from_table(input_params, {'cfn-output': cf_output, 'cache': ssm_test_cache})
-    instance_id = params[0]['InstanceId']
-    exec_id = params[0]['ExecutionId']
+def assert_utilization(exp_perc, cfn_output_params, input_params, ssm_test_cache, boto3_session, metric_name):
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    inout_param_row = params[0]
+    exec_id = inout_param_row.pop('ExecutionId')
+    metric_namespace = inout_param_row.pop('Namespace')
+    step_name = inout_param_row.pop('StepName')
 
-    exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, 'RunCpuStress')
+    exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
     # Reported command execution start time given in SSM is delayed, so we need exclude that delay to find metric
     exec_start = exec_start - timedelta(seconds=300)
-    act_perc = get_ec2_metric_max_datapoint(boto3_session, instance_id, metric_name, exec_start, datetime.utcnow())
+    act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
+                                            metric_namespace, metric_name, inout_param_row)
     assert int(act_perc) >= int(exp_perc)
 
 
@@ -79,16 +81,18 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
 
 
 @then(parsers.parse('assert "{metric_name}" metric below "{exp_perc}" percent(s) after rollback\n{input_params}'))
-def assert_utilization_after_rollback(boto3_session, resource_manager, input_params, ssm_test_cache, exp_perc, metric_name):
-    cf_output = resource_manager.get_cfn_output_params()
-    params = parse_param_values_from_table(input_params, {'cfn-output': cf_output, 'cache': ssm_test_cache})
-    instance_id = params[0]['InstanceId']
-    rollback_exec_id = params[0]['RollbackExecutionId']
+def assert_utilization_after_rollback(boto3_session, cfn_output_params, input_params, ssm_test_cache, exp_perc, metric_name):
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    inout_param_row = params[0]
+    exec_id = inout_param_row.pop('RollbackExecutionId')
+    metric_namespace = inout_param_row.pop('Namespace')
+    step_name = inout_param_row.pop('StepName')
 
-    rollback_exec_start, rollback_exec_end = get_ssm_step_interval(boto3_session, rollback_exec_id, 'KillStressCommandOnRollback')
+    exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
     # Reported command execution start time given in SSM is delayed, so we need exclude that delay to find metric
-    rollback_exec_start = rollback_exec_start - timedelta(seconds=300)
-    act_perc = get_ec2_metric_max_datapoint(boto3_session, instance_id, metric_name, rollback_exec_start, datetime.utcnow())
+    exec_start = exec_start - timedelta(seconds=300)
+    act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
+                                            metric_namespace, metric_name, inout_param_row)
     assert int(act_perc) < int(exp_perc)
 
 

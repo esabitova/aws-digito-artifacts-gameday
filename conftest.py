@@ -128,6 +128,11 @@ def ssm_test_cache():
     cache = dict()
     return cache
 
+@pytest.fixture(scope='function')
+def cfn_output_params(resource_manager):
+
+    return resource_manager.get_cfn_output_params()
+
 
 def get_boto3_session(aws_profile):
     '''
@@ -229,4 +234,5 @@ def wait_for_execution_completion_with_params(resource_manager, ssm_document_nam
         raise Exception('Parameter with name [ExecutionId] should be provided')
     actual_status = ssm_document.wait_for_execution_completion(ssm_execution_id, ssm_document_name)
     assert expected_status == actual_status
+
 

@@ -2,7 +2,6 @@ import unittest
 import time
 import pytest
 from src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint, verify_ec2_stress
-from src.cloudwatch_util import get_metric_wait_secs
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test.test_data_provider import get_instance_ids_by_count
@@ -77,7 +76,7 @@ class TestCloudWatchUtil(unittest.TestCase):
         verify_ec2_stress(instance_ids, stress_duration, expected_cpu_load, metric_delay_secs, 'CPUUtilization',
                           exp_recovery_time)
         end_time = time.time()
-        self.assertEqual(round(end_time - start_time), 2)git status
+        self.assertEqual(round(end_time - start_time), 2)
 
     def test_describe_metric_alarm_state_ok_success(self):
         self.cw_mock.describe_alarms.return_value = {'MetricAlarms': [{'StateValue': 'OK'}]}
@@ -107,15 +106,3 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.cw_mock.get_metric_statistics.return_value = {'Datapoints': []}
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)
         self.assertEqual(dp, 0.0)
-
-    def test_get_metric_wait_secs_zero_success(self):
-        events = {'MetricDelay': '10', 'StressDuration': '15'}
-        expected_wait_time = '0'
-        actual_wait_time = get_metric_wait_secs(events, None)['MetricWaitTimeSecs']
-        self.assertEqual(expected_wait_time, actual_wait_time)
-
-    def test_get_metric_wait_secs_five_success(self):
-        events = {'MetricDelay': '15', 'StressDuration': '5'}
-        expected_wait_time = '10'
-        actual_wait_time = get_metric_wait_secs(events, None)['MetricWaitTimeSecs']
-        self.assertEqual(expected_wait_time, actual_wait_time)

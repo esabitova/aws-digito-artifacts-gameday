@@ -2,6 +2,7 @@ import boto3
 import time
 from datetime import datetime, timedelta
 import logging
+import json
 
 
 def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_time_utc):
@@ -124,14 +125,3 @@ def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric
                 "Instance [{}] expected [{}] load [{}%] but was [{}%]".format(instance_id, metric_name,
                                                                               exp_load_percentage,
                                                                               actual_cpu_load))
-
-
-def get_metric_wait_secs(events, context):
-    if 'StressDuration' not in events or 'MetricDelay' not in events:
-        raise KeyError('Requires InstanceIds, StressDuration, StressPercentage, ExpectedRecoveryTime in events')
-    stress_duration_secs = int(events['StressDuration'])
-    metric_delay_secs = int(events['MetricDelay'])
-    wait_time_secs = 0 if stress_duration_secs > metric_delay_secs else metric_delay_secs - stress_duration_secs
-    return {'MetricWaitTimeSecs': str(wait_time_secs)}
-
-

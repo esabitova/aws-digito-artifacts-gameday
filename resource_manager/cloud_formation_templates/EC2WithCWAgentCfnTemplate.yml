@@ -21,15 +21,21 @@ Outputs:
   InstanceId:
     Description: EC2 Instance ID
     Value:
-      Ref: TestEc2Instance
-  CpuUtilizationAlarmName:
+      Ref: EC2Instance
+  EC2CpuAlarm:
     Description: EC2 CPU Utilization Alarm
-    Value: !Ref TestEc2CpuInstanceAlarm
+    Value: !Ref EC2CpuAlarm
+  EC2MemoryAlarm:
+    Description: EC2 CPU Utilization Alarm
+    Value: !Ref EC2MemoryAlarm
+  ImageId:
+     Description: EC2 Instance AMI
+     Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
 Parameters:
   InstanceType:
     Description: EC2 instance type (https://aws.amazon.com/ec2/instance-types)
     Type: String
-  AlarmOnGreaterThenThreshold:
+  AlarmGreaterThanOrEqualToThreshold:
     Description: Alarm greater then threshold, triggers alarms when KPI is above given threshold.
     Type: String
 Mappings:
@@ -196,7 +202,7 @@ Mappings:
         HVM64: ami-6b6a7d09
         HVMG2: NOT_SUPPORTED
 Resources:
-  Ec2ProfileRole:
+  EC2ProfileRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -208,10 +214,10 @@ Resources:
                 - ec2.amazonaws.com
             Action:
               - sts:AssumeRole
-  Ec2ProfilePolicy:
+  EC2ProfilePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: 'TestEc2ProfilePolicy'
+      PolicyName: 'EC2ProfilePolicy'
       PolicyDocument:
           Version: 2012-10-17
           Statement:
@@ -233,32 +239,168 @@ Resources:
               Resource: 'arn:aws:ssm:*:*:parameter/AmazonCloudWatch-*'
               Action:
                 - 'ssm:GetParameter'
+                - 'ssm:PutParameter'
       Roles:
-        - Ref: Ec2ProfileRole
-  TestEc2InstanceProfile:
+        - Ref: EC2ProfileRole
+  EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Path: '/'
       Roles:
-        - !Ref Ec2ProfileRole
-  TestEc2Instance:
+        - !Ref EC2ProfileRole
+  EC2Instance:
     Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            - 01_config-amazon-cloudwatch-agent
+            - 02_restart_amazon-cloudwatch-agent
+        # Definition of json configuration of AmazonCloudWatchAgent, you can change the configuration below.
+        01_config-amazon-cloudwatch-agent:
+          files:
+            /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json:
+              content: !Sub |
+                {
+                  "agent": {
+                    "metrics_collection_interval": 60,
+                    "run_as_user": "root"
+                  },
+                  "metrics": {
+                    "append_dimensions": {
+                      "AutoScalingGroupName": "${!aws:AutoScalingGroupName}",
+                      "ImageId": "${!aws:ImageId}",
+                      "InstanceId": "${!aws:InstanceId}",
+                      "InstanceType": "${!aws:InstanceType}"
+                    },
+                    "metrics_collected": {
+                      "collectd": {
+                        "metrics_aggregation_interval": 60
+                      },
+                      "cpu": {
+                        "measurement": [
+                          "cpu_usage_idle",
+                          "cpu_usage_iowait",
+                          "cpu_usage_user",
+                          "cpu_usage_system"
+                        ],
+                        "metrics_collection_interval": 60,
+                        "resources": [
+                          "*"
+                        ],
+                        "totalcpu": true
+                      },
+                      "disk": {
+                        "measurement": [
+                          "used_percent",
+                          "inodes_free"
+                        ],
+                        "metrics_collection_interval": 60,
+                        "resources": [
+                          "*"
+                        ]
+                      },
+                      "diskio": {
+                        "measurement": [
+                          "io_time",
+                          "write_bytes",
+                          "read_bytes",
+                          "writes",
+                          "reads"
+                        ],
+                        "metrics_collection_interval": 60,
+                        "resources": [
+                          "*"
+                        ]
+                      },
+                      "mem": {
+                        "measurement": [
+                          "mem_used_percent"
+                        ],
+                        "metrics_collection_interval": 60
+                      },
+                      "netstat": {
+                        "measurement": [
+                          "tcp_established",
+                          "tcp_time_wait"
+                        ],
+                        "metrics_collection_interval": 60
+                      },
+                      "statsd": {
+                        "metrics_aggregation_interval": 60,
+                        "metrics_collection_interval": 10,
+                        "service_address": ":8125"
+                      },
+                      "swap": {
+                        "measurement": [
+                          "swap_used_percent"
+                        ],
+                        "metrics_collection_interval": 60
+                      }
+                    }
+                  }
+                }
+        # Invoke amazon-cloudwatch-agent-ctl to restart the AmazonCloudWatchAgent.
+        02_restart_amazon-cloudwatch-agent:
+          commands:
+            01_stop_service:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a stop
+            02_start_service:
+              command: /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
     Properties:
       ImageId: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
       InstanceType: !Ref InstanceType
-      IamInstanceProfile: !Ref TestEc2InstanceProfile
-  TestEc2CpuInstanceAlarm:
+      IamInstanceProfile: !Ref EC2InstanceProfile
+      KeyName: 'ec2-key'
+      UserData:
+        # This script below is to install AmazonCloudWatchAgent, restart AmazonCloudWatchAgent and tell the result to cloudformation.
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum -y install collectd
+          rpm -Uvh https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource EC2Instance --region ${AWS::Region} --configsets default
+          /opt/aws/bin/cfn-signal -e 0 --stack ${AWS::StackId} --resource EC2Instance --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: "PT15M"
+
+  EC2CpuAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmDescription:  EC2 CPU Utilization Alarm
-      Namespace: AWS/EC2
-      MetricName: CPUUtilization
+      Namespace: CWAgent
+      MetricName: cpu_usage_user
       Unit: Percent
       Statistic: Maximum
-      Period: 300
+      Period: 60
       EvaluationPeriods: 1
-      Threshold: !Ref AlarmOnGreaterThenThreshold
+      Threshold: !Ref AlarmGreaterThanOrEqualToThreshold
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: InstanceId
-          Value: !Ref "TestEc2Instance"
+          Value: !Ref EC2Instance
+        - Name: ImageId
+          Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
+        - Name: InstanceType
+          Value: !Ref InstanceType
+        - Name: cpu
+          Value: cpu-total
+
+  EC2MemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: CWAgent
+      MetricName: mem_used_percent
+      Unit: Percent
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: !Ref AlarmGreaterThanOrEqualToThreshold
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref EC2Instance
+        - Name: ImageId
+          Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
+        - Name: InstanceType
+          Value: !Ref InstanceType

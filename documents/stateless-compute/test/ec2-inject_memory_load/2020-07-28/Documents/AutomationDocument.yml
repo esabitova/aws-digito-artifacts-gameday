@@ -16,7 +16,7 @@
 #
 ---
 schemaVersion: '0.3'
-description: Execute CPU stress via Run Command
+description: Execute Memory stress via Run Command
 assumeRole: '{{AutomationAssumeRole}}'
 parameters:
   AutomationAssumeRole:
@@ -25,20 +25,20 @@ parameters:
   InstanceId:
     type: String
     description: (Required) EC2 instance id
-  CpuUtilizationAlarmName:
+  MemoryUtilizationAlarmName:
     type: String
     description: (Required) EC2 CPUUtilization alarm which should be triggerred
   Duration:
     type: String
-    description: (Optional) The duration of the attack in seconds (default/recommended 300)
-    default: '300'
-  NumCpuCores:
+    description: (Optional) The duration of the attack in seconds (default/recommended 120)
+    default: '120'
+  Vm:
     type: String
-    description: (Optional) Number of CPU cores to be impacted (default 0 - all)
-    default: '0'
-  CpuLoadPercentage:
+    description: (Optional) Number of VM memory stressors
+    default: '1'
+  MemoryLoadPercentage:
     type: String
-    description: (Optional) The EC2 instance CPU load percentage (default 1%)
+    description: (Optional) The EC2 instance memory load percentage (default 1%)
     default: '1'
   IsRollback:
     type: String
@@ -53,21 +53,21 @@ mainSteps:
     action: 'aws:branch'
     inputs:
       Choices:
-        - NextStep: RunCpuStress
+        - NextStep: RunMemoryStress
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
       Default: GetPreviousExecutionInstanceIds
-  - name: RunCpuStress
+  - name: RunMemoryStress
     action: aws:runCommand
     maxAttempts: 3
     onFailure: step:KillStressCommand
     inputs:
-      DocumentName: Digito-RunCpuStress_2020-07-28
+      DocumentName: Digito-RunMemoryStress_2020-07-28
       InstanceIds:
         - '{{InstanceId}}'
       Parameters:
-        CpuLoadPercentage: '{{ CpuLoadPercentage }}'
-        NumCpuCores: '{{NumCpuCores}}'
+        MemoryLoadPercentage: '{{ MemoryLoadPercentage }}'
+        Vm: '{{Vm}}'
         Duration: '{{Duration}}'
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
@@ -78,7 +78,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{CpuUtilizationAlarmName}}"
+        - "{{MemoryUtilizationAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["ALARM"]
     isEnd: true
@@ -94,7 +94,7 @@ mainSteps:
       Handler: get_inputs_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{PreviousExecutionId}}'
-        StepName: 'RunCpuStress'
+        StepName: 'RunMemoryStress'
         ResponseField: 'InstanceIds'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
@@ -108,7 +108,7 @@ mainSteps:
       Handler: cancel_command_execution
       InputPayload:
         ExecutionId: '{{PreviousExecutionId}}'
-        StepName: 'RunCpuStress'
+        StepName: 'RunMemoryStress'
         InstanceIds: '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
