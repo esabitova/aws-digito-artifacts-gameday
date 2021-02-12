@@ -2,23 +2,16 @@
 """SSM automation document for Aurora cluster failover. feature tests."""
 
 from pytest_bdd import (
-    scenario,
-    then,
-    parsers,
-    when
+    scenario
 )
 from pytest import fixture
-from resource_manager.src.util.param_utils import parse_param_values_from_table
-from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
-from resource_manager.src.util.ssm_utils import get_ssm_step_interval
 import logging
-from datetime import datetime, timedelta
 
 
 @scenario('../features/ec2_memory_load.feature',
           'Create AWS resources using CloudFormation template and execute '
           'SSM automation memory stress on EC2 instance')
-def test_cpu_stress_on_ec2_instance():
+def test_memory_stress_on_ec2_instance():
     """Create AWS resources using CloudFormation template and execute '
     'SSM automation CPU stress on EC2 instance."""
 
@@ -26,7 +19,7 @@ def test_cpu_stress_on_ec2_instance():
 @scenario('../features/ec2_memory_load.feature',
           'Create AWS resources using CloudFormation template and execute '
           'SSM automation memory stress on EC2 instance with rollback')
-def test_cpu_stress_on_ec2_instance_with_rollback():
+def test_memory_stress_on_ec2_instance_with_rollback():
     """Create AWS resources using CloudFormation template and execute '
           'SSM automation CPU stress on EC2 instance with rollback."""
 

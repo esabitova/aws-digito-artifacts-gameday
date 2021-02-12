@@ -16,7 +16,7 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for Aurora failover
+Description: Test stack for EC2 instance
 Outputs:
   InstanceId:
     Description: EC2 Instance ID
@@ -26,7 +26,7 @@ Outputs:
     Description: EC2 CPU Utilization Alarm
     Value: !Ref EC2CpuAlarm
   EC2MemoryAlarm:
-    Description: EC2 CPU Utilization Alarm
+    Description: EC2 Memory Utilization Alarm
     Value: !Ref EC2MemoryAlarm
   ImageId:
      Description: EC2 Instance AMI
