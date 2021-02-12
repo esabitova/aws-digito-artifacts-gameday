@@ -20,7 +20,10 @@ Description: Role for SSM Failover Rds Instance
 Outputs:
   DigitoFailoverRdsInstanceAssumeRole:
     Description: DigitoFailoverRdsInstance Automation Assume Role ARN
-    Value: !GetAtt DigitoFailoverRdsInstanceAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoFailoverRdsInstanceAssumeRole.Arn
+    Export:
+      Name: DigitoFailoverRdsInstanceAssumeRole
 Resources:
   DigitoFailoverRdsInstanceAssumeRole:
     Type: AWS::IAM::Role

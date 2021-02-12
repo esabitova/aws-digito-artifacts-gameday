@@ -32,6 +32,3 @@ Resources:
       Threshold:
         Ref: Threshold
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Alarm':
-        recommendationId: 'rds:alarms:health-memory:2020-04-01'

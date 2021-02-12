@@ -1,0 +1,138 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+schemaVersion: '0.3'
+description: Execute CPU stress via Run Command
+assumeRole: '{{AutomationAssumeRole}}'
+parameters:
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
+  InstanceId:
+    type: String
+    description: (Required) EC2 instance id
+  CpuUtilizationAlarmName:
+    type: String
+    description: (Required) EC2 CPUUtilization alarm which should be triggerred
+  Duration:
+    type: String
+    description: (Optional) The duration of the attack in seconds (default/recommended 300)
+    default: '300'
+  NumCpuCores:
+    type: String
+    description: (Optional) Number of CPU cores to be impacted (default 0 - all)
+    default: '0'
+  CpuLoadPercentage:
+    type: String
+    description: (Optional) The EC2 instance CPU load percentage (default 1%)
+    default: '1'
+  IsRollback:
+    type: String
+    description: (Optional) Provide true to terminate stress testing
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: (Optional) Previous execution id for which resources stress testing should be terminated (need in case of rollback)
+    default: ''
+mainSteps:
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: RunCpuStress
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: GetPreviousExecutionInstanceIds
+  - name: RunCpuStress
+    action: aws:runCommand
+    maxAttempts: 3
+    onFailure: step:KillStressCommand
+    inputs:
+      DocumentName: Digito-RunCpuStress_2020-07-28
+      InstanceIds:
+        - '{{InstanceId}}'
+      Parameters:
+        CpuLoadPercentage: '{{ CpuLoadPercentage }}'
+        NumCpuCores: '{{NumCpuCores}}'
+        Duration: '{{Duration}}'
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: step:KillStressCommand
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{CpuUtilizationAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["ALARM"]
+    isEnd: true
+  - name: GetPreviousExecutionInstanceIds
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: InstanceIds
+        Selector: $.Payload.InstanceIds
+        Type: StringList
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'RunCpuStress'
+        ResponseField: 'InstanceIds'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+  - name: CancelCommandExecution
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.6
+      Handler: cancel_command_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'RunCpuStress'
+        InstanceIds: '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.cancel_command_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+  - name: KillStressCommandOnRollback
+    action: aws:runCommand
+    maxAttempts: 3
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-KillStressCommand_2020-07-28
+      InstanceIds:
+          - '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
+    isEnd: true
+  - name: KillStressCommand
+    action: aws:runCommand
+    maxAttempts: 3
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-KillStressCommand_2020-07-28
+      InstanceIds:
+        - '{{InstanceId}}'
+    isEnd: true
+
+
+

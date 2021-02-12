@@ -20,7 +20,10 @@ Description: Role for SSM Reboot Rds Instance
 Outputs:
   DigitoRebootRdsInstanceAssumeRole:
     Description: DigitoRebootRdsInstance Automation Assume Role ARN
-    Value: !GetAtt DigitoRebootRdsInstanceAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRebootRdsInstanceAssumeRole.Arn
+    Export:
+      Name: DigitoRebootRdsInstanceAssumeRole
 Resources:
   DigitoRebootRdsInstanceAssumeRole:
     Type: AWS::IAM::Role

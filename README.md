@@ -66,13 +66,13 @@ Example:
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
-  "tag": "stateless-compute:test:ec2-inject_memory_load:2020-07-28",
+  "tag": "compute:test:ec2-inject_memory_load:2020-07-28",
   "failureType": "HARDWARE",
   "risk": "SMALL",
   "minorVersion": "001"
 }
 ````
-<b>File location:</b>.../AwsDigitoArtifactsGameday/documents/stateless-compute/test/ec2-inject_memory_load/2020-07-28/Documents/metadata.json
+<b>File location:</b>.../AwsDigitoArtifactsGameday/documents/compute/test/ec2-inject_memory_load/2020-07-28/Documents/metadata.json
 
 * documentName -- SSM automation document name with major version, major version should correspond to date added to tag.
 * documentType -- Command or Automation

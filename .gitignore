@@ -15,5 +15,5 @@ build
 .DS_Store
 .eggs/
 .coverage.*
-documentation/
+/documentation
 aws_digito_artifacts_gameday.egg-info/

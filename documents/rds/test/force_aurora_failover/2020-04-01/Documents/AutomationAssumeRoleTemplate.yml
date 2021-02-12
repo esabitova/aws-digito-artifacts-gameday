@@ -20,7 +20,10 @@ Description: Role for SSM Aurora Failover Cluster
 Outputs:
   DigitoAuroraFailoverClusterAssumeRole:
     Description: DigitoAuroraFailoverCluster Automation Assume Role ARN
-    Value: !GetAtt DigitoAuroraFailoverClusterAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoAuroraFailoverClusterAssumeRole.Arn
+    Export:
+      Name: DigitoAuroraFailoverClusterAssumeRole
 Resources:
   DigitoAuroraFailoverClusterAssumeRole:
     Type: AWS::IAM::Role

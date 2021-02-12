@@ -32,6 +32,3 @@ Resources:
       Threshold:
         Ref: Threshold
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'compute:alarm:ec2-failed-instance:2020-07-13'

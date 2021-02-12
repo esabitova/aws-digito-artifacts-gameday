@@ -1,0 +1,17 @@
+{
+  "documentName": "Digito-SimulateHighMemoryLoadInEc2_2020-07-28",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "stateless-compute:test:ec2-inject_memory_load:2020-07-28",
+  "failureType": "HARDWARE",
+  "risk": "SMALL",
+  "intent": "Test app monitor under load.",
+  "details": {
+      "1": "Figure out the amount of memory to grab from available free memory.",
+      "2": "Start a memory load for the amount of memory in bytes on instance for X minutes.",
+      "3": "Verify alarm (a) is triggered."
+  },
+  "minorVersion": "001"
+}
