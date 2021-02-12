@@ -50,7 +50,7 @@ class TestSsmDocument(unittest.TestCase):
                                                                  call(AutomationExecutionId='123456')])
 
     def test_execute_success(self):
-        self.mock_ssm.list_documents.return_value = {'DocumentIdentifiers': ['test_document_name']}
+        self.mock_ssm.list_document_versions.return_value = {'DocumentVersions': ['test_document_name']}
         self.mock_ssm.start_automation_execution.return_value = {'AutomationExecutionId': '123456'}
         execution_id = self.ssm_document.execute('test_document_name', {'test_param_1': ['test_value_1']})
         self.assertEqual('123456', execution_id)

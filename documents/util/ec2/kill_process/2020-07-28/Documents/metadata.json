@@ -1,0 +1,8 @@
+{
+  "documentName": "Digito-KillProcessCommand_2020-07-28",
+  "documentType": "Command",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "tag": "util:kill_process_command:2020-07-28",
+  "minorVersion": "001"
+}

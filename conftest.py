@@ -4,7 +4,8 @@ import boto3
 from pytest_bdd import (
     when,
     parsers,
-    given
+    given,
+    then
 )
 from sttable import parse_str_table
 from resource_manager.src.resource_manager import ResourceManager
@@ -12,6 +13,7 @@ from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.s3 import S3
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 
 
 def pytest_addoption(parser):
@@ -191,26 +193,9 @@ def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ss
         ssm_test_cache[exec_cache_key] = cached_execution
     return execution_id
 
-
-@when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{parameters}'))
-def wait_for_execution_completion(ssm_document_name, expected_status, ssm_document, ssm_test_cache, parameters):
-    """
-    Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
-    :param ssm_document_name The SSM document name
-    :param expected_status The expected SSM document execution status
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
-    :param ssm_test_cache The custom test cache
-    :param parameters The input parameters
-    """
-    cfn_output = resource_manager.get_cfn_output_params()
-    parameters = parse_param_values_from_table(parameters, {'cache': ssm_test_cache, 'cfn-output': cfn_output})
-    if len(parameters) < 1 or parameters[0].get['ExecutionId'] is None:
-        raise Exception('Parameter with name [ExecutionId] should be provided')
-    actual_status = ssm_document.wait_for_execution_completion(parameters[0].get['ExecutionId'], ssm_document_name)
-    assert expected_status == actual_status
-
-
+@given(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
 @when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
+@then(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
 def wait_for_execution_completion_with_params(resource_manager, ssm_document_name, expected_status,
                                               ssm_document, input_parameters, ssm_test_cache):
     """
@@ -229,4 +214,37 @@ def wait_for_execution_completion_with_params(resource_manager, ssm_document_nam
         raise Exception('Parameter with name [ExecutionId] should be provided')
     actual_status = ssm_document.wait_for_execution_completion(ssm_execution_id, ssm_document_name)
     assert expected_status == actual_status
+
+@given(parsers.parse('the cached input parameters\n{input_parameters}'))
+def given_cached_input_parameters(ssm_test_cache, input_parameters):
+    for parm_name, param_val in parse_str_table(input_parameters).rows[0].items():
+        ssm_test_cache[parm_name] = str(param_val)
+
+@then(parsers.parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
+def terminate_ssm_execution(boto3_session, resource_manager, ssm_test_cache, ssm_document, input_parameters):
+    ssm = boto3_session.client('ssm')
+    cfn_output = resource_manager.get_cfn_output_params()
+    parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, input_parameters)
+    ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
+
+@when(parsers.parse('SSM automation document "{ssm_document_name}" executed with rollback\n{ssm_input_parameters}'))
+def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_cache, resource_manager, ssm_document):
+    cfn_output = resource_manager.get_cfn_output_params()
+    parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, ssm_input_parameters)
+    execution_id = ssm_document.execute(ssm_document_name, parameters)
+    ssm_test_cache['SsmRollbackExecutionId'] = execution_id
+    return execution_id
+
+@then(parsers.parse('sleep for "{seconds}" seconds'))
+def sleep_secons(seconds):
+    # Need to wait for more than 5 minutes for metric to be reported
+    logging.info('Sleeping for [{}] seconds'.format(seconds))
+    time.sleep(int(seconds))
+
+
+@then(parsers.parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"\n{parameters}'))
+def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters):
+    params = parse_param_values_from_table(parameters, {'cache': ssm_test_cache})
+    current_step_status = get_ssm_step_status(boto3_session, params[0]['ExecutionId'], step_name)
+    assert expected_step_status == current_step_status
 
