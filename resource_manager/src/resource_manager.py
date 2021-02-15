@@ -203,8 +203,10 @@ class ResourceManager:
             if resource.status == ResourceModel.Status.LEASED.name:
                 ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
-            # If resource was not fully created because of failure or cancellation
-            elif resource.status == ResourceModel.Status.CREATING.name:
+            # If resource was not fully created/updated because of failure or cancellation
+            elif resource.status != ResourceModel.Status.AVAILABLE.name:
+                logging.info('Deleting resource for stack name [{}] in status [{}].'.format(resource.cf_stack_name,
+                                                                                           resource.status))
                 resource.delete()
 
     def destroy_all_resources(self):
