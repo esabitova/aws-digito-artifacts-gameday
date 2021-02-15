@@ -29,7 +29,7 @@ class SsmDocument:
                 # DocumentVersion=version,
                 Parameters=input_params
             )['AutomationExecutionId']
-            logging.info(f'The URL of the execution on AWS console is {self._build_execution_url(execution_id)}')
+            logging.info(f'SSM execution URL: {self._build_execution_url(execution_id)}')
             return execution_id
         else:
             error_msg = "SSM document with name [{}] does not exist.".format(document_name)

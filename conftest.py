@@ -17,6 +17,7 @@ from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from pytest import ExitCode
 
 
 def pytest_addoption(parser):
@@ -71,7 +72,7 @@ def pytest_sessionfinish(session, exitstatus):
     '''
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     :param session: The pytest session object.
-    :param exitstatus (int): The status which pytest will return to the system.
+    :param exitstatus(int): The status which pytest will return to the system.
     :return:
     '''
     # Execute only when running integration tests
@@ -83,6 +84,7 @@ def pytest_sessionfinish(session, exitstatus):
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
+            pass
         else:
             logging.info(
                 "Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
@@ -108,7 +110,7 @@ def cfn_output_params(resource_manager):
     return resource_manager.get_cfn_output_params()
 
 @pytest.fixture(scope='function')
-def resource_manager(request, boto3_session):
+def resource_manager(request, capsys, boto3_session):
     '''
     Creates ResourceManager fixture for every test case.
     :param request: The pytest request object
@@ -118,8 +120,11 @@ def resource_manager(request, boto3_session):
     s3_helper = S3(boto3_session)
     rm = ResourceManager(cfn_helper, s3_helper)
     yield rm
-    # Release resources after test execution is completed
-    rm.release_resources()
+    # Release resources after test execution is completed if test was not manually
+    # interrupted/cancelled. In case of interruption resources will be
+    # released and fixed on 'pytest_sessionfinish'
+    if request.session.exitstatus != ExitCode.INTERRUPTED:
+        rm.release_resources()
 
 
 @pytest.fixture(scope='function')
@@ -130,6 +135,28 @@ def ssm_document(boto3_session):
     '''
     return SsmDocument(boto3_session)
 
+
+@pytest.fixture(autouse=True, scope='function')
+def setup(request, ssm_test_cache, boto3_session):
+    """
+    Terminates SSM execution after each test execution. In case if test failed and test didn't perform any
+    SSM execution termination step we don't want to leave SSM running after test failure.
+    :param request The pytest request object
+    :param ssm_test_cache The test cache
+    :param boto3_session The boto3 session
+    """
+    def tear_down():
+        # Terminating SSM automation execution at the end of execution.
+        ssm = boto3_session.client('ssm')
+        cached_executions = ssm_test_cache.get('SsmExecutionId')
+        if cached_executions is not None:
+            for index, exec_id in cached_executions.items():
+                execution_url = 'https://{}.console.aws.amazon.com/systems-manager/automation/execution/{}'\
+                    .format(boto3_session.region_name, exec_id)
+                logging.info("Canceling SSM execution: {}".format(execution_url))
+                ssm.stop_automation_execution(AutomationExecutionId=exec_id, Type='Cancel')
+
+    request.addfinalizer(tear_down)
 
 @pytest.fixture(scope='function')
 def ssm_test_cache():
@@ -178,17 +205,16 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
 
 @when(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
-def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ssm_test_cache, ssm_input_parameters):
+def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, ssm_test_cache, ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_document_name The SSM document name
-    :param resource_manager The resource manager object to manipulate with testing resources
+    :param cfn_output_params The resource manager object to manipulate with testing resources
     :param ssm_test_cache The custom test cache
     :param ssm_input_parameters The SSM execution input parameters
     """
-    cfn_output = resource_manager.get_cfn_output_params()
-    parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, ssm_input_parameters)
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
     execution_id = ssm_document.execute(ssm_document_name, parameters)
 
     # Caching automation execution ids to be able to use them in test as parameter references in data tables
@@ -285,7 +311,7 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
 
     exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
     # Reported command execution start time given in SSM is delayed, so we need exclude that delay to find metric
-    exec_start = exec_start - timedelta(seconds=60)
+    exec_start = exec_start - timedelta(seconds=metric_period)
     act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
                                             metric_namespace, metric_name, input_param_row, metric_period)
     if operator == 'greaterOrEqual':
