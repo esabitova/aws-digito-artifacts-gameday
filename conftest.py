@@ -18,6 +18,7 @@ from resource_manager.src.util.param_utils import parse_param_value, parse_param
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from pytest import ExitCode
+from botocore.exceptions import ClientError
 
 
 def pytest_addoption(parser):
@@ -84,7 +85,6 @@ def pytest_sessionfinish(session, exitstatus):
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
-            pass
         else:
             logging.info(
                 "Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
@@ -146,17 +146,21 @@ def setup(request, ssm_test_cache, boto3_session):
     :param boto3_session The boto3 session
     """
     def tear_down():
-        # Terminating SSM automation execution at the end of execution.
+        # Terminating SSM automation execution at the end of each test.
         ssm = boto3_session.client('ssm')
         cached_executions = ssm_test_cache.get('SsmExecutionId')
         if cached_executions is not None:
             for index, exec_id in cached_executions.items():
-                execution_url = 'https://{}.console.aws.amazon.com/systems-manager/automation/execution/{}'\
+                execution_url = 'https://{}.console.aws.amazon.com/systems-manager/automation/execution/{}' \
                     .format(boto3_session.region_name, exec_id)
-                logging.info("Canceling SSM execution: {}".format(execution_url))
-                ssm.stop_automation_execution(AutomationExecutionId=exec_id, Type='Cancel')
+                try:
+                    logging.info("Canceling SSM execution: {}".format(execution_url))
+                    ssm.stop_automation_execution(AutomationExecutionId=exec_id, Type='Cancel')
+                except ClientError as e:
+                    logging.error("Failed to cancel SSM execution [%s] due to: %s", execution_url, e.response)
 
     request.addfinalizer(tear_down)
+
 
 @pytest.fixture(scope='function')
 def ssm_test_cache():
