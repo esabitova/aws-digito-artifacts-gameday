@@ -54,7 +54,7 @@ package.AwsDigitoArtifactsGameday = {
 
     resolves-conflict-dependencies = {
         1.0 = {
-            Pytest = 4.x;
+            Pytest = 5.x;
             Python-Pytest-cov = 2.x;
         };
     };
