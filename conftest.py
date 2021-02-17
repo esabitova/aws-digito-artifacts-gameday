@@ -98,7 +98,10 @@ def boto3_session(request):
     https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
     :param request The pytest request object
     '''
-    return get_boto3_session(request.config.option.aws_profile)
+    # Applicable only for integration tests
+    if request.session.config.option.run_integration_tests:
+        return get_boto3_session(request.config.option.aws_profile)
+    return boto3.Session()
 
 
 @pytest.fixture(scope='function')
@@ -159,7 +162,9 @@ def setup(request, ssm_test_cache, boto3_session):
                 except ClientError as e:
                     logging.error("Failed to cancel SSM execution [%s] due to: %s", execution_url, e.response)
 
-    request.addfinalizer(tear_down)
+    # Applicable only for integration tests
+    if request.session.config.option.run_integration_tests:
+        request.addfinalizer(tear_down)
 
 
 @pytest.fixture(scope='function')
