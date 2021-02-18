@@ -1,4 +1,5 @@
 {
+  "displayName": "Test - Inject CPU load to ASG",
   "documentName": "Digito-SimulateHighCpuLoadInAsg_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
