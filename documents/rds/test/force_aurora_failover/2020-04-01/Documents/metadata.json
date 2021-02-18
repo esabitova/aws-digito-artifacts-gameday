@@ -1,4 +1,5 @@
 {
+    "displayName": "Test - Force Aurora failover",
     "documentName": "Digito-AuroraFailoverCluster_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",
