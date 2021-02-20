@@ -95,7 +95,7 @@ def restore_from_backup(events, context):
             'Bucket': s3_backup_bucket_name,
             'Key': content["Key"]
         }
-        s3_client.meta.client.copy(copy_source, s3_bucket_to_restore_name, content["Key"])
+        s3_client.copy(copy_source, s3_bucket_to_restore_name, content["Key"])
         print(f'The file {content["Key"]} was successfully copied')
         copied_count += 1
     print(f'The file number of copied files is {copied_count}')
