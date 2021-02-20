@@ -4,7 +4,6 @@
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-  "attachments": "digito_gameday_primitives.zip",
   "risk": "MEDIUM",
   "tag": "lambda:sop:change_execution_time_limit:2020-10-26",
   "intent": "Change execution time limit",

@@ -29,7 +29,7 @@ No
   * description: (Required) The ARN of the Lambda function
 ### `NewTimeoutValue`:
   * type: Integer
-  * description: (Required) New Timout value
+  * description: (Required) New Timeout value in seconds. The maximum allowed value is 900 seconds.
 
 ## Details of SSM Document steps:
 1. `SetTimeout`

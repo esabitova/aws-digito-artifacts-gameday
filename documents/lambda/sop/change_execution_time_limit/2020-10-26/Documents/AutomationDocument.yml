@@ -21,7 +21,7 @@ assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
   NewTimeoutValue:
     type: Integer
-    description: (Required) New Timout value
+    description: (Required) New Timeout value in seconds. The maximum allowed value is 900 seconds.
   LambdaARN:
     type: String
     description: (Required) The ARN of the Lambda function
