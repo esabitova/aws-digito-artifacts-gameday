@@ -1,0 +1,12 @@
+{
+  "displayName": "SOP - Restore From Backup",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RestoreFromBackup_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "REGION",
+  "intent": "To restore an S3 bucket from a backup bucket",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "s3:sop:restore_from_backup:2020-09-21"
+}

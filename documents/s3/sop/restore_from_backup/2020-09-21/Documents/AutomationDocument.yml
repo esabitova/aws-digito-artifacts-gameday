@@ -1,0 +1,115 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "To restore an S3 bucket from a backup bucket/Region SOP"
+schemaVersion: "0.3"
+assumeRole: "{{AutomationAssumeRole}}"
+parameters:
+  S3BackupBucketName:
+    type: String
+    description: (Required) The S3 backup bucket name to copy files from it to the S3 restore bucket.
+  S3BucketToRestoreName:
+    type: String
+    description: (Required) The S3 bucket name to restore files from the S3 backup bucket.
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SNSTopicARNForManualApproval:
+    type: String
+    description: |-
+      (Required) The ARN of the SNS Topic where a user will receive the notification
+      about the manual approval of restore bucket clean-up if some files exist there.
+  UserWhoWillApproveCleanRestoreBucket:
+    type: String
+    description: |-
+      (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of restore bucket if there are some files.
+      Can be either an AWS Identity and Access Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
+outputs:
+  - "CleanRestoreBucket.NumberOfDeletedObjects"
+  - "RestoreFromBackup.RecoveryTimeSeconds"
+  - "RestoreFromBackup.RestoredFilesNumber"
+mainSteps:
+  - name: CheckExistenceOfObjectsInRestoreBucket
+    action: aws:executeScript
+    outputs:
+      - Name: "NumberOfObjectsExistInRestoreBucket"
+        Selector: "$.Payload.NumberOfObjectsExistInRestoreBucket"
+        Type: "Integer"
+      - Name: "AreObjectsExistInRestoreBucket"
+        Selector: "$.Payload.AreObjectsExistInRestoreBucket"
+        Type: "Boolean"
+    inputs:
+      Runtime: "python3.7"
+      Handler: "check_existence_of_objects_in_bucket"
+      InputPayload:
+        S3BucketToRestoreName: "{{S3BucketToRestoreName}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::s3_util.imports
+
+        SCRIPT_PLACEHOLDER::s3_util.check_existence_of_objects_in_bucket
+  - name: ApproveOrRestoreBranch
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: ApproveCleanRestoreBucketOrCancel
+          Variable: "{{CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket}}"
+          BooleanEquals: true
+      Default: RestoreFromBackup
+  - name: ApproveCleanRestoreBucketOrCancel
+    action: aws:approve
+    timeoutSeconds: 3600
+    onFailure: Abort
+    inputs:
+      NotificationArn: "{{SNSTopicARNForManualApproval}}"
+      Message: "Do you agree to clean up the '{{S3BucketToRestoreName}}' bucket before the restore process? There '{{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}}' files exist."
+      MinRequiredApprovals: 1
+      Approvers:
+        - "{{UserWhoWillApproveCleanRestoreBucket}}"
+  - name: CleanRestoreBucket
+    action: aws:executeScript
+    outputs:
+      - Name: "NumberOfDeletedObjects"
+        Selector: "$.Payload.NumberOfDeletedObjects"
+        Type: "Integer"
+    inputs:
+      Runtime: "python3.7"
+      Handler: "clean_bucket"
+      InputPayload:
+        S3BucketToRestoreName: "{{S3BucketToRestoreName}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::s3_util.imports
+
+        SCRIPT_PLACEHOLDER::s3_util.clean_bucket
+  - name: RestoreFromBackup
+    action: aws:executeScript
+    outputs:
+      - Name: "RestoredFilesNumber"
+        Selector: "$.Payload.RestoredFilesNumber"
+        Type: "Integer"
+      - Name: "RecoveryTimeSeconds"
+        Selector: "$.Payload.RecoveryTimeSeconds"
+        Type: "Integer"
+    inputs:
+      Runtime: "python3.7"
+      Handler: "restore_from_backup"
+      InputPayload:
+        S3BackupBucketName: "{{S3BackupBucketName}}"
+        S3BucketToRestoreName: "{{S3BucketToRestoreName}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::s3_util.imports
+
+        SCRIPT_PLACEHOLDER::s3_util.restore_from_backup
