@@ -19,7 +19,7 @@ description: 'SOP - Change execution time limit'
 schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
-  NewTimeoutValue:
+  NewTimeoutValueSeconds:
     type: Integer
     description: (Required) New Timeout value in seconds. The maximum allowed value is 900 seconds.
   LambdaARN:
@@ -30,7 +30,7 @@ parameters:
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
     default: ''
 outputs:
-  - SetTimeout.NewTimeoutValue
+  - SetTimeout.NewTimeoutValueSeconds
 mainSteps:
   - name: SetTimeout
     action: aws:executeAwsApi
@@ -39,8 +39,8 @@ mainSteps:
       Service: lambda
       Api: UpdateFunctionConfiguration
       FunctionName: '{{ LambdaARN }}'
-      Timeout: '{{ NewTimeoutValue }}'
+      Timeout: '{{ NewTimeoutValueSeconds }}'
     outputs:
-      - Name: NewTimeoutValue
+      - Name: NewTimeoutValueSeconds
         Selector: '$.Timeout'
         Type: Integer

@@ -13,7 +13,7 @@ Feature: SSM automation document for changing execution time limit of Lambda.
       | OldTimeout                  |
       | {{cache:before>OldTimeout}} |
     And SSM automation document "Digito-ChangeExecutionTimeLimit_2020-10-26" executed
-      | NewTimeoutValue                       | LambdaARN                               | AutomationAssumeRole                                                                 |
+      | NewTimeoutValueSeconds                       | LambdaARN                               | AutomationAssumeRole                                                                 |
       | {{cache:before>ExpectedTimeout}} | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeExecutionTimeLimitAssumeRole}} |
 
     When SSM automation document "Digito-ChangeExecutionTimeLimit_2020-10-26" execution in status "Success"
