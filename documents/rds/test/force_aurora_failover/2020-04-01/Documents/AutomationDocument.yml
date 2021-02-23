@@ -62,6 +62,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::rds_util.imports
 
         SCRIPT_PLACEHOLDER::rds_util.get_cluster_writer_id
+        SCRIPT_PLACEHOLDER::rds_util._parse_writer_id
   - name: PrimaryInstanceSelector
     action: 'aws:branch'
     inputs:
@@ -98,6 +99,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::rds_util.imports
 
         SCRIPT_PLACEHOLDER::rds_util.wait_cluster_failover_completed
+        SCRIPT_PLACEHOLDER::rds_util._parse_writer_id
   - name: WaitForAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10

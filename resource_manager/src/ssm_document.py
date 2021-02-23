@@ -109,7 +109,7 @@ class SsmDocument:
         :param document_name: The SSM automation document name
         :return: True is exist, False otherwise
         """
-        return len(self.ssm_client.list_document_versions(Name=document_name)['DocumentVersions']) == 1
+        return len(self.ssm_client.list_document_versions(Name=document_name)['DocumentVersions']) >= 1
 
     def _build_execution_url(self, execution_id, step_index, step_execution_id):
         """
