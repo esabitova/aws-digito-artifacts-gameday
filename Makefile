@@ -21,5 +21,5 @@ publish_lambda_ssm_docs:
 
 test_lambda:
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=./test-results/s3-cucumber-tests-results.html --self-contained-html --keep_test_resources --run_integration_tests -m lambda --aws_profile ut && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=./test-results/lambda-cucumber-tests-results.html --self-contained-html --keep_test_resources --run_integration_tests -m lambda --aws_profile ut && \
 	deactivate
