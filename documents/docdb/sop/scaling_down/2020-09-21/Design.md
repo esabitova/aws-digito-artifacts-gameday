@@ -57,7 +57,14 @@ No.
    * Outputs:
       * `DbClusterInstancesNumber`: Number of existing instances before scaling down
    * Explanation:
-      * Counts number of existing instances
+      * Counts number of the existing instances
+1. `VerifyInstaceExistInCluster`
+    * Type: aws:executeScript
+    * Inputs:
+        * `DBInstanceReplicaIdentifier`
+        * `DBClusterIdentifier`
+    * Explanation:
+        * Verifies the cluster instance exists in the cluster. When the exception message contains `DBInstanceNotFound` raises the custom exception `Cluster instance {events['DBInstanceIdentifier']} is not found in cluster {events['DBClusterIdentifier']` or raises other exception. API action: [describe_db_instances](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/docdb.html#DocDB.Client.describe_db_instances)
 1. `RemoveDocDbReadReplica`
     * Type: aws:executeAwsApi
     * Inputs:
