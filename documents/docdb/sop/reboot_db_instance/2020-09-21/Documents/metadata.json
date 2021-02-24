@@ -1,0 +1,16 @@
+{
+  "documentName": "Digito-RebootDbInstance_2020-09-21",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "attachments": "digito_gameday_primitives.zip",
+  "tag": "docdb:sop:reboot_db_instance:2020-09-21",
+  "failureType": "SOFTWARE",
+  "risk": "SMALL",
+  "intent": "| Used to reboot DB instance when the database doesn’t respond to any requests.",
+  "details": {
+    "1": "Reboot DB instance when the database doesn’t respond to any requests."
+  },
+  "minorVersion": "001"
+}
