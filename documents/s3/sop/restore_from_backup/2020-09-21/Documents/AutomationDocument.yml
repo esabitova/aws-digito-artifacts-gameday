@@ -48,7 +48,7 @@ mainSteps:
     outputs:
       - Name: "NumberOfObjectsExistInRestoreBucket"
         Selector: "$.Payload.NumberOfObjectsExistInRestoreBucket"
-        Type: "Integer"
+        Type: "String"
       - Name: "AreObjectsExistInRestoreBucket"
         Selector: "$.Payload.AreObjectsExistInRestoreBucket"
         Type: "Boolean"
@@ -75,7 +75,7 @@ mainSteps:
     onFailure: Abort
     inputs:
       NotificationArn: "{{SNSTopicARNForManualApproval}}"
-      Message: "Do you agree to clean up the '{{S3BucketToRestoreName}}' bucket before the restore process? There '{{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}}' files exist."
+      Message: "Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}} file(-s) exist."
       MinRequiredApprovals: 1
       Approvers:
         - "{{UserWhoWillApproveCleanRestoreBucket}}"
