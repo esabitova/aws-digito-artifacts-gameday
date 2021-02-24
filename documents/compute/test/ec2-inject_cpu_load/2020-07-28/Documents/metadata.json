@@ -3,6 +3,7 @@
   "documentName": "Digito-SimulateHighCpuLoadInEc2_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
+  "dependsOn": "Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "tag": "compute:test:ec2-inject_cpu_load:2020-07-28",
