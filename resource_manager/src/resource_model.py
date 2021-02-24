@@ -33,7 +33,8 @@ class ResourceModel(Model):
         LEASED = 2,
         CREATING = 3,
         UPDATING = 4,
-        DELETING = 5
+        DELETING = 5,
+        FAILED = 6
 
     cf_stack_index = NumberAttribute(range_key=True)
     cf_template_name = UnicodeAttribute(hash_key=True)

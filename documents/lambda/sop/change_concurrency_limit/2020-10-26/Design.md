@@ -73,15 +73,8 @@ No
     * Explanation:
         * `MinimumUnreservedConcurrency`=100. From [the documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html): "You can reserve up to the Unreserved account concurrency value that is shown, minus 100 for functions that don't have reserved concurrency."
         * Calculate `CanSetReservedConcurrency` as `(CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota- CalculateTotalReservedConcurrencyOfExistingLambas.TotalReservedConcurrency - NewReservedConcurrentExecutions - MinimumUnreservedConcurrency) > 0`
+        * if `CanSetReservedConcurrency` is `False` fail the script with human-readable error that contains `CheckFeasibility.MaximumPossibleReservedConcurrency` value and recommendations
         * Calculate `MaximumPossibleReservedConcurrency` as `CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota- CalculateTotalReservedConcurrencyOfExistingLambas.TotalReservedConcurrency - MinimumUnreservedConcurrency`
-1. `DesideOnExecution`
-    * Type: aws:branch
-    * Inputs:
-        * `CheckFeasibility.CanSetReservedConcurrency`
-    * Outputs: none
-    * Explanation:
-        * `CheckFeasibility.CanSetReservedConcurrency` it true, continue with `SetReservedConcurrentExecutions` step
-        * `CheckFeasibility.CanSetReservedConcurrency` it false, continue with `StopExecution` step
 1. `SetReservedConcurrentExecutions`
     * Type: aws:executeScript
     * Inputs:
@@ -97,17 +90,8 @@ No
           * ReservedConcurrentExecutions=`NewReservedConcurrentExecutions`
         * Return `NewReservedConcurrencyValue` from the previous step response `ReservedConcurrentExecutions`
         * Calculate `ReservedConcurrencyLeft` by `(CheckFeasibility.MaximumPossibleReservedConcurrency - NewReservedConcurrentExecutions)`
-1. `StopExecution`
-    * Type: aws:executeScript
-    * Inputs:
-        * `CheckFeasibility.MaximumPossibleReservedConcurrency`
-    * Outputs:
-        * `Error`: human-readable response to customers with `CheckFeasibility.MaximumPossibleReservedConcurrency` value and recommendations
-    * Explanation:
-        * Returns human-readable response to customers with `CheckFeasibility.MaximumPossibleReservedConcurrency` value and recommendations
 
 ## Outputs
-* `StopExecution.Error`: human-readable response to customers with `CheckFeasibility.MaximumPossibleReservedConcurrency` value and recommendations
 * `CheckFeasibility.MaximumPossibleReservedConcurrency`: Returns maximum possible value of reserved concurrency before the script being executed
 * `SetReservedConcurrentExecutions.ReservedConcurrencyLeft`: The maximum value of Reserved Concurrency that be spread across other Lamba functions
 * `SetReservedConcurrentExecutions.NewReservedConcurrencyValue`: The new reserved concurrency value for the give Lambda function
