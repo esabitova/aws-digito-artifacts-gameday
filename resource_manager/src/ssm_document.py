@@ -29,7 +29,7 @@ class SsmDocument:
                 # DocumentVersion=version,
                 Parameters=input_params
             )['AutomationExecutionId']
-            logging.info(f'The URL of the execution on AWS console is {self._build_execution_url(execution_id)}')
+            logging.info(f'SSM execution URL: {self._build_execution_url(execution_id, None, None)}')
             return execution_id
         else:
             error_msg = "SSM document with name [{}] does not exist.".format(document_name)
@@ -81,13 +81,14 @@ class SsmDocument:
         execution = self.ssm_client.get_automation_execution(
             AutomationExecutionId=execution_id
         )
-        step = self._get_step_by_status(execution['AutomationExecution']['StepExecutions'], 'InProgress')
+        step_executions = execution['AutomationExecution']['StepExecutions']
+        step = self._get_step_by_status(step_executions, 'InProgress')
         if step:
-            logging.info('[%s(id:%s)] Waiting SSM document step [%s(id:%s)] to be completed',
-                         document_name,
-                         execution_id,
-                         step['StepName'],
-                         step['StepExecutionId'])
+            step_name = step['StepName']
+            step_execution_id = step['StepExecutionId']
+            step_index = self._get_step_execution_index(step_executions, step_name)
+            logging.info(f'Waiting SSM document step [{document_name}>{step_name}] to be completed: '
+                         f'{self._build_execution_url(execution_id, step_index, step_execution_id)}')
         return execution['AutomationExecution']['AutomationExecutionStatus']
 
     def _get_step_by_status(self, steps, status):
@@ -108,12 +109,31 @@ class SsmDocument:
         :param document_name: The SSM automation document name
         :return: True is exist, False otherwise
         """
-        return len(self.ssm_client.list_document_versions(Name=document_name)['DocumentVersions']) == 1
+        return len(self.ssm_client.list_document_versions(Name=document_name)['DocumentVersions']) >= 1
 
-    def _build_execution_url(self, execution_id):
+    def _build_execution_url(self, execution_id, step_index, step_execution_id):
         """
         Build and return URL of SSM Automation Execution page
         :param execution_id: The SSM document execution id
+        :param step_index The step sequence index in SSM document
+        :param step_execution_id: The SSM document step execution id
         :return: Built URL of Automation Execution page
         """
-        return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}'
+        if step_execution_id is None:
+            return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}'
+        return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}' \
+               f'/step/{step_index}/{step_execution_id}'
+
+    def _get_step_execution_index(self, step_executions: [], step_name):
+        """
+        Returns SSM document step execution sequence index
+        :param step_executions The list of SSM document step executions
+        :param step_name The name of step execution to find index for
+        """
+        index = 1
+        for step_execution in step_executions:
+            if step_name == step_execution['StepName']:
+                return index
+            index += 1
+
+

@@ -1,4 +1,5 @@
 {
+  "displayName": "Test - Availability Zone Outage (ASG)",
   "documentName": "Digito-SimulateAzOutageInAsg_2020-07-23",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

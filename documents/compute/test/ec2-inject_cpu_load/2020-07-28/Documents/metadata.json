@@ -1,4 +1,5 @@
 {
+  "displayName": "Test - Inject CPU load to EC2",
   "documentName": "Digito-SimulateHighCpuLoadInEc2_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

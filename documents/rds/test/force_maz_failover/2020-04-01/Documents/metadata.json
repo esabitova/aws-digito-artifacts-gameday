@@ -1,4 +1,5 @@
 {
+    "displayName": "Test - Force MAZ failover",
     "documentName": "Digito-FailoverRdsInstance_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",

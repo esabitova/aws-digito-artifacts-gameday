@@ -61,6 +61,7 @@ python3.8 publisher/publish_documents.py --region us-west-2 --file-name ec2-mani
 Example:
 ````
 {
+  "displayName": "Test - Inject Memory load to ASG",
   "documentName": "Digito-SimulateHighMemoryLoadInAsg_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
@@ -74,11 +75,12 @@ Example:
 ````
 <b>File location:</b>.../AwsDigitoArtifactsGameday/documents/compute/test/ec2-inject_memory_load/2020-07-28/Documents/metadata.json
 
-* documentName -- SSM automation document name with major version, major version should correspond to date added to tag.
-* documentType -- Command or Automation
-* documentContentPath -- Document file name
-* documentFormat -- YAML or JSON
-* dependsOn -- Add other documents that this document requires.
+* displayName - SSM display name, free text. 
+* documentName - SSM automation document name with major version, major version should correspond to date added to tag.
+* documentType - Command or Automation
+* documentContentPath - Document file name
+* documentFormat - YAML or JSON
+* dependsOn - Add other documents that this document requires.
 * tag - reference to specification of automation document
 * failureType - Failure type, valid values: SOFTWARE/HARDWARE/AZ/REGION
 * risk - Risk, valid values: SMALL/MEDIUM/HIGH
