@@ -3,7 +3,193 @@
   <head>
     <meta charset="utf-8"/>
     <title>Test Report</title>
-    <link href="assets/style.css" rel="stylesheet" type="text/css"/></head>
+    <style>body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.log {
+  background-color: #e6e6e6;
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  height: 230px;
+  overflow-y: scroll;
+  padding: 5px;
+  white-space: pre-wrap;
+}
+.log:only-child {
+  height: inherit;
+}
+
+div.image {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.image img {
+  width: 320px;
+}
+
+div.video {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.video video {
+  overflow: hidden;
+  width: 320px;
+  height: 240px;
+}
+
+.collapsed {
+  display: none;
+}
+
+.expander::after {
+  content: " (show details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.collapser::after {
+  content: " (hide details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+
+.sort-icon {
+  font-size: 0px;
+  float: left;
+  margin-right: 5px;
+  margin-top: 5px;
+  /*triangle*/
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+.inactive .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #E6E6E6;
+}
+.asc.active .sort-icon {
+  /*finish triangle*/
+  border-bottom: 8px solid #999;
+}
+.desc.active .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #999;
+}
+</style></head>
   <body onLoad="init()">
     <script>/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
@@ -243,7 +429,7 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
 }
 </script>
     <h1>lambda-cucumber-tests-results.html</h1>
-    <p>Report generated on 19-Feb-2021 at 19:44:23 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <p>Report generated on 24-Feb-2021 at 19:36:02 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
     <h2>Environment</h2>
     <table id="environment">
       <tr>
@@ -259,7 +445,7 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
         <td>Python</td>
         <td>3.8.7</td></tr></table>
     <h2>Summary</h2>
-    <p>1 tests ran in 122.51 seconds. </p>
+    <p>1 tests ran in 10.40 seconds. </p>
     <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">1 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
     <h2>Results</h2>
     <table id="results-table">
@@ -275,24 +461,15 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
         <tr>
           <td class="col-result">Passed</td>
           <td class="col-name">documents/lambda/sop/change_execution_time_limit/2020-10-26/Tests/step_defs/test_change_execution_time_limit.py::test_change_execution_time_limit</td>
-          <td class="col-duration">115.51</td>
+          <td class="col-duration">9.13</td>
           <td class="col-links"></td></tr>
         <tr>
           <td class="extra" colspan="4">
-            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>2021-02-19 19:42:28 INFO Creating boto3 session for [ut] profile.
-2021-02-19 19:42:28 INFO Found credentials in shared credentials file: ~/.aws/credentials
-2021-02-19 19:42:28 WARNING Pool size for [LambdaTemplate] template not found, using default: 1
-2021-02-19 19:42:28 INFO Pulling resources for [resource_manager/cloud_formation_templates/LambdaTemplate.yml] template
-2021-02-19 19:42:28 INFO Creating stack [ON_DEMAND:LambdaTemplate-0] with input params [{}]
-2021-02-19 19:42:30 INFO Uploading CF template [resource_manager/cloud_formation_templates/LambdaTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
-2021-02-19 19:42:32 INFO Waiting for stack [LambdaTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
-2021-02-19 19:42:52 INFO Waiting for stack [LambdaTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
-2021-02-19 19:43:13 INFO Pool size for [AutomationAssumeRoleTemplate] template: 1
-2021-02-19 19:43:13 INFO Pulling resources for [documents/lambda/sop/change_execution_time_limit/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml] template
-2021-02-19 19:43:13 INFO Creating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] with input params [{}]
-2021-02-19 19:43:14 INFO Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
-2021-02-19 19:43:15 INFO Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
-2021-02-19 19:43:36 INFO Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
-2021-02-19 19:43:56 INFO Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
-2021-02-19 19:44:18 INFO Executing SSM document [Digito-ChangeExecutionTimeLimit_2020-10-26] with parameters: [{&#x27;NewTimeoutValue&#x27;: [&#x27;896&#x27;], &#x27;LambdaARN&#x27;: [&#x27;arn:aws:lambda:eu-west-1:435978235099:function:LambdaTemplate-0-LambdaFunction-13VDGOCXE3THO&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoChangeExecutionTim-1KY917HXB4NLH&#x27;]}]
-2021-02-19 19:44:18 INFO The URL of the execution on AWS console is https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/cb63f2db-bb9c-4faa-ab55-c3ecc5db4432<br/> -----------------------------Captured log teardown------------------------------ <br/>2021-02-19 19:44:23 INFO Releasing test resources.<br/></div></td></tr></tbody></table></body></html>
+            <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:186 Creating boto3 session for [ut] profile.<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     botocore.credentials:credentials.py:1222 Found credentials in shared credentials file: ~/.aws/credentials
+WARNING  root:resource_manager.py:266 Pool size for [LambdaTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/LambdaTemplate.yml] template
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/lambda/sop/change_execution_time_limit/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-ChangeExecutionTimeLimit_2020-10-26] with parameters: [{&#x27;NewTimeoutValueSeconds&#x27;: [&#x27;570&#x27;], &#x27;LambdaARN&#x27;: [&#x27;arn:aws:lambda:eu-west-1:435978235099:function:LambdaTemplate-0-LambdaFunction-1ZK8W4RTZDHD&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoChangeExecutionTim-MFPLPZAD8K8R&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/539a4ba6-dfad-46c2-aa7c-fdeadb08aa0a<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:160 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/539a4ba6-dfad-46c2-aa7c-fdeadb08aa0a<br/></div></td></tr></tbody></table></body></html>

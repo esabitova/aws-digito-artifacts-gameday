@@ -1,6 +1,6 @@
 # https://us-west-2.console.aws.amazon.com/codesuite/codecommit/repositories/aws-digito-artifacts-spec/browse/refs/heads/master/--/components/compute/stateless/ec2_and_asg/compute-stateless-gameday.adoc?region=us-west-2&lines=185-185
 ## Id
-stateless-compute:test:ec2-kill_process:2020-07-28
+stateless-compute:test:asg-node-kill_process:2020-07-28
 
 ## Intent
 Test app if process suddenly dies.
@@ -29,9 +29,13 @@ No
 ### AutomationAssumeRole:
    * type: String
    * description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
-### InstanceId:
+### AutoScalingGroupName:
    * type: String
-   * description: (Required) EC2 instance id
+   * description: (Required) AutoScalingGroup name.
+### PercentageOfInstances
+   * type: Integer
+   * description: (Optional) Percentage of ASG EC2 instances to be impacted
+   * default: 1
 ### SyntheticAlarmName:
    * type: String
    * description: (Required) SyntheticAlarmName which should be green within recovery time.
@@ -44,8 +48,9 @@ No
    * default: '300'
 
 ## Details
-  * Figure out the process id to kill
-  * Send the signal to the processes
+  * Figure out the instances to run on (round up)
+  * For each instance, Figure out the process id to kill
+  * For each instance, Send the signal to the processes
   * Either verify app recovered (after Y time alarm is green) or verify that alarm triggered.
 
 ## Outputs
