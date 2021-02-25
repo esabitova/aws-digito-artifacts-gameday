@@ -6,6 +6,7 @@ Feature: SSM automation document to recover the database into a known good state
       | CfnTemplatePath                                                                              | ResourceType |
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                 | ON_DEMAND    |
       | documents/docdb/sop/reboot_db_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+    And published "Digito-RebootDbInstance_2020-09-21" SSM document
     And SSM automation document "Digito-RebootDbInstance_2020-09-21" executed
       | DBInstanceIdentifier | AutomationAssumeRole                                                         |
       | dbinstance02         | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRebootDbInstanceAssumeRole}} |
