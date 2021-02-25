@@ -70,6 +70,14 @@ Example:
   "tag": "compute:test:ec2-inject_memory_load:2020-07-28",
   "failureType": "HARDWARE",
   "risk": "SMALL",
+  "details": {
+      "1": "Figure out the amount of memory to grab from available free memory.",
+      "2": "Start a memory load for the amount of memory in bytes on instance for X minutes.",
+      "3": "Verify alarm (a) is triggered."
+  },
+  "recommendedAlarms": {
+      "MemoryUtilizationAlarmName": "compute:alarm:ec2-memory-util:2020-07-13"
+  },
   "minorVersion": "001"
 }
 ````
@@ -84,6 +92,8 @@ Example:
 * tag - reference to specification of automation document
 * failureType - Failure type, valid values: SOFTWARE/HARDWARE/AZ/REGION
 * risk - Risk, valid values: SMALL/MEDIUM/HIGH
+* details - Steps which should be performed in SSM document 
+* recommendedAlarms - Map of SSM alarm input parameter name and reference to recommended alarm
 * minorVersion - minor version of document (should be increased every time plan to commit a change).
 
 ## Adding New Python Script
