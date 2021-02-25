@@ -32,9 +32,9 @@ def clean_bucket(bucket_name: str):
             for version in versions:
                 key = version.get('Key')
                 version_id = version.get('VersionId')
-            
+
                 s3_client.delete_object(Bucket=bucket_name, Key=key, VersionId=version_id)
-            
+
                 print(f'The versioned object with Bucket={bucket_name}, '
                       f'Key={key}, VersionId={version_id} was deleted')
 
@@ -56,14 +56,21 @@ def get_number_of_files(bucket_name) -> int:
     :param bucket_name: bucket name
     :return: number of files in the bucket
     """
-    contents = __list_objects(bucket_name).get('Contents')
-    return 0 if not contents else len(contents)
+    pages = __list_objects(bucket_name)
+
+    contents_counter = 0
+    for page in pages:
+        contents = page.get('Contents')
+        contents_counter += 0 if not contents else len(contents)
+
+    return contents_counter
 
 
-def __list_objects(bucket_name):
+def __list_objects(bucket_name) -> List[dict]:
     """
-    Get the list of the objects in the bucket without version checking and delete markers
+    Get the paginated list of the objects in the bucket without version checking and delete markers
     :param bucket_name: bucket name
     :return: list of the objects in the bucket
     """
-    return s3_client.list_objects_v2(Bucket=bucket_name)
+    paginator = s3_client.get_paginator('list_objects_v2')
+    return paginator.paginate(Bucket=bucket_name)
