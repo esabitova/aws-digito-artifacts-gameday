@@ -28,24 +28,26 @@ def clean_bucket(bucket_name: str):
         print(f'The response from the list_object_versions: {page}')
 
         versions: dict = page.get('Versions')
-        for version in versions:
-            key = version.get('Key')
-            version_id = version.get('VersionId')
-
-            s3_client.delete_object(Bucket=bucket_name, Key=key, VersionId=version_id)
-
-            print(f'The versioned object with Bucket={bucket_name}, '
-                  f'Key={key}, VersionId={version_id} was deleted')
+        if versions is not None:
+            for version in versions:
+                key = version.get('Key')
+                version_id = version.get('VersionId')
+            
+                s3_client.delete_object(Bucket=bucket_name, Key=key, VersionId=version_id)
+            
+                print(f'The versioned object with Bucket={bucket_name}, '
+                      f'Key={key}, VersionId={version_id} was deleted')
 
         delete_markers: dict = page.get('DeleteMarkers')
-        for delete_marker in delete_markers:
-            key = delete_marker.get('Key')
-            version_id = delete_marker.get('VersionId')
+        if delete_markers is not None:
+            for delete_marker in delete_markers:
+                key = delete_marker.get('Key')
+                version_id = delete_marker.get('VersionId')
 
-            s3_client.delete_object(Bucket=bucket_name, Key=key, VersionId=version_id)
+                s3_client.delete_object(Bucket=bucket_name, Key=key, VersionId=version_id)
 
-            print(f'The delete marker with Bucket={bucket_name},'
-                  f' Key={key}, VersionId={version_id} was deleted')
+                print(f'The delete marker with Bucket={bucket_name},'
+                      f' Key={key}, VersionId={version_id} was deleted')
 
 
 def get_number_of_files(bucket_name) -> int:
