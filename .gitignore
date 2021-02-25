@@ -18,3 +18,4 @@ build
 /documentation
 aws_digito_artifacts_gameday.egg-info/
 private.env
+venv/

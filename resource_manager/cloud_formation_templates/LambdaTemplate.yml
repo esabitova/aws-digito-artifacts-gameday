@@ -1,0 +1,585 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for Lambda and related resources. Contains all alarms
+Outputs:
+  LambdaARN:
+    Description: Lambda ARN
+    Value: !GetAtt LambdaFunction.Arn
+  LambdaVersion:
+    Description: Lambda Version Qualifier
+    Value: !GetAtt LambdaVersion.Version
+  S3Bucket:
+    Description: S3 Bucket Name
+    Value: !Ref S3Bucket
+  ThrottlesAlarm:
+    Description: Alarm
+    Value: !Ref  ThrottlesAlarm
+  ErrorsAlarm:
+    Description: Alarm
+    Value: !Ref  ErrorsAlarm
+  MemorySoftLimitAlarm:
+    Description: Alarm
+    Value: !Ref  MemorySoftLimitAlarm
+  ConcurrentExecutionsAlarm:
+    Description: Alarm
+    Value: !Ref  ConcurrentExecutionsAlarm
+  ExecutionsStartedAlarm:
+    Description: Alarm
+    Value: !Ref  ExecutionsStartedAlarm
+  AverageMemoryGrowthAlarm:
+    Description: Alarm
+    Value: !Ref  AverageMemoryGrowthAlarm
+  ExecutionTimeAlarm:
+    Description: Alarm
+    Value: !Ref  ExecutionTimeAlarm
+  DurationAlarm:
+    Description: Alarm
+    Value: !Ref  DurationAlarm
+  InvocationsAlarm:
+    Description: Alarm
+    Value: !Ref  InvocationsAlarm
+  ExecutionsFailedAlarm:
+    Description: Alarm
+    Value: !Ref  ExecutionsFailedAlarm
+  ExecutionsTimeOutAlarm:
+    Description: Alarm
+    Value: !Ref  ExecutionsTimeOutAlarm
+  ExecutionThrottledAlarm:
+    Description: Alarm
+    Value: !Ref  ExecutionThrottledAlarm
+Parameters:
+  MemorySoftLimit:
+    Type: Number
+    Description: The limit of RAM for Lambda in MB
+    Default: 2000
+  LambdaLevelConcurrencyQuotaMinus10Percents:
+    Type: Number
+    Description: LambdaLevelConcurrencyQuota - 10%
+    Default: 90
+  AverageExecutionsStartedThreshold:
+    Type: Number
+    Description: AverageExecutionsStarted * 0.05 per 1 minute
+    Default: 0.25
+  AverageExecutionTimeThreshold:
+    Type: Number
+    Description: AverageExecutionTime * 0.05 per 1 minute
+    Default: 0.25
+  AverageMemoryThreshold:
+    Type: Number
+    Description: AverageMemory * 0.05 per 1 minute
+    Default: 0.25
+  AverageDurationThreshold:
+    Type: Number
+    Description: AverageDuration * 0.05 per 1 minute
+    Default: 120
+  AverageInvocationsThreshold:
+    Type: Number
+    Description: AverageInvocations * 0.05 per 1 minute
+    Default: 50
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: >
+          def handler(event, context):
+            print('hello from lambda')
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 60
+      ReservedConcurrentExecutions: 10
+  LambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Description: v1
+  LambdaActualAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      FunctionVersion: !GetAtt LambdaVersion.Version
+      Name: actual
+  LambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole' 
+        Description: Lambda Role
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - "-"
+        - - "s3-lambda-tests-bucket"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      AccessControl: Private
+  ThrottlesAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Throttles"
+      AlarmDescription: "lambda:alarm:health-throttles:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "Throttles"
+      Namespace: "AWS/Lambda"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "FunctionName"
+          Value: !Ref LambdaFunction
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  ErrorsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Errors"
+      AlarmDescription: "lambda:alarm:health-errors:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "Errors"
+      Namespace: "AWS/Lambda"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "FunctionName"
+          Value: !Ref LambdaFunction
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  MemorySoftLimitAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Memory Soft Limit"
+      AlarmDescription: "lambda:alarm:health-memory_soft_limit:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "Memory"
+      Namespace: "Custom"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "FunctionName"
+          Value: !Ref LambdaFunction
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref MemorySoftLimit
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  ConcurrentExecutionsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Concurrent executions"
+      AlarmDescription: "lambda:alarm:health-concurrent_executions:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ConcurrentExecutions"
+      Namespace: "AWS/Lambda"
+      Statistic: "Average"
+      Dimensions:
+        - Name: "FunctionName"
+          Value: !Ref LambdaFunction
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Threshold: !Ref LambdaLevelConcurrencyQuotaMinus10Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  ExecutionsStartedAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "ExecutionsStarted"
+      ActionsEnabled: true
+      AlarmDescription: "lambda:alarm:health-execution_started:2020-04-01"
+      AlarmActions:
+        - !Ref SNSTopic
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      TreatMissingData: "missing"
+      Metrics:
+        -
+          Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "AWS/States"
+              MetricName: "ExecutionsStarted"
+              Dimensions:
+                -
+                  Name: "StateMachineArn"
+                  Value:
+                    !Join [
+                        "",
+                      [
+                        !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
+                        !Ref StateMachine,
+                      ],
+                    ]
+            Period: 60
+            Stat: "Average"
+          ReturnData: true
+        -
+          Id: "ad1"
+          Expression:
+            !Join [
+                "",
+              [
+                  "ANOMALY_DETECTION_BAND(m1, ",
+                  !Ref AverageExecutionsStartedThreshold,
+                  ")",
+              ],
+            ]
+          Label: "ExecutionsStarted (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  AverageMemoryGrowthAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Average Memory Growth"
+      ActionsEnabled: true
+      AlarmDescription: "lambda:alarm:health-memory_deviation:2020-04-01"
+      AlarmActions:
+        - !Ref SNSTopic
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      TreatMissingData: "missing"
+      Metrics:
+        -
+          Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "Custom"
+              MetricName: "Memory"
+              Dimensions:
+                - Name: "FunctionName"
+                  Value: !Ref LambdaFunction
+            Period: 60
+            Stat: "Maximum"
+          ReturnData: true
+        -
+          Id: "ad1"
+          Expression:
+            !Join [
+                "",
+              [
+                  "ANOMALY_DETECTION_BAND(m1, ",
+                  !Ref AverageMemoryThreshold,
+                  ")",
+              ],
+            ]
+          Label: "Duration (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  ExecutionTimeAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "ExecutionTime"
+      ActionsEnabled: true
+      AlarmDescription: "lambda:alarm:health-execution_time:2020-04-01"
+      AlarmActions:
+        - !Ref SNSTopic
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      TreatMissingData: "missing"
+      Metrics:
+        -
+          Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "AWS/States"
+              MetricName: "ExecutionTime"
+              Dimensions:
+                -
+                  Name: "StateMachineArn"
+                  Value:
+                    !Join [
+                        "",
+                      [
+                        !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
+                        !Ref StateMachine,
+                      ],
+                    ]
+            Period: 60
+            Stat: "Average"
+          ReturnData: true
+        -
+          Id: "ad1"
+          Expression:
+            !Join [
+                "",
+              [
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageExecutionTimeThreshold,
+                ")",
+              ],
+            ]
+          Label: "ExecutionTime (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  DurationAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Duration"
+      ActionsEnabled: true
+      AlarmDescription: "lambda:alarm:health-duration:2020-04-01"
+      AlarmActions:
+        - !Ref SNSTopic
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      TreatMissingData: "missing"
+      Metrics:
+        -
+          Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "AWS/Lambda"
+              MetricName: "Duration"
+              Dimensions:
+                - Name: "FunctionName"
+                  Value: !Ref LambdaFunction
+            Period: 60
+            Stat: "Average"
+          ReturnData: true
+        -
+          Id: "ad1"
+          Expression:
+            !Join [
+                "",
+              [
+                  "ANOMALY_DETECTION_BAND(m1, ",
+                  !Ref AverageDurationThreshold,
+                  ")",
+              ],
+            ]
+          Label: "Duration (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  InvocationsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "Invocations"
+      ActionsEnabled: true
+      AlarmDescription: "lambda:alarm:health-invocations:2020-04-01"
+      AlarmActions:
+        - !Ref SNSTopic
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      TreatMissingData: "missing"
+      Metrics:
+        -
+          Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "AWS/Lambda"
+              MetricName: "Invocations"
+              Dimensions:
+                - Name: "FunctionName"
+                  Value: !Ref LambdaFunction
+            Period: 60
+            Stat: "Average"
+          ReturnData: true
+        -
+          Id: "ad1"
+          Expression:
+            !Join [
+                "",
+              [
+                  "ANOMALY_DETECTION_BAND(m1, ",
+                  !Ref AverageInvocationsThreshold,
+                  ")",
+              ],
+            ]
+          Label: "Invocations (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  ExecutionsFailedAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "ExecutionsFailed"
+      AlarmDescription: "lambda:alarm:health-execution_failed:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ExecutionsTimedOut"
+      Namespace: "AWS/States"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "StateMachineArn"
+          Value:
+            !Join [
+                "",
+              [
+                !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
+                !Ref StateMachine,
+              ],
+            ]
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  ExecutionsTimeOutAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "ExecutionsTimeOut"
+      AlarmDescription: "lambda:alarm:health-executions_timeout:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ExecutionsTimedOut"
+      Namespace: "AWS/States"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "StateMachineArn"
+          Value:
+            !Join [
+                "",
+              [
+                !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
+                !Ref StateMachine,
+              ],
+            ]
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  ExecutionThrottledAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "ExecutionThrottled"
+      AlarmDescription: "lambda:alarm:health-execution_throttled:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ExecutionThrottled"
+      Namespace: "AWS/States"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "StateMachineArn"
+          Value:
+            !Join [
+                "",
+              [
+                !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
+                !Ref StateMachine,
+              ],
+            ]
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SNSTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: "sns-topic"
+  SNSTopicPolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: SNSTopicPolicy
+        Statement:
+          - Sid: SNSTopicPolicyStatement
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Resource: !Ref SNSTopic
+      Topics:
+        - !Ref SNSTopic
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt StateMachineRole.Arn
+      StateMachineName: StateMachine
+      DefinitionString: |
+        {
+          "Comment": "A Hello World example of the Amazon States Language using Pass states",
+          "StartAt": "Hello",
+          "States": {
+            "Hello": {
+              "Type": "Pass",
+              "Result": "Hello",
+              "Next": "World"
+            },
+            "World": {
+              "Type": "Pass",
+              "Result": "World",
+              "End": true
+            }
+          }
+        }
+      StateMachineType: STANDARD
+  StateMachineRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - states.amazonaws.com
+              Action:
+                - 'sts:AssumeRole' 
+        Description: Lambda Role

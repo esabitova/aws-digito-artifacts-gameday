@@ -3,7 +3,6 @@
 from pytest_bdd import (
     scenario,
     then,
-    when,
     parsers,
     given
 )
@@ -34,7 +33,7 @@ def cache_db_cluster_instances_before_ssm(boto3_session, resource_manager, ssm_t
                         step_key, input_parameters)
 
 
-@when(parsers.parse('cache DB cluster "{reader_cache_key}" and "{writer_cache_key}" '
+@then(parsers.parse('cache DB cluster "{reader_cache_key}" and "{writer_cache_key}" '
                     '"{step_key}" SSM automation execution\n{input_parameters}'))
 def cache_db_cluster_instances_after_ssm(boto3_session, resource_manager, ssm_test_cache, reader_cache_key,
                                          writer_cache_key, step_key, input_parameters):

@@ -19,6 +19,7 @@ from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from pytest import ExitCode
 from botocore.exceptions import ClientError
+from publisher.publish_documents import PublishDocuments
 
 
 def pytest_addoption(parser):
@@ -113,10 +114,11 @@ def cfn_output_params(resource_manager):
     return resource_manager.get_cfn_output_params()
 
 @pytest.fixture(scope='function')
-def resource_manager(request, capsys, boto3_session):
+def resource_manager(request, boto3_session):
     '''
     Creates ResourceManager fixture for every test case.
     :param request: The pytest request object
+    :param boto3_session The boto3 session
     :return: The resource manager fixture
     '''
     cfn_helper = CloudFormationTemplate(boto3_session)
@@ -187,6 +189,18 @@ def get_boto3_session(aws_profile):
     return boto3.Session(profile_name=aws_profile)
 
 
+@given(parsers.parse('published "{ssm_document_name}" SSM document'))
+def publish_ssm_document(boto3_session, ssm_document_name):
+    """
+    Publish SSM document using 'publisher.publish_documents.PublishDocuments'.
+    :param boto3_session The boto3 session
+    :param ssm_document_name The SSM document name
+    """
+    p = PublishDocuments(boto3_session)
+    documents_metadata = p.get_documents_list_by_names([ssm_document_name])
+    p.publish_document(documents_metadata)
+
+
 @given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
 def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_test_cache):
     """
@@ -196,6 +210,7 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
     :param resource_manager: The resource manager which will take care of managing given template deployment
     and providing resources for tests
     :param cfn_input_parameters: The table of parameters as input for cloud formation template
+    :param ssm_test_cache The custom test cache
     """
     for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
         if cfn_params_row.get('CfnTemplatePath') is None or len(cfn_params_row.get('CfnTemplatePath')) < 1 \
