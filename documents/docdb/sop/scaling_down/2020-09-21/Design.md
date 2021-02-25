@@ -58,7 +58,7 @@ No.
       * `DbClusterInstancesNumber`: Number of existing instances before scaling down
    * Explanation:
       * Counts number of the existing instances
-1. `VerifyInstaceExistInCluster`
+1. `VerifyInstanceExistInCluster`
     * Type: aws:executeScript
     * Inputs:
         * `DBInstanceReplicaIdentifier`
