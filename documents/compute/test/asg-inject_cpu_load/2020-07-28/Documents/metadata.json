@@ -15,5 +15,8 @@
       "2": "Start a CPU hog on instances for X minutes.",
       "3": "Verify monitor stays green or returns to green in Y minutes."
   },
+  "recommendedAlarms": {
+      "CpuUtilizationAlarmName": "compute:alarm:asg-cpu-util:2020-07-13"
+   },
   "minorVersion": "002"
 }

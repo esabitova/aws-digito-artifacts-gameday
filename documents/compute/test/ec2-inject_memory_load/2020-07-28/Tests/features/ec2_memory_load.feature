@@ -10,11 +10,12 @@ Feature: SSM automation document EC2 memory stress testing
       |CfnTemplatePath                                                                                     |ResourceType|InstanceType          |AlarmGreaterThanOrEqualToThreshold          |
       |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                            |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
       |documents/compute/test/ec2-inject_memory_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |                                            |
-    And SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" executed
+    And published "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" SSM document
+
+    When SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" executed
       |InstanceId                                         |AutomationAssumeRole                                                                   |MemoryUtilizationAlarmName                             |MemoryLoadPercentage          |Duration                |
       |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2MemoryAlarm}}|{{cache:MemoryLoadPercentage}}|{{cache:StressDuration}}|
-
-    When SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" execution in status "Success"
+    And SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
     # TODO(semiond): When targeting 90% memory load CW reporting ~25  bellow target, investigate: https://issues.amazon.com/issues/Digito-1767
@@ -31,7 +32,9 @@ Feature: SSM automation document EC2 memory stress testing
       |CfnTemplatePath                                                                                  |ResourceType|InstanceType          |AlarmGreaterThanOrEqualToThreshold          |
       |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                         |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
       |documents/compute/test/ec2-inject_cpu_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |                                            |
-    And SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" executed
+    And published "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" SSM document
+
+    When SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" executed
       |InstanceId                                         |AutomationAssumeRole                                                                   |MemoryUtilizationAlarmName                             |MemoryLoadPercentage          |Duration                |
       |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2MemoryAlarm}}|{{cache:MemoryLoadPercentage}}|{{cache:StressDuration}}|
     # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer (~5 mins), sometimes shorter. Need to find better way to verify CPU injection.
