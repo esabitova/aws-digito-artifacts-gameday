@@ -605,7 +605,7 @@ Resources:
       Namespace: AWS/DocDB
       Period: 60
       Statistic: Maximum
-      Threshold: 10
+      Threshold: 10000
       EvaluationPeriods: 5
       DatapointsToAlarm: 3
       ComparisonOperator: GreaterThanOrEqualToThreshold
