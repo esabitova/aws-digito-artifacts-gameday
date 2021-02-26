@@ -1,0 +1,632 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for DocumentDb
+Outputs:
+  DBClusterIdentifier:
+    Value: !Ref DBClusterIdentifier
+  DBInstancePrimaryIdentifier:
+    Value: !Ref DBInstancePrimaryIdentifier
+  DBInstanceReplicaIdentifier:
+    Value: !Ref DBInstanceReplicaIdentifier
+  ClusterEndpoint:
+    Value: !GetAtt DBCluster.Endpoint
+  ClusterPort:
+    Value: !GetAtt DBCluster.Port
+  ClusterResourceId:
+    Value: !GetAtt DBCluster.ClusterResourceId
+  EngineVersion:
+    Value: "4.0.0"
+Parameters: 
+  DBClusterIdentifier:
+    Default: "docdb"
+    Description : "Cluster Identifier"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern : "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters in lowercase."
+  DBInstancePrimaryIdentifier:
+    Default: "dbinstance01"
+    Description : "Instance name"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern : "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters in lowercase."
+  DBInstanceReplicaIdentifier:
+    Default: "dbinstance02"
+    Description: "Instance name"
+    Type: "String"
+    MinLength: "1"
+    MaxLength: "64"
+    AllowedPattern : "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
+  DBInstanceClass:
+    Description : "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
+    Type: "String"
+    Default: "db.t3.medium"
+    AllowedValues:
+      - db.t3.medium
+      - db.r5.large
+      - db.r5.xlarge
+      - db.r5.2xlarge
+      - db.r5.4xlarge
+      - db.r5.12xlarge
+      - db.r5.24xlarge                             
+    ConstraintDescription : "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"  
+Resources:
+  GeneratedSecretString:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: Generated DocumentDb cluster password
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admindb"}'
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: "\"@/\\"
+  DBCluster:
+    Type: "AWS::DocDB::DBCluster"
+    DeletionPolicy: Delete
+    Properties:
+      DBClusterIdentifier: !Ref DBClusterIdentifier
+      MasterUsername: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::password}}'
+      EngineVersion: 4.0.0
+  DBInstancePrimary:
+    Type: "AWS::DocDB::DBInstance"
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Ref DBInstancePrimaryIdentifier
+      DBInstanceClass: !Ref DBInstanceClass
+    DependsOn: DBCluster
+  DBInstanceReplica:
+    Type: "AWS::DocDB::DBInstance"
+    Properties:
+      DBClusterIdentifier: !Ref DBCluster
+      DBInstanceIdentifier: !Ref DBInstanceReplicaIdentifier
+      DBInstanceClass: !Ref DBInstanceClass
+    DependsOn: DBInstancePrimary
+  SNSTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: "sns-topic-for-docdb-alarms"
+  SNSTopicPolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: SNSTopicPolicy
+        Statement:
+          - Sid: SNSTopicPolicyStatement
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Resource: !Ref SNSTopic
+      Topics:
+        - !Ref SNSTopic
+  HighVolumeReadIOPSAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: VolumeReadIOPs
+      Namespace: AWS/DocDB
+      Stat: Maximum
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref DBClusterIdentifier
+  HighVolumeWriteIOPSAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: VolumeWriteIOPs
+      Namespace: AWS/DocDB
+      Stat: Maximum
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref DBClusterIdentifier
+  ConnectionSpikeDBInstancePrimaryAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: DatabaseConnections
+      Namespace: AWS/DocDB
+      Stat: Average
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+  ConnectionSpikeDBInstanceReplicaAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: DatabaseConnections
+      Namespace: AWS/DocDB
+      Stat: Average
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+  HighVolumeReadIOPSAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighVolumeReadIOPS
+      AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Metrics:
+        - Expression: "ANOMALY_DETECTION_BAND(m1, 2)"
+          Id: ad1
+        - MetricStat:
+            Metric:
+              MetricName: VolumeReadIOPs
+              Namespace: AWS/DocDB
+              Dimensions:
+                - Name: DBClusterIdentifier
+                  Value: !Ref DBClusterIdentifier
+            Period: 300
+            Stat: Average
+          Id: m1
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
+  HighVolumeWriteIOPSAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighVolumeWriteIOPS
+      AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Metrics:
+        - Expression: "ANOMALY_DETECTION_BAND(m1, 2)"
+          Id: ad1
+        - MetricStat:
+            Metric:
+              MetricName: VolumeWriteIOPs
+              Namespace: AWS/DocDB
+              Dimensions:
+                - Name: DBClusterIdentifier
+                  Value: !Ref DBClusterIdentifier
+            Period: 300
+            Stat: Average
+          Id: m1
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
+  HighVolumeSizeAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighVolumeSize
+      AlarmDescription: "docdb:alarm:usage-volume_bytes_used:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref DBClusterIdentifier
+      MetricName: VolumeBytesUsed
+      Namespace: AWS/DocDB
+      Period: 300
+      Statistic: Maximum
+      Threshold: 1099511627776
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  LowMemoryDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: LowMemoryDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: FreeableMemory
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 157286400
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: LessThanOrEqualToThreshold
+      TreatMissingData: missing
+  LowMemoryDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: LowMemoryDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: FreeableMemory
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 157286400
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: LessThanOrEqualToThreshold
+      TreatMissingData: missing
+  LowStorageAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: LowStorage
+      AlarmDescription: "docdb:alarm:health-storage:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref DBClusterIdentifier
+      MetricName: FreeLocalStorage
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 10
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: LessThanOrEqualToThreshold
+      TreatMissingData: missing
+  OverUtilizedCPUDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: CPUUtilizationDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: CPUUtilization
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 90
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+  OverUtilizedCPUDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: CPUUtilizationDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: CPUUtilization
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 90
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+  ConnectionSpikeDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: ConnectionSpikeDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Metrics:
+        - Expression: "ANOMALY_DETECTION_BAND(m1, 1)"
+          Id: ad1
+        - MetricStat:
+            Metric:
+              MetricName: DatabaseConnections
+              Namespace: AWS/DocDB
+              Dimensions:
+                - Name: DBInstanceIdentifier
+                  Value: !Ref DBInstancePrimary
+            Period: 60
+            Stat: Maximum
+          Id: m1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: GreaterThanUpperThreshold
+      TreatMissingData: missing
+  ConnectionSpikeDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: ConnectionSpikeDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Metrics:
+        - Expression: "ANOMALY_DETECTION_BAND(m1, 1)"
+          Id: ad1
+        - MetricStat:
+            Metric:
+              MetricName: DatabaseConnections
+              Namespace: AWS/DocDB
+              Dimensions:
+                - Name: DBInstanceIdentifier
+                  Value: !Ref DBInstancePrimary
+            Period: 60
+            Stat: Maximum
+          Id: m1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: GreaterThanUpperThreshold
+      TreatMissingData: missing
+  SwapUsedDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: SwapUsedDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: SwapUsage
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 10485760
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  SwapUsedDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: SwapUsedDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: SwapUsage
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 10485760
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighReadLatencyDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighReadLatencyDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: ReadLatency
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighReadLatencyDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighReadLatencyDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: ReadLatency
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighWriteLatencyDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighWriteLatencyDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: WriteLatency
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighWriteLatencyDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighWriteLatencyDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: WriteLatency
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighDiskQueueDepthDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighDiskQueueDepthDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: DiskQueueDepth
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 3
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighDiskQueueDepthDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighDiskQueueDepthDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: DiskQueueDepth
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 3
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  LowCPUCreditBalanceDBInstancePrimaryAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: LowCPUCreditBalanceDBInstancePrimary
+      AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstancePrimary
+      MetricName: CPUCreditBalance
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 10
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: LessThanOrEqualToThreshold
+      TreatMissingData: missing
+  LowCPUCreditBalanceDBInstanceReplicaAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: LowCPUCreditBalanceDBInstanceReplica
+      AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: CPUCreditBalance
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 10
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: LessThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighReplicaLagAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighReplicaLag
+      AlarmDescription: "docdb:alarm:recovery-replica_lag:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBInstanceIdentifier
+          Value: !Ref DBInstanceReplica
+      MetricName: DBInstanceReplicaLag
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 10
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
+  HighReplicaLagMaximumAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: HighReplicaLagMaximum
+      AlarmDescription: "docdb:alarm:recovery-cluster_replica_lag:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Dimensions:
+        - Name: DBClusterIdentifier
+          Value: !Ref DBClusterIdentifier
+      MetricName: DBClusterReplicaLagMaximum
+      Namespace: AWS/DocDB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 10000
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: missing
