@@ -14,5 +14,8 @@
       "1": "Start a CPU hog on instance for X minutes.",
       "2": "Verify alarm (a) is triggered."
   },
+  "recommendedAlarms": {
+      "CpuUtilizationAlarmName": "compute:alarm:ec2-cpu-util:2020-07-13"
+   },
   "minorVersion": "001"
 }

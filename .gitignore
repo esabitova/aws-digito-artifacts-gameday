@@ -19,3 +19,5 @@ build
 aws_digito_artifacts_gameday.egg-info/
 private.env
 venv/
+.coverage*
+.pytest_cache/
