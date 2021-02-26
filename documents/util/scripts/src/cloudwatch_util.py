@@ -94,6 +94,29 @@ def verify_memory_stress(events, context):
 
     raise Exception('Not implemented: https://issues.amazon.com/issues/Digito-1279')
 
+def verify_alarm_triggered(events, context):
+    """
+    Verify if alarm triggered
+    """
+    if 'AlarmName' not in events \
+        or 'DurationInMinutes' not in events:
+        raise KeyError('Requires AlarmName, DurationInMinutes in events')
+
+    cw = boto3.client('cloudwatch')
+    response = cw.describe_alarm_history(
+        AlarmName=events['AlarmName'],
+        HistoryItemType='StateUpdate',
+        MaxRecords=2,
+        ScanBy='TimestampDescending',
+        StartDate=datetime.now() - timedelta(minutes = int(events['DurationInMinutes']))
+    )
+
+    for alarm_history_item in response['AlarmHistoryItems']:
+        if (alarm_history_item['HistorySummary'] == "Alarm updated from OK to ALARM"):
+            return
+
+    raise Exception('Alarm was not triggered')
+
 
 def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric_delay, metric_name,
                       exp_recovery_time):
