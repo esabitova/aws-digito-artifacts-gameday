@@ -7,10 +7,10 @@ Feature: SSM automation document to promote read replica.
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                   | ON_DEMAND    |
       | documents/docdb/sop/promote_read_replica/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-PromoteReadReplica_2020-09-21" SSM document
-    And SSM automation document "Digito-PromoteReadReplica_2020-09-21" executed
+    When SSM automation document "Digito-PromoteReadReplica_2020-09-21" executed
       | DBClusterIdentifier                                   | DBInstanceReplicaIdentifier                             |AutomationAssumeRole                                                           |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}}      |{{cfn-output:DocDbTemplate>DBInstanceReplicaIdentifier}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoPromoteReadReplicaAssumeRole}} |
 
-    When SSM automation document "Digito-PromoteReadReplica_2020-09-21" execution in status "Success"
+    Then SSM automation document "Digito-PromoteReadReplica_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
