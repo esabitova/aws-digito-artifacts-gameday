@@ -23,3 +23,13 @@ test_lambda:
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=./test-results/lambda-cucumber-tests-results.html --self-contained-html --keep_test_resources --run_integration_tests -m lambda --aws_profile ut && \
 	deactivate
+
+publish_s3_ssm_docs:
+	source venv/bin/activate && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/publish_documents.py --region ${AWS_REGION} --file-name manifests/s3-manifest --log-level INFO && \
+	deactivate
+
+test_s3:
+	source venv/bin/activate && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=./test-results/s3-cucumber-tests-results.html --self-contained-html --keep_test_resources --run_integration_tests -m s3 --aws_profile ut && \
+	deactivate
