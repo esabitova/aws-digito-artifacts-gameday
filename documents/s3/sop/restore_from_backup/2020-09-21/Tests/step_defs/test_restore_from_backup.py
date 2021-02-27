@@ -20,6 +20,14 @@ def test_restore_from_backup():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
+@scenario('../features/restore_from_backup_approval.feature',
+          'Create AWS resources using CloudFormation template '
+          'and execute SSM automation document to restore an S3 bucket from a backup bucket '
+          'with an approval to clean the restore bucket')
+def test_restore_from_backup_approval():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
 @given(parsers.parse('put "{number_of_files_to_put}" objects into the bucket'
                      '\n{input_parameters}'))
 def put_objects(resource_manager, ssm_test_cache, number_of_files_to_put, input_parameters):
