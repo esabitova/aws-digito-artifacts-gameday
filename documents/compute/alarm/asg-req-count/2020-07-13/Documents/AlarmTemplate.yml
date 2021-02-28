@@ -22,8 +22,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when target group request count is anomalous with band width ', Ref: BandWidth ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoAsgAbnormalRequestPerTarget-', Ref: TargetGroup ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanUpperThreshold
       EvaluationPeriods: 15
       DatapointsToAlarm: 10
