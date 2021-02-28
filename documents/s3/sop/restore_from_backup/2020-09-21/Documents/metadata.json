@@ -8,5 +8,6 @@
   "intent": "To restore an S3 bucket from a backup bucket",
   "minorVersion": "001",
   "risk": "SMALL",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "tag": "s3:sop:restore_from_backup:2020-09-21"
 }
