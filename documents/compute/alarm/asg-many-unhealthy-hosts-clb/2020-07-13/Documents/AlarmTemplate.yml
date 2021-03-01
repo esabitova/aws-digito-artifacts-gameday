@@ -16,8 +16,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when an ASG has many unhealthy hosts' ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoAsgMultipleDyingHosts-', Ref: LoadBalancerName ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 180
       DatapointsToAlarm: 30

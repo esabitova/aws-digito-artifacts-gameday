@@ -1,9 +1,9 @@
 # https://us-west-2.console.aws.amazon.com/codesuite/codecommit/repositories/aws-digito-artifacts-spec/browse/refs/heads/master/--/components/compute/stateless/ec2_and_asg/compute-stateless-gameday.adoc?region=us-west-2&lines=185-185
 ## Id
-stateless-compute:test:ec2-inject_cpu_load:2020-07-28
+stateless-compute:test:ec2-kill_process:2020-07-28
 
 ## Intent
-Test app monitor under load. (see note below)
+Test app if process suddenly dies.
 
 ## Type
 HW Instance Failure Test
@@ -20,55 +20,33 @@ Small
 * ssm:ListCommands
 * ssm:ListCommandInvocations
 * ssm:DescribeInstanceInformation
-* ssm:GetAutomationExecution
-* ssm:CancelCommand
 * cloudwatch:DescribeAlarms
-* cloudwatch:GetMetricStatistics
-* iam:PassRole
 
 ## Supports Rollback
-Yes. If executed in rollback mode, any previous EC2 instance CPU injection will be terminated.
+No
 
 ## Inputs
-### CpuUtilizationAlarmName:
+### AutomationAssumeRole:
    * type: String
-   * description: (Required) EC2 CPUUtilization alarm which should be triggerred
+   * description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
 ### InstanceId:
    * type: String
-   * description: (Required) EC2 instance id (no need in case of rollback)
+   * description: (Required) EC2 instance id
 ### SyntheticAlarmName:
    * type: String
-   * description: (Required) EC2 CPUUtilization alarm which should be triggerred (no need in case of rollback)
-### Duration:
+   * description: (Required) SyntheticAlarmName which should be green within recovery time.
+### ProcessName:
    * type: String
-   * description: (Optional) The duration of the attack in seconds (default/recommended 300)
+   * description: (Optional) Process name to be killed
+### ExpectedRecoveryTimeInSeconds:
+   * type: String
+   * description: (Optional) The expected recovery time after process dies (default 300)
    * default: '300'
-### NumCpuCores:
-   * type: String
-   * description: (Optional) Number of CPU cores to be impacted (default 0 - all)
-   * default: '0'
-### CpuLoadPercentage:
-   * type: String
-   * description: (Optional) The ASG EC2 instance CPU load percentage (default 1%)
-   * default: '1'
-### IsRollback:
-   * type: String
-   * description: (Optional) Provide true to terminate stress testing
-   * default: 'false'
-### PreviousExecutionId:
-   * type: String
-   * description: (Optional) Previous execution id for which resources stress testing should be terminated (need in case of rollback)
-   * default: ''
 
 ## Details
-  * Start a CPU hog on instance for X minutes
-  * Verify alarm (a) is triggered
-
-    Note: this may or may not be a relevant use-case for customers. 
-    high CPU load may be expected on some systems and may not be an issue on other EC2 instances.. depends on the type of work they are running.
-
-    If it is expected, the customer either has a custom way to deal with it, or needs to be alerted to it. Either way he needs a low level monitor and to test this monitor.
-
+  * Figure out the process id to kill
+  * Send the signal to the processes
+  * Either verify app recovered (after Y time alarm is green) or verify that alarm triggered.
 
 ## Outputs
 The automation execution has no outputs

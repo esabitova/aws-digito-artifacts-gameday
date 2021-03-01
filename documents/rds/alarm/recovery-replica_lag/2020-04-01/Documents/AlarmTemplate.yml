@@ -16,8 +16,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when database replica lag is over ', Ref: Threshold, 'seconds' ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoRdsReplicaLag-', Ref: DBInstanceIdentifier ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 3
       Dimensions:

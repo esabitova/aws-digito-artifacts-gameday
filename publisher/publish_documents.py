@@ -13,10 +13,9 @@ logger = logging.getLogger('PublishDocuments')
 
 class PublishDocuments:
 
-    def __init__(self, region):
+    def __init__(self, boto3_session):
         self.root_dir = os.getcwd()
-        self.ssm = boto3.client('ssm', region_name=region)
-        self.region = region
+        self.ssm = boto3_session.client('ssm')
 
     def publish_document(self, list_document_metadata):
         for document_metadata in list_document_metadata:
@@ -114,13 +113,16 @@ class PublishDocuments:
         except IOError as e:
             raise Exception('Could not open file %s', file_path, e)
 
-    def get_list_of_documents(self, file_name):
-        list_document_metadata = []
+
+    def get_documents_list_by_manifest_file(self, manifest_file_name):
         desired_documents_list = []
         # Include documents from file name
-        with open(self.root_dir + '/' + file_name, "r") as f:
+        with open(self.root_dir + '/' + manifest_file_name, "r") as f:
             desired_documents_list.extend(f.read().splitlines())
+        return self.get_documents_list_by_names(desired_documents_list)
 
+    def get_documents_list_by_names(self, desired_documents_list: []):
+        list_document_metadata = []
         files = glob.glob(self.root_dir + '/documents/**/metadata.json', recursive=True)
 
         logger.info('Desired documents list %s' % desired_documents_list)
@@ -220,11 +222,10 @@ def main(argv):
         ])
 
     logger.info('Publishing documents in region %s' % region)
-
-    p = PublishDocuments(region)
+    p = PublishDocuments(boto3.Session(region_name=region))
 
     # get list of documents from manifest file and their required documents
-    list_document_metadata = p.get_list_of_documents(file_name)
+    list_document_metadata = p.get_documents_list_by_manifest_file(file_name)
 
     # publish documents to account
     p.publish_document(list_document_metadata)

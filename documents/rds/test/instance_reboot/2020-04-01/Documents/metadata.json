@@ -1,4 +1,5 @@
 {
+    "displayName": "Test - Recover from RDS reboot",
     "documentName": "Digito-RebootRdsInstance_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",

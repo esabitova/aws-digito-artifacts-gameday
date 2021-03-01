@@ -380,6 +380,7 @@ Resources:
       EvaluationPeriods: 1
       Threshold: !Ref AlarmGreaterThanOrEqualToThreshold
       ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: breaching
       Dimensions:
         - Name: InstanceId
           Value: !Ref EC2Instance
@@ -401,6 +402,7 @@ Resources:
       EvaluationPeriods: 1
       Threshold: !Ref AlarmGreaterThanOrEqualToThreshold
       ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: breaching
       Dimensions:
         - Name: InstanceId
           Value: !Ref EC2Instance

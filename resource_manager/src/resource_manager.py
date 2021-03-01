@@ -70,12 +70,14 @@ class ResourceManager:
         resources = self.pull_resources()
         parameters = {}
         for resource in resources:
-            for out in resource.attribute_values['cf_output_parameters']:
-                resource_type = ResourceManager.ResourceType.from_string(resource.type)
-                template_file_name = self._get_cfn_template_file_name(resource.cf_template_name, resource_type)
-                if parameters.get(template_file_name) is None:
-                    parameters[template_file_name] = {}
-                parameters[template_file_name][out['OutputKey']] = out['OutputValue']
+            resource_type = ResourceManager.ResourceType.from_string(resource.type)
+            template_file_name = self._get_cfn_template_file_name(resource.cf_template_name, resource_type)
+            cfn_output_parameters = resource.attribute_values.get('cf_output_parameters')
+            if cfn_output_parameters is not None:
+                for out in cfn_output_parameters:
+                    if parameters.get(template_file_name) is None:
+                        parameters[template_file_name] = {}
+                    parameters[template_file_name][out['OutputKey']] = out['OutputValue']
         return parameters
 
     def pull_resources(self):
@@ -121,44 +123,50 @@ class ResourceManager:
             resources = ResourceModel.query(cfn_template_name)
             for i in range(pool_size):
                 resource = self._filter_resource_by_index(resources, i)
-                if resource is None:
-                    resource = self._create_resource(i, pool_size, cfn_template_path, resource_type)
-                    if resource is not None:
-                        return resource
-                elif resource.status == ResourceModel.Status.AVAILABLE.name:
-                    # In case if resource type is ASSUME_ROLE
-                    if resource.type == ResourceManager.ResourceType.ASSUME_ROLE.name:
-                        passed_assume_role = yaml_util.file_loads_yaml(cfn_template_path)
-                        existing_assume_roles = self._get_s3_cfn_content(config.ssm_assume_role_cfn_s3_path)
-                        merged_roles = self._merge_assume_roles(existing_assume_roles, passed_assume_role)
-                        if not yaml_util.is_equal(merged_roles, existing_assume_roles):
-                            resource = self._update_resource(i, cfn_template_path, merged_roles, resource)
-                            if resource is not None:
-                                return resource
-                        else:
+                try:
+                    if resource is None:
+                        resource = self._create_resource(i, pool_size, cfn_template_path, resource_type)
+                        if resource is not None:
                             return resource
-                    # In case if resource type is ON_DEMAND
-                    elif resource.type == ResourceManager.ResourceType.ON_DEMAND.name:
-                        passed_resource = yaml_util.file_loads_yaml(cfn_template_path)
-                        existing_resource = self._get_s3_cfn_content(cfn_template_path)
-                        if not yaml_util.is_equal(passed_resource, existing_resource):
-                            resource = self._update_resource(i, cfn_template_path, passed_resource, resource)
-                            if resource is not None:
+                    # In case if resource is AVAILABLE/FAILED. In case of FAILED we want to
+                    # give a try to update resource so that testing session is not terminated.
+                    elif resource.status == ResourceModel.Status.AVAILABLE.name or \
+                            resource.status == ResourceModel.Status.FAILED.name:
+                        # In case if resource type is ASSUME_ROLE
+                        if resource.type == ResourceManager.ResourceType.ASSUME_ROLE.name:
+                            passed_assume_role = yaml_util.file_loads_yaml(cfn_template_path)
+                            existing_assume_roles = self._get_s3_cfn_content(config.ssm_assume_role_cfn_s3_path)
+                            merged_roles = self._merge_assume_roles(existing_assume_roles, passed_assume_role)
+                            if not yaml_util.is_equal(merged_roles, existing_assume_roles) or \
+                                    resource.status == ResourceModel.Status.FAILED.name:
+                                resource = self._update_resource(i, cfn_template_path, merged_roles, resource)
+                                if resource is not None:
+                                    return resource
+                            else:
                                 return resource
-                        else:
-                            try:
+                            # In case if resource type is ON_DEMAND
+                        elif resource.type == ResourceManager.ResourceType.ON_DEMAND.name:
+                            passed_resource = yaml_util.file_loads_yaml(cfn_template_path)
+                            existing_resource = self._get_s3_cfn_content(cfn_template_path)
+                            if not yaml_util.is_equal(passed_resource, existing_resource) or \
+                                    resource.status == ResourceModel.Status.FAILED.name:
+                                resource = self._update_resource(i, cfn_template_path, passed_resource, resource)
+                                if resource is not None:
+                                    return resource
+                            else:
                                 resource.leased_times = resource.leased_times + 1
                                 resource.status = ResourceModel.Status.LEASED.name
                                 resource.leased_on = datetime.now()
                                 resource.updated_on = datetime.now()
                                 resource.save()
                                 return resource
-                            except PutError:
-                                # In case if object already exist, do nothing
-                                pass
-                            except Exception as e:
-                                logging.error(e)
-                                raise e
+                except PutError:
+                    # In case if object already exist, do nothing
+                    pass
+                except Exception as e:
+                    logging.error(e)
+                    raise e
+
             logging.info("No template [%s] resource available with pool size [%d], sleeping for [%d] seconds...",
                          cfn_template_path,
                          pool_size,
@@ -203,8 +211,10 @@ class ResourceManager:
             if resource.status == ResourceModel.Status.LEASED.name:
                 ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
-            # If resource was not fully created because of failure or cancellation
-            elif resource.status == ResourceModel.Status.CREATING.name:
+            # If resource was not fully created/updated because of failure or cancellation
+            elif resource.status != ResourceModel.Status.AVAILABLE.name:
+                logging.info('Deleting resource for stack name [{}] in status [{}].'.format(resource.cf_stack_name,
+                                                                                           resource.status))
                 resource.delete()
 
     def destroy_all_resources(self):
@@ -286,7 +296,10 @@ class ResourceManager:
         except PutError:
             return None
         except Exception as e:
-            logging.error(e)
+            # In case if update resource operation failed we mark record status as FAILED
+            if resource:
+                resource.status = ResourceModel.Status.FAILED.name
+                resource.save()
             raise e
 
     def _create_resource(self, index: int, pool_size: int, cfn_template_path: str, resource_type: ResourceType):
@@ -298,12 +311,14 @@ class ResourceManager:
         :parma resource_type The resource type
         :return The created cloud formation resources
         """
-        cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
-        cfn_template = self.cfn_templates.get(cfn_template_path)
-        cfn_input_params = cfn_template['input_params']
-        cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
-        cfn_stack_name = self._get_stack_name(cfn_template_name, index, resource_type)
+        resource = None
         try:
+            cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
+            cfn_template = self.cfn_templates.get(cfn_template_path)
+            cfn_input_params = cfn_template['input_params']
+            cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
+            cfn_stack_name = self._get_stack_name(cfn_template_name, index, resource_type)
+
             resource = ResourceModel.create(
                 cf_stack_index=index,
                 cf_template_name=cfn_template_name,
@@ -319,12 +334,15 @@ class ResourceManager:
             # Creating cloud formation stack stack
             logging.info("Creating stack [%s:%s] with input params [%s]", resource_type.name, cfn_stack_name,
                          cfn_input_params)
-            return self._update_resource_stack(resource, resource_type, cfn_content, cfn_template_name, cfn_stack_name,
-                                               cfn_input_params)
+            return self._update_resource_stack(resource, resource_type, cfn_content,
+                                               cfn_template_name, cfn_stack_name, cfn_input_params)
         except PutError:
             return None
         except Exception as e:
-            logging.error(e)
+            # In case if create resource operation failed we mark record status as FAILED
+            if resource:
+                resource.status = ResourceModel.Status.FAILED.name
+                resource.save()
             raise e
 
     def _update_resource_stack(self, resource: ResourceModel, resource_type: ResourceType, cfn_content: dict,

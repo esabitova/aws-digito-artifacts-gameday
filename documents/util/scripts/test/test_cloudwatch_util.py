@@ -1,7 +1,8 @@
 import unittest
 import time
 import pytest
-from src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint, verify_ec2_stress
+from src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint, verify_ec2_stress,\
+    verify_alarm_triggered
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from test.test_data_provider import get_instance_ids_by_count
@@ -106,3 +107,43 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.cw_mock.get_metric_statistics.return_value = {'Datapoints': []}
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)
         self.assertEqual(dp, 0.0)
+
+    def test_verify_alarm_triggered_success(self):
+        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
+                                                            [{'HistorySummary': 'Alarm updated from OK to ALARM'},
+                                                             {'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+
+        events = {}
+        events['AlarmName'] = 'AlarmName'
+        events['DurationInMinutes'] = '1'
+
+        verify_alarm_triggered(events, None)
+
+
+    def test_verify_alarm_triggered_fail(self):
+        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
+                                                            [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+
+        events = {}
+        events['AlarmName'] = 'AlarmName'
+        events['DurationInMinutes'] = '1'
+
+        self.assertRaises(Exception, verify_alarm_triggered, events, None)
+
+    def test_verify_alarm_triggered_missing_duration(self):
+        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
+                                                                [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+
+        events = {}
+        events['AlarmName'] = 'AlarmName'
+
+        self.assertRaises(KeyError, verify_alarm_triggered, events, None)
+
+    def test_verify_alarm_triggered_missing_alarm_name(self):
+        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
+                                                                [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+
+        events = {}
+        events['DurationInMinutes'] = '1'
+
+        self.assertRaises(KeyError, verify_alarm_triggered, events, None)

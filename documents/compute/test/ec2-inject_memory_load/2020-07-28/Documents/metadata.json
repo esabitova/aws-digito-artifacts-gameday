@@ -1,7 +1,9 @@
 {
+  "displayName": "Test - Inject Memory load to EC2",
   "documentName": "Digito-SimulateHighMemoryLoadInEc2_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
+  "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "tag": "stateless-compute:test:ec2-inject_memory_load:2020-07-28",

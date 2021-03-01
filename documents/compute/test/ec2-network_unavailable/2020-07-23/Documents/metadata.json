@@ -1,0 +1,19 @@
+{
+  "displayName": "Test - Inject Network Unavailable Error to EC2",
+  "documentName": "Digito-SimulateNetworkUnavailableInEc2_2020-07-23",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "dependsOn": "Digito-NetworkUnavailableCommand_2020-07-23",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "compute:test:ec2-network_unavailable:2020-07-23",
+  "failureType": "HARDWARE",
+  "risk": "MEDIUM",
+  "intent": "Test that the application correctly alerts if EC2 network is unavailable.",
+  "details": {
+      "1": "Drop all outgoing/incoming network traffic on instance for X minutes.",
+      "2": "Verify alarm is triggered.",
+      "3": "After test duration, alarm should go back to green"
+  },
+  "minorVersion": "001"
+}
