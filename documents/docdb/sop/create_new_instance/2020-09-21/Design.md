@@ -58,4 +58,4 @@ No.
        * `DBClusterIdentifier`
    * PropertySelector: `$.DBInstances..DBInstanceStatus`
    * Explanation:
-       * Wait created cluster instance become available
+       * Wait until created cluster instance become available
