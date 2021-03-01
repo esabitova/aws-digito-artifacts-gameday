@@ -2,7 +2,7 @@
 docdb:sop:create_new_instance:2020-09-21
 
 ## Intent
-Used to create a new instance in a specified AZ/Region when a database can’t be restored from Point-In-Time backup
+Used to create a new instance in a specified AZ/Region
 
 ## Type
 Create new instance
@@ -51,4 +51,11 @@ No.
         * `AvailabilityZone`
     * Explanation:
         * Used to create a new instance by
-          calling [CreateDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_CreateDBInstance.html) 
+          calling [CreateDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_CreateDBInstance.html)
+1. `WaitUntilCreatedInstanceAvailable`
+   * Type: aws:waitForAwsResourceProperty
+   * Inputs:
+       * `DBClusterIdentifier`
+   * PropertySelector: `$.DBInstances..DBInstanceStatus`
+   * Explanation:
+       * Wait created cluster instance become available
