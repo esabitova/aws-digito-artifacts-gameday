@@ -278,7 +278,7 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     assert expected_status == actual_status
 
 
-@when(parsers.parse('Wait for SSM automation document "{ssm_document_name}" execution in on step "{ssm_step_name}" in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'))
+@when(parsers.parse('Wait for SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
                                         expected_status, ssm_document, input_parameters, ssm_test_cache):
     """
