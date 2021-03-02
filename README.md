@@ -83,18 +83,19 @@ Example:
 ````
 <b>File location:</b>.../AwsDigitoArtifactsGameday/documents/compute/test/ec2-inject_memory_load/2020-07-28/Documents/metadata.json
 
-* displayName - SSM display name, free text. 
-* documentName - SSM automation document name with major version, major version should correspond to date added to tag.
-* documentType - Command or Automation
-* documentContentPath - Document file name
-* documentFormat - YAML or JSON
-* dependsOn - Add other documents that this document requires.
-* tag - reference to specification of automation document
-* failureType - Failure type, valid values: SOFTWARE/HARDWARE/AZ/REGION
-* risk - Risk, valid values: SMALL/MEDIUM/HIGH
-* details - Steps which should be performed in SSM document 
-* recommendedAlarms - Map of SSM alarm input parameter name and reference to recommended alarm
-* minorVersion - minor version of document (should be increased every time plan to commit a change).
+* displayName - [Required] SSM display name, free text. 
+* documentName - [Required] SSM automation document name with major version, major version should correspond to date added to tag.
+* documentType - [Required] Command or Automation
+* documentContentPath - [Required] Document file name
+* assumeRoleCfnPath - [Required] AssumeRole CFN path
+* documentFormat - [Required] YAML or JSON
+* dependsOn - [Optional] Add other documents that this document requires.
+* tag - [Required] reference to specification of automation document
+* failureType - [Required] Failure type, valid values: SOFTWARE/HARDWARE/AZ/REGION
+* risk - [Required] Risk, valid values: SMALL/MEDIUM/HIGH
+* details - [Required] Steps which should be performed in SSM document 
+* recommendedAlarms - [Optional] Map of SSM alarm input parameter name and reference to recommended alarm
+* minorVersion - [Required] minor version of document (should be increased every time plan to commit a change).
 
 ## Adding New Python Script
 * Install requirements by running 'python3.8 -m pip install -r requirements.txt'
@@ -111,6 +112,52 @@ Script: |-
   SCRIPT_PLACEHOLDER::rds_util.get_cluster_writer_id
 ```
 
+## SSM automation execution output
+* Only include outputs like RecoveryTime, RecoveryPoint in top level execution output for SOP documents.
+* Other outputs are already part of step outputs.
+* Not needed for test ssm documents.
+
+## Rollback support
+* Rollback is needed where we may leave application in bad state, for example when we changed security group of resource.
+* It is not needed in cases which can't be rolled back like when ec2 instances are terminated.
+* It should not be added for SOP documents. We would want to pause SOP where it failed.
+* In normal execution, rollback would be executed after current execution is completed.
+* In interrupt scenario, previous execution is stopped and new execution is started in rollback mode.
+* Add 2 optional parameters IsRollback and PreviousExecutionId
+* Execution should branch based on IsRollback
+* Example : documents/compute/test/ec2-network_unavailable/2020-07-23/Documents/AutomationDocument.yml
+* Please include rollback test in cucumber too with following steps, example: documents/compute/test/ec2-network_unavailable/2020-07-23/Tests/features/ec2_network_unavailable.feature -
+```
+Start execution in normal mode
+stop it when it is in a given step
+Start execution in rollback mode passing previous execution id and isRollback true
+```
+
+## Adding recommended alarms
+Add similar to below in metadata.json to connect recommended alarm to ssm document parameter. Example, 
+
+DdbReadThrottledAlarmName - SSM document parameter
+dynamodb:alarm:health-read_throttle_events:2020-04-01 - Reference id for recommended alarm
+```
+"recommendedAlarms": {
+    "DdbReadThrottledAlarmName": "dynamodb:alarm:health-read_throttle_events:2020-04-01"
+}
+```
+
+## Parameters in SSM document
+* Try to keep only main resource in ssm document parameter and resolve other resources needed in document.
+* For example, figure out security group or vpc id from lambda arn instead of taking another parameter from users.
+* Other parameters like TestDuration, AlarmWaitTime etc should have a default value based what is appropriate for the document.
+* AutomationAssumeRole should be a required parameter in all documents.
+
+## SyntheticAlarmName
+* Synthetic alarm is an alarm that are at application level health while other alarm parameters would be recommended
+ for specific resources like cpu utilization for RDS instance(See adding recommended alarms). This should be green after each test.
+* Add a validation that Synthetic alarm is green after rollback is performed or test ends within expected recovery time. Expected recovery time depends on test.
+
+## RecoveryTime/RecoveryPoint
+* Add RecoveryTime for every SOP SSM document by starting a timer at start of document. Name of execution output should be RecoveryTime.
+* Where applicable, add recovery point too. For example, for point in time restore, use latest restorable time to calculate it. For restore from backup, use last backup time.
 
 # Integration Tests
 * In order to verify SSM automation document validity we want to have way to test documents against real AWS resources. 
