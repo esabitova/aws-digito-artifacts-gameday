@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Change execution time limit
+Description: Role for SSM RestoringToPreviousVersion
 Outputs:
-  DigitoChangeExecutionTimeLimitAssumeRole:
-    Description: DigitoChangeExecutionTimeLimit Automation Assume Role ARN
-    Value: !GetAtt DigitoChangeExecutionTimeLimitAssumeRole.Arn
+  DigitoRestoringToPreviousVersionAssumeRole:
+    Description: DigitoRestoringToPreviousVersion Automation Assume Role ARN
+    Value: !GetAtt DigitoRestoringToPreviousVersionAssumeRole.Arn
 Resources:
-  DigitoChangeExecutionTimeLimitAssumeRole:
+  DigitoRestoringToPreviousVersionAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,16 +34,20 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoChangeExecutionTimeLimitAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoRestoringToPreviousVersionAssumePolicy:
+    Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoChangeExecutionTimeLimitAssumePolicy"
+      PolicyName: "DigitoRestoringToPreviousVersionAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
-              - 'lambda:UpdateFunctionConfiguration'
+              - s3:PutObject
+              - s3:GetObject
+              - s3:GetObject*
+              - s3:ListBucket
+              - s3:ListBucketVersions
       Roles:
-        - Ref: DigitoChangeExecutionTimeLimitAssumeRole
+        - Ref: DigitoRestoringToPreviousVersionAssumeRole

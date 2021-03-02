@@ -1,15 +1,58 @@
 from pytest_bdd import (
     given,
-    parsers
+    parsers, when
 )
 
 from resource_manager.src.util import s3_utils as s3_utils
-from resource_manager.src.util.common_test_utils import extract_param_value
+from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 
 
 @given(parsers.parse('clear the bucket'
                      '\n{input_parameters}'))
 def clear_s3_bucket(resource_manager, ssm_test_cache, input_parameters):
-    s3_bucket_name = extract_param_value(input_parameters, "BucketName",
-                                         resource_manager, ssm_test_cache)
+    s3_bucket_name: str = extract_param_value(input_parameters, "BucketName",
+                                              resource_manager, ssm_test_cache)
     s3_utils.clean_bucket(s3_bucket_name)
+
+
+@given(parsers.parse('put "{object_key_to_put}" object "{times_to_put}" times with different content '
+                     'into "{s3_bucket_name_property}" bucket'
+                     '\n{input_parameters}'))
+def put_objects(resource_manager, ssm_test_cache, object_key_to_put, times_to_put,
+                s3_bucket_name_property, input_parameters):
+    s3_bucket_name: str = extract_param_value(input_parameters, s3_bucket_name_property,
+                                              resource_manager, ssm_test_cache)
+    for i in range(int(times_to_put)):
+        content: str = f'Content of the file {object_key_to_put} written at {i} attempt'
+        s3_utils.put_object(s3_bucket_name, object_key_to_put,
+                            bytes(content, encoding='utf-8'))
+
+
+@when(parsers.parse('cache value of "{s3_property_name}" property of the "{object_key}" file ' \
+                    'with the specific "{version_id_param_key}" version as "{cache_property}" ' \
+                    'at "{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution' \
+                    '\n{input_parameters}'))
+@given(parsers.parse('cache value of "{s3_property_name}" property of the "{object_key}" file ' \
+                     'with the specific "{version_id_param_key}" version as "{cache_property}" ' \
+                     'at "{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution' \
+                     '\n{input_parameters}'))
+def cache_property_of_version(resource_manager, ssm_test_cache, s3_property_name, object_key, version_id_param_key,
+                              cache_property, s3_bucket_param_key, step_key,
+                              input_parameters):
+    populate_cache_property_of_version(resource_manager, ssm_test_cache, s3_property_name, object_key,
+                                       version_id_param_key,
+                                       cache_property, s3_bucket_param_key, step_key,
+                                       input_parameters)
+
+
+def populate_cache_property_of_version(resource_manager, ssm_test_cache, s3_property_name, object_key,
+                                       version_id_param_key,
+                                       cache_property, s3_bucket_param_key, step_key,
+                                       input_parameters):
+    s3_bucket_name: str = extract_param_value(input_parameters, s3_bucket_param_key,
+                                              resource_manager, ssm_test_cache)
+    version_id: str = extract_param_value(input_parameters, version_id_param_key,
+                                          resource_manager, ssm_test_cache)
+    s3_property_value: dict = s3_utils.get_object(s3_bucket_name, object_key, version_id)[s3_property_name]
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, s3_property_value)
