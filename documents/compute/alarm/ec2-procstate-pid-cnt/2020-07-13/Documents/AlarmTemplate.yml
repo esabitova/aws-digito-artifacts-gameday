@@ -18,8 +18,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when a followed process is reported stopped' ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoEc2DeadProcess-', Ref: InstanceId ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: LessThanThreshold
       EvaluationPeriods: 1
       DatapointsToAlarm: 1

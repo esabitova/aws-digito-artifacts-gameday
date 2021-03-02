@@ -24,6 +24,8 @@ Small
 * s3:PutObject
 * s3:GetObject
 * s3:ListBucket
+* s3:ListObjectVersions
+* s3:ListBucketVersions
 
 ## Supports Rollback
 
@@ -51,7 +53,7 @@ Yes
 * Description: (Required) The ARN of the SNS Topic where a user will receive the notification about the manual approval of restore bucket clean-up if some files exist there.
 * Type: String
 
-### `UserWhoWillApproveCleanUpOfRestoreBucket`:
+### `UserWhoWillApproveCleanRestoreBucket`:
 
 * Description: (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of restore bucket if there are some files. Can be either an AWS Identity and Access
   Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
@@ -76,8 +78,8 @@ Yes
         * `CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket`
     * Outputs: none
     * Explanation:
-        * If `CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket` is true, go to the step `ApproveCleanUpOfRestoreBucketOrCancel`. Otherwise, proceed to the step `RestoreFromBackup`
-1. `ApproveCleanUpOfRestoreBucketOrCancel`
+        * If `CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket` is true, go to the step `ApproveCleanRestoreBucketOrCancel`. Otherwise, proceed to the step `RestoreFromBackup`
+1. `ApproveCleanRestoreBucketOrCancel`
     * Type: aws:approve
     * timeoutSeconds: 3600 # one hour to wait for the approval
     * onFailure: Abort
@@ -85,11 +87,11 @@ Yes
         * `NotificationArn`: pass `SNSTopicARNForManualApproval`
         * `Message`: Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{NumberOfObjectsExistInRestoreBucket}} files exist.
         * `MinRequiredApprovals`: 1
-        * `Approvers`: `UserWhoWillApproveCleanUpOfRestoreBucket`
+        * `Approvers`: `UserWhoWillApproveCleanRestoreBucket`
     * Outputs: none
     * Explanation:
-        * Ask a user to clean up of restore bucket since some files are in `S3BucketToRestoreName` bucket. If a user agree move to `CleanUpOfRestoreBucket` step. Otherwise, abort the execution.
-1. `CleanUpOfRestoreBucket`
+        * Ask a user to clean up of restore bucket since some files are in `S3BucketToRestoreName` bucket. If a user agree move to `CleanRestoreBucket` step. Otherwise, abort the execution.
+1. `CleanRestoreBucket`
     * Type: aws:executeScript
     * Inputs:
         * `S3BucketToRestoreName`
@@ -115,7 +117,7 @@ Yes
 
 ## Outputs
 
-* `CleanUpOfRestoreBucket.NumberOfDeletedObjects`: The number of deleted objects whether versioned file or delete marker.
+* `CleanRestoreBucket.NumberOfDeletedObjects`: The number of deleted objects whether versioned file or delete marker.
 * `RestoreFromBackup.RestoredFilesNumber`: The number of successfully copied files
 * `RestoreFromBackup.RecoveryTimeSeconds`: The recovery time in seconds
 
