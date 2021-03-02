@@ -53,7 +53,7 @@ class SsmDocument:
             status = self._get_execution_status(execution_id, document_name)
         return status
 
-    def wait_for_execution_step_status(self, execution_id, document_name, step_name, time_to_wait):
+    def wait_for_execution_step_status_is_terminal_or_waiting(self, execution_id, document_name, step_name, time_to_wait):
         """
         Returns execution step final status or WAITING, if step is in PROGRESS/PENDING status
         it will wait till step execution will be completed starts waiting for approval.
