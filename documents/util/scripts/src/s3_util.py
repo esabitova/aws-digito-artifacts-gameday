@@ -49,6 +49,7 @@ def clean_bucket(events, context):
     pages = paginator.paginate(Bucket=s3_bucket_to_restore_name)
 
     number_of_deleted_objects = 0
+
     for page in pages:
         print(f'The response from the list_object_versions: {page}')
 
@@ -88,9 +89,9 @@ def restore_from_backup(events, context):
     :return: Copied files number, recovery time seconds
     """
     if 'S3BucketToRestoreName' not in events or 'S3BackupBucketName' not in events:
-        raise KeyError('Requires S3BucketToRestoreName or S3BackupBucketName  in events')
+        raise KeyError('Requires S3BucketToRestoreName and S3BackupBucketName in events')
 
-    start = datetime.now()
+    start = datetime.utcnow()
 
     s3_backup_bucket_name = events['S3BackupBucketName']
     s3_bucket_to_restore_name = events['S3BucketToRestoreName']
@@ -119,7 +120,7 @@ def restore_from_backup(events, context):
 
     print(f'The file number of copied files is {copied_count}')
 
-    return {'CopiedFilesNumber': copied_count, 'RecoveryTimeSeconds': int((datetime.now() - start).total_seconds())}
+    return {'CopiedFilesNumber': copied_count, 'RecoveryTimeSeconds': str((datetime.utcnow() - start).total_seconds())}
 
 
 def restore_to_the_previous_version(events, context):
@@ -128,7 +129,7 @@ def restore_to_the_previous_version(events, context):
     :return: Restore time, actual version, old version
     """
     if 'S3BucketObjectKey' not in events or 'S3BucketName' not in events:
-        raise KeyError('Requires S3BucketObjectKey or S3BucketName  in events')
+        raise KeyError('Requires S3BucketObjectKey and S3BucketName in events')
 
     start = datetime.utcnow()
 
