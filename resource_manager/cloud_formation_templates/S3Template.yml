@@ -110,7 +110,8 @@ Resources:
           - Sid: SNSTopicPolicyStatement
             Effect: Allow
             Principal:
-              Service: "cloudwatch.amazonaws.com"
+              Service:
+                - cloudwatch.amazonaws.com
             Action:
               - SNS:Publish
             Resource: !Ref SNSTopic

@@ -38,10 +38,10 @@ def clean_bucket(events, context):
     Clean bucket by removing versioned objects and delete markers
     :return: Number of removed versioned objects and delete markers
     """
-    if 'S3BucketToRestoreName' not in events:
-        raise KeyError('Requires S3BucketToRestoreName  in events')
+    if 'S3BucketNameToClean' not in events:
+        raise KeyError('Requires S3BucketNameToClean in events')
 
-    s3_bucket_to_restore_name = events['S3BucketToRestoreName']
+    s3_bucket_to_restore_name = events['S3BucketNameToClean']
 
     print(f'Sending the list_object_versions request fore the {s3_bucket_to_restore_name} bucket...')
 

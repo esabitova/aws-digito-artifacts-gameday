@@ -80,20 +80,16 @@ mainSteps:
       Approvers:
         - "{{UserWhoWillApproveCleanRestoreBucket}}"
   - name: CleanRestoreBucket
-    action: aws:executeScript
+    action: aws:executeAutomation
+    inputs:
+      DocumentName: Digito-CleanS3Bucket_2021-03-03
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        S3BucketNameToClean: '{{S3BucketToRestoreName}}'
     outputs:
       - Name: "NumberOfDeletedObjects"
-        Selector: "$.Payload.NumberOfDeletedObjects"
-        Type: "Integer"
-    inputs:
-      Runtime: "python3.7"
-      Handler: "clean_bucket"
-      InputPayload:
-        S3BucketToRestoreName: "{{S3BucketToRestoreName}}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::s3_util.imports
-
-        SCRIPT_PLACEHOLDER::s3_util.clean_bucket
+        Selector: "$.NumberOfDeletedObjects"
+        Type: "String"
   - name: RestoreFromBackup
     action: aws:executeScript
     outputs:

@@ -30,5 +30,5 @@ test_one: publish_ssm_docs
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/s3/misc/s3-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests documents/s3/sop/restore_to_previous_versions/2020-09-21/Tests/step_defs/test_restore_to_previous_version.py -m s3 --aws_profile ut && \
+		--keep_test_resources --run_integration_tests documents/s3/test/accidental_delete/2020-04-01/Tests/step_defs/test_accidental_delete_rollback_usual_case.py -m s3 --aws_profile ut && \
 	deactivate

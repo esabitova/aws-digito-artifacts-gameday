@@ -1,0 +1,18 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "attachments": "digito_gameday_primitives.zip",
+  "dependsOn": "Digito-RestoreFromBackup_2020-09-21,Digito-CleanS3Bucket_2021-03-03",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-AccidentalDelete_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "displayName": "Test to accidentally delete files from S3 bucket",
+  "intent": "Accidental delete is testing the case where all versions of files in the bucket were deleted, and we are restoring from the backup bucket",
+  "risk": "SMALL",
+  "tag": "s3:test:accidental_delete:2020-04-01",
+  "recommendedAlarms": {
+    "S3UserErrorAlarmName": "4xxErrorsCount"
+  },
+  "minorVersion": "001"
+}
