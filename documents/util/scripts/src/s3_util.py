@@ -53,29 +53,31 @@ def clean_bucket(events, context):
 
         number_of_deleted_objects = 0
 
-        versions: dict = page.get('Versions')
-        for version in versions:
-            key = version.get('Key')
-            version_id = version.get('VersionId')
+        versions: list = page.get('Versions')
+        if versions:
+            for version in versions:
+                key = version.get('Key')
+                version_id = version.get('VersionId')
 
-            s3_client.delete_object(Bucket=s3_bucket_to_restore_name, Key=key, VersionId=version_id)
+                s3_client.delete_object(Bucket=s3_bucket_to_restore_name, Key=key, VersionId=version_id)
 
-            print(f'The versioned object with Bucket={s3_bucket_to_restore_name}, '
-                  f'Key={key}, VersionId={version_id} was deleted')
+                print(f'The versioned object with Bucket={s3_bucket_to_restore_name}, '
+                      f'Key={key}, VersionId={version_id} was deleted')
 
-            number_of_deleted_objects += 1
+                number_of_deleted_objects += 1
 
-        delete_markers: dict = page.get('DeleteMarkers')
-        for delete_marker in delete_markers:
-            key = delete_marker.get('Key')
-            version_id = delete_marker.get('VersionId')
+        delete_markers: list = page.get('DeleteMarkers')
+        if delete_markers:
+            for delete_marker in delete_markers:
+                key = delete_marker.get('Key')
+                version_id = delete_marker.get('VersionId')
 
-            s3_client.delete_object(Bucket=s3_bucket_to_restore_name, Key=key, VersionId=version_id)
+                s3_client.delete_object(Bucket=s3_bucket_to_restore_name, Key=key, VersionId=version_id)
 
-            print(f'The delete marker with Bucket={s3_bucket_to_restore_name},'
-                  f' Key={key}, VersionId={version_id} was deleted')
+                print(f'The delete marker with Bucket={s3_bucket_to_restore_name},'
+                      f' Key={key}, VersionId={version_id} was deleted')
 
-            number_of_deleted_objects += 1
+                number_of_deleted_objects += 1
 
     print(f'The number of deleted versioned objects and delete markers '
           f'in restore bucket is {number_of_deleted_objects}')

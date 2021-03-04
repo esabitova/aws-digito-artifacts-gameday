@@ -28,6 +28,14 @@ def test_restore_from_backup_approval():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
+@scenario('../features/restore_from_backup_reject.feature',
+          'Create AWS resources using CloudFormation template '
+          'and execute SSM automation document to restore an S3 bucket from a backup bucket '
+          'with a reject to clean the restore bucket')
+def test_restore_from_backup_reject():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
 @given(parsers.parse('put "{number_of_files_to_put}" objects into the bucket'
                      '\n{input_parameters}'))
 def put_objects(resource_manager, ssm_test_cache, number_of_files_to_put, input_parameters):
@@ -37,8 +45,7 @@ def put_objects(resource_manager, ssm_test_cache, number_of_files_to_put, input_
         s3_utils.put_object(s3_bucket_name, f'{i}.txt', bytes(f'Content of the {i} file', encoding='utf-8'))
 
 
-@given(parsers.parse('cache current user ARN as "{cache_property}" '
-                     'at the bucket "{step_key}" SSM automation execution'))
+@given(parsers.parse('cache current user ARN as "{cache_property}" "{step_key}" SSM automation execution'))
 def put_objects(resource_manager, ssm_test_cache, cache_property, step_key):
     user_arn = iam_utils.get_current_user_arn()
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, user_arn)

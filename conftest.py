@@ -390,3 +390,20 @@ def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_pa
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
     ssm_document.send_step_approval(ssm_execution_id)
+
+
+@when(parsers.parse('Reject SSM automation document\n{input_parameters}'))
+def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+    """
+    Common step to reject waiting execution
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_test_cache The custom test cache
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param input_parameters The input parameters
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
