@@ -28,6 +28,7 @@ Small
 * ssm:StartAutomationExecution
 * iam:PassRole
 * ssm:GetAutomationExecution
+* ssm:GetParameters
 
 Additionally, inherited from `Digito-RestoreFromBackup_2020-09-21`
 

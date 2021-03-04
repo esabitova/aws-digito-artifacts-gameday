@@ -65,7 +65,7 @@ mainSteps:
       - Name: S3BucketWhereObjectWasCopiedFrom
         Selector: $.Payload.S3BucketWhereObjectWasCopiedFrom
         Type: String
-      - Name: S3Bь ucketToRestoreWhereObjectWasCopiedTo
+      - Name: S3BucketToRestoreWhereObjectWasCopiedTo
         Selector: $.Payload.S3BucketToRestoreWhereObjectWasCopiedTo
         Type: String
     inputs:
@@ -85,8 +85,9 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
         UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
-        S3BucketToRestoreName: '{{PrepareRollbackOfPreviousExecution.S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
-        S3BackupBucketName: '{{PrepareRollbackOfPreviousExecution.S3BucketWhereObjectsWillBeDeletedFrom}}'
+        S3BucketToRestoreName: '{{PrepareRollbackOfPreviousExecution.S3BucketWhereObjectWasCopiedFrom}}'
+        S3BackupBucketName: '{{PrepareRollbackOfPreviousExecution.S3BucketToRestoreWhereObjectWasCopiedTo}}'
+    isEnd: true
   - name: BackupS3BucketWhereObjectsWillBeDeletedFrom
     action: aws:executeAutomation
     inputs:

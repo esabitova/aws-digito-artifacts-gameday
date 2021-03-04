@@ -56,5 +56,6 @@ Resources:
               - iam:PassRole
               - ssm:GetAutomationExecution
               - sns:Publish
+              - ssm:GetParameters
       Roles:
         - Ref: DigitoAccidentalDeleteAssumeRole
