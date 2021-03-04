@@ -54,29 +54,46 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRollbackOfPreviousExecution
+        - NextStep: GetS3BucketWhereObjectWasCopiedFromFieldValue
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default:
         BackupS3BucketWhereObjectsWillBeDeletedFrom
-  - name: PrepareRollbackOfPreviousExecution
+
+  - name: GetS3BucketWhereObjectWasCopiedFromFieldValue
     action: aws:executeScript
     outputs:
       - Name: S3BucketWhereObjectWasCopiedFrom
-        Selector: $.Payload.S3BucketWhereObjectWasCopiedFrom
-        Type: String
-      - Name: S3BucketToRestoreWhereObjectWasCopiedTo
-        Selector: $.Payload.S3BucketToRestoreWhereObjectWasCopiedTo
+        Selector: $.Payload.S3BackupBucketName
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: prepare_rollback_of_previous_execution_for_accidental_delete
+      Handler: get_inputs_from_ssm_step_execution
       InputPayload:
-        PreviousExecutionId: '{{PreviousExecutionId}}'
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'BackupS3BucketWhereObjectsWillBeDeletedFrom'
+        ResponseField: 'S3BackupBucketName'
       Script: |-
-        SCRIPT_PLACEHOLDER::s3_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-        SCRIPT_PLACEHOLDER::s3_util.prepare_rollback_of_previous_execution_for_accidental_delete
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+  - name: GetS3BucketToRestoreWhereObjectWasCopiedToFieldValue
+    action: aws:executeScript
+    outputs:
+      - Name: S3BucketToRestoreWhereObjectWasCopiedTo
+        Selector: $.Payload.S3BucketToRestoreName
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'BackupS3BucketWhereObjectsWillBeDeletedFrom'
+        ResponseField: 'S3BucketToRestoreName'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
   - name: RollbackPreviousExecution
     action: aws:executeAutomation
     inputs:
@@ -85,9 +102,10 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
         UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
-        S3BucketToRestoreName: '{{PrepareRollbackOfPreviousExecution.S3BucketWhereObjectWasCopiedFrom}}'
-        S3BackupBucketName: '{{PrepareRollbackOfPreviousExecution.S3BucketToRestoreWhereObjectWasCopiedTo}}'
+        S3BucketToRestoreName: '{{GetS3BucketWhereObjectWasCopiedFromFieldValue.S3BucketWhereObjectWasCopiedFrom}}'
+        S3BackupBucketName: '{{GetS3BucketToRestoreWhereObjectWasCopiedToFieldValue.S3BucketToRestoreWhereObjectWasCopiedTo}}'
     isEnd: true
+
   - name: BackupS3BucketWhereObjectsWillBeDeletedFrom
     action: aws:executeAutomation
     inputs:
@@ -116,7 +134,7 @@ mainSteps:
       AlarmNames:
         - "{{S3UserErrorAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["ALARM"]
+      DesiredValues: [ "ALARM" ]
   - name: RollbackCurrentExecution
     action: aws:executeAutomation
     inputs:
@@ -137,5 +155,5 @@ mainSteps:
       AlarmNames:
         - "{{S3UserErrorAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["OK"]
+      DesiredValues: [ "OK" ]
     isEnd: true
