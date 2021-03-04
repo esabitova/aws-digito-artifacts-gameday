@@ -429,7 +429,7 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
 }
 </script>
     <h1>docdb-cucumber-tests-results.html</h1>
-    <p>Report generated on 26-Feb-2021 at 14:29:15 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <p>Report generated on 26-Feb-2021 at 18:42:13 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
     <h2>Environment</h2>
     <table id="environment">
       <tr>
@@ -445,7 +445,7 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
         <td>Python</td>
         <td>3.8.7</td></tr></table>
     <h2>Summary</h2>
-    <p>1 tests ran in 20.32 seconds. </p>
+    <p>1 tests ran in 9.84 seconds. </p>
     <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">1 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
     <h2>Results</h2>
     <table id="results-table">
@@ -460,21 +460,19 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
       <tbody class="passed results-table-row">
         <tr>
           <td class="col-result">Passed</td>
-          <td class="col-name">documents/docdb/sop/promote_read_replica/2020-09-21/Tests/step_defs/test_promote_read_replica.py::test_promote_read_replica</td>
-          <td class="col-duration">19.01</td>
+          <td class="col-name">documents/docdb/sop/reboot_db_instance/2020-09-21/Tests/step_defs/test_reboot_db_instance.py::test_reboot_db_instance</td>
+          <td class="col-duration">8.52</td>
           <td class="col-links"></td></tr>
         <tr>
           <td class="extra" colspan="4">
             <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:188 Creating boto3 session for [ut] profile.<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     botocore.credentials:credentials.py:1222 Found credentials in shared credentials file: ~/.aws/credentials
-INFO     PublishDocuments:publish_documents.py:128 Desired documents list [&#x27;Digito-PromoteReadReplica_2020-09-21&#x27;]
-INFO     PublishDocuments:publish_documents.py:138 Desired documents list including required documents : [&#x27;Digito-PromoteReadReplica_2020-09-21&#x27;]
-INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-PromoteReadReplica_2020-09-21
+INFO     PublishDocuments:publish_documents.py:128 Desired documents list [&#x27;Digito-RebootDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:138 Desired documents list including required documents : [&#x27;Digito-RebootDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-RebootDbInstance_2020-09-21
 WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
 INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
 INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
-INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/promote_read_replica/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
-INFO     root:ssm_document.py:25 Executing SSM document [Digito-PromoteReadReplica_2020-09-21] with parameters: [{&#x27;DBClusterIdentifier&#x27;: [&#x27;docdb&#x27;], &#x27;DBInstanceReplicaIdentifier&#x27;: [&#x27;dbinstance02&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoPromoteReadReplica-R8YR99BQE054&#x27;]}]
-INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/9df265ca-1638-4c98-b919-35ceb6dc6a25
-INFO     root:ssm_document.py:90 Waiting SSM document step [Digito-PromoteReadReplica_2020-09-21&gt;PromoteReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/9df265ca-1638-4c98-b919-35ceb6dc6a25/step/2/51ab0afc-ec07-4df8-bfe1-a23de50b7d14
-INFO     root:ssm_document.py:90 Waiting SSM document step [Digito-PromoteReadReplica_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/9df265ca-1638-4c98-b919-35ceb6dc6a25/step/4/1019682b-ff4a-417d-a7ed-7e41bc37e262<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
-INFO     root:conftest.py:162 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/9df265ca-1638-4c98-b919-35ceb6dc6a25<br/></div></td></tr></tbody></table></body></html>
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/reboot_db_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-RebootDbInstance_2020-09-21] with parameters: [{&#x27;DBInstanceIdentifier&#x27;: [&#x27;dbinstance02&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoRebootDbInstanceAs-QDTU3HMZ6Q1N&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/00f9a44d-c484-4498-a824-46e144764467<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:162 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/00f9a44d-c484-4498-a824-46e144764467<br/></div></td></tr></tbody></table></body></html>

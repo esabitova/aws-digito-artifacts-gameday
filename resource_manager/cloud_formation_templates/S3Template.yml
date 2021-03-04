@@ -110,10 +110,13 @@ Resources:
           - Sid: SNSTopicPolicyStatement
             Effect: Allow
             Principal:
-              AWS: "*"
+              Service: "cloudwatch.amazonaws.com"
             Action:
               - SNS:Publish
             Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref "AWS::AccountId"
       Topics:
         - !Ref SNSTopic
   S3Health4xxErrorsCountAlarm:

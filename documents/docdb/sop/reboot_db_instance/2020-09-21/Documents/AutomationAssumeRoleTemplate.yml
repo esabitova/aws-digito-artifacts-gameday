@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Change execution time limit
+Description: Role for recovering the database into a known good state
 Outputs:
-  DigitoChangeExecutionTimeLimitAssumeRole:
-    Description: DigitoChangeExecutionTimeLimit Automation Assume Role ARN
-    Value: !GetAtt DigitoChangeExecutionTimeLimitAssumeRole.Arn
+  DigitoRebootDbInstanceAssumeRole:
+    Description: DigitoRebootDbInstance Automation Assume Role ARN
+    Value: !GetAtt DigitoRebootDbInstanceAssumeRole.Arn
 Resources:
-  DigitoChangeExecutionTimeLimitAssumeRole:
+  DigitoRebootDbInstanceAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,16 +34,16 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoChangeExecutionTimeLimitAssumePolicy:
+  DigitoRebootDbInstanceAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoChangeExecutionTimeLimitAssumePolicy"
+      PolicyName: "DigitoRebootDbInstanceAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'lambda:UpdateFunctionConfiguration'
+              - 'rds:RebootDBInstance'
       Roles:
-        - Ref: DigitoChangeExecutionTimeLimitAssumeRole
+        - Ref: DigitoRebootDbInstanceAssumeRole

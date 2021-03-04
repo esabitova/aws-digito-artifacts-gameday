@@ -22,8 +22,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when invocation count is anomalous with band width ', Ref: BandWidth ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoLambdaInvocations-', Ref: FunctionName ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 3

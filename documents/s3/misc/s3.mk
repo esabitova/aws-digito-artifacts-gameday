@@ -23,3 +23,12 @@ test: publish_ssm_docs
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/s3/misc/s3-cucumber-tests-results.html --self-contained-html \
 		--keep_test_resources --run_integration_tests -m s3 --aws_profile ut && \
 	deactivate
+
+# Execute only one specified Cucumber test
+test_one: publish_ssm_docs
+	# Move to parent directory
+	cd ../../../ && \
+	source venv/bin/activate && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/s3/misc/s3-cucumber-tests-results.html --self-contained-html \
+		--keep_test_resources --run_integration_tests documents/s3/sop/restore_to_previous_versions/2020-09-21/Tests/step_defs/test_restore_to_previous_version.py -m s3 --aws_profile ut && \
+	deactivate

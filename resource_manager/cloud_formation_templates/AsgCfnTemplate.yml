@@ -552,10 +552,29 @@ Resources:
           Ref: WebServerAutoscalingGroup
       ComparisonOperator: LessThanThreshold
       MetricName: GroupInServiceCapacity
+  AsgCpuUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Unit: Percent
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 70
+      AlarmDescription: Alarm if any ASG instance CPU utilization is above or equal to 70%
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: WebServerAutoscalingGroup
 Outputs:
   SyntheticAlarm:
     Description: Synthetic Alarm Name
     Value: !Ref SyntheticAlarm
+  AsgCpuUtilizationAlarmName:
+    Description: Asg Cpu Utilization Alarm Name
+    Value: !Ref AsgCpuUtilizationAlarm
   AutoScalingGroupName:
     Description: AutoScalingGroupName
     Value: !Ref WebServerAutoscalingGroup
