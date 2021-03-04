@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  DBInstanceIdentifier:
-    Type: String
-    Default: '${DBInstanceIdentifier}'
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   OverUtilizedCPUAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -15,19 +9,17 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when database replica lag is over ', Ref: Threshold, 'seconds' ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when database replica lag is over ', ${Threshold}, 'seconds' ] ]
       AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 3
       Dimensions:
         - Name: DBInstanceIdentifier
-          Value:
-            Ref: DBInstanceIdentifier
+          Value: '${DBInstanceIdentifier}'
       EvaluationPeriods: 5
       MetricName: ReplicaLag
       Namespace: AWS/RDS
       Period: 60
       Statistic: Maximum
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing

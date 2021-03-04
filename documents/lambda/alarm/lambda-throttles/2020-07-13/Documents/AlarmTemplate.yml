@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  FunctionName:
-    Type: String
-    Default: '${FunctionName}'
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   ThrottlesAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -22,14 +16,12 @@ Resources:
       DatapointsToAlarm: 3
       Dimensions:
         - Name: FunctionName
-          Value:
-            Ref: FunctionName
+          Value: '${FunctionName}'
       MetricName: Throttles
       Namespace: AWS/Lambda
       Period: 60
       Statistic: Maximum
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing
     Metadata:
       'AWS::Digito::Monitoring':

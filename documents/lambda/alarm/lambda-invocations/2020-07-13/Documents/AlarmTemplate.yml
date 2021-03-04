@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  FunctionName:
-    Type: String
-    Default: '${FunctionName}'
   SNSTopicARN:
     Type: String
-  BandWidth:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   ConnectionSpikeAnomalyDetector:
     Type: 'AWS::CloudWatch::AnomalyDetector'
@@ -21,14 +15,14 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when invocation count is anomalous with band width ', Ref: BandWidth ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when invocation count is anomalous with band width ', ${Threshold} ] ]
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
       Metrics:
         - Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${Threshold}, ')' ] ]
           Id: ad1
         - Id: m1
           MetricStat:
@@ -37,8 +31,7 @@ Resources:
               Namespace: AWS/Lambda
               Dimensions:
                 - Name: FunctionName
-                  Value:
-                    Ref: FunctionName
+                  Value: '${FunctionName}'
             Period: 300
             Stat: Sum
       ThresholdMetricId: ad1
