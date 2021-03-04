@@ -37,7 +37,7 @@ Feature: SSM automation document ASG kill process document testing
     And the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                              |ResourceType|InstanceType          |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                |   ON_DEMAND|{{cache:InstanceType}}|
-      |documents/compute/test/asg-kill_process/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml| ASSUME_ROLE|                      |                                            |
+      |documents/compute/test/asg-kill_process/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml| ASSUME_ROLE|                      |
 
     And published "Digito-KillProcessAsg_2020-07-28" SSM document
 

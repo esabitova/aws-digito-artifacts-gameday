@@ -19,8 +19,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when unhealthy host count is over ', Ref: Threshold ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoAsgConcurrentUnHealthyHosts-', Ref: TargetGroup, '-', Ref: LoadBalancer ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 3
       DatapointsToAlarm: 3

@@ -16,8 +16,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when free storage is under ', Ref: Threshold, 'GB' ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoRdsLowStorage-', Ref: DBInstanceIdentifier ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: LessThanOrEqualToThreshold
       DatapointsToAlarm: 3
       Dimensions:

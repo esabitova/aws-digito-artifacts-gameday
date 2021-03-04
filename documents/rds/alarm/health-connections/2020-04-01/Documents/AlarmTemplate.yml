@@ -22,8 +22,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when connections are anomalous with band width ', Ref: BandWidth ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoRdsConnectionSpike-', Ref: DBInstanceIdentifier ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 5

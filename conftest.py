@@ -359,8 +359,8 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
     metric_period = int(input_param_row.pop('MetricPeriod'))
 
     exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
-    # Reported command execution start time given in SSM is delayed, so we need exclude that delay to find metric
-    exec_start = exec_start - timedelta(seconds=metric_period)
+    # We need to include metric period to metric start time to have latest metrics
+    exec_start = exec_start + timedelta(seconds=metric_period)
     act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
                                             metric_namespace, metric_name, input_param_row, metric_period)
     if operator == 'greaterOrEqual':

@@ -16,8 +16,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when autoscale group CPU utilization is over ', Ref: Threshold, '%' ] ]
-      AlarmName:
-        Fn::Join: [ '', [ 'DigitoAsgHighCpuUtilization-', Ref: AutoScalingGroupName ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 5
       DatapointsToAlarm: 3
