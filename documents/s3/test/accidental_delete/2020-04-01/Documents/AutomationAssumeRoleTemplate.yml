@@ -47,6 +47,7 @@ Resources:
               - s3:DeleteObject
               - s3:GetObject
               - s3:GetObject*
+              - s3:DeleteObjectVersion
               - s3:ListBucket
               - s3:ListBucketVersions
               - s3:ListObjectsV2
@@ -57,5 +58,6 @@ Resources:
               - ssm:GetAutomationExecution
               - sns:Publish
               - ssm:GetParameters
+              - cloudwatch:DescribeAlarms
       Roles:
         - Ref: DigitoAccidentalDeleteAssumeRole

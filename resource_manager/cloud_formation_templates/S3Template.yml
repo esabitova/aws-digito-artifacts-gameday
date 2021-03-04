@@ -57,11 +57,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      AccessControl: Private
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -86,11 +81,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      AccessControl: Private
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -130,13 +120,13 @@ Resources:
         - !Ref SNSTopic
       MetricName: 4xxErrors
       Namespace: AWS/S3
-      Statistic: Minimum
+      Statistic: Sum
       Dimensions:
         - Name: S3Bucket
           Value: !Ref S3BucketToRestore
       Period: 60
-      EvaluationPeriods: 3
-      DatapointsToAlarm: 2
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: missing
@@ -151,7 +141,7 @@ Resources:
         - !Ref SNSTopic
       MetricName: 5xxErrors
       Namespace: AWS/S3
-      Statistic: Minimum
+      Statistic: Sum
       Dimensions:
         - Name: S3Bucket
           Value: !Ref S3BucketToRestore
@@ -172,7 +162,7 @@ Resources:
         - !Ref SNSTopic
       MetricName: TotalRequestLatency
       Namespace: AWS/S3
-      Statistic: Minimum
+      Statistic: Sum
       Dimensions:
         - Name: S3Bucket
           Value: !Ref S3BucketToRestore

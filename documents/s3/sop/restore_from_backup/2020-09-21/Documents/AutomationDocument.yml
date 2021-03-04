@@ -75,7 +75,7 @@ mainSteps:
     onFailure: Abort
     inputs:
       NotificationArn: "{{SNSTopicARNForManualApproval}}"
-      Message: "Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}} file(-s) exist."
+      Message: Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}} file(-s) exist.
       MinRequiredApprovals: 1
       Approvers:
         - "{{UserWhoWillApproveCleanRestoreBucket}}"
@@ -98,7 +98,7 @@ mainSteps:
         Type: "Integer"
       - Name: "RecoveryTimeSeconds"
         Selector: "$.Payload.RecoveryTimeSeconds"
-        Type: "Integer"
+        Type: "String"
     inputs:
       Runtime: "python3.7"
       Handler: "restore_from_backup"

@@ -12,7 +12,7 @@
   "risk": "SMALL",
   "tag": "s3:test:accidental_delete:2020-04-01",
   "recommendedAlarms": {
-    "S3UserErrorAlarmName": "4xxErrorsCount"
+    "S3UserErrorAlarmName": "S3Health4xxErrorsCountAlarm"
   },
   "minorVersion": "001"
 }
