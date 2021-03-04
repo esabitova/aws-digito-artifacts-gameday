@@ -102,7 +102,7 @@ mainSteps:
         Type: "Integer"
       - Name: "RecoveryTimeSeconds"
         Selector: "$.Payload.RecoveryTimeSeconds"
-        Type: "Integer"
+        Type: "String"
     inputs:
       Runtime: "python3.7"
       Handler: "restore_from_backup"
