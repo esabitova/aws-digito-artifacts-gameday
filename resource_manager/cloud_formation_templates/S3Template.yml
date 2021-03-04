@@ -88,6 +88,9 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
+      MetricsConfigurations:
+        -
+          Id: "all_objects"
   SNSTopic:
     Type: "AWS::SNS::Topic"
   SNSTopicPolicy:
