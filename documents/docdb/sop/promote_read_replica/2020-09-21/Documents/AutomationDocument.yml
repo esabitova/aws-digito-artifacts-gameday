@@ -47,8 +47,8 @@ mainSteps:
       Runtime: python3.7
       Handler: start_time
       Script: |-
-        SCRIPT_PLACEHOLDER::docdb_util.imports
-        SCRIPT_PLACEHOLDER::docdb_util.start_time
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
 
   - name: PromoteReadReplica
     action: aws:executeAwsApi
@@ -80,7 +80,7 @@ mainSteps:
       Runtime: python3.7
       Handler: recovery_time
       Script: |-
-        SCRIPT_PLACEHOLDER::docdb_util.imports
-        SCRIPT_PLACEHOLDER::docdb_util.recovery_time
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
       InputPayload:
         StartTime: '{{ RecordStartTime.StartTime }}'
