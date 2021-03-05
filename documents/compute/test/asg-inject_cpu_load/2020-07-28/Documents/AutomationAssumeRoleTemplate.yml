@@ -47,6 +47,7 @@ Resources:
           - Effect: Allow
             Resource: '*'
             Action:
+              - 'ssm:GetParameters'
               - 'ssm:DescribeInstanceInformation'
               - 'ssm:SendCommand'
               - 'ssm:ListCommands'
