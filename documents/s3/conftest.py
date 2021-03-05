@@ -5,6 +5,7 @@ from pytest_bdd import (
     given,
     parsers, when
 )
+import logging
 
 from resource_manager.src.util import s3_utils as s3_utils, iam_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
@@ -67,14 +68,23 @@ def put_objects(resource_manager, ssm_test_cache, number_of_files_to_put, input_
 
 @when(parsers.parse('get the "{object_key}" object from bucket "{tries_number}" times with error\n{input_parameters}'))
 @given(parsers.parse('get the "{object_key}" object from bucket "{tries_number}" times with error\n{input_parameters}'))
-def get_object(resource_manager, ssm_test_cache, boto3_session: Session, object_key, tries_number, input_parameters):
+def get_object_with_error(resource_manager, ssm_test_cache, boto3_session: Session, object_key, tries_number,
+                          input_parameters):
     s3_bucket_name = extract_param_value(input_parameters, "BucketName", resource_manager, ssm_test_cache)
     for i in range(int(tries_number)):
         try:
             boto3_session.client("s3").get_object(Bucket=s3_bucket_name, Key=object_key)
         except Exception as e:
-            print(f'Expected error occurred while calling '
-                  f'get_object(Bucket={s3_bucket_name}, Key={object_key}): {e}')
+            logging.info(f'Expected error occurred while calling '
+                         f'get_object(Bucket={s3_bucket_name}, Key={object_key}): {e}')
+
+
+@when(parsers.parse('get the "{object_key}" object from bucket "{tries_number}" times\n{input_parameters}'))
+@given(parsers.parse('get the "{object_key}" object from bucket "{tries_number}" times\n{input_parameters}'))
+def get_object(resource_manager, ssm_test_cache, boto3_session: Session, object_key, tries_number, input_parameters):
+    s3_bucket_name = extract_param_value(input_parameters, "BucketName", resource_manager, ssm_test_cache)
+    for i in range(int(tries_number)):
+        boto3_session.client("s3").get_object(Bucket=s3_bucket_name, Key=object_key)
 
 
 def populate_cache_property_of_version(
@@ -109,8 +119,8 @@ def put_objects(resource_manager, ssm_test_cache, number_of_files_to_put, input_
 
 
 cache_number_of_files_value_expression = 'cache value of number of files as "{cache_property}" ' \
-                         'at the bucket "{step_key}" SSM automation execution' \
-                         '\n{input_parameters}'
+                                         'at the bucket "{step_key}" SSM automation execution' \
+                                         '\n{input_parameters}'
 
 
 @given(parsers.parse(cache_number_of_files_value_expression))

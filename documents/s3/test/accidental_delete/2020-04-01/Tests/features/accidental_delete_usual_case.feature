@@ -26,13 +26,13 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
     And cache value of number of files as "ActualNumberOfFiles" at the bucket "after_delete" SSM automation execution
       | BucketName                                   |
       | {{cfn-output:S3Template>S3BackupBucketName}} |
-    And get the "object-to-restore-versions.txt" object from bucket "5" times with error
+    And get the "0.txt" object from bucket "20" times with error
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     When Wait for the SSM automation document "Digito-AccidentalDelete_2020-04-01" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "300" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get the "object-to-restore-versions.txt" object from bucket "5" times with error
+    And get the "0.txt" object from bucket "20" times
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     And SSM automation document "Digito-AccidentalDelete_2020-04-01" execution in status "Success"
