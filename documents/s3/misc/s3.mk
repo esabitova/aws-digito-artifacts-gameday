@@ -29,6 +29,6 @@ test_one: publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/s3/misc/s3-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests documents/s3/test/accidental_delete/2020-04-01/Tests/step_defs/test_accidental_delete_rollback_usual_case.py -m actual --aws_profile ut && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
+		documents/s3/test/accidental_delete/2020-04-01/Tests/step_defs/test_accidental_delete_rollback_usual_case.py -m  --aws_profile actual && \
 	deactivate
