@@ -32,7 +32,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
     And Wait for the SSM automation document "Digito-AccidentalDelete_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    When Wait for the SSM automation document "Digito-AccidentalDeleteсфай_2020-04-01" execution is on step "RollbackCurrentExecution" in status "Success" for "600" seconds
+    When Wait for the SSM automation document "Digito-AccidentalDelete_2020-04-01" execution is on step "RollbackCurrentExecution" in status "Success" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get the "0.txt" object from bucket "20" times
