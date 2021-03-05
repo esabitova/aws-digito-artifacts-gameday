@@ -34,10 +34,10 @@ parameters:
     default: S3Health4xxErrorsCountAlarm
   SNSTopicARNForManualApproval:
     type: String
-    description: (Required) The ARN of the SNS Topic where a user will receive the notification about the manual approval of restore bucket clean-up if some files exist there.
+    description: (Required) The ARN of the SNS Topic where a user will receive the notification about the manual approval of bucket clean-up if some files exist there.
   UserWhoWillApproveCleanRestoreBucket:
     type: String
-    description: (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of restore bucket if there are some files. Can be either an AWS Identity and Access
+    description: (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of bucket if there are some files. Can be either an AWS Identity and Access
       Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
   IsRollback:
     type: String
@@ -49,21 +49,27 @@ parameters:
     description: >-
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
+  ForceCleanBucketToRestoreWhereObjectWillBeCopiedTo:
+    type: Boolean
+    description: |-
+      (Optional) If it is true, approve cleaning of the bucket automatically where objects will be copied to if they exist there.
+      Otherwise, give a user a chance to decide. It is false by default.
+    default: false
 mainSteps:
   - name: CheckIsRollback
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: GetS3BucketWhereObjectWasCopiedFrom
+        - NextStep: GetS3BucketWhereObjectCouldBeDeletedFrom
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default:
         BackupS3BucketWhereObjectsWillBeDeletedFrom
 
-  - name: GetS3BucketWhereObjectWasCopiedFrom
+  - name: GetS3BucketWhereObjectCouldBeDeletedFrom
     action: aws:executeScript
     outputs:
-      - Name: S3BucketWhereObjectWasCopiedFrom
+      - Name: S3BucketWhereObjectCouldBeDeletedFrom
         Selector: $.Payload.S3BackupBucketName
         Type: String
     inputs:
@@ -102,8 +108,8 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
         UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
-        S3BucketToRestoreName: '{{GetS3BucketWhereObjectWasCopiedFrom.S3BucketWhereObjectWasCopiedFrom}}'
         S3BackupBucketName: '{{GetS3BucketToRestoreWhereObjectWasCopiedTo.S3BucketToRestoreWhereObjectWasCopiedTo}}'
+        S3BucketToRestoreName: '{{GetS3BucketWhereObjectCouldBeDeletedFrom.S3BucketWhereObjectCouldBeDeletedFrom}}'
     isEnd: true
 
   - name: BackupS3BucketWhereObjectsWillBeDeletedFrom
@@ -114,8 +120,9 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
         UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
-        S3BucketToRestoreName: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'
-        S3BackupBucketName: '{{S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
+        S3BackupBucketName: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'
+        S3BucketToRestoreName: '{{S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
+        ApproveCleanRestoreBucketAutomatically: '{{ForceCleanBucketToRestoreWhereObjectWillBeCopiedTo}}'
   - name: CleanS3BucketWhereObjectsWillBeDeletedFrom
     action: aws:executeAutomation
     inputs:
@@ -126,7 +133,7 @@ mainSteps:
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 600
+    timeoutSeconds: 300
     onFailure: step:RollbackCurrentExecution
     inputs:
       Service: cloudwatch
@@ -143,12 +150,12 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
         UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
-        S3BucketToRestoreName: '{{S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
-        S3BackupBucketName: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'
+        S3BackupBucketName: '{{S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
+        S3BucketToRestoreName: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 600
+    timeoutSeconds: 300
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
