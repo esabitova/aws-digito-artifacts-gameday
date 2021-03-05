@@ -15,7 +15,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     And cache value of number of files as "NumberOfFiles" at the bucket "before" SSM automation execution
       | BucketName                                   |
-      | {{cfn-output:S3Template>S3BackupBucketName}} |
+      | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     And SSM automation document "Digito-AccidentalDelete_2020-04-01" executed
       | S3BucketWhereObjectsWillBeDeletedFrom           | S3BucketToRestoreWhereObjectWillBeCopiedTo   | AutomationAssumeRole                                                         | S3UserErrorAlarmName                                    | SNSTopicARNForManualApproval           | UserWhoWillApproveCleanRestoreBucket | ForceCleanBucketToRestoreWhereObjectWillBeCopiedTo | IsRollback | PreviousExecutionId |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} | {{cfn-output:S3Template>S3BackupBucketName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoAccidentalDeleteAssumeRole}} | {{cfn-output:S3Template>Health4xxErrorsCountAlarmName}} | {{cfn-output:S3Template>SNSTopicName}} | {{cache:before>UserArn}}             | true                                               | false      | ''                  |
@@ -25,7 +25,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
       | {{cache:SsmExecutionId>1}} |
     And cache value of number of files as "ActualNumberOfFiles" at the bucket "after_delete" SSM automation execution
       | BucketName                                   |
-      | {{cfn-output:S3Template>S3BackupBucketName}} |
+      | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     And get the "0.txt" object from bucket "20" times with error
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
