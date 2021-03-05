@@ -1,0 +1,156 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: 'SOP - Scaling down'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+outputs:
+  - BackupDbInstancesMetadata.BackupDbClusterInstancesCountValue
+  - BackupDbClusterInstancesCount.DbClusterInstancesNumber
+  - VerifyCurrentInstancesCount.CurrentInstancesNumber
+parameters:
+  DBClusterIdentifier:
+    type: String
+    description: (Required) DocDb Cluster Identifier
+  DBInstanceReplicaIdentifier:
+    type: String
+    description: (Required) DocDb Replica Identifier
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Optional) The ARN of the role that allows Automation to perform
+      the actions on your behalf. If no role is specified, Systems Manager Automation
+      uses your IAM permissions to run this document.
+    default: ''
+
+mainSteps:
+  - name: BackupDbInstancesMetadata
+    action: aws:executeAwsApi
+    description: Backup current DbClusterInstances value
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      Filters:  
+      - Name: 'db-cluster-id'
+        Values: 
+        - '{{ DBClusterIdentifier }}'
+    outputs:
+      - Name: BackupDbClusterInstancesCountValue
+        Selector: $.DBClusters[0].DBClusterMembers
+        Type: MapList
+
+  - name: BackupDbClusterInstancesCount
+    action: aws:executeScript
+    description: Backup DocDb cluster instances count value
+    onFailure: Abort
+    outputs:
+      - Name: DbClusterInstancesNumber
+        Selector: $.Payload.DbClusterInstancesNumber
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: count_cluster_instances
+      InputPayload:
+        DbClusterInstances: '{{ BackupDbInstancesMetadata.BackupDbClusterInstancesCountValue }}'
+      Script: |
+        import boto3
+
+        def count_cluster_instances(events, context):
+           
+            try:
+                print(events['DbClusterInstances'])
+                return {'DbClusterInstancesNumber' : len(events['DbClusterInstances'])}
+            except Exception as e:
+                print(f'Error: {e}')
+
+  - name: VerifyInstanceExistInCluster
+    action: aws:executeScript
+    description: Verify DocDb instance exists in same cluster
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: verify_db_instance_exist
+      InputPayload:
+        DBInstanceIdentifier: '{{ DBInstanceReplicaIdentifier }}'
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      Script: |
+        import boto3
+
+        def verify_db_instance_exist(events, context):
+            try:
+                docdb = boto3.client('docdb')
+                response = docdb.describe_db_instances(
+                    DBInstanceIdentifier=events['DBInstanceIdentifier'],
+                    Filters=[
+                        {
+                            'Name': 'db-cluster-id',
+                            'Values': [
+                                events['DBClusterIdentifier'],
+                            ]
+                        },
+                    ]
+                )
+                return {events['DBInstanceIdentifier'] : response['DBInstances'][0]['DBInstanceStatus']}
+
+            except Exception as e:
+                if "DBInstanceNotFound" in str(e):
+                    raise Exception(f"Cluster instance {events['DBInstanceIdentifier']} is not found in cluster {events['DBClusterIdentifier']}")
+                else:
+                    print(f'Error: {e}')
+                    raise
+
+  - name: RemoveDocDbReadReplica
+    action: aws:executeAwsApi
+    description: Remove selected DocDb Read Replica
+    inputs:
+      Service: docdb
+      Api: DeleteDBInstance
+      DBInstanceIdentifier: '{{ DBInstanceReplicaIdentifier }}'
+
+  - name: VerifyCurrentInstancesCount
+    action: aws:executeScript
+    description: Verify current DocDb cluster instances count value
+    timeoutSeconds: 600
+    onFailure: Abort
+    outputs:
+      - Name: CurrentInstancesNumber
+        Selector: $.Payload.DbClusterInstancesNumber
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: verify_cluster_instances
+      InputPayload:
+        BeforeDbClusterInstancesNumber: '{{ BackupDbClusterInstancesCount.DbClusterInstancesNumber }}'
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      Script: |
+        import boto3,time
+
+        def verify_cluster_instances(events, context):
+            try:
+                docdb = boto3.client('docdb')
+
+                while True:
+                  response = docdb.describe_db_clusters(DBClusterIdentifier=events['DBClusterIdentifier'])
+                  current_instances_number = len(response['DBClusters'][0]['DBClusterMembers'])
+                  before_instances_number = events['BeforeDbClusterInstancesNumber']
+                  time.sleep(5)
+                  if current_instances_number < before_instances_number:
+                    return {'DbClusterInstancesNumber' : current_instances_number}
+                    break
+
+            except Exception as e:
+                print(f'Error: {e}')
