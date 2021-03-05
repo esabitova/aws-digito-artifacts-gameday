@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Memory Simulation
+Description: Role for promoting Read replica to the Primary instance
 Outputs:
-  DigitoSimulateHighCpuLoadInEc2AssumeRole:
-    Description: DigitoSimulateHighCpuLoadInEc2 Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighCpuLoadInEc2AssumeRole.Arn
+  DigitoPromoteReadReplicaAssumeRole:
+    Description: DigitoPromoteReadReplica Automation Assume Role ARN
+    Value: !GetAtt DigitoPromoteReadReplicaAssumeRole.Arn
 Resources:
-  DigitoSimulateHighCpuLoadInEc2AssumeRole:
+  DigitoPromoteReadReplicaAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,25 +34,17 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSimulateHighCpuLoadInEc2AssumePolicy:
+  DigitoPromoteReadReplicaAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSimulateHighCpuLoadInEc2AssumePolicy"
+      PolicyName: "DigitoPromoteReadReplicaAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'ssm:GetParameters'
-              - 'ssm:SendCommand'
-              - 'ssm:ListCommands'
-              - 'ssm:ListCommandInvocations'
-              - 'ssm:DescribeInstanceInformation'
-              - 'ssm:GetAutomationExecution'
-              - 'ssm:CancelCommand'
-              - 'cloudwatch:DescribeAlarms'
-              - 'cloudwatch:GetMetricStatistics'
-              - 'iam:PassRole'
+              - 'rds:DescribeDBClusters'
+              - 'rds:FailoverDBCluster'
       Roles:
-        - Ref: DigitoSimulateHighCpuLoadInEc2AssumeRole
+        - Ref: DigitoPromoteReadReplicaAssumeRole
