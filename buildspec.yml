@@ -1,19 +1,24 @@
 version: 0.2
 
-#env:
+  #env:
   #variables:
-     # key: "value"
-     # key: "value"
+  # key: "value"
+  # key: "value"
   #parameter-store:
-     # key: "value"
-     # key: "value"
+  # key: "value"
+  # key: "value"
   #secrets-manager:
-     # key: secret-id:json-key:version-stage:version-id
-     # key: secret-id:json-key:version-stage:version-id
+  # key: secret-id:json-key:version-stage:version-id
+  # key: secret-id:json-key:version-stage:version-id
   #exported-variables:
-     # - variable
-     # - variable
+  # - variable
+  # - variable
   #git-credential-helper: yes
+  #batch:
+  #fast-fail: true
+  #build-list:
+  #build-matrix:
+#build-graph:
 phases:
   install:
     #If you use the Ubuntu standard image 2.0 or later, you must specify runtime-versions.
@@ -21,35 +26,48 @@ phases:
     runtime-versions:
       python: latest
       # name: version
-    # commands:
-      # - command
-  #pre_build:
-    #commands:
+    commands:
+      - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+      - python get-pip.py
+      - python -m pip install flake8
+      - python -m pip install boto3==1.17.17
+      - python -m pip install setuptools==53.0.0
+      - python -m pip install pytest==6.2.2
+      - python -m pip install pytest_bdd==4.0.2
+      - python -m pip install pytest_html==3.1.1
+      - python -m pip install pytest-cov==2.11.1
+      - python -m pip install cfn_flip==1.2.3
+      - python -m pip install sttable==0.0.1
+      - python -m pip install pynamodb==5.0.2
+      - python -m pip install pytest-parallel==0.1.0
+      #pre_build:
+      #commands:
       # - command
       # - command
   build:
     commands:
-      - python publisher/publish_documents.py
+      - flake8
+      - python -m pytest -m unit_test
       # - command
-  #post_build:
-    #commands:
+      #post_build:
+      #commands:
       # - command
       # - command
-#reports:
-  #report-name-or-arn:
-    #files:
+      #reports:
+      #report-name-or-arn:
+      #files:
       # - location
       # - location
     #base-directory: location
     #discard-paths: yes
     #file-format: JunitXml | CucumberJson
-#artifacts:
-  #files:
+    #artifacts:
+    #files:
     # - location
     # - location
-  #name: $(date +%Y-%m-%d)
-  #discard-paths: yes
-  #base-directory: location
-#cache:
-  #paths:
+    #name: $(date +%Y-%m-%d)
+    #discard-paths: yes
+    #base-directory: location
+    #cache:
+    #paths:
     # - paths
