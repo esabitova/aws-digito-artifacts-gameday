@@ -1,4 +1,6 @@
 {
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "dependsOn": "Digito-CleanS3Bucket_2021-03-03",
   "displayName": "SOP - Restore From Backup",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
@@ -8,6 +10,5 @@
   "intent": "To restore an S3 bucket from a backup bucket",
   "minorVersion": "001",
   "risk": "SMALL",
-  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "tag": "s3:sop:restore_from_backup:2020-09-21"
 }

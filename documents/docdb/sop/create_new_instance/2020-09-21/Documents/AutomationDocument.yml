@@ -1,0 +1,98 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: 'SOP - Create New Instance'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+
+parameters:
+  DBInstanceIdentifier:
+    type: String
+    description: (Optional) DocDb Instance Identifier
+    default: ''
+  DBClusterIdentifier:
+    type: String
+    description: (Required) DocDb Cluster Identifier
+  DBInstanceClass:
+    type: 'String'
+    default: 'db.t3.medium'
+    description: 'Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region'
+  AvailabilityZone:
+    type: String
+    default: ''
+    description: (Optional) Availability Zone to place DocDb Instance
+  Engine:
+    type: String
+    default: 'docdb'
+    description: (Required) DocDb Engine
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Optional) The ARN of the role that allows Automation to perform
+      the actions on your behalf. If no role is specified, Systems Manager Automation
+      uses your IAM permissions to run this document.
+    default: ''
+
+mainSteps:
+  - name: GetClusterAZ
+    action: aws:executeScript
+    description: Get DocDb cluster availability zones
+    onFailure: Abort
+    outputs:
+      - Name: CurrentClusterAZ
+        Selector: $.Payload.cluster_az
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: get_cluster_az
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.get_cluster_az
+
+  - name: CreateNewInstance
+    action: aws:executeScript
+    description: Used to create a new instance in a specified AZ/Region
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: create_new_instance
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+        DBInstanceIdentifier: '{{ DBInstanceIdentifier }}'
+        DBInstanceClass: '{{ DBInstanceClass }}'
+        DBClusterAZ: '{{ GetClusterAZ.CurrentClusterAZ }}'
+        AvailabilityZone: '{{ AvailabilityZone }}'
+        Engine: '{{ Engine }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.create_new_instance
+
+  - name: WaitUntilCreatedInstanceAvailable
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: docdb
+      Api: DescribeDBInstances
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+      PropertySelector: "$.DBInstances..DBInstanceStatus"
+      DesiredValues:
+        - available

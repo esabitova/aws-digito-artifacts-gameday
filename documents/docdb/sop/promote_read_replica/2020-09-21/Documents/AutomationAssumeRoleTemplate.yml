@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoreFromBackup
+Description: Role for promoting Read replica to the Primary instance
 Outputs:
-  DigitoRestoreFromBackupAssumeRole:
-    Description: DigitoRestoreFromBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoreFromBackupAssumeRole.Arn
+  DigitoPromoteReadReplicaAssumeRole:
+    Description: DigitoPromoteReadReplica Automation Assume Role ARN
+    Value: !GetAtt DigitoPromoteReadReplicaAssumeRole.Arn
 Resources:
-  DigitoRestoreFromBackupAssumeRole:
+  DigitoPromoteReadReplicaAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,24 +34,17 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreFromBackupAssumePolicy:
-    Type: AWS::IAM::Policy
+  DigitoPromoteReadReplicaAssumePolicy:
+    Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: DigitoRestoreFromBackupAssumePolicy
+      PolicyName: "DigitoPromoteReadReplicaAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: "*"
+            Resource: '*'
             Action:
-              - s3:PutObject
-              - s3:GetObject
-              - s3:ListBucket
-              - s3:ListObjectVersions
-              - s3:ListBucketVersions
-              - s3:DeleteObject
-              - ssm:StartAutomationExecution
-              - iam:PassRole
-              - ssm:GetAutomationExecution
+              - 'rds:DescribeDBClusters'
+              - 'rds:FailoverDBCluster'
       Roles:
-        - Ref: DigitoRestoreFromBackupAssumeRole
+        - Ref: DigitoPromoteReadReplicaAssumeRole

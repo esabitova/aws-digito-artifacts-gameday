@@ -1,4 +1,4 @@
-boto3==1.17.17
+boto3==1.17.19
 setuptools==53.0.0
 pytest==6.2.2
 pytest_bdd==4.0.2

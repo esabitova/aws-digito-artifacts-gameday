@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoreFromBackup
+Description: Role for creating a new instance in a specified AZ/Region
 Outputs:
-  DigitoRestoreFromBackupAssumeRole:
-    Description: DigitoRestoreFromBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoreFromBackupAssumeRole.Arn
+  DigitoCreateNewInstanceAssumeRole:
+    Description: DigitoCreateNewInstance Automation Assume Role ARN
+    Value: !GetAtt DigitoCreateNewInstanceAssumeRole.Arn
 Resources:
-  DigitoRestoreFromBackupAssumeRole:
+  DigitoCreateNewInstanceAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,24 +34,18 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreFromBackupAssumePolicy:
-    Type: AWS::IAM::Policy
+  DigitoCreateNewInstanceAssumePolicy:
+    Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: DigitoRestoreFromBackupAssumePolicy
+      PolicyName: "DigitoCreateNewInstanceAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: "*"
+            Resource: '*'
             Action:
-              - s3:PutObject
-              - s3:GetObject
-              - s3:ListBucket
-              - s3:ListObjectVersions
-              - s3:ListBucketVersions
-              - s3:DeleteObject
-              - ssm:StartAutomationExecution
-              - iam:PassRole
-              - ssm:GetAutomationExecution
+              - 'rds:CreateDBInstance'
+              - 'rds:DescribeDBClusters'
+              - 'rds:DescribeDBInstances'
       Roles:
-        - Ref: DigitoRestoreFromBackupAssumeRole
+        - Ref: DigitoCreateNewInstanceAssumeRole

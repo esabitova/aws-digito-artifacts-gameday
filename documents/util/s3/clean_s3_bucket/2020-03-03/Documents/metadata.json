@@ -1,0 +1,9 @@
+{
+  "documentName": "Digito-CleanS3Bucket_2021-03-03",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "displayName": "Clean S3 bucket",
+  "tag": "util:clean_s3_bucket:2021-03-03",
+  "minorVersion": "001"
+}
