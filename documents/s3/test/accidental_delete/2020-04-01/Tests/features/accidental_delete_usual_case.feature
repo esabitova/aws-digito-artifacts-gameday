@@ -1,4 +1,4 @@
-@s3
+#@s3
 Feature: SSM automation document to accidentally delete files in S3 bucket
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to accidentally delete files in S3 bucket

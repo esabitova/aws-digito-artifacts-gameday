@@ -17,8 +17,8 @@ Feature: SSM automation document to restore an S3 bucket from a backup bucket
       | {{cfn-output:S3Template>S3BackupBucketName}} |
     And cache current user ARN as "UserArn" at the bucket "before" SSM automation execution
     And SSM automation document "Digito-RestoreFromBackup_2020-09-21" executed
-      | S3BackupBucketName                           | S3BucketToRestoreName                           | AutomationAssumeRole                                                          | SNSTopicARNForManualApproval           | UserWhoWillApproveCleanRestoreBucket |
-      | {{cfn-output:S3Template>S3BackupBucketName}} | {{cfn-output:S3Template>S3BucketToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromBackupAssumeRole}} | {{cfn-output:S3Template>SNSTopicName}} | {{cache:before>UserArn}}             |
+      | S3BackupBucketName                           | S3BucketToRestoreName                           | AutomationAssumeRole                                                          | SNSTopicARNForManualApproval           | UserWhoWillApproveCleanRestoreBucket | ApproveCleanRestoreBucketAutomatically |
+      | {{cfn-output:S3Template>S3BackupBucketName}} | {{cfn-output:S3Template>S3BucketToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromBackupAssumeRole}} | {{cfn-output:S3Template>SNSTopicName}} | {{cache:before>UserArn}}             | true                                   |
 
 
     When SSM automation document "Digito-RestoreFromBackup_2020-09-21" execution in status "Success"
