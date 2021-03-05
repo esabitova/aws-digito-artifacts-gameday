@@ -45,6 +45,7 @@ Resources:
             Resource: '*'
             Action:
               - 'rds:CreateDBInstance'
+              - 'rds:DescribeDBClusters'
               - 'rds:DescribeDBInstances'
       Roles:
         - Ref: DigitoCreateNewInstanceAssumeRole

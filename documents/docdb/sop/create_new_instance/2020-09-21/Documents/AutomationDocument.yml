@@ -48,17 +48,40 @@ parameters:
     default: ''
 
 mainSteps:
-  - name: CreateNewInstance
-    action: aws:executeAwsApi
-    description: Used to create a new instance in a specified AZ/Region
+  - name: GetClusterAZ
+    action: aws:executeScript
+    description: Get DocDb cluster availability zones
+    onFailure: Abort
+    outputs:
+      - Name: CurrentClusterAZ
+        Selector: $.Payload.cluster_az
+        Type: StringList
     inputs:
-      Service: docdb
-      Api: CreateDBInstance
-      DBInstanceIdentifier: '{{ DBInstanceIdentifier }}'
-      DBInstanceClass: '{{ DBInstanceClass }}'
-      DBClusterIdentifier: '{{ DBClusterIdentifier }}'
-      Engine: '{{ Engine }}'
-      AvailabilityZone: '{{ AvailabilityZone }}'
+      Runtime: python3.7
+      Handler: get_cluster_az
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.get_cluster_az
+
+  - name: CreateNewInstance
+    action: aws:executeScript
+    description: Used to create a new instance in a specified AZ/Region
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: create_new_instance
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+        DBInstanceIdentifier: '{{ DBInstanceIdentifier }}'
+        DBInstanceClass: '{{ DBInstanceClass }}'
+        DBClusterAZ: '{{ GetClusterAZ.CurrentClusterAZ }}'
+        AvailabilityZone: '{{ AvailabilityZone }}'
+        Engine: '{{ Engine }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.create_new_instance
 
   - name: WaitUntilCreatedInstanceAvailable
     action: aws:waitForAwsResourceProperty
