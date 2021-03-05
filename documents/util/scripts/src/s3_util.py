@@ -53,7 +53,7 @@ def clean_bucket(events, context):
     for page in pages:
         print(f'The response from the list_object_versions: {page}')
 
-        versions: dict = page.get('Versions')
+        versions: list = page.get('Versions')
         if versions is not None:
             for version in versions:
                 key = version.get('Key')
@@ -66,7 +66,7 @@ def clean_bucket(events, context):
 
                 number_of_deleted_objects += 1
 
-        delete_markers: dict = page.get('DeleteMarkers')
+        delete_markers: list = page.get('DeleteMarkers')
         if delete_markers is not None:
             for delete_marker in delete_markers:
                 key = delete_marker.get('Key')

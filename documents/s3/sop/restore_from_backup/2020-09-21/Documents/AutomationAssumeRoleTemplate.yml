@@ -53,5 +53,7 @@ Resources:
               - ssm:StartAutomationExecution
               - iam:PassRole
               - ssm:GetAutomationExecution
+              - s3:DeleteObject*
+              - SNS:Publish
       Roles:
         - Ref: DigitoRestoreFromBackupAssumeRole
