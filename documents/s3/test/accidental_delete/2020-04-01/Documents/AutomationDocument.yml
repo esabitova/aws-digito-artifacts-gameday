@@ -126,7 +126,7 @@ mainSteps:
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 300
+    timeoutSeconds: 600
     onFailure: step:RollbackCurrentExecution
     inputs:
       Service: cloudwatch
@@ -148,7 +148,7 @@ mainSteps:
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 300
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms

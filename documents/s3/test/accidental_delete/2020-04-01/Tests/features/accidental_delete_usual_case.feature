@@ -16,7 +16,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
 #todo    Approve here execution id which is the step of CleanS3BucketWhereObjectsWillBeDeletedFrom
 #todo    And cache value of number of files as "NumberOfFilesAfterDeletion" at the bucket "after" SSM automation execution
 #todo copy from aws-documents repo    And assert "NumberOfFilesAfterDeletion" at "before" became not equal to "0"
-    And get the "object-to-restore-versions.txt" object from bucket with error
+    And get the "object-to-restore-versions.txt" object from bucket "10" times with error
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     When SSM automation document "Digito-AccidentalDelete_2020-04-01" execution in status "Success"

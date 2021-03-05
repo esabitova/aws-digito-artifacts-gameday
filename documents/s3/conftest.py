@@ -64,15 +64,17 @@ def put_objects(resource_manager, ssm_test_cache, number_of_files_to_put, input_
         s3_utils.put_object(s3_bucket_name, f'{i}.txt', bytes(f'Content of the {i} file', encoding='utf-8'))
 
 
-@given(parsers.parse('get the "{object_key}" object from bucket with error'
+@given(parsers.parse('get the "{object_key}" object from bucket "{tries_number}" times with error'
                      '\n{input_parameters}'))
-def get_object(resource_manager, ssm_test_cache, boto3_session: Session, object_key, input_parameters):
+def get_object(resource_manager, ssm_test_cache, boto3_session: Session, object_key, tries_number, input_parameters):
     s3_bucket_name = extract_param_value(input_parameters, "BucketName",
                                          resource_manager, ssm_test_cache)
-    try:
-        boto3_session.client("s3").get_object(Bucket=s3_bucket_name, Key=object_key)
-    except Exception as e:
-        print(f'Expected error was occurred while calling get_object(Bucket={s3_bucket_name}, Key={object_key}): {e}')
+    for i in range(int(tries_number)):
+        try:
+            boto3_session.client("s3").get_object(Bucket=s3_bucket_name, Key=object_key)
+        except Exception as e:
+            print(f'Expected error was occurred while calling '
+                  f'get_object(Bucket={s3_bucket_name}, Key={object_key}): {e}')
 
 
 def populate_cache_property_of_version(resource_manager, ssm_test_cache, s3_property_name, object_key,
