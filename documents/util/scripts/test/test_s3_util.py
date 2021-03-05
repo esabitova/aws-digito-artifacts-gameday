@@ -211,7 +211,7 @@ class TestS3Util(unittest.TestCase):
 
     def test_clean_bucket(self):
         events = {
-            "S3BucketToRestoreName": S3_BUCKET
+            "S3BucketNameToClean": S3_BUCKET
         }
         response = clean_bucket(events, None)
         self.list_object_versions_mock.paginate.assert_called_once_with(Bucket=S3_BUCKET)
@@ -228,7 +228,7 @@ class TestS3Util(unittest.TestCase):
 
     def test_clean_bucket_already_empty(self):
         events = {
-            "S3BucketToRestoreName": S3_EMPTY_BUCKET
+            "S3BucketNameToClean": S3_EMPTY_BUCKET
         }
         response = clean_bucket(events, None)
         self.list_object_versions_mock.paginate.assert_called_once_with(Bucket=S3_EMPTY_BUCKET)
