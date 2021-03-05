@@ -73,7 +73,7 @@ def get_object(resource_manager, ssm_test_cache, boto3_session: Session, object_
         try:
             boto3_session.client("s3").get_object(Bucket=s3_bucket_name, Key=object_key)
         except Exception as e:
-            print(f'Expected error was occurred while calling '
+            print(f'Expected error occurred while calling '
                   f'get_object(Bucket={s3_bucket_name}, Key={object_key}): {e}')
 
 

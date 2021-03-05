@@ -125,8 +125,10 @@ Resources:
       Namespace: AWS/S3
       Statistic: Sum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
+        - Name: FilterId
+          Value: "all_objects"
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -146,7 +148,7 @@ Resources:
       Namespace: AWS/S3
       Statistic: Sum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
       Period: 60
       EvaluationPeriods: 1
@@ -167,7 +169,7 @@ Resources:
       Namespace: AWS/S3
       Statistic: Sum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
       Period: 60
       EvaluationPeriods: 1
@@ -188,7 +190,7 @@ Resources:
       Namespace: AWS/S3
       Statistic: Maximum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
       Period: 60
       EvaluationPeriods: 1
