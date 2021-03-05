@@ -398,7 +398,7 @@ def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_pa
 
 
 @when(parsers.parse('Reject SSM automation document\n{input_parameters}'))
-def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
     """
     Common step to reject waiting execution
     :param cfn_output_params The cfn output params from resource manager
