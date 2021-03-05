@@ -4,7 +4,7 @@
   "dependsOn": "Digito-RestoreFromBackup_2020-09-21,Digito-CleanS3Bucket_2021-03-03",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-AccidentalDelete_2020-04-01",
+  "documentName": "Digito-AccidentalDeleteS3Objects_2020-04-01",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "displayName": "Test to accidentally delete files from S3 bucket",
