@@ -5,7 +5,7 @@
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-  "tag": "stateless-compute:test:asg-node-kill_process:2020-07-28",
+  "tag": "compute:test:asg-node-kill_process:2020-07-28",
   "failureType": "HARDWARE",
   "risk": "SMALL",
   "intent": "Test app if process suddenly dies.",
