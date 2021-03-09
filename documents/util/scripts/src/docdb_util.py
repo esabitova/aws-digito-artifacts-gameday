@@ -25,7 +25,7 @@ def create_new_instance(events, context):
             AvailabilityZone=instance_az,
             DBClusterIdentifier=events['DBClusterIdentifier']
         )
-        return {'instance_az': instance_az}
+        return {'instance_az': response['DBInstance']['AvailabilityZone']}
     except Exception as e:
         print(f'Error: {e}')
         raise
