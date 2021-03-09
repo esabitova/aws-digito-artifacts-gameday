@@ -1,4 +1,4 @@
-import boto3,random
+import boto3,random,time
 
 def get_cluster_az(events, context):
     try:
@@ -64,7 +64,7 @@ def verify_cluster_instances(events, context):
             current_instances_number = len(response['DBClusters'][0]['DBClusterMembers'])
             before_instances_number = events['BeforeDbClusterInstancesNumber']
             time.sleep(5)
-            if current_instances_number < before_instances_number:
+            if current_instances_number != before_instances_number:
                 return {'DbClusterInstancesNumber' : current_instances_number}
                 break
 
