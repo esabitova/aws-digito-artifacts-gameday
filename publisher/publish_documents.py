@@ -8,8 +8,8 @@ import sys
 from botocore.exceptions import ClientError
 
 SCRIPT_DIR = '/documents/util/scripts/src'
-
 logger = logging.getLogger('PublishDocuments')
+
 
 class PublishDocuments:
 
@@ -113,7 +113,6 @@ class PublishDocuments:
         except IOError as e:
             raise Exception('Could not open file %s', file_path, e)
 
-
     def get_documents_list_by_manifest_file(self, manifest_file_name):
         desired_documents_list = []
         # Include documents from file name
@@ -193,6 +192,7 @@ class PublishDocuments:
                 script_lines_to_be_included += line + "\n"
 
         return script_lines_to_be_included
+
 
 def main(argv):
     region = 'us-west-2'

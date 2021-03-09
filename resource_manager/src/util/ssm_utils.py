@@ -1,6 +1,7 @@
 from boto3 import Session
 from datetime import datetime
 
+
 def get_ssm_step_interval(session: Session, execution_id, step_name):
     """
     Returns SSM automation step execution time interval in GMT/UTC. If Step is not
@@ -21,6 +22,7 @@ def get_ssm_step_interval(session: Session, execution_id, step_name):
                 return (datetime.utcfromtimestamp(start_time.timestamp()), datetime.utcnow())
             return (datetime.utcfromtimestamp(start_time.timestamp()), datetime.utcfromtimestamp(end_time.timestamp()))
     raise Exception('Automation step [{}:{}] was not found.'.format(execution_id, step_name))
+
 
 def get_ssm_step_status(session: Session, execution_id, step_name):
     """

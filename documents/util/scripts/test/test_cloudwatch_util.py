@@ -119,7 +119,6 @@ class TestCloudWatchUtil(unittest.TestCase):
 
         verify_alarm_triggered(events, None)
 
-
     def test_verify_alarm_triggered_fail(self):
         self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
                                                             [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
@@ -132,7 +131,7 @@ class TestCloudWatchUtil(unittest.TestCase):
 
     def test_verify_alarm_triggered_missing_duration(self):
         self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
-                                                                [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+                                                            [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
 
         events = {}
         events['AlarmName'] = 'AlarmName'
@@ -141,7 +140,7 @@ class TestCloudWatchUtil(unittest.TestCase):
 
     def test_verify_alarm_triggered_missing_alarm_name(self):
         self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
-                                                                [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+                                                            [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
 
         events = {}
         events['DurationInMinutes'] = '1'
