@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  LoadBalancer:
-    Type: String
-    Default: '${LoadBalancer}'
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   UnHealthyHostCountAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -15,19 +9,17 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when unhealthy host count is over ', Ref: Threshold ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when unhealthy host count is over ', ${Threshold} ] ]
       AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 3
       DatapointsToAlarm: 3
       Dimensions:
         - Name: LoadBalancer
-          Value:
-            Ref: LoadBalancer
+          Value: '${LoadBalancer}'
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       Period: 60
       Statistic: Maximum
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing

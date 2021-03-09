@@ -48,10 +48,57 @@ class SsmDocument:
         status = self._get_execution_status(execution_id, document_name)
 
         # Wait for execution to be completed
-        while status == 'InProgress' or status == 'Pending' or status == 'Cancelling':
+        while status == 'InProgress' or status == 'Pending' or status == 'Cancelling' or status == 'Waiting':
             time.sleep(constants.sleep_time_secs)
             status = self._get_execution_status(execution_id, document_name)
         return status
+
+    def wait_for_execution_step_status_is_terminal_or_waiting(self, execution_id, document_name, step_name, time_to_wait):
+        """
+        Returns execution step final status or WAITING, if step is in PROGRESS/PENDING status
+        it will wait till step execution will be completed starts waiting for approval.
+        :param execution_id: The SSM document execution id
+        :param document_name: The SSM document name
+        :param step_name: The SSM document execution step name
+        :param time_to_wait: Time in seconds to wait until step status is resolved
+        :return: The SSM document execution status.
+        """
+        start_time = time.time()
+        step_status = self._get_execution_step_status(execution_id, step_name)
+        elapsed_time = time.time() - start_time
+
+        # Wait for execution step to resolve in waiting or one of terminating statuses
+        while step_status == 'InProgress' or step_status == 'Pending' or step_status == 'Cancelling':
+            if elapsed_time > time_to_wait:
+                logging.exception(f'Execution step {step_name} for document {document_name} timed out')
+                return 'WaitTimedOut'
+            time.sleep(constants.sleep_time_secs)
+            step_status = self._get_execution_step_status(execution_id, step_name)
+            elapsed_time = time.time() - start_time
+        return step_status
+
+    def wait_for_execution_step_status_is_in_progress(self, execution_id, document_name, step_name, time_to_wait):
+        """
+        Returns when execution step is IN PROGRESS
+        :param execution_id: The SSM document execution id
+        :param document_name: The SSM document name
+        :param step_name: The SSM document execution step name
+        :param time_to_wait: Time in seconds to wait until step status is resolved
+        :return: The SSM document execution status.
+        """
+        start_time = time.time()
+        step_status = self._get_execution_step_status(execution_id, step_name)
+        elapsed_time = time.time() - start_time
+
+        # Wait for execution step to resolve in waiting or one of terminating statuses
+        while step_status == 'Pending':
+            if elapsed_time > time_to_wait:
+                logging.exception(f'Execution step {step_name} for document {document_name} timed out')
+                return 'WaitTimedOut'
+            time.sleep(constants.sleep_time_secs)
+            step_status = self._get_execution_step_status(execution_id, step_name)
+            elapsed_time = time.time() - start_time
+        return step_status
 
     def parse_input_parameters(self, cf_output, cache, input_parameters):
         """
@@ -91,6 +138,20 @@ class SsmDocument:
                          f'{self._build_execution_url(execution_id, step_index, step_execution_id)}')
         return execution['AutomationExecution']['AutomationExecutionStatus']
 
+    def _get_execution_step_status(self, execution_id, step_name):
+        """
+        Returns execution step status for given execution id and step name.
+        :param execution_id: The SSM document execution id
+        :param step_name: The SSM document step name
+        :return: The execution step status
+        """
+        execution = self.ssm_client.get_automation_execution(
+            AutomationExecutionId=execution_id
+        )
+        step_executions = execution['AutomationExecution']['StepExecutions']
+        step = self._get_step_by_name(step_executions, step_name)
+        return step['StepStatus']
+
     def _get_step_by_status(self, steps, status):
         """
          Returns SSM document step by given status.
@@ -101,6 +162,18 @@ class SsmDocument:
         if steps:
             for s in steps:
                 if s['StepStatus'] == status:
+                    return s
+
+    def _get_step_by_name(self, steps, step_name):
+        """
+         Returns SSM document step by a given name.
+        :param steps: The SSM document execution steps
+        :param step_name: The SSM document execution step name
+        :return: The The SSM document execution step for given status
+        """
+        if steps:
+            for s in steps:
+                if s['StepName'] == step_name:
                     return s
 
     def _document_exists(self, document_name):
@@ -136,4 +209,15 @@ class SsmDocument:
                 return index
             index += 1
 
+    def send_step_approval(self, execution_id, is_approved=True):
+        """
+        Sends approve or reject to SSM execution
+        :param execution_id The SSM document execution id
+        :param is_approved True if approve, False if reject
+        """
+        signal_type = 'Approve' if is_approved else 'Reject'
+        self.ssm_client.send_automation_signal(
+            AutomationExecutionId=execution_id,
+            SignalType=signal_type
+        )
 

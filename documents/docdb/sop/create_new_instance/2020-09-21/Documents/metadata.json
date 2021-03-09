@@ -1,0 +1,12 @@
+{
+  "documentName": "Digito-CreateNewDocDbInstance_2020-09-21",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "docdb:sop:create_new_instance:2020-09-21",
+  "failureType": "SOFTWARE",
+  "risk": "SMALL",
+  "intent": "| Used to create a new instance in a specified AZ/Region.",
+  "minorVersion": "001"
+}

@@ -25,6 +25,10 @@ Small
 * s3:ListObjectsV2
 * s3:ListObjectVersions
 * s3:DeleteObject
+* ssm:StartAutomationExecution
+* iam:PassRole
+* ssm:GetAutomationExecution
+* ssm:GetParameters
 
 Additionally, inherited from `Digito-RestoreFromBackup_2020-09-21`
 
@@ -56,14 +60,9 @@ back changes from the previous run
 ### `S3UserErrorAlarmName`:
 
 * type: String
-* description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+* description: (Optional) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
 * default: '4xxErrorsCount'
 
-### `AlarmWaitTimeout`
-
-* type: Integer
-* description: (Optional) Alarm wait timeout
-* default: 300 (seconds)
 
 ### `SNSTopicARNForManualApproval`:
 
@@ -109,7 +108,7 @@ back changes from the previous run
         * Get values of SSM Document input parameters from the previous execution using `PreviousExecutionId`:
             * `S3BucketWhereObjectWasCopiedFrom`
             * `S3BucketToRestoreWhereObjectWasCopiedTo`
-1. `RollbackpPreviousExecution`
+1. `RollbackPreviousExecution`
     * Type: aws:executeAutomation
     * Inputs:
         * `DocumentName`: `Digito-RestoreFromBackup_2020-09-21`
@@ -136,22 +135,20 @@ back changes from the previous run
 1. `CleanS3BucketWhereObjectsWillBeDeletedFrom`
     * Type: aws:executeAutomation
     * Inputs:
-        * `DocumentName`: `Digito-RestoreFromBackup_2020-09-21.CleanRestoreBucket` moved to the shared document
+        * `DocumentName`: `Digito-CleanS3Bucket_2021-03-03`
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
-            * `S3BucketToRestoreName`: {{S3BucketWhereObjectsWillBeDeletedFrom}}
+            * `S3BucketNameToClean`: {{S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:
-        * Clean the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by calling shared SSM document which moved to the shared document from the step
-          `Digito-RestoreFromBackup_2020-09-21.CleanRestoreBucket`
+        * Clean the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by calling shared SSM document  `Digito-CleanS3Bucket_2021-03-03`
     * OnFailure: step: RollbackCurrentExecution
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `S3UserErrorAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `S3UserErrorAlarmName` alarm to be `ALARM` for `AlarmWaitTimeout` seconds
+        * Wait for `S3UserErrorAlarmName` alarm to be `ALARM` 
     * OnFailure: step: RollbackCurrentExecution
 1. `RollbackCurrentExecution`
     * Type: aws:executeAutomation
@@ -169,10 +166,9 @@ back changes from the previous run
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `S3UserErrorAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `S3UserErrorAlarmName` alarm to be `OK` for `AlarmWaitTimeout` seconds
+        * Wait for `S3UserErrorAlarmName` alarm to be `OK`
     * isEnd: true
 
 ## Outputs

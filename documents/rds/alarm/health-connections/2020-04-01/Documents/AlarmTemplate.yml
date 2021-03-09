@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  DBInstanceIdentifier:
-    Type: String
-    Default: '${DBInstanceIdentifier}'
   SNSTopicARN:
     Type: String
-  BandWidth:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   ConnectionSpikeAnomalyDetector:
     Type: 'AWS::CloudWatch::AnomalyDetector'
@@ -21,14 +15,14 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when connections are anomalous with band width ', Ref: BandWidth ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when connections are anomalous with band width ', ${Threshold} ] ]
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 5
       Metrics:
         - Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${Threshold}, ')' ] ]
           Id: ad1
         - Id: m1
           MetricStat:
@@ -38,7 +32,7 @@ Resources:
               Dimensions:
                 - Name: DBInstanceIdentifier
                   Value:
-                    Ref: DBInstanceIdentifier
+                    '${DBInstanceIdentifier}'
             Period: 60
             Stat: Maximum
       ThresholdMetricId: ad1

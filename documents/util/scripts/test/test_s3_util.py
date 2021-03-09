@@ -12,10 +12,6 @@ S3_OWNER_NAME = 'owner-display-name'
 S3_OWNER_ID = 'examplee7a2f25102679df27bb0ae12b3f85be6f290b936c4393484be31bebcc'
 S3_FILE_VERSION_ID = 'PHtexPGjH2y.zBgT8LmB7wwLI2mpbz.k'
 S3_ETAG = '70ee1738b6b21e2c8a43f3a5ab0eee71'
-LIST_BUCKET_VERSIONS_EMPTY_RESPONSE = {
-    'Versions': [],
-    'DeleteMarkers': []
-}
 
 S3_OBJECT_KEY_NO_VERSIONS = 's3-object-key-no-versions'
 S3_OBJECT_WITH_VERSIONS = 's3-object-with-versions'
@@ -111,7 +107,7 @@ def list_object_versions_side_effect(Bucket, Prefix='', MaxKeys=None):
     # Imitate some working time
     time.sleep(1)
     if Bucket == S3_EMPTY_BUCKET:
-        return LIST_BUCKET_VERSIONS_EMPTY_RESPONSE
+        return {}
     if Prefix == S3_OBJECT_KEY_NO_VERSIONS:
         return {
             'Versions': [
@@ -135,7 +131,7 @@ def list_object_versions_side_effect(Bucket, Prefix='', MaxKeys=None):
 
 def list_object_versions_paginated_side_effect(Bucket, Prefix='', MaxKeys=None):
     if Bucket == S3_EMPTY_BUCKET:
-        return [LIST_BUCKET_VERSIONS_EMPTY_RESPONSE]
+        return [{}]
     if Prefix == S3_OBJECT_KEY_NO_VERSIONS:
         return [get_list_versions_not_versioned_response()]
     return [get_list_versions_response(0), get_list_versions_response(1)]
@@ -211,7 +207,7 @@ class TestS3Util(unittest.TestCase):
 
     def test_clean_bucket(self):
         events = {
-            "S3BucketToRestoreName": S3_BUCKET
+            "S3BucketNameToClean": S3_BUCKET
         }
         response = clean_bucket(events, None)
         self.list_object_versions_mock.paginate.assert_called_once_with(Bucket=S3_BUCKET)
@@ -228,7 +224,7 @@ class TestS3Util(unittest.TestCase):
 
     def test_clean_bucket_already_empty(self):
         events = {
-            "S3BucketToRestoreName": S3_EMPTY_BUCKET
+            "S3BucketNameToClean": S3_EMPTY_BUCKET
         }
         response = clean_bucket(events, None)
         self.list_object_versions_mock.paginate.assert_called_once_with(Bucket=S3_EMPTY_BUCKET)

@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  VolumeId:
-    Type: String
-    Default: '${VolumeId}'
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   BurstBalance:
     Type: 'AWS::CloudWatch::Alarm'
@@ -15,21 +9,19 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when drained burst balance is below ', Ref: Threshold ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when drained burst balance is below ', ${Threshold} ] ]
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanThreshold
       EvaluationPeriods: 3
       DatapointsToAlarm: 1
       Dimensions:
         - Name: VolumeId
-          Value:
-            Ref: VolumeId
+          Value: '${VolumeId}'
       MetricName: BurstBalance
       Namespace: AWS/EC2
       Period: 300
       Statistic: Average
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing
     Metadata:
       'AWS::Digito::Monitoring':

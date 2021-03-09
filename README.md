@@ -143,6 +143,7 @@ dynamodb:alarm:health-read_throttle_events:2020-04-01 - Reference id for recomme
     "DdbReadThrottledAlarmName": "dynamodb:alarm:health-read_throttle_events:2020-04-01"
 }
 ```
+Also add "ssm:GetParameters" permission in AutomationAssumeRoleTemplate.yml for documents with recommended alarms.
 
 ## Parameters in SSM document
 * Try to keep only main resource in ssm document parameter and resolve other resources needed in document.

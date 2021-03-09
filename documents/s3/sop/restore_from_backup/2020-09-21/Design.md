@@ -26,6 +26,9 @@ Small
 * s3:ListBucket
 * s3:ListObjectVersions
 * s3:ListBucketVersions
+* ssm:StartAutomationExecution
+* iam:PassRole
+* ssm:GetAutomationExecution  
 
 ## Supports Rollback
 

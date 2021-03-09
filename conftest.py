@@ -278,6 +278,36 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     assert expected_status == actual_status
 
 
+@when(parsers.parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'))
+def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache):
+    """
+    Common step to wait for SSM document execution step waiting of final status
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_document_name The SSM document name
+    :param ssm_step_name The SSM document step name
+    :param time_to_wait Timeout in seconds to wait until step status is resolved
+    :param expected_status The expected SSM document execution status
+    :param input_parameters The input parameters
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param ssm_test_cache The custom test cache
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    if expected_status == 'InProgress':
+        actual_status = ssm_document.wait_for_execution_step_status_is_in_progress(
+            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+        )
+    else:
+        actual_status = ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
+            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+        )
+    assert expected_status == actual_status
+
+
 @given(parsers.parse('the cached input parameters\n{input_parameters}'))
 def given_cached_input_parameters(ssm_test_cache, input_parameters):
     for parm_name, param_val in parse_str_table(input_parameters).rows[0].items():
@@ -348,3 +378,37 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
         assert int(act_perc) < int(exp_perc)
     else:
         raise Exception('Operator for [{}] is not supported'.format(operator))
+
+
+@when(parsers.parse('Approve SSM automation document\n{input_parameters}'))
+def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+    """
+    Common step to approve waiting execution
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_test_cache The custom test cache
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param input_parameters The input parameters
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    ssm_document.send_step_approval(ssm_execution_id)
+
+
+@when(parsers.parse('Reject SSM automation document\n{input_parameters}'))
+def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+    """
+    Common step to reject waiting execution
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_test_cache The custom test cache
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param input_parameters The input parameters
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    ssm_document.send_step_approval(ssm_execution_id, is_approved=False)

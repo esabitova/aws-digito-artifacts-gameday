@@ -34,24 +34,34 @@ No.
 * Description: (Required) DocDb Engine
 * Type: String
 ### AvailabilityZone
-* Description: (Required) DocDb instance Availability Zone
+* Description: (Optional) Availability Zone to place DocDb Instance
 * Type: String
 ### AutomationAssumeRole:
   * Description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
   * Type: String
 
 ## Details of SSM Document steps:
+1. `GetClusterAZ`
+   * Type: aws:executeScript
+   * Outputs:
+      * `CurrentClusterAZ`
+   * Inputs:
+      * `DBClusterIdentifier`
+   * Explanation:
+      * Get Availability Zones for DocDb cluster region if Availability Zone is not provided in inputs by
+        calling [describe_db_clusters](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/docdb.html#DocDB.Client.describe_db_clusters)
 1. `CreateNewInstance`
-    * Type: aws:executeAwsApi
+    * Type: aws:executeScript
     * Inputs:
+        * `DBClusterIdentifier`
         * `DBInstanceIdentifier`
         * `DBInstanceClass`
-        * `DBClusterIdentifier`
-        * `Engine`
+        * `DBClusterAZ`
         * `AvailabilityZone`
+        * `Engine`
     * Explanation:
-        * Used to create a new instance by
-          calling [CreateDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_CreateDBInstance.html)
+        * Create a new instance in the AZ provided from input or use random AZ for DocDb cluster region by
+          calling [create_db_instance](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/docdb.html#DocDB.Client.create_db_instance)
 1. `WaitUntilCreatedInstanceAvailable`
    * Type: aws:waitForAwsResourceProperty
    * Inputs:

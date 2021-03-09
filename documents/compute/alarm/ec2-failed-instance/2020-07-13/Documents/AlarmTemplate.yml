@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  InstanceId:
-    Type: String
-    Default: '${InstanceId}'
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   FailedInstanceAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -22,12 +16,10 @@ Resources:
       DatapointsToAlarm: 1
       Dimensions:
         - Name: InstanceId
-          Value:
-            Ref: InstanceId
+          Value: '${InstanceId}'
       MetricName: StatusCheckFailed
       Namespace: AWS/EC2
       Period: 300
       Statistic: Maximum
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing

@@ -1,4 +1,4 @@
-boto3==1.17.17
+boto3==1.17.19
 setuptools==53.0.0
 pytest==6.2.2
 pytest_bdd==4.0.2
@@ -8,3 +8,4 @@ cfn_flip==1.2.3
 sttable==0.0.1
 pynamodb==5.0.2
 pytest-parallel==0.1.0
+flake8
