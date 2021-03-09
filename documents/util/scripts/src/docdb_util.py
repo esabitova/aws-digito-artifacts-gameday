@@ -59,7 +59,7 @@ def verify_db_instance_exist(events, context):
     except Exception as e:
         if "DBInstanceNotFound" in str(e):
             raise Exception(
-                f"Cluster instance {events['DBInstanceIdentifier']} is not found in cluster {events['DBClusterIdentifier']}")
+                f"Cluster instance {events['DBInstanceIdentifier']} is not in cluster {events['DBClusterIdentifier']}")
         else:
             print(f'Error: {e}')
             raise

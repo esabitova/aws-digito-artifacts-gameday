@@ -7,7 +7,7 @@ from pytest_bdd import (
 
 
 @scenario('../features/scaling_down.feature',
-          'Create AWS resources using CloudFormation template and execute SSM automation document' + \
+          'Create AWS resources using CloudFormation template and execute SSM automation document' +
           ' for scaling down DocumentDb instances')
 def test_scaling_down_docdb():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
