@@ -20,9 +20,8 @@ def test_restore_previous_versions():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
-cache_value_statement = 'cache value of "{version_indicator}" version of the "{file_name}" file as "{cache_property}" ' \
-                        'at "{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution' \
-                        '\n{input_parameters}'
+cache_value_statement = 'cache value of "{version_indicator}" version of the "{file_name}" file as "{cache_property}" '
+'at "{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution\n{input_parameters}'
 
 
 @when(parsers.parse(cache_value_statement))

@@ -40,5 +40,3 @@ def get_ec2_metric_max_datapoint(session: boto3.Session, start_time_utc, end_tim
         if max_dp < float(dp['Maximum']):
             max_dp = float(dp['Maximum'])
     return max_dp
-
-

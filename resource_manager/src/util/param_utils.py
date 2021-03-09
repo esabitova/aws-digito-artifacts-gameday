@@ -4,7 +4,8 @@ from sttable import parse_str_table
 
 def parse_param_values_from_table(data_table, param_containers):
     """
-    Parsing given data table parameters for each row. As explained in :func:`~resource_manager.src.util.param_utils.parse_param_value`
+    Parsing given data table parameters for each row. As explained in
+    :func:`~resource_manager.src.util.param_utils.parse_param_value`
     :param data_table The table which contains parameters to parse
     :param param_containers The containers with parameter values where parameter value references are pointing to
     """

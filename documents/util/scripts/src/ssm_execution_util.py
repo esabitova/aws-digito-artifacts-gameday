@@ -26,6 +26,7 @@ def get_output_from_ssm_step_execution(events, context):
     # Could not find step name
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
 
+
 def get_inputs_from_ssm_step_execution(events, context):
     print('Creating ssm client')
     print(events)
@@ -84,6 +85,7 @@ def cancel_command_execution(events, context):
         CommandId=command_id,
         InstanceIds=events['InstanceIds']
     )
+
 
 def run_command_document_async(events, context):
     if 'DocumentName' not in events or 'InstanceIds' not in events:

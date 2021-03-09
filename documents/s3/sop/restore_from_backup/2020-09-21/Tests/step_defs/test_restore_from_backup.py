@@ -2,14 +2,8 @@
 """SSM automation document to restore an S3 bucket from a backup bucket"""
 
 from pytest_bdd import (
-    scenario,
-    when,
-    parsers,
-    given
+    scenario
 )
-
-from resource_manager.src.util import s3_utils as s3_utils
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache, extract_param_value
 
 
 @scenario('../features/restore_from_backup.feature',
@@ -34,4 +28,3 @@ def test_restore_from_backup_approval():
           'with a reject to clean the restore bucket')
 def test_restore_from_backup_reject():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
-
