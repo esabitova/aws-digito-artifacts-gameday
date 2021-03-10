@@ -1,6 +1,6 @@
 # https://us-west-2.console.aws.amazon.com/codesuite/codecommit/repositories/aws-digito-artifacts-spec/browse/refs/heads/master/--/components/compute/stateless/ec2_and_asg/compute-stateless-gameday.adoc?region=us-west-2&lines=185-185
 ## Id
-stateless-compute:test:ec2-kill_process:2020-07-28
+compute:test:ec2-kill_process:2020-07-28
 
 ## Intent
 Test app if process suddenly dies.

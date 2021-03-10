@@ -1,6 +1,6 @@
 # https://code.amazon.com/packages/AwsDigitoAssessmentRules/blobs/e0c9fb58c0f340b95b5a8f818c33cf6f0aa02f11/--/components/compute/stateless/ec2_and_asg/compute-stateless-gameday.adoc#L213
 ## Id
-stateless-compute:test:ec2-inject_memory_load:2020-07-28
+compute:test:ec2-inject_memory_load:2020-07-28
 
 ## Intent
 Test app monitor under load. (see note below)
