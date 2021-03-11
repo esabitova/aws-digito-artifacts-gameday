@@ -25,10 +25,8 @@ parameters:
     default: false
   AutomationAssumeRole:
     type: String
-    description: "(Optional) The ARN of the role that allows Automation to perform\
+    description: "(Required) The ARN of the role that allows Automation to perform\
          \ the actions on your behalf."
-    default:
-      Fn::GetAtt: DigitoRdsPromoteReadReplicaAssumeRole.Arn
   DbInstanceIdentifier:
     type: String
     description: The identifier of the source DB instance with at least one read replica

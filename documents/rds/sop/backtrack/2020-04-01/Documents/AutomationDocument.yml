@@ -21,10 +21,8 @@ assumeRole: '{{ AutomationAssumeRole }}'
 parameters:
   AutomationAssumeRole:
     type: String
-    description: "The ARN of the role that allows Automation to perform\
+    description: "(Required) The ARN of the role that allows Automation to perform\
          \ the actions on your behalf"
-    default:
-      Fn::GetAtt: DigitoRdsBacktrackAssumeRole.Arn
   DbClusterIdentifier:
     type: String
     description: The identifier for the db cluster
