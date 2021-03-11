@@ -294,6 +294,16 @@ Resources:
       GroupDescription: Web Server ELB Security group - open to all on 80 and 443
       VpcId:
         Ref: VPC
+  WebELBSGIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:
+        Ref: WebELBSG
+      IpProtocol: tcp
+      FromPort: '80'
+      ToPort: '80'
+      SourceSecurityGroupId:
+        Ref: WebELBSG
   WebServerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -466,6 +476,7 @@ Resources:
           yum install httpd -y
           service httpd start
           chkconfig httpd on
+          echo "Hello World from $(hostname -f)" > /var/www/html/index.html
   WebLoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -516,12 +527,11 @@ Resources:
           - Fn::GetAZs: ""
       MinSize: '2'
       MaxSize: '2'
-      HealthCheckType: EC2
+      HealthCheckType: ELB
       HealthCheckGracePeriod: '60'
+      Cooldown: '60'
       MetricsCollection:
       - Granularity: '1Minute'
-        Metrics:
-        - 'GroupInServiceCapacity'
       LaunchConfigurationName:
         Ref: WebServerLaunchConfiguration
       VPCZoneIdentifier:
@@ -564,10 +574,30 @@ Resources:
       Threshold: 70
       AlarmDescription: Alarm if any ASG instance CPU utilization is above or equal to 70%
       ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: breaching
       Dimensions:
         - Name: AutoScalingGroupName
           Value:
             Ref: WebServerAutoscalingGroup
+  UnHealthyHostCountAlarm:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when unhealthy host count is over 1' ] ]
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt WebLoadBalancerTargetGroup.TargetGroupFullName
+        - Name: LoadBalancer
+          Value: !GetAtt WebLoadBalancer.LoadBalancerFullName
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Period: 60
+      Statistic: Maximum
+      Threshold: 1
+      TreatMissingData: missing
 Outputs:
   SyntheticAlarm:
     Description: Synthetic Alarm Name
@@ -575,6 +605,9 @@ Outputs:
   AsgCpuUtilizationAlarmName:
     Description: Asg Cpu Utilization Alarm Name
     Value: !Ref AsgCpuUtilizationAlarm
+  UnHealthyHostCountAlarm:
+    Description: UnHealthy Hosts Count Alarm Name
+    Value: !Ref UnHealthyHostCountAlarm
   AutoScalingGroupName:
     Description: AutoScalingGroupName
     Value: !Ref WebServerAutoscalingGroup

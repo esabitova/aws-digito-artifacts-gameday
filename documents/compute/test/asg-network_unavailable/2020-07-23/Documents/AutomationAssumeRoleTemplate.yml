@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Asg High Memory Simulation
+Description: Role for SSM Network unavailable Simulation
 Outputs:
-  DigitoKillProcessAsgAssumeRole:
-    Description: DigitoKillProcessAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoKillProcessAsgAssumeRole.Arn
+  DigitoSimulateNetworkUnavailableInAsgAssumeRole:
+    Description: DigitoSimulateNetworkUnavailableInAsg Automation Assume Role ARN
+    Value: !GetAtt DigitoSimulateNetworkUnavailableInAsgAssumeRole.Arn
 Resources:
-  DigitoKillProcessAsgAssumeRole:
+  DigitoSimulateNetworkUnavailableInAsgAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,23 +34,25 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoKillProcessAsgAssumePolicy:
+  DigitoSimulateNetworkUnavailableInAsgAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoKillProcessAsgAssumePolicy"
+      PolicyName: "DigitoSimulateNetworkUnavailableInAsgAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'autoscaling:DescribeAutoScalingGroups'
-              - 'cloudwatch:DescribeAlarmHistory'
-              - 'cloudwatch:DescribeAlarms'
-              - 'ssm:DescribeInstanceInformation'
+              - 'ssm:GetParameters'
+              - 'ssm:SendCommand'
               - 'ssm:ListCommands'
               - 'ssm:ListCommandInvocations'
-              - 'ssm:SendCommand'
-              - 'ssm:GetParameters'
+              - 'ssm:DescribeInstanceInformation'
+              - 'ssm:GetAutomationExecution'
+              - 'ssm:CancelCommand'
+              - 'cloudwatch:DescribeAlarmHistory'
+              - 'cloudwatch:DescribeAlarms'
+              - 'autoscaling:DescribeAutoScalingGroups'
       Roles:
-        - Ref: DigitoKillProcessAsgAssumeRole
+        - Ref: DigitoSimulateNetworkUnavailableInAsgAssumeRole
