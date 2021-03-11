@@ -1,0 +1,8 @@
+{
+  "documentName": "Digito-DocDbRestoreFromBackup_2020-09-21",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:sop:docdb_restore_from_backup:2020-09-21",
+  "minorVersion": "001"
+}
