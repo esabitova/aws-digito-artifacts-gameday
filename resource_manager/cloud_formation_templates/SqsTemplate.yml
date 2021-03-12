@@ -1,0 +1,377 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for SQS and related resources. Contains all alarms.
+Outputs:
+  SqsFifoQueueArn:
+    Description: Fifo queue ARN
+    Value: !GetAtt SqsFifoQueue.Arn
+  SqsFifoQueueName:
+    Description: Fifo queue ARN
+    Value: !GetAtt SqsFifoQueue.QueueName
+  SqsFifoQueueUrl:
+    Description: Fifo queue URL
+    Value: !Ref SqsFifoQueue
+  SqsDeadLetterQueueArn:
+    Description: Dead letter queue ARN
+    Value: !GetAtt SqsDeadLetterQueue.Arn
+  SqsDeadLetterQueueUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDeadLetterQueue
+  SqsFifoQueueEnabledDlqArn:
+    Description: ARN of Fifo queue with enabled DLQ
+    Value: !GetAtt SqsFifoQueueEnabledDlq.Arn
+  SqsFifoQueueEnabledDlqUrl:
+    Description: Fifo queue URL
+    Value: !Ref SqsFifoQueueEnabledDlq
+  SqsFifoQueueEnabledDlqName:
+    Description: Name of Fifo queue with enabled DLQ
+    Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
+  SqsDeadLetterQueueEnabledDlqArn:
+    Description: Dead letter queue ARN
+    Value: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
+  SqsDeadLetterQueueEnabledDlqUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDeadLetterQueueEnabledDlq
+  SqsStandardQueueArn:
+    Description: Standard queue ARN
+    Value: !GetAtt SqsStandardQueue.Arn
+  SqsStandardQueueUrl:
+    Description: Standard queue ARN
+    Value: !Ref SqsStandardQueue
+  SNSTopicARN:
+    Description: SNS Topic ARN
+    Value: !GetAtt SqsDeadLetterQueue.Arn
+  NumberOfMessagesSentBandAlarm:
+    Description: Alarm
+    Value: !Ref  NumberOfMessagesSentBandAlarm
+  SentMessageSizeAlarm:
+    Description: Alarm
+    Value: !Ref  SQSSentMessageSizeAlarm
+  DLQMessageAlarm:
+    Description: Alarm
+    Value: !Ref  SQSDlqMessageAlarm
+  DLQMessageAlarmForEnabledDlq:
+    Description: Alarm
+    Value: !Ref  SQSDlqMessageAlarmForEnabledDlq
+  ApproximateAgeOfOldestMessageMaximumAlarm:
+    Description: Alarm
+    Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
+  ThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
+    Description: Alarm
+    Value: !Ref SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm
+  ThresholdApproximateNumberOfMessagesNotVisibleFifoAlarm:
+    Description: Alarm
+    Value: !Ref SQSThresholdApproximateNumberOfMessagesNotVisibleFifoAlarm
+  ApproximateAgeOfOldestMessageDLQAlarm:
+    Description: Alarm
+    Value: !Ref SQSApproximateAgeOfOldestMessageDLQAlarm
+
+Parameters:
+  SqsFifoQueueRedrivePolicyMaxReceiveCount:
+    Type: Number
+    Default: 5
+  SentMessageSizeMaximumMinus30Percents:
+    Type: Number
+    Description: 256Kb - 30%
+    Default: 183500
+  AverageDurationToProcessSentMessagePlus10Percents:
+    Type: Number
+    Description: AverageDurationToProcessSentMessage + 10%
+    Default: 6
+  AverageNumberOfMessagesSentThreshold:
+    Type: Number
+    Description: AverageNumberOfMessagesSent * 0.3
+    Default: 0.25
+  ApproximateNumberOfMessagesNotVisibleThresholdStandardQueue:
+    Type: Number
+    Description: ApproximateNumberOfMessagesNotVisible < 120000 - 10%
+    Default: 108000
+  ApproximateNumberOfMessagesNotVisibleThresholdFifo:
+    Type: Number
+    Description: ApproximateNumberOfMessagesNotVisible < 20000 - 10%
+    Default: 18000
+  ApproximateAgeOfOldestMessageDLQThreshold:
+    Type: Number
+    Description: ApproximateAgeOfOldestMessage < MessageRetentionPeriodDLQ - 10%
+    Default: 90
+
+Resources:
+  SqsFifoQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      FifoQueue: true
+  SqsFifoQueuePolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        - !Ref SqsFifoQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !GetAtt SqsFifoQueue.QueueName
+        Statement:
+          - Sid: Allow-Send-Recieve-Delete
+            Effect: Allow
+            Action:
+              - SQS:SendMessage
+              - SQS:ReceiveMessage
+              - SQS:DeleteMessage
+            Principal:
+              Service:
+                - ssm.amazonaws.com
+              AWS: "*"
+            Resource: !GetAtt SqsFifoQueue.Arn
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref "AWS::AccountId"
+  SqsDeadLetterQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      FifoQueue: true
+  SqsFifoQueueEnabledDlq:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      FifoQueue: true
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
+        maxReceiveCount: !Ref SqsFifoQueueRedrivePolicyMaxReceiveCount
+  SqsFifoQueueEnabledDlqPolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        - !Ref SqsFifoQueueEnabledDlq
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !GetAtt SqsFifoQueueEnabledDlq.QueueName
+        Statement:
+          - Sid: Allow-Send-Recieve-Delete
+            Effect: Allow
+            Action:
+              - SQS:SendMessage
+              - SQS:ReceiveMessage
+              - SQS:DeleteMessage
+            Principal:
+              Service:
+                - ssm.amazonaws.com
+              AWS: "*"
+            Resource: !GetAtt SqsFifoQueueEnabledDlq.Arn
+  SqsDeadLetterQueueEnabledDlq:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      FifoQueue: true
+  SqsStandardQueue:
+    Type: "AWS::SQS::Queue"
+  SNSTopic:
+    Type: "AWS::SNS::Topic"
+  SNSTopicPolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: SNSTopicPolicy
+        Statement:
+          - Sid: SNSTopicPolicyStatementForSQS
+            Effect: Allow
+            Principal:
+              Service:
+                - cloudwatch.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref "AWS::AccountId"
+      Topics:
+        - !Ref SNSTopic
+  NumberOfMessagesSentBandAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsNumberOfMessagesSentBandAlarm"
+      ActionsEnabled: true
+      AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent_band:2020-11-26"
+      AlarmActions:
+        - !Ref SNSTopic
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      TreatMissingData: "ignore"
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "AWS/SQS"
+              MetricName: "NumberOfMessagesSent"
+              Dimensions:
+                - Name: "QueueName"
+                  Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
+            Period: 60
+            Stat: "Sum"
+          ReturnData: true
+        - Id: "ad1"
+          Expression:
+            !Join [
+                "",
+              [
+                  "ANOMALY_DETECTION_BAND(m1, ",
+                  !Ref AverageNumberOfMessagesSentThreshold,
+                  ")",
+              ],
+            ]
+          Label: "NumberOfMessagesSent (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  SQSSentMessageSizeAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsSentMessageSizeAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_sent_message_size:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "SentMessageSize"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsFifoQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref SentMessageSizeMaximumMinus30Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSDlqMessageAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsDlqMessageAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Sum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsDeadLetterQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSDlqMessageAlarmForEnabledDlq:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsDlqMessageForEnabledDlqAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Sum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsDeadLetterQueueEnabledDlq.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSApproximateAgeOfOldestMessageMaximumAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref AverageDurationToProcessSentMessagePlus10Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_standard_queue:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ApproximateNumberOfMessagesNotVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref ApproximateNumberOfMessagesNotVisibleThresholdStandardQueue
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSThresholdApproximateNumberOfMessagesNotVisibleFifoAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsThresholdApproximateNumberOfMessagesNotVisibleFifoQueueAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ApproximateNumberOfMessagesNotVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsFifoQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref ApproximateNumberOfMessagesNotVisibleThresholdFifo
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSApproximateAgeOfOldestMessageDLQAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsApproximateAgeOfOldestMessageDlq"
+      AlarmDescription: "sqs:alarm:recovery_alarm_approximate_age_of_oldest_message_dlq:2020-11-26"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsDeadLetterQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref ApproximateAgeOfOldestMessageDLQThreshold
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
