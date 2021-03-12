@@ -15,20 +15,29 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: 'SOP - Scaling down'
+description: 'SOP - Scaling up'
 schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
 outputs:
   - BackupDbInstancesMetadata.BackupDbClusterInstancesCountValue
   - BackupDbClusterInstancesCount.DbClusterInstancesNumber
   - VerifyCurrentInstancesCount.CurrentInstancesNumber
+  - OutputRecoveryTime.RecoveryTime
 parameters:
+  AvailabilityZone:
+    type: String
+    default: ''
+    description: (Optional) Availability Zone to place DocDb Instance
   DBClusterIdentifier:
     type: String
     description: (Required) DocDb Cluster Identifier
   DBInstanceReplicaIdentifier:
     type: String
     description: (Required) DocDb Replica Identifier
+  DBInstanceClass:
+    type: 'String'
+    default: 'db.t3.medium'
+    description: 'Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region'
   AutomationAssumeRole:
     type: String
     description: >-
@@ -38,16 +47,29 @@ parameters:
     default: ''
 
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: BackupDbInstancesMetadata
     action: aws:executeAwsApi
     description: Backup current DbClusterInstances value
     inputs:
       Service: docdb
       Api: DescribeDBClusters
-      Filters:  
-      - Name: 'db-cluster-id'
-        Values: 
-        - '{{ DBClusterIdentifier }}'
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
     outputs:
       - Name: BackupDbClusterInstancesCountValue
         Selector: $.DBClusters[0].DBClusterMembers
@@ -70,27 +92,18 @@ mainSteps:
         SCRIPT_PLACEHOLDER::docdb_util.imports
         SCRIPT_PLACEHOLDER::docdb_util.count_cluster_instances
 
-  - name: VerifyInstanceExistInCluster
-    action: aws:executeScript
-    description: Verify DocDb instance exists in same cluster
+  - name: AddDocDbReadReplica
+    action: aws:executeAutomation
+    maxAttempts: 3
+    timeoutSeconds: 3600
     onFailure: Abort
     inputs:
-      Runtime: python3.7
-      Handler: verify_db_instance_exist
-      InputPayload:
-        DBInstanceIdentifier: '{{ DBInstanceReplicaIdentifier }}'
+      DocumentName: Digito-CreateNewDocDbInstance_2020-09-21
+      RuntimeParameters:
         DBClusterIdentifier: '{{ DBClusterIdentifier }}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::docdb_util.imports
-        SCRIPT_PLACEHOLDER::docdb_util.verify_db_instance_exist
-
-  - name: RemoveDocDbReadReplica
-    action: aws:executeAwsApi
-    description: Remove selected DocDb Read Replica
-    inputs:
-      Service: docdb
-      Api: DeleteDBInstance
-      DBInstanceIdentifier: '{{ DBInstanceReplicaIdentifier }}'
+        DBInstanceIdentifier: '{{ DBInstanceReplicaIdentifier }}'
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        AvailabilityZone: '{{ AvailabilityZone }}'
 
   - name: WaitUntilInstancesAvailable
     action: aws:waitForAwsResourceProperty
@@ -124,3 +137,18 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::docdb_util.imports
         SCRIPT_PLACEHOLDER::docdb_util.verify_cluster_instances
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
