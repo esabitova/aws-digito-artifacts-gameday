@@ -5,7 +5,18 @@
    2. [Adding New Document](#adding-new-document)
    3. [Metadata File](#metadata-file)
    4. [Adding New Python Script](#adding-new-python-script)
-3. [Integration Tests](#integration-tests)
+   5. [Including python script in SSM documents](#including-python-script-in-ssm-documents)
+   6. [SSM automation execution output](#ssm-automation-execution-output)
+   7. [Rollback support](#rollback-support)
+   8. [Adding recommended alarms](#adding-recommended-alarms)
+   9. [Parameters in SSM document](#parameters-in-ssm-document)
+  10. [SyntheticAlarmName](#synthetic-alarm-name)
+  11. [RecoveryTime/RecoveryPoint](#recovery-time-recovery-point)
+  12. [Risk classification](#risk-classification)
+3. [Build validation](#build-validation)
+   1. [Unit tests](#unit-tests)
+   2. [Code Style](#code-style)
+4. [Integration Tests](#integration-tests)
     1. [Pool Size Configuration](#pool-size-configuration)
     2. [Cloud Formation Templates](#cloud-formation-templates)
     3. [Pytest Integration with Resource Pooling](#pytest-integration-with-resource-pooling)
@@ -19,7 +30,7 @@
         3. [Simple Parameters](#simple-parameters)
     6. [Tests Isolation](#tests-isolation)
     7. [Integration Test Execution](#integration-test-execution) 
-4. [TODO List](#todo-list)
+5. [TODO List](#todo-list)
 
 # Digito Failure Injection Documents
 This package provides SSM documents for injecting failures in different aws resources.
@@ -143,7 +154,13 @@ dynamodb:alarm:health-read_throttle_events:2020-04-01 - Reference id for recomme
     "DdbReadThrottledAlarmName": "dynamodb:alarm:health-read_throttle_events:2020-04-01"
 }
 ```
+
 Also add "ssm:GetParameters" permission in AutomationAssumeRoleTemplate.yml for documents with recommended alarms.
+
+Tests with recommended alarms would have following three mandatory steps. See documents/compute/test/asg-network_unavailable/2020-07-23/Documents/AutomationDocument.yml for example.
+* AssertAlarmToBeGreenBeforeTest - This should be first step before we start execution
+* AssertAlarmTriggered - This should be validated after injecting failure that alarm triggered during test.
+* AssertAlarmToBeGreen - This should be validated after the test is over that alarm is green again.
 
 ## Parameters in SSM document
 * Try to keep only main resource in ssm document parameter and resolve other resources needed in document.
@@ -159,6 +176,20 @@ Also add "ssm:GetParameters" permission in AutomationAssumeRoleTemplate.yml for 
 ## RecoveryTime/RecoveryPoint
 * Add RecoveryTime for every SOP SSM document by starting a timer at start of document. Name of execution output should be RecoveryTime.
 * Where applicable, add recovery point too. For example, for point in time restore, use latest restorable time to calculate it. For restore from backup, use last backup time.
+* Use scripts in documents/util/scripts/src/common_util.py to record recovery time.
+
+## Risk classification
+* low -  we don’t expect any outage because of redundancy setup of the resource, for example rebooting one instance in ASG
+* medium - can create outage if application code can not handle temp restart like rebooting db
+* high - will create outage for more than x minutes like network outage or the sqs queue policy changes to disable permission
+
+# Build validation
+## Unit tests
+* Run 'python3 -m pytest -m unit_test' to run all unit tests before sending PR's.
+
+## Code Style
+* Run 'python3 -m flake8' to validate code style. Check setup.cfg for flake8 rules/overrides.
+
 
 # Integration Tests
 * In order to verify SSM automation document validity we want to have way to test documents against real AWS resources. 

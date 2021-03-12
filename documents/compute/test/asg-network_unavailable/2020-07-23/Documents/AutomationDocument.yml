@@ -16,7 +16,7 @@
 #
 ---
 schemaVersion: '0.3'
-description: Kill process in ASG
+description: Execute network unavailable on ec2 instances in ASG via Run Command
 assumeRole: '{{AutomationAssumeRole}}'
 parameters:
   AutomationAssumeRole:
@@ -25,9 +25,6 @@ parameters:
   AutoScalingGroupName:
     type: String
     description: (Required) Name of auto scaling group
-  ProcessName:
-    type: String
-    description: (Required) Process name to be killed
   MultipleUnhealthyHostsAlarmName:
     type: String
     description: (Required) MultipleUnhealthyHostsAlarmName which should be triggerred
@@ -35,9 +32,9 @@ parameters:
     type: Integer
     description: (Optional) Percentage of ASG EC2 instances to be impacted
     default: 1
-  ExpectedRecoveryTimeInMinutes:
+  DurationInMinutes:
     type: String
-    description: (Optional) The expected recovery time after process dies (default 5)
+    description: (Optional) The duration of the attack in minutes (default 5)
     default: '5'
 mainSteps:
   - name: AssertAlarmToBeGreenBeforeTest
@@ -82,19 +79,21 @@ mainSteps:
         SCRIPT_PLACEHOLDER::asg_util.imports
 
         SCRIPT_PLACEHOLDER::asg_util.get_instance_ids_by_percentage
-  - name: KillProcess
+  - name: SimulateNetworkUnavailable
     action: aws:runCommand
-    maxAttempts: 3
+    onFailure: Continue
+    timeoutSeconds: 60
     inputs:
-      DocumentName: Digito-KillProcessCommand_2020-07-28
+      DocumentName: Digito-NetworkUnavailableCommand_2020-07-23
       InstanceIds:
         - '{{GetInstancesByPercentage.InstanceIds}}'
       Parameters:
-        ProcessName: '{{ProcessName}}'
-  - name: WaitForRecoveryTime
+        DurationInMinutes: '{{DurationInMinutes}}'
+      TimeoutSeconds: 60
+  - name: WaitForTestDuration
     action: 'aws:sleep'
     inputs:
-      Duration: 'PT{{ExpectedRecoveryTimeInMinutes}}M'
+      Duration: 'PT{{DurationInMinutes}}M'
   - name: AssertAlarmTriggered
     action: 'aws:executeScript'
     onFailure: Abort
@@ -103,13 +102,15 @@ mainSteps:
       Handler: verify_alarm_triggered
       InputPayload:
         AlarmName: '{{MultipleUnhealthyHostsAlarmName}}'
-        DurationInMinutes: '{{ExpectedRecoveryTimeInMinutes}}'
+        DurationInMinutes: '{{DurationInMinutes}}'
       Script: |-
         SCRIPT_PLACEHOLDER::cloudwatch_util.imports
 
         SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
   - name: AssertAlarmToBeGreen
-    action: aws:assertAwsResourceProperty
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms

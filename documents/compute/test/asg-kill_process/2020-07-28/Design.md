@@ -16,11 +16,13 @@ Small
 * There is a synthetic alarm setup for application
 
 ## Permission required for AutomationAssumeRole
+* ssm:GetParameters
 * ssm:SendCommand
 * ssm:ListCommands
 * ssm:ListCommandInvocations
 * ssm:DescribeInstanceInformation
 * cloudwatch:DescribeAlarms
+* cloudwatch:DescribeAlarmHistory
 
 ## Supports Rollback
 No
@@ -36,16 +38,16 @@ No
    * type: Integer
    * description: (Optional) Percentage of ASG EC2 instances to be impacted
    * default: 1
-### SyntheticAlarmName:
+### MultipleUnhealthyHostsAlarmName:
    * type: String
-   * description: (Required) SyntheticAlarmName which should be green within recovery time.
+   * description: (Required) MultipleUnhealthyHostsAlarmName which should be triggerred.
 ### ProcessName:
    * type: String
    * description: (Optional) Process name to be killed
-### ExpectedRecoveryTimeInSeconds:
+### ExpectedRecoveryTimeInMinutes:
    * type: String
-   * description: (Optional) The expected recovery time after process dies (default 300)
-   * default: '300'
+   * description: (Optional) The expected recovery time after process dies (default 5)
+   * default: '5'
 
 ## Details
   * Figure out the instances to run on (round up)

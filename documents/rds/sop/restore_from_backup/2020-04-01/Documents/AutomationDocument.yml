@@ -24,10 +24,8 @@ parameters:
     default: false
   AutomationAssumeRole:
     type: String
-    description: "The ARN of the role that allows Automation to perform\
+    description: "(Required) The ARN of the role that allows Automation to perform\
          \ the actions on your behalf"
-    default:
-      Fn::GetAtt: DigitoRdsRestoreFromBackupAssumeRole.Arn
   DbInstanceIdentifier:
     type: String
     description: The identifier of the DB instance to be replaced, or base name if dry run

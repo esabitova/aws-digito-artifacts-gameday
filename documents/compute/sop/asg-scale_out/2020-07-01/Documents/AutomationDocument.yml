@@ -25,9 +25,7 @@ parameters:
     description: Dryrun indicates a testing run, changes will be rolled back.
   AutomationAssumeRole:
     type: String
-    description: (Optional) The ARN of the role that allows Automation to perform the actions on your behalf.
-    default:
-      Fn::GetAtt: DigitoAsgScaleOutAssumeRole.Arn
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
   AutoScalingGroupName:
     type: String
     description: The Name of the ASG to scaleOut
