@@ -93,7 +93,7 @@ Parameters:
   AverageDurationToProcessSentMessagePlus10Percents:
     Type: Number
     Description: AverageDurationToProcessSentMessage + 10%
-    Default: 6
+    Default: 15
   AverageNumberOfMessagesSentThreshold:
     Type: Number
     Description: AverageNumberOfMessagesSent * 0.3

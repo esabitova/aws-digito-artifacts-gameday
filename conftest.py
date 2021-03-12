@@ -302,13 +302,17 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
     ssm_execution_id = parameters[0].get('ExecutionId')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+
+    int_time_to_wait = int(time_to_wait)
+    logging.info(f'Waiting for {expected_status} status  of {ssm_document_name} document '
+                 f'{ssm_step_name} step during {int_time_to_wait} seconds')
     if expected_status == 'InProgress':
         actual_status = ssm_document.wait_for_execution_step_status_is_in_progress(
-            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+            ssm_execution_id, ssm_document_name, ssm_step_name, int_time_to_wait
         )
     else:
         actual_status = ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
-            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+            ssm_execution_id, ssm_document_name, ssm_step_name, int_time_to_wait
         )
     assert expected_status == actual_status
 
@@ -334,8 +338,9 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
     return execution_id
 
 
+@when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
-def sleep_secons(seconds):
+def sleep_seconds(seconds):
     # Need to wait for more than 5 minutes for metric to be reported
     logging.info('Sleeping for [{}] seconds'.format(seconds))
     time.sleep(int(seconds))

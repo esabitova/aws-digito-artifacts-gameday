@@ -32,5 +32,5 @@ test_one: test_linter publish_ssm_docs
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/test/block_receive_message/2021-03-09/Tests/step_defs/test_block_receive_message.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+		documents/sqs/test/block_delete_message/2021-03-09/Tests/step_defs/test_block_delete_message.py -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
