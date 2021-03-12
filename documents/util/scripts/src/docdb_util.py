@@ -127,13 +127,13 @@ def restore_db_cluster(events, context):
         docdb = boto3.client('docdb')
         restored_cluster_identifier = events['DBClusterIdentifier'] + '-restored-from-backup'
         if events['DBSnapshotIdentifier'] == '' or events['DBSnapshotIdentifier'] == 'latest':
-            response = docdb.restore_db_cluster_from_snapshot(
+            docdb.restore_db_cluster_from_snapshot(
                 DBClusterIdentifier=restored_cluster_identifier,
                 SnapshotIdentifier=events['LatestSnapshotIdentifier'],
                 Engine=events['LatestSnapshotEngine']
             )
         else:
-            response = docdb.restore_db_cluster_from_snapshot(
+            docdb.restore_db_cluster_from_snapshot(
                 DBClusterIdentifier=restored_cluster_identifier,
                 SnapshotIdentifier=events['DBSnapshotIdentifier'],
                 Engine=events['LatestSnapshotEngine']
@@ -156,7 +156,7 @@ def restore_db_cluster_instances(events, context):
             primary_instance = 1 if instance['IsClusterWriter'] else 2
             instance_identifier = instance['DBInstanceIdentifier']
             restored_instance_identifier = instance['DBInstanceIdentifier'] + '-restored-from-backup'
-            response = docdb.create_db_instance(
+            docdb.create_db_instance(
                 DBInstanceIdentifier=restored_instance_identifier,
                 DBInstanceClass=events['DBClusterInstancesMetadata'][instance_identifier]['DBInstanceClass'],
                 Engine=events['DBClusterInstancesMetadata'][instance_identifier]['Engine'],
@@ -176,7 +176,7 @@ def rename_replaced_db_cluster(events, context):
         docdb = boto3.client('docdb')
         db_cluster_identifier = events['DBClusterIdentifier']
         new_db_cluster_identifier = db_cluster_identifier + '-replaced'
-        response = docdb.modify_db_cluster(
+        docdb.modify_db_cluster(
             DBClusterIdentifier=db_cluster_identifier,
             NewDBClusterIdentifier=new_db_cluster_identifier,
             ApplyImmediately=True,
@@ -193,7 +193,7 @@ def rename_replaced_db_instances(events, context):
         instances = events['BackupDbClusterInstancesCountValue']
         replaced_instances_identifiers = []
         for instance in instances:
-            response = docdb.modify_db_instance(
+            docdb.modify_db_instance(
                 DBInstanceIdentifier=instance['DBInstanceIdentifier'],
                 ApplyImmediately=True,
                 NewDBInstanceIdentifier=instance['DBInstanceIdentifier'] + '-replaced',
@@ -212,7 +212,7 @@ def rename_restored_db_instances(events, context):
         restored_instances_identifiers = []
         for instance in instances:
             restored_instance_identifier = instance.replace('-restored-from-backup', '')
-            response = docdb.modify_db_instance(
+            docdb.modify_db_instance(
                 DBInstanceIdentifier=instance,
                 ApplyImmediately=True,
                 NewDBInstanceIdentifier=restored_instance_identifier
