@@ -79,26 +79,27 @@ def verify_cluster_instances(events, context):
         print(f'Error: {e}')
         raise
 
-    def backup_cluster_instances_type(events, context):
-        try:
-            docdb = boto3.client('docdb')
-            restorable_instances_metadata = {}
-            instance_type = {}
-            instances = events['DBClusterInstances']
-            for instance in instances:
-                response = docdb.describe_db_instances(DBInstanceIdentifier=instance['DBInstanceIdentifier'])
-                print(response)
-                instance_id = instance['DBInstanceIdentifier']
-                instance_type[instance_id] = {
-                    'DBInstanceClass': response['DBInstances'][0]['DBInstanceClass'],
-                    'Engine': response['DBInstances'][0]['Engine'],
-                    'AvailabilityZone': response['DBInstances'][0]['AvailabilityZone']
-                }
-                restorable_instances_metadata.update(instance_type)
-            return {'DBClusterInstancesMetadata': restorable_instances_metadata}
-        except Exception as e:
-            print(f'Error: {e}')
-            raise
+
+def backup_cluster_instances_type(events, context):
+    try:
+        docdb = boto3.client('docdb')
+        restorable_instances_metadata = {}
+        instance_type = {}
+        instances = events['DBClusterInstances']
+        for instance in instances:
+            response = docdb.describe_db_instances(DBInstanceIdentifier=instance['DBInstanceIdentifier'])
+            print(response)
+            instance_id = instance['DBInstanceIdentifier']
+            instance_type[instance_id] = {
+                'DBInstanceClass': response['DBInstances'][0]['DBInstanceClass'],
+                'Engine': response['DBInstances'][0]['Engine'],
+                'AvailabilityZone': response['DBInstances'][0]['AvailabilityZone']
+            }
+            restorable_instances_metadata.update(instance_type)
+        return {'DBClusterInstancesMetadata': restorable_instances_metadata}
+    except Exception as e:
+        print(f'Error: {e}')
+        raise
 
 
 def get_latest_snapshot_id(events, context):
