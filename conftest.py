@@ -304,7 +304,7 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
         raise Exception('Parameter with name [ExecutionId] should be provided')
 
     int_time_to_wait = int(time_to_wait)
-    logging.info(f'Waiting for {expected_status} status  of {ssm_document_name} document '
+    logging.info(f'Waiting for {expected_status} status of {ssm_document_name} document '
                  f'{ssm_step_name} step during {int_time_to_wait} seconds')
     if expected_status == 'InProgress':
         actual_status = ssm_document.wait_for_execution_step_status_is_in_progress(
