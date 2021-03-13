@@ -15,12 +15,13 @@ Medium
 * There is a synthetic alarm setup for application (e.g.api-gw:alarm:5xx-error:2020-04-01, api-gw:alarm:4xx-error:2020-04-01)
 
 ## Permission required for AutomationAssumeRole
-* TBD
+* apigateway:GET
+* apigateway:PUT
 
 ## Supports Rollback
-Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rollbackup changes from the previous run 
+Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback changes from the previous run 
 
-## Input (TBD)
+## Input
 ### `AutomationAssumeRole`
   * type: String
   * description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
@@ -31,9 +32,9 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
   * type: Integer
   * description: (Optional) Alarm wait timeout
   * default: 300 (seconds)
-### `ApiGwId`
+### `RestApiGwUsagePlanId`
   * type: String
-  * description: (Required) The ARN of the API Gateway
+  * description: (Required) The ID of REST API Gateway usage plan
 ### `IsRollback`:
   * type: Boolean
   * description: (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`)
@@ -42,6 +43,12 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
   * type: Integer
   * description: (Optional) The id of previous execution of the current script
   * default: 0
+### `RestApiGwQuotaLimit`:
+  * type: Integer
+  * description: (Required) The value of quota (requests per period).
+### `RestApiGwQuotaPeriod`:
+  * type: String
+  * description: (Required) The value of quota period. Possible values: DAY, WEEK, MONTH. 
 
 ## Details of SSM Document steps:
 1. `CheckIsRollback`
@@ -57,27 +64,47 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
     * Inputs:
         * `PreviousExecutionId`
     * Outputs: 
-        * `RestoredValue`: The restored value of Reserved Concurrency.
+        * `RestApiGwQuotaLimitRestoredValue` returns `rateLimit`
+        * `RestApiGwQuotaPeriodRestoredValue` returns `burstLimit`
     * Explanation:
-        * Get value of `Backup.Value` from the previous execution using `PreviousExecutionId`
-        * https://docs.aws.amazon.com/cli/latest/reference/apigateway/update-usage-plan.html
+        * Get values from the previous execution using `PreviousExecutionId`, take values of `BackupQuotaConfigurationAndInputs` step
+            * `quota`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOrignalValue`
+            * `quotaPeriod`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOrignalValue`
+            * `usagePlanId`=`BackupQuotaConfigurationAndInputs.RestApiGwUsagePlanId`
+        * Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan with the following parameters:
+            * `usagePlanId`= `RestApiGwUsagePlanId`
+            * `patchOperations`=`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
+            * Use `quota` sections in the root of the response and return `limit` and `period`
         * isEnd: true
-1. `Backup`
-    * Type: aws:executeAwsApi
+1. `BackupQuotaConfigurationAndInputs`
+    * Type: aws:executeScript
     * Inputs:
-        * `ApiGwId`
+        * `RestApiGwUsagePlanId`
     * Outputs:
-        * TBD
+        * `RestApiGwUsagePlanId`
+        * `RestApiGwQuotaLimitOriginalValue` returns `limit`
+        * `RestApiGwQuotaPeriodOriginalValue` returns `period`
     * Explanation:
-        * https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-usage-plan.html
-1. `SetNewValue`
-    * Type: aws:executeAwsApi
+        * Execute https://docs.aws.amazon.com/cli/latest/reference/apigateway/get-usage-plan.html
+            * Use `quota` sections in the root or the response and return `limit` and `period`
+1. `SetQuotaConfiguration`
+    * Type: aws:executeScript
     * Inputs:
-        * `ApiGwId`
+        * `RestApiGwUsagePlanId`
+        * `RestApiGwQuotaLimit`
+        * `RestApiGwQuotaPeriod`
     * Outputs: 
-        * TBD
+        * `RestApiGwQuotaLimitNewValue` returns `limit`
+        * `RestApiGwQuotaPeriodNewValue` returns `period`
     * Explanation:
-        * https://docs.aws.amazon.com/cli/latest/reference/apigateway/update-usage-plan.html
+        * Define variables
+            * `quota`=`RestApiGwQuotaLimit`
+            * `quotaPeriod`=`RestApiGwQuotaPeriod`
+            * `usagePlanId`=`RestApiGwUsagePlanId`
+        * Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan with the following parameters:
+            * `usagePlanId`= `RestApiGwUsagePlanId`
+            * `patchOperations`=`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
+            * Use `quota` sections in the root of the response and return `limit` and `period`
     * OnFailure: step: RollbackCurrentChanges 
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
@@ -89,13 +116,20 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
         * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `AlarmWaitTimeout` seconds
     * OnFailure: step: RollbackCurrentChanges 
 1. `RollbackCurrentChanges`
-    * Type: aws:executeAwsApi
-    * Inputs:
-        * `Backup.Value`
+    * Type: aws:executeScript
+    * Inputs: none
     * Outputs:
-        * `RestoredValue`
+        * `RestApiGwQuotaLimitRestoredValue` returns `rateLimit`
+        * `RestApiGwQuotaPeriodRestoredValue` returns `burstLimit`
     * Explanation:
-        * https://docs.aws.amazon.com/cli/latest/reference/apigateway/update-usage-plan.html
+        * Define variables using outputs of `BackupQuotaConfigurationAndInputs`: 
+            * `quota`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOrignalValue`
+            * `burstLimit`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOrignalValue`
+            * `usagePlanId`=`BackupQuotaConfigurationAndInputs.RestApiGwUsagePlanId`
+        * Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan with the following parameters:
+            * `usagePlanId`= `RestApiGwUsagePlanId`
+            * `patchOperations`=`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
+            * Use `quota` sections in the root of the response and return `limit` and `period`
 1. `AssertAlarmToBeGreen`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
@@ -105,5 +139,17 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
     * Explanation:
         * Wait for `SyntheticAlarmName` alarm to be `OK` for `AlarmWaitTimeout` seconds
     * isEnd: true
+
 ## Outputs
-`Backup.Value`
+* `BackupQuotaConfigurationAndInputs.RestApiGwUsagePlanId`
+* `BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOriginalValue` - original value of quota limit
+* `BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOriginalValue` - original value of quota period
+
+
+if `IsRollback`:
+* `RollbackPreviousExecution.RestApiGwQuotaLimitRestoredValue`
+* `RollbackPreviousExecution.RestApiGwQuotaPeriodRestoredValue`
+
+if not `IsRollback`:
+* `SetQuotaConfiguration.RestApiGwQuotaLimitNewValue` - new value of quota limit
+* `SetQuotaConfiguration.RestApiGwQuotaPeriodNewValue` - new value of quota period
