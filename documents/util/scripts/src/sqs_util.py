@@ -65,10 +65,10 @@ def revert_sqs_policy(events: dict, context: dict) -> dict:
         policy = {
             'Policy': {
                 "Version": "2012-10-17",
-                "Id": uuid.uuid4(),
+                "Id": uuid.uuid4().__str__(),
                 "Statement": []
             }
         }
         sqs_client.set_queue_attributes(QueueUrl=queue_url, Attributes=policy)
     else:
-        sqs_client.set_queue_attributes(QueueUrl=queue_url, Attributes=optional_backup_policy)
+        sqs_client.set_queue_attributes(QueueUrl=queue_url, Attributes={'Policy': str(optional_backup_policy)})

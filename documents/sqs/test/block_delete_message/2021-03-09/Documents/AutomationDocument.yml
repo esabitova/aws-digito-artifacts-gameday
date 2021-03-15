@@ -80,7 +80,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
-    isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
@@ -176,18 +175,3 @@ mainSteps:
         - "{{SQSUserErrorAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
-
-
-  - name: GetPolicy
-    action: aws:executeAwsApi
-    outputs:
-      - Name: Policy
-        Selector: $.Attributes.Policy
-        Type: String
-    inputs:
-      Service: sqs
-      Api: GetQueueAttributes
-      QueueUrl: '{{ QueueUrl }}'
-      AttributeNames:
-        - Policy
-      finallyStep: true
