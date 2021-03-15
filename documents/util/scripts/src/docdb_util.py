@@ -1,6 +1,5 @@
 import boto3
 import random
-import time
 
 
 def get_cluster_az(events, context):
@@ -68,16 +67,13 @@ def verify_db_instance_exist(events, context):
 def verify_cluster_instances(events, context):
     try:
         docdb = boto3.client('docdb')
-
-        while True:
-            response = docdb.describe_db_clusters(DBClusterIdentifier=events['DBClusterIdentifier'])
-            current_instances_number = len(response['DBClusters'][0]['DBClusterMembers'])
-            before_instances_number = events['BeforeDbClusterInstancesNumber']
-            time.sleep(5)
-            if current_instances_number != before_instances_number:
-                return {'DbClusterInstancesNumber': current_instances_number}
-                break
-
+        response = docdb.describe_db_clusters(DBClusterIdentifier=events['DBClusterIdentifier'])
+        current_instances_number = len(response['DBClusters'][0]['DBClusterMembers'])
+        before_instances_number = events['BeforeDbClusterInstancesNumber']
+        if current_instances_number != before_instances_number:
+            return {'DbClusterInstancesNumber': current_instances_number}
+        else:
+            raise Exception('Current cluster instances number equals previous instances number.')
     except Exception as e:
         print(f'Error: {e}')
         raise

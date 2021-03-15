@@ -47,20 +47,19 @@ phases:
   build:
     commands:
       - python -m flake8
-      - python -m pytest -m unit_test
+      - python -m pytest -m unit_test --junitxml=test-reports/junit_report.xml
       # - command
       #post_build:
       #commands:
       # - command
       # - command
-      #reports:
-      #report-name-or-arn:
-      #files:
-      # - location
-      # - location
-    #base-directory: location
+reports:
+  pytest_reports:
+    files:
+     - junit_report.xml
+    base-directory: test-reports
     #discard-paths: yes
-    #file-format: JunitXml | CucumberJson
+    file-format: JunitXml
     #artifacts:
     #files:
     # - location

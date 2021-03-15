@@ -18,7 +18,7 @@ test_linter:
 # If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
 	cd "$(CWD)/" && \
 	source venv/bin/activate && \
-	python3 -m flake8 --config setup.cfg && \
+	python3 -m flake8 && \
 	deactivate
 
 

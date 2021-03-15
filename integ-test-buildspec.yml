@@ -54,14 +54,19 @@ phases:
       - printf "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\naws_session_token=$AWS_SESSION_TOKEN" > ~/.aws/credentials
   build:
     commands:
-      - python -m pytest --run_integration_tests --keep_test_resources -m integration
+      - python -m pytest --run_integration_tests --keep_test_resources -m rds --workers 3 --cucumberjson=integration-tests-report.json
       # - command
       #post_build:
       #commands:
       # - command
       # - command
-      #reports:
-      #report-name-or-arn:
+reports:
+  integration-tests-report:
+    files:
+     - integration-tests-report.json
+    #base-directory: test-reports
+    #discard-paths: yes
+    file-format: CucumberJson
       #files:
       # - location
       # - location
