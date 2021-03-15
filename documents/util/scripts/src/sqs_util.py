@@ -18,14 +18,15 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
     actions_to_deny: List = events.get('ActionsToDeny')
     resource: str = events.get('Resource')
     optional_source_policy: str = events.get('OptionalSourcePolicy')
+    optional_source_policy = None if optional_source_policy.startswith('{{') else optional_source_policy
 
     deny_policy_statement_id: str = f'DenyPolicyStatement-{uuid.uuid4()}'
-    actions: str = "[" + ', '.join(f'"{action}"' for action in actions_to_deny) + "]"
+    # actions: str = "[" + ', '.join(f'"{action}"' for action in actions_to_deny) + "]"
     deny_policy_statement: dict = {
         "Effect": "Deny",
         "Sid": deny_policy_statement_id,
         "Principal": "*",
-        "Action": actions,
+        "Action": actions_to_deny,
         "Resource": resource,
     }
 
@@ -36,7 +37,7 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
             "Id": policy_id,
             "Statement": [deny_policy_statement]
         }
-        return {'SQSPolicy': json.dumps(sqs_policy),
+        return {'Policy': json.dumps(sqs_policy),
                 "PolicySid": policy_id,
                 "DenyPolicyStatementSid": deny_policy_statement_id}
     else:
@@ -45,6 +46,6 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
         if statement is None:
             raise KeyError('Requires Statement in SQS Policy')
         statement.extend(deny_policy_statement)
-        return {'SQSPolicy': json.dumps(source_policy),
+        return {'Policy': json.dumps(source_policy),
                 "PolicySid": source_policy.get('Id'),
                 "DenyPolicyStatementSid": deny_policy_statement_id}
