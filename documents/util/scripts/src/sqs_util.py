@@ -12,8 +12,8 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
     Add deny policy statement(-s) to the SQS policy whether it is empty or not
     :return: updated SQS policy with deny
     """
-    if 'ActionsToDeny' not in events or 'Resource' not in events:
-        raise KeyError('Requires ActionsToDeny and Resource  in events')
+    if 'ActionsToDeny' not in events or 'Resource' not in events or 'OptionalSourcePolicy' not in events:
+        raise KeyError('Requires ActionsToDeny and Resource and OptionalSourcePolicy in events')
 
     actions_to_deny: List = events.get('ActionsToDeny')
     resource: str = events.get('Resource')
@@ -49,3 +49,26 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
         return {'Policy': json.dumps(source_policy),
                 "PolicySid": source_policy.get('Id'),
                 "DenyPolicyStatementSid": deny_policy_statement_id}
+
+
+def revert_sqs_policy(events: dict, context: dict) -> dict:
+    """
+    Revert SQS policy to the initial state by providing the backup policy
+    """
+    if 'QueueUrl' not in events or 'OptionalBackupPolicy' not in events:
+        raise KeyError('Requires QueueUrl and OptionalBackupPolicy in events')
+
+    queue_url: List = events.get('QueueUrl')
+    optional_backup_policy: str = events.get('OptionalBackupPolicy')
+    optional_backup_policy = None if optional_backup_policy.startswith('{{') else optional_backup_policy
+    if optional_backup_policy is None:
+        policy = {
+            'Policy': {
+                "Version": "2012-10-17",
+                "Id": uuid.uuid4(),
+                "Statement": []
+            }
+        }
+        sqs_client.set_queue_attributes(QueueUrl=queue_url, Attributes=policy)
+    else:
+        sqs_client.set_queue_attributes(QueueUrl=queue_url, Attributes=optional_backup_policy)

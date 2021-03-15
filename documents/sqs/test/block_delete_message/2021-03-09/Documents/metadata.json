@@ -11,7 +11,7 @@
   "risk": "SMALL",
   "tag": "sqs:test:block_delete_message:2021-03-09",
   "recommendedAlarms": {
-    "SQSUserErrorAlarmName": "ApproximateAgeOfOldestMessageMaximum"
+    "SQSUserErrorAlarmName": "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
   },
   "minorVersion": "001"
 }

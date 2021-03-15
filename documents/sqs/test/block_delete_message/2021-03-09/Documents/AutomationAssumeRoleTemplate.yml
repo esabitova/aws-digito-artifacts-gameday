@@ -47,5 +47,6 @@ Resources:
               - cloudwatch:DescribeAlarms
               - sqs:GetQueueAttributes
               - sqs:SetQueueAttributes
+              - ssm:GetParameters
       Roles:
         - Ref: DigitoBlockSQSDeleteMessageAssumeRole

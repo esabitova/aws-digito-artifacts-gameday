@@ -39,6 +39,8 @@ parameters:
     description: >-
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
+outputs:
+  - "GetPolicy.Policy"
 mainSteps:
   - name: CheckIsRollback
     action: aws:branch
@@ -47,7 +49,7 @@ mainSteps:
         - NextStep: PrepareRollbackOfPreviousExecution
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
-      Default: BackupCurrentExecution
+      Default: AssertAlarmToBeGreenBeforeTest
 
   - name: PrepareRollbackOfPreviousExecution
     action: aws:executeScript
@@ -67,26 +69,30 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
   - name: RollbackPreviousExecution
-    action: aws:executeAwsApi
+    action: aws:executeScript
     inputs:
-      Service: sqs
-      Api: SetQueueAttributes
-      QueueUrl: '{{ QueueUrl }}'
-      Attributes:
-        Policy: '"{{ PrepareRollbackOfPreviousExecution.Policy }}"'
+      Runtime: python3.6
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{PrepareRollbackOfPreviousExecution.Policy}}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
     isEnd: true
 
-#  - name: AssertAlarmToBeGreenBeforeTest
-#    action: aws:waitForAwsResourceProperty
-#    maxAttempts: 2
-#    timeoutSeconds: 600
-#    inputs:
-#      Service: cloudwatch
-#      Api: DescribeAlarms
-#      AlarmNames:
-#        - "{{SQSUserErrorAlarmName}}"
-#      PropertySelector: "$.MetricAlarms[0].StateValue"
-#      DesiredValues: ["OK"]
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 2
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SQSUserErrorAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: BackupCurrentExecution
     action: aws:executeAwsApi
     outputs:
@@ -137,8 +143,8 @@ mainSteps:
         Policy: '{{ AddDenyDeleteMessage.Policy }}'
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
-    timeoutSeconds: 600
+    maxAttempts: 100
+    timeoutSeconds: 5
     onFailure: step:RollbackCurrentExecution
     inputs:
       Service: cloudwatch
@@ -148,12 +154,17 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "ALARM" ]
   - name: RollbackCurrentExecution
-    action: aws:executeAwsApi
+    action: aws:executeScript
     inputs:
-      Service: sqs
-      Api: SetQueueAttributes
-      QueueUrl: '{{ QueueUrl }}'
-      Attributes: 'Policy: {{ BackupCurrentExecution.Policy }}'
+      Runtime: python3.6
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{BackupCurrentExecution.Policy}}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
@@ -165,4 +176,18 @@ mainSteps:
         - "{{SQSUserErrorAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
-    isEnd: true
+
+
+  - name: GetPolicy
+    action: aws:executeAwsApi
+    outputs:
+      - Name: Policy
+        Selector: $.Attributes.Policy
+        Type: String
+    inputs:
+      Service: sqs
+      Api: GetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
+      AttributeNames:
+        - Policy
+      finallyStep: true
