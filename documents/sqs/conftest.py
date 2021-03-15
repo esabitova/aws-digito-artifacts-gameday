@@ -23,7 +23,7 @@ def send_messages_to_sqs_standard_queue(boto3_session, resource_manager, ssm_tes
 
 @given(parsers.parse('purge the queue\n{input_parameters}'))
 @when(parsers.parse('purge the queue\n{input_parameters}'))
-def receive_messages_from_sqs(boto3_session, resource_manager, ssm_test_cache, input_parameters):
+def purge_the_queue(boto3_session, resource_manager, ssm_test_cache, input_parameters):
     sqs_client = boto3_session.client('sqs')
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     logging.info(f'Purging the queue with url = {queue_url}')

@@ -39,8 +39,6 @@ parameters:
     description: >-
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
-outputs:
-  - "GetPolicy.Policy"
 mainSteps:
   - name: CheckIsRollback
     action: aws:branch
