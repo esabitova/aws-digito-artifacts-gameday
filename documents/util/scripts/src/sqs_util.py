@@ -45,7 +45,7 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
         statement: List = source_policy.get('Statement')
         if statement is None:
             raise KeyError('Requires Statement in SQS Policy')
-        statement.extend(deny_policy_statement)
+        statement.append(deny_policy_statement)
         return {'Policy': json.dumps(source_policy),
                 "PolicySid": source_policy.get('Id'),
                 "DenyPolicyStatementSid": deny_policy_statement_id}
