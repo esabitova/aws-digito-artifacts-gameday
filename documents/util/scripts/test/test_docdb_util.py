@@ -121,36 +121,17 @@ class TestDocDBUtil(unittest.TestCase):
         )
 
     # Test verify_cluster_instances
-    def test_verify_cluster_instances_down(self):
+
+    def test_verify_cluster_instances(self):
         events = {
             'DBClusterIdentifier': DOCDB_CLUSTER_ID,
-            'BeforeDbClusterInstancesNumber': 3
         }
 
-        self.mock_docdb.describe_db_clusters.side_effect = [
-            get_docdb_clusters_side_effect(3), get_docdb_clusters_side_effect(3), get_docdb_clusters_side_effect(2)
-        ]
+        self.mock_docdb.describe_db_clusters.return_value = get_docdb_clusters_side_effect(3)
         response = verify_cluster_instances(events, None)
-        self.mock_docdb.describe_db_clusters.assert_has_calls([
-            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
-            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
-            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
-        ])
-        self.assertEqual(2, response['DbClusterInstancesNumber'])
-
-    def test_verify_cluster_instances_up(self):
-        events = {
-            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
-            'BeforeDbClusterInstancesNumber': 2
-        }
-
-        self.mock_docdb.describe_db_clusters.side_effect = [
-            get_docdb_clusters_side_effect(2), get_docdb_clusters_side_effect(2), get_docdb_clusters_side_effect(3)
-        ]
-        response = verify_cluster_instances(events, None)
-        self.mock_docdb.describe_db_clusters.assert_has_calls([
-            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
-            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
-            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
-        ])
+        self.mock_docdb.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
         self.assertEqual(3, response['DbClusterInstancesNumber'])
+
+    def test_verify_cluster_instances_missing_id(self):
+        events = {}
+        self.assertRaises(Exception, verify_cluster_instances, events, None)
