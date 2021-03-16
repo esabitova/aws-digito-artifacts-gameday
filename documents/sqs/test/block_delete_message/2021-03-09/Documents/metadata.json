@@ -6,7 +6,7 @@
   "documentName": "Digito-BlockSQSDeleteMessage_2021-03-09",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
-  "displayName": "Test to block sqs:DeleteMessage",
+  "displayName": "Test - Block sqs:DeleteMessage",
   "intent": "Test SQS behavior after blocking sqs:DeleteMessage for the specified queue",
   "risk": "SMALL",
   "tag": "sqs:test:block_delete_message:2021-03-09",
