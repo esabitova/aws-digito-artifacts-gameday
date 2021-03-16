@@ -5,9 +5,9 @@
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-  "tag": "stateless-compute:test:asg-node-kill_process:2020-07-28",
+  "tag": "compute:test:asg-node-kill_process:2020-07-28",
   "failureType": "HARDWARE",
-  "risk": "SMALL",
+  "risk": "MEDIUM",
   "intent": "Test app if process suddenly dies.",
   "dependsOn": "Digito-KillProcessCommand_2020-07-28",
   "details": {
@@ -15,6 +15,9 @@
       "2": "Figure out the process id to kill.",
       "3": "Send the signal to the processes.",
       "4": "Verify app recovered within recovery time."
+  },
+  "recommendedAlarms": {
+    "MultipleUnhealthyHostsAlarmName": "compute:alarm:asg-multiple-unhealthy-hosts:2020-07-13"
   },
   "minorVersion": "001"
 }

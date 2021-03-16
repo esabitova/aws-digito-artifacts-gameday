@@ -74,3 +74,33 @@ def __list_objects(bucket_name) -> List[dict]:
     """
     paginator = s3_client.get_paginator('list_objects_v2')
     return paginator.paginate(Bucket=bucket_name)
+
+
+def get_versions(bucket_name: str, object_key: str, max_keys=1000) -> List:
+    """
+    Get versions of the object from the bucket
+    :param max_keys: maximum number of keys returned in the response
+    :param bucket_name: the bucket name
+    :param object_key:  the name of the object
+    :return: versions of the object from the bucket
+    """
+
+    paginator = s3_client.get_paginator('list_object_versions')
+    pages = paginator.paginate(Bucket=bucket_name, Prefix=object_key, MaxKeys=max_keys)
+    versions: List = []
+    for page in pages:
+        page_versions = page.get('Versions')
+        if page_versions is not None:
+            versions.extend(page_versions)
+    return versions
+
+
+def get_object(s3_bucket_name, object_key, version_id) -> dict:
+    """
+    Get the object
+    :param s3_bucket_name: bucket name
+    :param object_key: object key
+    :param version_id: version id
+    :return: the object
+    """
+    return s3_client.get_object(Bucket=s3_bucket_name, Key=object_key, VersionId=version_id)

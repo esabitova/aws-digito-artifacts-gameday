@@ -36,9 +36,6 @@ Yes. If executed in rollback mode, any previous EC2 instance CPU injection will 
 ### InstanceId:
    * type: String
    * description: (Required) EC2 instance id (no need in case of rollback)
-### SyntheticAlarmName:
-   * type: String
-   * description: (Required) EC2 CPUUtilization alarm which should be triggerred (no need in case of rollback)
 ### Duration:
    * type: String
    * description: (Optional) The duration of the attack in seconds (default/recommended 300)

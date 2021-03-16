@@ -1,0 +1,12 @@
+{
+  "documentName": "Digito-ScalingDown_2020-09-21",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "docdb:test:scaling_down:2020-09-21",
+  "failureType": "SOFTWARE",
+  "risk": "SMALL",
+  "intent": "| Used to scale down the cluster has below the threshold utilization.",
+  "minorVersion": "001"
+}

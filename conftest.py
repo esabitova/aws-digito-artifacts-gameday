@@ -4,10 +4,10 @@ import boto3
 import time
 from pytest_bdd import (
     when,
-    parsers,
     given,
     then
 )
+from pytest_bdd.parsers import parse
 from sttable import parse_str_table
 from datetime import timedelta, datetime
 from resource_manager.src.resource_manager import ResourceManager
@@ -113,6 +113,7 @@ def cfn_output_params(resource_manager):
     """
     return resource_manager.get_cfn_output_params()
 
+
 @pytest.fixture(scope='function')
 def resource_manager(request, boto3_session):
     '''
@@ -189,7 +190,7 @@ def get_boto3_session(aws_profile):
     return boto3.Session(profile_name=aws_profile)
 
 
-@given(parsers.parse('published "{ssm_document_name}" SSM document'))
+@given(parse('published "{ssm_document_name}" SSM document'))
 def publish_ssm_document(boto3_session, ssm_document_name):
     """
     Publish SSM document using 'publisher.publish_documents.PublishDocuments'.
@@ -201,7 +202,7 @@ def publish_ssm_document(boto3_session, ssm_document_name):
     p.publish_document(documents_metadata)
 
 
-@given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
+@given(parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
 def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_test_cache):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
@@ -227,8 +228,8 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
         resource_manager.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 
-@when(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
-@given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
+@when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
+@given(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, ssm_test_cache, ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
@@ -255,9 +256,12 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
     return execution_id
 
 
-@given(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
-@when(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
-@then(parsers.parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"\n{input_parameters}'))
+@given(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
+             '\n{input_parameters}'))
+@when(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
+            '\n{input_parameters}'))
+@then(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
+            '\n{input_parameters}'))
 def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_name, expected_status,
                                               ssm_document, input_parameters, ssm_test_cache):
     """
@@ -278,20 +282,51 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     assert expected_status == actual_status
 
 
-@given(parsers.parse('the cached input parameters\n{input_parameters}'))
+@when(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'))
+def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache):
+    """
+    Common step to wait for SSM document execution step waiting of final status
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_document_name The SSM document name
+    :param ssm_step_name The SSM document step name
+    :param time_to_wait Timeout in seconds to wait until step status is resolved
+    :param expected_status The expected SSM document execution status
+    :param input_parameters The input parameters
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param ssm_test_cache The custom test cache
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    if expected_status == 'InProgress':
+        actual_status = ssm_document.wait_for_execution_step_status_is_in_progress(
+            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+        )
+    else:
+        actual_status = ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
+            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+        )
+    assert expected_status == actual_status
+
+
+@given(parse('the cached input parameters\n{input_parameters}'))
 def given_cached_input_parameters(ssm_test_cache, input_parameters):
     for parm_name, param_val in parse_str_table(input_parameters).rows[0].items():
         ssm_test_cache[parm_name] = str(param_val)
 
 
-@then(parsers.parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
+@then(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
 def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
     ssm = boto3_session.client('ssm')
     parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, input_parameters)
     ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
 
 
-@when(parsers.parse('SSM automation document "{ssm_document_name}" executed with rollback\n{ssm_input_parameters}'))
+@when(parse('SSM automation document "{ssm_document_name}" executed with rollback\n{ssm_input_parameters}'))
 def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_cache, cfn_output_params, ssm_document):
     parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
     execution_id = ssm_document.execute(ssm_document_name, parameters)
@@ -299,22 +334,23 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
     return execution_id
 
 
-@then(parsers.parse('sleep for "{seconds}" seconds'))
+@then(parse('sleep for "{seconds}" seconds'))
 def sleep_secons(seconds):
     # Need to wait for more than 5 minutes for metric to be reported
     logging.info('Sleeping for [{}] seconds'.format(seconds))
     time.sleep(int(seconds))
 
 
-@then(parsers.parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"\n{parameters}'))
+@then(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
+            '\n{parameters}'))
 def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters):
     params = parse_param_values_from_table(parameters, {'cache': ssm_test_cache})
     current_step_status = get_ssm_step_status(boto3_session, params[0]['ExecutionId'], step_name)
     assert expected_step_status == current_step_status
 
 
-@when(parsers.parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
-@then(parsers.parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
+@when(parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
+@then(parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
 def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input_params, ssm_test_cache, boto3_session):
     """
     Asserts if particular metric reached desired point.
@@ -334,8 +370,8 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
     metric_period = int(input_param_row.pop('MetricPeriod'))
 
     exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
-    # Reported command execution start time given in SSM is delayed, so we need exclude that delay to find metric
-    exec_start = exec_start - timedelta(seconds=metric_period)
+    # We need to include metric period to metric start time to have latest metrics
+    exec_start = exec_start + timedelta(seconds=metric_period)
     act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
                                             metric_namespace, metric_name, input_param_row, metric_period)
     if operator == 'greaterOrEqual':
@@ -348,3 +384,37 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
         assert int(act_perc) < int(exp_perc)
     else:
         raise Exception('Operator for [{}] is not supported'.format(operator))
+
+
+@when(parse('Approve SSM automation document\n{input_parameters}'))
+def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+    """
+    Common step to approve waiting execution
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_test_cache The custom test cache
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param input_parameters The input parameters
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    ssm_document.send_step_approval(ssm_execution_id)
+
+
+@when(parse('Reject SSM automation document\n{input_parameters}'))
+def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+    """
+    Common step to reject waiting execution
+    :param cfn_output_params The cfn output params from resource manager
+    :param ssm_test_cache The custom test cache
+    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param input_parameters The input parameters
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
+    ssm_document.send_step_approval(ssm_execution_id, is_approved=False)

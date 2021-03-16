@@ -45,10 +45,12 @@ Resources:
             Resource: '*'
             Action:
               - 'autoscaling:DescribeAutoScalingGroups'
+              - 'cloudwatch:DescribeAlarmHistory'
               - 'cloudwatch:DescribeAlarms'
               - 'ssm:DescribeInstanceInformation'
               - 'ssm:ListCommands'
               - 'ssm:ListCommandInvocations'
               - 'ssm:SendCommand'
+              - 'ssm:GetParameters'
       Roles:
         - Ref: DigitoKillProcessAsgAssumeRole

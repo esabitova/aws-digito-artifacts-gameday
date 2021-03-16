@@ -57,11 +57,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      AccessControl: Private
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -86,11 +81,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      AccessControl: Private
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -98,6 +88,9 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
+      MetricsConfigurations:
+        -
+          Id: "all_objects"
   SNSTopic:
     Type: "AWS::SNS::Topic"
   SNSTopicPolicy:
@@ -110,10 +103,14 @@ Resources:
           - Sid: SNSTopicPolicyStatement
             Effect: Allow
             Principal:
-              AWS: "*"
+              Service:
+                - cloudwatch.amazonaws.com
             Action:
               - SNS:Publish
             Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref "AWS::AccountId"
       Topics:
         - !Ref SNSTopic
   S3Health4xxErrorsCountAlarm:
@@ -126,13 +123,15 @@ Resources:
         - !Ref SNSTopic
       MetricName: 4xxErrors
       Namespace: AWS/S3
-      Statistic: Minimum
+      Statistic: Sum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
+        - Name: FilterId
+          Value: "all_objects"
       Period: 60
-      EvaluationPeriods: 3
-      DatapointsToAlarm: 2
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: missing
@@ -147,9 +146,9 @@ Resources:
         - !Ref SNSTopic
       MetricName: 5xxErrors
       Namespace: AWS/S3
-      Statistic: Minimum
+      Statistic: Sum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
       Period: 60
       EvaluationPeriods: 1
@@ -168,9 +167,9 @@ Resources:
         - !Ref SNSTopic
       MetricName: TotalRequestLatency
       Namespace: AWS/S3
-      Statistic: Minimum
+      Statistic: Sum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
       Period: 60
       EvaluationPeriods: 1
@@ -191,7 +190,7 @@ Resources:
       Namespace: AWS/S3
       Statistic: Maximum
       Dimensions:
-        - Name: S3Bucket
+        - Name: BucketName
           Value: !Ref S3BucketToRestore
       Period: 60
       EvaluationPeriods: 1

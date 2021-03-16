@@ -1,0 +1,85 @@
+version: 0.2
+
+  #env:
+  #variables:
+  # key: "value"
+  # key: "value"
+  #parameter-store:
+  # key: "value"
+  # key: "value"
+  #secrets-manager:
+  # key: secret-id:json-key:version-stage:version-id
+  # key: secret-id:json-key:version-stage:version-id
+  #exported-variables:
+  # - variable
+  # - variable
+  #git-credential-helper: yes
+  #batch:
+  #fast-fail: true
+  #build-list:
+  #build-matrix:
+#build-graph:
+phases:
+  install:
+    #If you use the Ubuntu standard image 2.0 or later, you must specify runtime-versions.
+    #If you specify runtime-versions and use an image other than Ubuntu standard image 2.0, the build fails.
+    runtime-versions:
+      python: latest
+      # name: version
+    commands:
+      - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+      - python get-pip.py
+      - python -m pip install flake8
+      - python -m pip install boto3==1.17.25
+      - python -m pip install setuptools==53.0.0
+      - python -m pip install pytest==6.2.2
+      - python -m pip install pytest_bdd==4.0.2
+      - python -m pip install pytest_html==3.1.1
+      - python -m pip install pytest-cov==2.11.1
+      - python -m pip install cfn_flip==1.2.3
+      - python -m pip install sttable==0.0.1
+      - python -m pip install pynamodb==5.0.2
+      - python -m pip install pytest-parallel==0.1.0
+      - pip install --upgrade awscli
+      - aws --version
+  pre_build:
+    commands:
+      - TEMP_ROLE=`aws sts assume-role --role-arn $ASSUME_ROLE_ARN --role-session-name test`
+      - export TEMP_ROLE
+      - export AWS_ACCESS_KEY_ID=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.AccessKeyId')
+      - export AWS_SECRET_ACCESS_KEY=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.SecretAccessKey')
+      - export AWS_SESSION_TOKEN=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.SessionToken')
+      - mkdir -p ~/.aws
+      - touch ~/.aws/credentials
+      - printf "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\naws_session_token=$AWS_SESSION_TOKEN" > ~/.aws/credentials
+  build:
+    commands:
+      - python -m pytest --run_integration_tests --keep_test_resources -m rds --workers 3 --cucumberjson=integration-tests-report.json
+      # - command
+      #post_build:
+      #commands:
+      # - command
+      # - command
+reports:
+  integration-tests-report:
+    files:
+     - integration-tests-report.json
+    #base-directory: test-reports
+    #discard-paths: yes
+    file-format: CucumberJson
+      #files:
+      # - location
+      # - location
+    #base-directory: location
+    #discard-paths: yes
+    #file-format: JunitXml | CucumberJson
+    #artifacts:
+    #files:
+    # - location
+    # - location
+    #name: $(date +%Y-%m-%d)
+    #discard-paths: yes
+    #base-directory: location
+    #cache:
+    #paths:
+    # - paths

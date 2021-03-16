@@ -28,18 +28,27 @@ parameters:
   ProcessName:
     type: String
     description: (Required) Process name to be killed
-  SyntheticAlarmName:
+  MultipleUnhealthyHostsAlarmName:
     type: String
-    description: (Required) Synthetic Alarm which should be green within recovery time.
+    description: (Required) MultipleUnhealthyHostsAlarmName which should be triggerred
   PercentageOfInstances:
     type: Integer
     description: (Optional) Percentage of ASG EC2 instances to be impacted
     default: 1
-  ExpectedRecoveryTimeInSeconds:
+  ExpectedRecoveryTimeInMinutes:
     type: String
-    description: (Optional) The expected recovery time after process dies (default 300)
-    default: '300'
+    description: (Optional) The expected recovery time after process dies (default 5)
+    default: '5'
 mainSteps:
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:assertAwsResourceProperty
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{MultipleUnhealthyHostsAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: GetAsgInstanceIds
     action: 'aws:executeScript'
     onFailure: Abort
@@ -85,16 +94,27 @@ mainSteps:
   - name: WaitForRecoveryTime
     action: 'aws:sleep'
     inputs:
-      Duration: 'PT{{ExpectedRecoveryTimeInSeconds}}S'
+      Duration: 'PT{{ExpectedRecoveryTimeInMinutes}}M'
+  - name: AssertAlarmTriggered
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.6
+      Handler: verify_alarm_triggered
+      InputPayload:
+        AlarmName: '{{MultipleUnhealthyHostsAlarmName}}'
+        DurationInMinutes: '{{ExpectedRecoveryTimeInMinutes}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{MultipleUnhealthyHostsAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
     isEnd: true

@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  VolumeId:
-    Type: String
-    Default: '${VolumeId}'
   SNSTopicARN:
     Type: String
-  BandWidth:
-    Type: Number
-    Default: ${BandWidth}
 Resources:
   VolumeWriteBytes:
     Type: 'AWS::CloudWatch::Alarm'
@@ -15,14 +9,14 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when volume write throughput is anomalous with band width ', Ref: BandWidth ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when volume write throughput is anomalous with band width ', ${BandWidth} ] ]
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
       Metrics:
         - Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', Ref: BandWidth, ')' ] ]
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${BandWidth}, ')' ] ]
           Id: ad1
         - Id: m1
           MetricStat:
@@ -31,8 +25,7 @@ Resources:
               Namespace: AWS/EC2
               Dimensions:
                 - Name: VolumeId
-                  Value:
-                    Ref: VolumeId
+                  Value: '${VolumeId}'
             Period: 300
             Stat: Sum
       ThresholdMetricId: ad1

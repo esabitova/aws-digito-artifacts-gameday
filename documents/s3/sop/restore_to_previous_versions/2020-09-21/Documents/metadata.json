@@ -1,0 +1,13 @@
+{
+  "displayName": "SOP - Restore to previous version",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RestoringToPreviousVersion_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Used to restore an S3 object into previous version",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "s3:sop:restore_to_previous_version:2020-09-21"
+}

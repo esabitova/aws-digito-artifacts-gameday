@@ -5,8 +5,6 @@ from pytest_bdd import (
     scenario
 )
 
-from sttable import parse_str_table
-
 
 @scenario('../features/asg_kill_process.feature',
           'Create AWS resources using CloudFormation template and execute '
@@ -14,6 +12,7 @@ from sttable import parse_str_table
 def test_kill_process_on_asg():
     """Create AWS resources using CloudFormation template and execute '
     'SSM automation to kill process on asg."""
+
 
 @scenario('../features/asg_kill_process.feature',
           'Create AWS resources using CloudFormation template and execute '

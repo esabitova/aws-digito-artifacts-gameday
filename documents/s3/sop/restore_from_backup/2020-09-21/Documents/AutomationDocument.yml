@@ -38,6 +38,12 @@ parameters:
     description: |-
       (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of restore bucket if there are some files.
       Can be either an AWS Identity and Access Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
+  ApproveCleanRestoreBucketAutomatically:
+    type: Boolean
+    description: |-
+      (Optional) If it is true, approve cleaning of the restore bucket automatically if files exist there.
+      Otherwise, give a user a chance to decide. It is false by default.
+    default: false
 outputs:
   - "CleanRestoreBucket.NumberOfDeletedObjects"
   - "RestoreFromBackup.RecoveryTimeSeconds"
@@ -61,13 +67,22 @@ mainSteps:
         SCRIPT_PLACEHOLDER::s3_util.imports
 
         SCRIPT_PLACEHOLDER::s3_util.check_existence_of_objects_in_bucket
-  - name: ApproveOrRestoreBranch
+  - name: CleanOrRestoreBranch
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: ApproveCleanRestoreBucketOrCancel
-          Variable: "{{CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket}}"
-          BooleanEquals: true
+        - And:
+            - Variable: "{{ApproveCleanRestoreBucketAutomatically}}"
+              BooleanEquals: false
+            - Variable: "{{CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket}}"
+              BooleanEquals: true
+          NextStep: ApproveCleanRestoreBucketOrCancel
+        - And:
+            - Variable: "{{ApproveCleanRestoreBucketAutomatically}}"
+              BooleanEquals: true
+            - Variable: "{{CheckExistenceOfObjectsInRestoreBucket.AreObjectsExistInRestoreBucket}}"
+              BooleanEquals: true
+          NextStep: CleanRestoreBucket
       Default: RestoreFromBackup
   - name: ApproveCleanRestoreBucketOrCancel
     action: aws:approve
@@ -75,25 +90,21 @@ mainSteps:
     onFailure: Abort
     inputs:
       NotificationArn: "{{SNSTopicARNForManualApproval}}"
-      Message: "Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}} file(-s) exist."
+      Message: Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}} file(-s) exist.
       MinRequiredApprovals: 1
       Approvers:
         - "{{UserWhoWillApproveCleanRestoreBucket}}"
   - name: CleanRestoreBucket
-    action: aws:executeScript
+    action: aws:executeAutomation
+    inputs:
+      DocumentName: Digito-CleanS3Bucket_2021-03-03
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        S3BucketNameToClean: '{{S3BucketToRestoreName}}'
     outputs:
       - Name: "NumberOfDeletedObjects"
-        Selector: "$.Payload.NumberOfDeletedObjects"
-        Type: "Integer"
-    inputs:
-      Runtime: "python3.7"
-      Handler: "clean_bucket"
-      InputPayload:
-        S3BucketToRestoreName: "{{S3BucketToRestoreName}}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::s3_util.imports
-
-        SCRIPT_PLACEHOLDER::s3_util.clean_bucket
+        Selector: "$.NumberOfDeletedObjects"
+        Type: "String"
   - name: RestoreFromBackup
     action: aws:executeScript
     outputs:
@@ -102,7 +113,7 @@ mainSteps:
         Type: "Integer"
       - Name: "RecoveryTimeSeconds"
         Selector: "$.Payload.RecoveryTimeSeconds"
-        Type: "Integer"
+        Type: "String"
     inputs:
       Runtime: "python3.7"
       Handler: "restore_from_backup"

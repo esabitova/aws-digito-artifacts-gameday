@@ -110,6 +110,18 @@ mainSteps:
         CpuLoadPercentage: '{{ CpuLoadPercentage }}'
         NumCpuCores: '{{NumCpuCores}}'
         Duration: '{{Duration}}'
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    onFailure: step:KillStressCommand
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{CpuUtilizationAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["ALARM"]
   - name: WaitExpectedRecoveryTime
     action: 'aws:sleep'
     onFailure: Abort
@@ -127,23 +139,16 @@ mainSteps:
         - "{{CpuUtilizationAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
-  - name: VerifyCpuStress
-    action: 'aws:executeScript'
+    isEnd: true
+  - name: KillStressCommand
+    action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:
-      Runtime: python3.6
-      Handler: verify_cpu_stress
-      InputPayload:
+      DocumentName: Digito-KillStressOnHealthyInstances_2020-07-28
+      RuntimeParameters:
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
         InstanceIds: '{{GetInstancesByPercentage.InstanceIds}}'
-        StressPercentage: '{{CpuLoadPercentage}}'
-        StressDuration: '{{Duration}}'
-        ExpectedRecoveryTime: '{{ExpectedRecoveryTime}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
-
-        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_cpu_stress
-
-        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_ec2_stress
     isEnd: true
   - name: GetPreviousExecutionDetails
     action: 'aws:executeScript'
@@ -164,7 +169,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
-  - name: TerminateCpuStressing
+  - name: KillStressCommandOnRollback
     action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:

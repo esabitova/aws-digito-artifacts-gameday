@@ -50,5 +50,10 @@ Resources:
               - s3:ListObjectVersions
               - s3:ListBucketVersions
               - s3:DeleteObject
+              - ssm:StartAutomationExecution
+              - iam:PassRole
+              - ssm:GetAutomationExecution
+              - s3:DeleteObject*
+              - SNS:Publish
       Roles:
         - Ref: DigitoRestoreFromBackupAssumeRole

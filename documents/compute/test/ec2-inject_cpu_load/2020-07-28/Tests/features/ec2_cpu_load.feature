@@ -13,7 +13,7 @@ Feature: SSM automation document EC2 CPU stress testing
     And published "Digito-SimulateHighCpuLoadInEc2_2020-07-28" SSM document
 
     When SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" executed
-      |InstanceId                                         |AutomationAssumeRole                                                                |CpuUtilizationAlarmName                                         |CpuLoadPercentage          |Duration                |
+      |InstanceId                                         |AutomationAssumeRole                                                                |CpuUtilizationAlarmName                             |CpuLoadPercentage          |Duration                |
       |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighCpuLoadInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2CpuAlarm}}|{{cache:CpuLoadPercentage}}|{{cache:StressDuration}}|
     And SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Success"
       |ExecutionId               |
@@ -21,7 +21,7 @@ Feature: SSM automation document EC2 CPU stress testing
 
     Then sleep for "120" seconds
     And assert "cpu_usage_user" metric point "greaterOrEqual" than "88" percent(s)
-      |ExecutionId               |StepName       | InstanceId                                     |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
+      |ExecutionId               |StepName    | InstanceId                                        |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
       |{{cache:SsmExecutionId>1}}|RunCpuStress|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|cpu-total|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation CPU stress on EC2 instance with rollback

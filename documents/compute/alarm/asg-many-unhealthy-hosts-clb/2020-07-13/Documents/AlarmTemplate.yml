@@ -1,13 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  LoadBalancerName:
-    Type: String
-    Default: '${LoadBalancerName}'
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   UnHealthyHostCountAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -22,12 +16,10 @@ Resources:
       DatapointsToAlarm: 30
       Dimensions:
         - Name: LoadBalancerName
-          Value:
-            Ref: LoadBalancerName
+          Value: '${LoadBalancerName}'
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       Period: 60
       Statistic: Maximum
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing

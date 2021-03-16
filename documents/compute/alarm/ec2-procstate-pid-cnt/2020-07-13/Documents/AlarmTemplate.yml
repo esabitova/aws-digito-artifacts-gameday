@@ -1,15 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  InstanceId:
-    Type: String
-    Default: '${InstanceId}'
   PidPath:
     Type: String
   SNSTopicARN:
     Type: String
-  Threshold:
-    Type: Number
-    Default: ${Threshold}
 Resources:
   DeadProcessAlarm:
     Type: 'AWS::CloudWatch::Alarm'
@@ -24,8 +18,7 @@ Resources:
       DatapointsToAlarm: 1
       Dimensions:
         - Name: InstanceId
-          Value:
-            Ref: InstanceId
+          Value: '${InstanceId}'
         - Name: pidfile
           Value:
             Ref: PidPath
@@ -35,6 +28,5 @@ Resources:
       Namespace: CWAgent
       Period: 60
       Statistic: Maximum
-      Threshold:
-        Ref: Threshold
+      Threshold: ${Threshold}
       TreatMissingData: missing

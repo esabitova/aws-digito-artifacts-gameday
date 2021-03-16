@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Change execution time limit
+Description: Role for SSM AccidentalDelete
 Outputs:
-  DigitoChangeExecutionTimeLimitAssumeRole:
-    Description: DigitoChangeExecutionTimeLimit Automation Assume Role ARN
-    Value: !GetAtt DigitoChangeExecutionTimeLimitAssumeRole.Arn
+  DigitoAccidentalDeleteAssumeRole:
+    Description: DigitoAccidentalDelete Automation Assume Role ARN
+    Value: !GetAtt DigitoAccidentalDeleteAssumeRole.Arn
 Resources:
-  DigitoChangeExecutionTimeLimitAssumeRole:
+  DigitoAccidentalDeleteAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,16 +34,30 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoChangeExecutionTimeLimitAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoAccidentalDeleteAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoChangeExecutionTimeLimitAssumePolicy"
+      PolicyName: DigitoAccidentalDeleteAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
-              - 'lambda:UpdateFunctionConfiguration'
+              - s3:DeleteObject
+              - s3:GetObject
+              - s3:GetObject*
+              - s3:DeleteObjectVersion
+              - s3:ListBucket
+              - s3:ListBucketVersions
+              - s3:ListObjectsV2
+              - s3:ListObjectVersions
+              - s3:PutObject
+              - ssm:StartAutomationExecution
+              - iam:PassRole
+              - ssm:GetAutomationExecution
+              - sns:Publish
+              - ssm:GetParameters
+              - cloudwatch:DescribeAlarms
       Roles:
-        - Ref: DigitoChangeExecutionTimeLimitAssumeRole
+        - Ref: DigitoAccidentalDeleteAssumeRole

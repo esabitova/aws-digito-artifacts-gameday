@@ -61,7 +61,7 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `IsRollback` it true, continue with `RollbackPreviousExecution` step
         * `IsRollback` it false, continue with `BackupReservedConcurrentExecutions` step
 1. `RollbackPreviousExecution`
-    * Type: aws:executeAwsApi
+    * Type: aws:executeScript
     * Inputs:
         * `PreviousExecutionId`
     * Outputs: 
@@ -92,16 +92,6 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * Set `0` using  [put_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.put_function_concurrency). Parameters:
           * `FunctionName`='`LambdaARN`',
           * `ReservedConcurrentExecutions`=`0`
-    * OnFailure: step: RollbackToPreviousReservedConcurrentExecutions 
-1. `ExecuteLambda`
-    * Type: aws:executescript
-    * Inputs:
-        * `LambdaARN`
-    * Outputs: none
-    * Explanation:
-        * Execute Lambda function using [invoke](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.invoke). Parameters:
-          * FunctionName='`LambdaARN`'
-        * handle exception
     * OnFailure: step: RollbackToPreviousReservedConcurrentExecutions 
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
