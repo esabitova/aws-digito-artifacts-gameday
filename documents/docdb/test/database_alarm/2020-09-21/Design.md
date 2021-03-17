@@ -5,7 +5,7 @@ docdb:test:database_alarm:2020-09-21
 Test that the alarm setup detects and alerts when database becomes unavailable and Application can recover within expected recovery time
 
 ## Type
-DocDb alarms test
+Test DocDb alarms and outage
 
 ## Risk
 Medium
@@ -15,7 +15,6 @@ Medium
 * There is a synthetic alarm setup for application
 * Application should be able to reconnect to db instance after temporary network errors.
 
-#########
 ## Permission required for AutomationAssumeRole
 * rds:DescribeDBClusters
 * rds:ModifyDBCluster
