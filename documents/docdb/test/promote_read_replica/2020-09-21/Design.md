@@ -30,7 +30,10 @@ No.
 * description: (Required) DocDb Cluster Identifier
 ### DBInstanceReplicaIdentifier:
 * type: String
-* (Required) DocDb Replica Identifier
+* description: (Required) DocDb Replica Identifier
+### SyntheticAlarmName
+* Description: (Required) Name of Synthetic alarm for application. This should be green after the test.
+* Type: String
 ### AutomationAssumeRole:
 * type: String
 * description:
@@ -40,10 +43,10 @@ No.
   default: ''
 
 ## Document Steps:
-1. aws:waitForAwsResourceProperty - Assert alarm to be green before test
+1. aws:assertAwsResourceProperty - Assert alarm to be green before test
    * Inputs:
         * SyntheticAlarmName
-2. aws:waitForAwsResourceProperty - Assert DocDb instances are available
+2. aws:assertAwsResourceProperty - Assert DocDb instances are available
         * Inputs:
             * DBClusterIdentifier
 3. aws:executeAutomation - Invoke SOP promote_read_replica
