@@ -1,10 +1,10 @@
 # Id
 
-sqs:test:capacity_failure_standard:2021-03-13
+sqs:test:capacity_failure:2021-03-13
 
 ## Intent
 
-Test SQS behaviour after sending a message bigger than allowed size by a customer (SentMessageSizeMaximum) or 256 KB -30% (185KB) to standard queue
+Test SQS behaviour after sending a message bigger than allowed size by a customer (SentMessageSizeMaximum) or 256 KB -30% (185KB)
 
 ## Type
 
@@ -16,7 +16,7 @@ Low
 
 ## Requirements
 
-* Existing standard queue 
+* Existing queue 
 * Existing alarm for SentMessageSize metric on the queue
 
 ## Permission required for AutomationAssumeRole
@@ -125,6 +125,7 @@ Yes. The script removes test message from the queue. Users can run the script wi
       * `InputPayload`:
          * `QueueUrl`: The URL of the queue (`QueueUrl`)
          * `MessageSize`: Size of the message in bytes (`SentMessageSizeMaximum`)
+         * `MessageDeduplicationId`: Unique token in case of FIFO queues (`{{global:DATE_TIME}}`)
    * Outputs:
       * `MessageId`: Id of the sent message
    * Explanation:
@@ -157,6 +158,7 @@ Yes. The script removes test message from the queue. Users can run the script wi
       * `InputPayload`:
          * `QueueUrl`: The URL of the queue (`QueueUrl`)
          * `MessageSize`: Size of the message in bytes (small value)
+         * `MessageDeduplicationId`: Unique token in case of FIFO queues (`{{global:DATE_TIME}}`)
    * Outputs:
       * `MessageId`: Id of the sent message
    * Explanation:
