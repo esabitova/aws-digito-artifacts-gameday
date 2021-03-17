@@ -45,10 +45,12 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
   * default: 0
 ### `RestApiGwQuotaLimit`:
   * type: Integer
-  * description: (Required) The value of quota (requests per period).
+  * description: (Optional) The value of quota (requests per period).
+  * default: 0
 ### `RestApiGwQuotaPeriod`:
   * type: String
-  * description: (Required) The value of quota period. Possible values: DAY, WEEK, MONTH. 
+  * description: (Optional) The value of quota period. Possible values: DAY, WEEK, MONTH. 
+  * default: DAY
 
 ## Details of SSM Document steps:
 1. `CheckIsRollback`
