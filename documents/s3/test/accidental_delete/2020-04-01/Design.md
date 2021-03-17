@@ -61,7 +61,6 @@ back changes from the previous run
 
 * type: String
 * description: (Optional) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
-* default: '4xxErrorsCount'
 
 
 ### `SNSTopicARNForManualApproval`:
