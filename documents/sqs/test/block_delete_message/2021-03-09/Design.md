@@ -12,7 +12,7 @@ Software Outage Test
 
 ## Risk
 
-Low
+High
 
 ## Requirements
 
@@ -42,12 +42,6 @@ from previous run.
 * type: String
 * description: (Optional) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
 * default: 'ApproximateAgeOfOldestMessageMaximum'
-
-### `AlarmWaitTimeout`
-
-* type: Integer
-* description: (Required) Alarm wait timeout
-* default: 300 (seconds)
 
 ### `IsRollback`:
 

@@ -28,10 +28,6 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
 ### `SyntheticAlarmName`:
   * type: String
   * description: (Required) Alarm which should be green after test
-### `AlarmWaitTimeout`
-  * type: Integer
-  * description: (Optional) Alarm wait timeout
-  * default: 300 (seconds)
 ### `RestApiGwUsagePlanId`
   * type: String
   * description: (Required) The ID of REST API Gateway usage plan
@@ -161,10 +157,9 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `SyntheticAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `AlarmWaitTimeout` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for 600 seconds
     * OnFailure: step: RollbackCurrentChanges 
 1. `RollbackCurrentChanges`
     * Type: aws:executeScript
@@ -195,10 +190,9 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `SyntheticAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `OK` for `AlarmWaitTimeout` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `OK` for 600 seconds
     * isEnd: true
 
 ## Outputs

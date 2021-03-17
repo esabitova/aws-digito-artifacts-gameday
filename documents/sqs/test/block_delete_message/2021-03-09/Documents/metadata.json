@@ -8,7 +8,7 @@
   "failureType": "SOFTWARE",
   "displayName": "Test - Block sqs:DeleteMessage",
   "intent": "Test SQS behavior after blocking sqs:DeleteMessage for the specified queue",
-  "risk": "SMALL",
+  "risk": "HIGH",
   "tag": "sqs:test:block_delete_message:2021-03-09",
   "recommendedAlarms": {
     "SQSUserErrorAlarmName": "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"

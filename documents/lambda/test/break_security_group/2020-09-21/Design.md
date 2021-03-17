@@ -28,10 +28,6 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to roll bac
 ### `AutomationAssumeRole`
   * type: String
   * description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
-### `AlarmWaitTimeout`
-  * type: Int
-  * description: (Required) Alarm wait timeout
-  * default: 300 (seconds)
 ### `SyntheticAlarmName`:
   * type: String
   * description: (Required) Alarm which should be green after test
@@ -100,10 +96,9 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to roll bac
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `SyntheticAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `AlarmWaitTimeout` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for 600 seconds
     * OnFailure: step: `RollbackChanges` 
 1. `RollbackChanges`
     * Type: aws:executeScript
@@ -119,10 +114,9 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to roll bac
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `SyntheticAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `OK` for `AlarmWaitTimeout` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `OK` for 600 seconds
     * isEnd: true
  
 ## Outputs

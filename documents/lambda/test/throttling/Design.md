@@ -31,10 +31,6 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
 ### `SyntheticAlarmName`:
   * type: String
   * description: (Required) Alarm which should be green after test
-### `AlarmWaitTimeout`
-  * type: Integer
-  * description: (Optional) Alarm wait timeout
-  * default: 300 (seconds)
 ### `LambdaARN`
   * type: String
   * description: (Required) The ARN of the Lambda function
@@ -97,10 +93,9 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `SyntheticAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `AlarmWaitTimeout` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for 600 seconds
     * OnFailure: step: RollbackToPreviousReservedConcurrentExecutions 
 1. `RollbackToPreviousReservedConcurrentExecutions`
     * Type: aws:executeAwsApi
@@ -117,10 +112,9 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `SyntheticAlarmName`
-        * `AlarmWaitTimeout`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `OK` for `AlarmWaitTimeout` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `OK` for 600 seconds
     * isEnd: true
 ## Outputs
 `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue`
