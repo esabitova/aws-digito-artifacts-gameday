@@ -19,6 +19,9 @@ Medium
 * rds:DescribeDBClusters
 * rds:FailoverDBCluster
 * cloudwatch:DescribeAlarms
+* ssm:GetAutomationExecution
+* ssm:StartAutomationExecution
+* iam:PassRole
 
 ## Supports Rollback
 No.
