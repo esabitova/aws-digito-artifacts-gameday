@@ -22,7 +22,7 @@ Outputs:
     Description: Fifo queue ARN
     Value: !GetAtt SqsFifoQueue.Arn
   SqsFifoQueueName:
-    Description: Fifo queue ARN
+    Description: Fifo queue name
     Value: !GetAtt SqsFifoQueue.QueueName
   SqsFifoQueueUrl:
     Description: Fifo queue URL

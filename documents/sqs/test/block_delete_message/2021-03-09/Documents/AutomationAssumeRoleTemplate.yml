@@ -48,5 +48,6 @@ Resources:
               - sqs:GetQueueAttributes
               - sqs:SetQueueAttributes
               - ssm:GetParameters
+              - ssm:GetAutomationExecution
       Roles:
         - Ref: DigitoBlockSQSDeleteMessageAssumeRole

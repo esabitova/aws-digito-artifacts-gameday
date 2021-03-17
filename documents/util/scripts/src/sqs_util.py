@@ -12,13 +12,13 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
     Add deny policy statement(-s) to the SQS policy whether it is empty or not
     :return: updated SQS policy with deny
     """
-    if 'ActionsToDeny' not in events or 'Resource' not in events or 'OptionalSourcePolicy' not in events:
-        raise KeyError('Requires ActionsToDeny and Resource and OptionalSourcePolicy in events')
+    if 'ActionsToDeny' not in events or 'Resource' not in events or 'SourcePolicy' not in events:
+        raise KeyError('Requires ActionsToDeny and Resource and SourcePolicy in events')
 
     actions_to_deny: List = events.get('ActionsToDeny')
     resource: str = events.get('Resource')
-    optional_source_policy: str = events.get('OptionalSourcePolicy')
-    optional_source_policy = None if optional_source_policy.startswith('{{') else optional_source_policy
+    source_policy: str = events.get('SourcePolicy')
+    source_policy = None if source_policy.startswith('{{') else source_policy
 
     deny_policy_statement_id: str = f'DenyPolicyStatement-{uuid.uuid4()}'
     # actions: str = "[" + ', '.join(f'"{action}"' for action in actions_to_deny) + "]"
@@ -30,7 +30,7 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
         "Resource": resource,
     }
 
-    if optional_source_policy is None:
+    if source_policy is None:
         policy_id: str = f'DenyPolicy-{uuid.uuid4()}'
         sqs_policy: dict = {
             "Version": "2012-10-17",
@@ -41,7 +41,7 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
                 "PolicySid": policy_id,
                 "DenyPolicyStatementSid": deny_policy_statement_id}
     else:
-        source_policy: dict = json.loads(optional_source_policy)
+        source_policy: dict = json.loads(source_policy)
         statement: List = source_policy.get('Statement')
         if statement is None:
             raise KeyError('Requires Statement in SQS Policy')
