@@ -8,7 +8,7 @@ Test API Gateway REST API behavior when hitting quota threshold
 Software Outage Test
 
 ## Risk
-Medium
+HIGH
 
 ## Requirements
 * Existing API Gateway REST API
