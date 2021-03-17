@@ -1,4 +1,4 @@
-def get_number_of_clusters(boto3_session, db_cluster_identifier: str):
+def get_number_of_instances(boto3_session, db_cluster_identifier: str):
     """
     Use describe_db_clusters aws method to get a list of DocDB cluster members and return their amount
     :param boto3_session boto3 client session
