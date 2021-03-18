@@ -5,10 +5,23 @@ CWD:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 clean:
 	rm -rf venv
 
-venv: clean
+
+clean_test_artifacts:
+	rm -rf documentation && \
+	rm -rf .pytest_cache && \
+	rm -rf .coverage && \
+	rm -rf deps.json && \
+	rm -rf .pytest-incremental
+
+
+enable_git_hooks:
+	cp -R ./.githooks/* ./.git/hooks/ && \
+	chmod +x ./.git/hooks/*
+
+venv: clean clean_test_artifacts enable_git_hooks
 	python3 -m virtualenv venv
 
-pip_install:
+pip_install: enable_git_hooks
 	source venv/bin/activate && \
 	pip3 install -r requirements.txt && \
 	deactivate
@@ -18,7 +31,7 @@ test_linter:
 # If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
 	cd "$(CWD)/" && \
 	source venv/bin/activate && \
-	python3 -m flake8 && \
+	python3 -m flake8 --show-source --config=setup.cfg && \
 	deactivate
 
 
@@ -27,8 +40,15 @@ unit_test:
 	# If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
 	cd "$(CWD)/" && \
 	source venv/bin/activate && \
-	python3 -m pytest -m unit_test && \
+	python3 -m pytest -m unit_test --workers auto && \
+	deactivate
+
+# Execute unit tests only for changed files usually as part of the pre-push git hook. It is useful to save time
+unit_test_incrementally:
+	source venv/bin/activate && \
+	python3 -m pytest -m unit_test --inc --cov-append --suppress-no-test-exit-code --workers auto && \
 	deactivate
 
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles
 linter_and_unit_test: test_linter unit_test
+
