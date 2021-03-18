@@ -1,0 +1,11 @@
+#!/bin/sh
+
+#todo add checking of commit message and branch name to be started by regexp DIG-\d{1,}_.+
+start=$(date +%s)
+echo "========== Started pre-commit git hook at $(date -R) =========="
+# Keep in mind that the current working directory is the root of the project
+(make -f common.mk test_linter)
+exit_code=$?
+end=$(date +%s)
+echo "========== Finished pre-commit git hook with error code $exit_code at $(date -R). The duration is $((end-start)) second(-s) =========="
+return $exit_code
