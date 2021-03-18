@@ -547,7 +547,7 @@ Resources:
           - - WebServerforResiliency-
             - Ref: VPC
         PropagateAtLaunch: 'true'
-  SyntheticAlarm:
+  InServiceCapacityLessThanThresholdAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       EvaluationPeriods: '1'
@@ -601,7 +601,7 @@ Resources:
 Outputs:
   SyntheticAlarm:
     Description: Synthetic Alarm Name
-    Value: !Ref SyntheticAlarm
+    Value: !Ref UnHealthyHostCountAlarm
   AsgCpuUtilizationAlarmName:
     Description: Asg Cpu Utilization Alarm Name
     Value: !Ref AsgCpuUtilizationAlarm

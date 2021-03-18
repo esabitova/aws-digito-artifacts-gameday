@@ -8,4 +8,6 @@ cfn_flip==1.2.3
 sttable==0.0.1
 pynamodb==5.0.2
 pytest-parallel==0.1.0
-flake8
+flake8==3.9.0
+pytest-incremental==0.5.0
+pytest-custom_exit_code==0.3.0

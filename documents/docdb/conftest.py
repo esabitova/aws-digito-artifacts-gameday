@@ -20,5 +20,5 @@ def cache_number_of_instances(
     cluster_id = extract_param_value(
         input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
     )
-    number_of_instances = docdb_utils.get_number_of_clusters(boto3_session, cluster_id)
+    number_of_instances = docdb_utils.get_number_of_instances(boto3_session, cluster_id)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, number_of_instances)
