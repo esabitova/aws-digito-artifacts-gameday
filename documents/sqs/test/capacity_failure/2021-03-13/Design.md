@@ -46,12 +46,6 @@ Yes. The script removes test message from the queue. Users can run the script wi
 * type: String
 * description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
 
-### `SentMessageSizeMaximum`
-
-* type: Number
-* description: (Optional) Requested size of the message higher than threshold (defaults to 256KB-30%) 
-* default: 185000 (bytes)
-
 ### `IsRollback`:
 
 * type: Boolean
@@ -119,12 +113,23 @@ Yes. The script removes test message from the queue. Users can run the script wi
       from `sqs` service to delete the message by its `ReceiptHandle`
       * Throw exception if message not found before `TimeOut`
 
+1. `GetAlarmThreshold`
+    * Type: aws:executeScript
+        * Inputs:
+            * `AlarmName`: The name of the alarm with size threshold (`SentMessageSizeAlarmName`)
+        * Outputs:
+            * `SizeAboveThreshold`: Value slightly higher than the threshold
+        * Explanation:
+            * Use [describe_alarms](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudwatch.html#CloudWatch.Client.describe_alarms)
+            from `cloudwatch` service to get `Threshold` of the alarm by `AlarmName`
+            * Return value above the threshold
+
 1. `SendCapacityFailureMessage`
    * Type: aws:executeAwsApi
    * Inputs:
       * `InputPayload`:
          * `QueueUrl`: The URL of the queue (`QueueUrl`)
-         * `MessageSize`: Size of the message in bytes (`SentMessageSizeMaximum`)
+         * `MessageSize`: Size of the message in bytes above alarm's threshold (`GetAlarmThreshold.SizeAboveThreshold`)
          * `MessageDeduplicationId`: Unique token in case of FIFO queues (`{{global:DATE_TIME}}`)
    * Outputs:
       * `MessageId`: Id of the sent message
