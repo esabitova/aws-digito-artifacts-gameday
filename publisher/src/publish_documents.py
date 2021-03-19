@@ -24,7 +24,7 @@ class PublishDocuments:
             doc_type = document_metadata['documentType']
             doc_format = document_metadata['documentFormat']
             tag_value = document_metadata['tag']
-            metadata_file_path = document_metadata['location'] + '/metadata.json'
+            # metadata_file_path = document_metadata['location'] + '/metadata.json'
 
             # TODO(semiond): Disabled for now to fix metadata.json
             # self.validate_metadata(document_metadata, metadata_file_path)
