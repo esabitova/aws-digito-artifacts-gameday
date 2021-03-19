@@ -78,37 +78,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.imports
         SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
         SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
-
-  - name: PrepareRemoveOfNormalMessage
-    action: aws:executeScript
-    outputs:
-      - Name: MessageId
-        Selector: $.Payload.MessageId
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: get_output_from_ssm_step_execution
-      InputPayload:
-        ExecutionId: '{{PreviousExecutionId}}'
-        StepName: 'SendNormalMessage'
-        ResponseField: 'MessageId'
-      Script: |-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
-
-  - name: RemovePreviousExecutionNormalMessage
-    action: aws:executeScript
-    inputs:
-      Runtime: python3.6
-      Handler: delete_message_by_id
-      InputPayload:
-        QueueUrl: '{{QueueUrl}}'
-        MessageId: '{{RemovePreviousExecutionNormalMessage.MessageId}}'
-        TimeOut: '300'
-      Script: |-
-        SCRIPT_PLACEHOLDER::sqs_util.imports
-        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
-        SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
     isEnd: true
 
   - name: GetAlarmThreshold
@@ -146,7 +115,7 @@ mainSteps:
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 300
+    timeoutSeconds: 600
     onFailure: step:RollbackCurrentExecution
     inputs:
       Service: cloudwatch
@@ -170,27 +139,10 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
         SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
 
-  - name: SendNormalMessage
-    action: aws:executeScript
-    outputs:
-      - Name: MessageId
-        Selector: $.Payload.MessageId
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: send_message_of_size
-      InputPayload:
-        QueueUrl: '{{QueueUrl}}'
-        MessageSize: 100
-        MessageDeduplicationId: '{{global:DATE_TIME}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::sqs_util.imports
-        SCRIPT_PLACEHOLDER::sqs_util.send_message_of_size
-
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 300
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -198,18 +150,4 @@ mainSteps:
         - "{{SentMessageSizeAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
-
-  - name: DeleteNormalMessage
-    action: aws:executeScript
-    inputs:
-      Runtime: python3.6
-      Handler: delete_message_by_id
-      InputPayload:
-        QueueUrl: '{{QueueUrl}}'
-        MessageId: '{{SendNormalMessage.MessageId}}'
-        TimeOut: '300'
-      Script: |-
-        SCRIPT_PLACEHOLDER::sqs_util.imports
-        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
-        SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
     isEnd: true

@@ -257,7 +257,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: !Ref SentMessageSizeMaximumMinus30Percents
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SQSSentMessageSizeFifoQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -277,7 +277,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: !Ref SentMessageSizeMaximumMinus30Percents
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SQSDlqMessageAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
