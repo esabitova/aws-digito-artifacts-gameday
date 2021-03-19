@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 from botocore.exceptions import ClientError
+import publisher.src.document_metadata_attrs as metadata_attrs
 
 SCRIPT_DIR = '/documents/util/scripts/src'
 logger = logging.getLogger('PublishDocuments')
@@ -23,6 +24,9 @@ class PublishDocuments:
             doc_type = document_metadata['documentType']
             doc_format = document_metadata['documentFormat']
             tag_value = document_metadata['tag']
+            metadata_file_path = document_metadata['location'] + '/metadata.json'
+
+            self.validate_metadata(document_metadata, metadata_file_path)
 
             document_content = self.get_document_content(document_metadata)
             if self.document_exists(doc_name):
@@ -45,9 +49,7 @@ class PublishDocuments:
                 if ("SCRIPT_PLACEHOLDER" in line):
                     script_placeholder = line.strip()
                     line = self.replace_script_placeholder_in_document_content(line, script_placeholder)
-
                 updated_document_content += line + "\n"
-
         return updated_document_content
 
     def create_document(self, name, content, doc_type, doc_format, tag_value):
@@ -192,6 +194,41 @@ class PublishDocuments:
                 script_lines_to_be_included += line + "\n"
 
         return script_lines_to_be_included
+
+    def validate_metadata(self, document_metadata, metadata_file_path):
+        """
+        Validates metadata.json files for SSM documents based on given required attributes
+        and returns failed attributes messages for given metadata.json file.
+        :param document_metadata The metadata.json file content
+        :param metadata_file_path The metadata.json file path.
+        """
+        meta_attrs_map = metadata_attrs.metadata_attrs_map
+        required_attributes = []
+        if 'test' in metadata_file_path:
+            required_attributes = meta_attrs_map.get('test')
+        elif 'sop' in metadata_file_path:
+            required_attributes = meta_attrs_map.get('sop')
+        violations = self.get_metadata_violations(document_metadata, metadata_file_path, required_attributes)
+
+        for violation in violations:
+            logging.error(violation)
+        if len(violations) > 0:
+            raise Exception("Detected [{}] metadata.json structural violations. Check ERROR logs for more details.".format(len(violations)))
+
+    def get_metadata_violations(self, document_metadata, metadata_file_path, required_attributes):
+        """
+        Validates metadata.json files for SSM documents based on given required attributes
+        and returns failed attributes messages for given metadata.json file.
+        :param required_attributes The list of required attributes should be presented in metadata file.
+        :param document_metadata The metadata.json file content
+        :param metadata_file_path The metadata.json file path.
+        """
+        failed_fields = []
+        for rf in required_attributes:
+            value = document_metadata.get(rf)
+            if not value:
+                failed_fields.append('Required attribute [{}] missing in [{}].'.format(rf, metadata_file_path))
+        return failed_fields
 
 
 def main(argv):
