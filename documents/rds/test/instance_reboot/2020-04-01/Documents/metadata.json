@@ -1,5 +1,6 @@
 {
     "displayName": "Test - Recover from RDS reboot",
+    "description": "Test that the application recovers if the RDS instance reboots.",
     "documentName": "Digito-RebootRdsInstance_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",

@@ -102,34 +102,6 @@ Resources:
       DBInstanceIdentifier: !Ref DBInstanceReplicaIdentifier
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBInstancePrimary
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
-    Properties:
-      TopicName: "sns-topic-for-docdb-alarms"
-  SNSTopicPolicy:
-    Type: "AWS::SNS::TopicPolicy"
-    Properties:
-      PolicyDocument:
-        Version: '2008-10-17'
-        Id: SNSTopicPolicy
-        Statement:
-          - Sid: SNSTopicPolicyStatement
-            Effect: Allow
-            Principal:
-              AWS: "*"
-            Action:
-              - SNS:GetTopicAttributes
-              - SNS:SetTopicAttributes
-              - SNS:AddPermission
-              - SNS:RemovePermission
-              - SNS:DeleteTopic
-              - SNS:Subscribe
-              - SNS:ListSubscriptionsByTopic
-              - SNS:Publish
-              - SNS:Receive
-            Resource: !Ref SNSTopic
-      Topics:
-        - !Ref SNSTopic
   HighVolumeReadIOPSAnomalyDetector:
     Type: AWS::CloudWatch::AnomalyDetector
     Properties:
@@ -172,8 +144,6 @@ Resources:
       AlarmName: HighVolumeReadIOPS
       AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Metrics:
         - Expression: "ANOMALY_DETECTION_BAND(m1, 2)"
           Id: ad1
@@ -198,8 +168,6 @@ Resources:
       AlarmName: HighVolumeWriteIOPS
       AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Metrics:
         - Expression: "ANOMALY_DETECTION_BAND(m1, 2)"
           Id: ad1
@@ -224,8 +192,6 @@ Resources:
       AlarmName: HighVolumeSize
       AlarmDescription: "docdb:alarm:usage-volume_bytes_used:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBClusterIdentifier
           Value: !Ref DBClusterIdentifier
@@ -244,8 +210,6 @@ Resources:
       AlarmName: LowMemoryDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -264,8 +228,6 @@ Resources:
       AlarmName: LowMemoryDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -284,8 +246,6 @@ Resources:
       AlarmName: LowStorage
       AlarmDescription: "docdb:alarm:health-storage:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBClusterIdentifier
           Value: !Ref DBClusterIdentifier
@@ -304,8 +264,6 @@ Resources:
       AlarmName: CPUUtilizationDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -324,8 +282,6 @@ Resources:
       AlarmName: CPUUtilizationDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -344,8 +300,6 @@ Resources:
       AlarmName: ConnectionSpikeDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Metrics:
         - Expression: "ANOMALY_DETECTION_BAND(m1, 1)"
           Id: ad1
@@ -370,8 +324,6 @@ Resources:
       AlarmName: ConnectionSpikeDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Metrics:
         - Expression: "ANOMALY_DETECTION_BAND(m1, 1)"
           Id: ad1
@@ -396,8 +348,6 @@ Resources:
       AlarmName: SwapUsedDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -416,8 +366,6 @@ Resources:
       AlarmName: SwapUsedDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -436,8 +384,6 @@ Resources:
       AlarmName: HighReadLatencyDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -456,8 +402,6 @@ Resources:
       AlarmName: HighReadLatencyDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -476,8 +420,6 @@ Resources:
       AlarmName: HighWriteLatencyDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -496,8 +438,6 @@ Resources:
       AlarmName: HighWriteLatencyDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -516,8 +456,6 @@ Resources:
       AlarmName: HighDiskQueueDepthDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -535,9 +473,6 @@ Resources:
     Properties:
       AlarmName: HighDiskQueueDepthDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -556,8 +491,6 @@ Resources:
       AlarmName: LowCPUCreditBalanceDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstancePrimary
@@ -576,8 +509,6 @@ Resources:
       AlarmName: LowCPUCreditBalanceDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -596,8 +527,6 @@ Resources:
       AlarmName: HighReplicaLag
       AlarmDescription: "docdb:alarm:recovery-replica_lag:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBInstanceIdentifier
           Value: !Ref DBInstanceReplica
@@ -616,8 +545,6 @@ Resources:
       AlarmName: HighReplicaLagMaximum
       AlarmDescription: "docdb:alarm:recovery-cluster_replica_lag:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       Dimensions:
         - Name: DBClusterIdentifier
           Value: !Ref DBClusterIdentifier

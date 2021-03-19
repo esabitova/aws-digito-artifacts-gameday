@@ -20,6 +20,9 @@ schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
 
 parameters:
+  DBClusterIdentifier:
+    type: String
+    description: (Required) DocDb Cluster Identifier
   DBInstanceIdentifier:
     type: String
     description: (Required) DocDb Instance Identifier
@@ -40,3 +43,17 @@ mainSteps:
       Service: docdb
       Api: RebootDBInstance
       DBInstanceIdentifier: '{{ DBInstanceIdentifier }}'
+
+  - name: WaitUntilInstancesAvailable
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: docdb
+      Api: DescribeDBInstances
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+      PropertySelector: '$.DBInstances..DBInstanceStatus'
+      DesiredValues:
+        - available
