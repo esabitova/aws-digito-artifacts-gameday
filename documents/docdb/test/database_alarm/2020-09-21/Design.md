@@ -45,17 +45,32 @@ Yes.
 1. aws:assertAwsResourceProperty - Assert alarm to be green before test
         * Inputs:
             * SyntheticAlarmName
-2. aws:executeScript - execute Script to switch to the temporary Security group
+2. aws:executeScript - Backup initial Security group Id, VPC Id
+        * Inputs:
+            * DBClusterIdentifier
+        * Outputs:
+            * BackupSGId
+            * BackupVPCId
+3. aws:executeAwsApi - Create temporary Security group
+        * Inputs:
+            * BackupSGId
+            * BackupVPCId
+        * Outputs:
+            * TempSGId
+4. aws:executeScript - execute Script to switch to the temporary Security group
         * Inputs:
             * DBClusterIdentifier
             * TempSecurityGroupId
-3. aws:waitForAwsResourceProperty - Wait for alarms to trigger
+5. aws:waitForAwsResourceProperty - Wait for alarms to trigger
         * Inputs:
             * SyntheticAlarmName
-4. aws:executeScript - execute Script to switch to the initial Security group
+5. aws:executeScript - execute Script to switch to the initial Security group
         * Inputs:
             * DBClusterIdentifier
             * TempSecurityGroupId
-3. aws:waitForAwsResourceProperty - Wait for alarms to be green
+6. aws:executeAwsApi - Remove temporary Security group
+        * Inputs:
+            * TempSGId
+7. aws:waitForAwsResourceProperty - Wait for alarms to be green
         * Inputs:
             * SyntheticAlarmName
