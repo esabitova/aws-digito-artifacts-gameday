@@ -65,6 +65,7 @@ Yes.
        * Outputs:
             * BackupSGId
             * BackupVPCId
+            * TempSGId
 3. aws:executeScript - Rollback, execute Script to switch to Security group from previous SSM document execution
       * Inputs:
             * step2.BackupSGId
@@ -73,7 +74,7 @@ Yes.
       * Inputs:
             * IsRollback 
       * Explanation:
-            * `IsRollback` it true, continue with step 12
+            * `IsRollback` it true, continue with step 11
 5. aws:assertAwsResourceProperty - Assert alarm to be green before test
         * Inputs:
             * SyntheticAlarmName
@@ -99,8 +100,8 @@ Yes.
 10. aws:executeScript - execute Script to switch to the initial Security group
         * Inputs:
             * DBClusterIdentifier
-            * TempSecurityGroupId
-11. aws:executeAwsApi - Remove temporary Security group
+            * BackupSGId
+11. aws:executeScript - Remove temporary Security group and verify if it exists during the rollback
         * Inputs:
             * TempSGId
 12. aws:waitForAwsResourceProperty - Wait for alarms to be green
