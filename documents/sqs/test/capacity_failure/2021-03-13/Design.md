@@ -4,7 +4,7 @@ sqs:test:capacity_failure:2021-03-13
 
 ## Intent
 
-Test SQS behaviour after sending a message bigger than allowed size by a customer (SentMessageSizeMaximum) or 256 KB -30% (185KB)
+Test SQS behaviour after sending a message bigger than threshold for SentMessageSizeMaximum alarm 
 
 ## Type
 
@@ -12,7 +12,7 @@ Software Outage Test
 
 ## Risk
 
-Low
+Medium
 
 ## Requirements
 
@@ -78,12 +78,11 @@ Yes. The script removes test message from the queue. Users can run the script wi
        * Get values of SSM Document output parameters from the previous execution using `PreviousExecutionId`:
            * `MessageId` from step `SendCapacityFailureMessage`
 1. `RemovePreviousExecutionFailureMessage`
-   * Type: aws:executeAutomation
+   * Type: aws:executeScript
    * Inputs:
       * `PrepareRemoveOfFailureMessage.MessageId`
       * `Timeout`: Maximum time in seconds to poll queue for messages
    * Explanation:
-      * Use shared SSM document `SQSDeleteMessage` that does the following steps
       * Poll queue using [receive_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.receive_message)
         from `sqs` service and loop through messages until the message with ID `MessageId` is found
       * Get `ReceiptHandle` from message
@@ -100,12 +99,11 @@ Yes. The script removes test message from the queue. Users can run the script wi
        * Get values of SSM Document output parameters from the previous execution using `PreviousExecutionId`:
            * `MessageId` from step `SendNormalMessage`
 1. `RemovePreviousExecutionNormalMessage`
-   * Type: aws:executeAutomation
+   * Type: aws:executeScript
    * Inputs:
       * `PrepareRemoveOfNormalMessage.MessageId`
       * `Timeout`: Maximum time in seconds to poll queue for messages
    * Explanation:
-      * Use shared SSM document `SQSDeleteMessage` that does the following steps
       * Poll queue using [receive_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.receive_message)
         from `sqs` service and loop through messages until the message with ID `MessageId` is found
       * Get `ReceiptHandle` from message
@@ -145,12 +143,11 @@ Yes. The script removes test message from the queue. Users can run the script wi
         * Wait 300 seconds for the alarm to be in `ALARM` state
     * OnFailure: step: RollbackCurrentExecution
 1. `RollbackCurrentExecution`
-   * Type: aws:executeAutomation
+   * Type: aws:executeScript
    * Inputs:
       * `SendCapacityFailureMessage.MessageId`
       * `Timeout`: Maximum time in seconds to poll queue for messages
    * Explanation:
-      * Use shared SSM document `SQSDeleteMessage` that does the following steps
       * Poll queue using [receive_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.receive_message)
         from `sqs` service and loop through messages until the message with ID `MessageId` is found
       * Get `ReceiptHandle` from message
@@ -177,7 +174,7 @@ Yes. The script removes test message from the queue. Users can run the script wi
     * Explanation:
         * Wait 300 seconds for the alarm to be in `OK` state
 1. `DeleteNormalMessage`
-   * Type: aws:executeAutomation
+   * Type: aws:executeScript
    * Inputs:
       * `SendCapacityFailureMessage.MessageId`
       * `Timeout`: Maximum time in seconds to poll queue for messages
