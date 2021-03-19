@@ -37,7 +37,6 @@ phases:
   build:
     commands:
       - python -m flake8
-      - python -m pytest -m metadata_validator --no-cov
       - python -m pytest -m unit_test --junitxml=test-reports/junit_report.xml
       # - command
       #post_build:

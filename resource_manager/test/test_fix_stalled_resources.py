@@ -7,9 +7,9 @@ from resource_manager.src.s3 import S3
 
 
 @pytest.mark.fix_integ_test_stalled_resources
-class TestSetUp(unittest.TestCase):
+class TestFixIntegTestStalledResources(unittest.TestCase):
 
-    def test_set_up(self):
+    def test_fix_integ_test_stalled_resources(self):
         boto3_session = boto3.Session(profile_name='default')
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)

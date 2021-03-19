@@ -42,12 +42,3 @@ class TestPublishDocuments(unittest.TestCase):
             logging.error(msg)
         if len(fail_messages) > 0:
             raise Exception("Detected [{}] metadata.json structural violations.".format(len(fail_messages)))
-
-
-
-
-
-
-
-
-

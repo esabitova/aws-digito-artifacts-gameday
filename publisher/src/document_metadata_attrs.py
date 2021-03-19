@@ -43,4 +43,3 @@ metadata_attrs_map = {
     "sop": sop_meta_required_attrs,
     "alarm": alarm_meta_required_attrs
 }
-
