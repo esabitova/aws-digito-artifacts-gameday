@@ -219,4 +219,3 @@ def rename_restored_db_instances(events, context):
     except Exception as e:
         print(f'Error: {e}')
         raise
-

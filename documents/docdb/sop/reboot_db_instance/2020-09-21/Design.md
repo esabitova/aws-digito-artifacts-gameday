@@ -38,4 +38,11 @@ No.
       * `DBInstanceIdentifier`
    * Explanation:
       * Reboot DB instance when the database doesn’t respond to any requests by
-        calling [RebootDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_RebootDBInstance.html) 
+        calling [RebootDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_RebootDBInstance.html)
+2. `WaitUntilInstancesAvailable`
+    * Type: aws:waitForAwsResourceProperty
+    * Inputs:
+        * `DBClusterIdentifier`
+    * PropertySelector: `$.DBInstances..DBInstanceStatus`
+    * Explanation:
+        * Wait until cluster instances become available
