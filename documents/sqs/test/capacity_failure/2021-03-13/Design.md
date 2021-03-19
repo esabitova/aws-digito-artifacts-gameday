@@ -89,27 +89,6 @@ Yes. The script removes test message from the queue. Users can run the script wi
       * Use [delete_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.delete_message)
       from `sqs` service to delete the message by its `ReceiptHandle`
       * Throw exception if message not found before `TimeOut`
-1. `PrepareRemoveOfNormalMessage`
-   * Type: aws:executeScript
-   * Inputs:
-      * `PreviousExecutionId`
-   * Outputs:
-      * `MessageId`: The message ID to delete
-   * Explanation:
-       * Get values of SSM Document output parameters from the previous execution using `PreviousExecutionId`:
-           * `MessageId` from step `SendNormalMessage`
-1. `RemovePreviousExecutionNormalMessage`
-   * Type: aws:executeScript
-   * Inputs:
-      * `PrepareRemoveOfNormalMessage.MessageId`
-      * `Timeout`: Maximum time in seconds to poll queue for messages
-   * Explanation:
-      * Poll queue using [receive_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.receive_message)
-        from `sqs` service and loop through messages until the message with ID `MessageId` is found
-      * Get `ReceiptHandle` from message
-      * Use [delete_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.delete_message)
-      from `sqs` service to delete the message by its `ReceiptHandle`
-      * Throw exception if message not found before `TimeOut`
 
 1. `GetAlarmThreshold`
     * Type: aws:executeScript
@@ -154,37 +133,13 @@ Yes. The script removes test message from the queue. Users can run the script wi
       * Use [delete_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.delete_message)
       from `sqs` service to delete the message by its `ReceiptHandle`
       * Throw exception if message not found before `TimeOut`
-1. `SendNormalMessage`
-   * Type: aws:executeAwsApi
-   * Inputs:
-      * `InputPayload`:
-         * `QueueUrl`: The URL of the queue (`QueueUrl`)
-         * `MessageSize`: Size of the message in bytes (small value)
-         * `MessageDeduplicationId`: Unique token in case of FIFO queues (`{{global:DATE_TIME}}`)
-   * Outputs:
-      * `MessageId`: Id of the sent message
-   * Explanation:
-      * Use [send_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.send_message)
-      from `sqs` service to send a message to queue with content body of size `MessageSize` in bytes
 1. `AssertAlarmToBeGreen`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `AlarmNames`: Name of the alarm with SentMessageSize metric (`SentMessageSizeAlarmName`)
     * Outputs: none
     * Explanation:
-        * Wait 300 seconds for the alarm to be in `OK` state
-1. `DeleteNormalMessage`
-   * Type: aws:executeScript
-   * Inputs:
-      * `SendCapacityFailureMessage.MessageId`
-      * `Timeout`: Maximum time in seconds to poll queue for messages
-   * Explanation:
-      * Poll queue using [receive_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.receive_message)
-        from `sqs` service and loop from messages until the message with ID `MessageID` is found
-      * Get `ReceiptHandle` from message
-      * Use [delete_message](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.delete_message)
-      from `sqs` service to delete the message by its `ReceiptHandle`
-      * Throw exception if message not found before `TimeOut`
+        * Wait for 600 seconds for the alarm to be in `OK` state
 ## Outputs
 
 No.
