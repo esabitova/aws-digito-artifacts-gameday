@@ -30,9 +30,16 @@ Yes.
 ### SyntheticAlarmName
 * Description: (Required) Name of Synthetic alarm for application. This should be green after the test.
 * Type: String
-### TempSecurityGroupId
-* Description: (Required) Id of the temporary security group. This should used during the switching.
-* Type: String
+### IsRollback:
+  type: String
+  description: >-
+  (Optional) Set true to 
+  default: 'false'
+### PreviousExecutionId:
+  type: String
+  description: >-
+  (Optional) Previous execution id for which rollback will be started.
+  default: ''
 ### AutomationAssumeRole:
 * type: String
 * description: 
@@ -41,36 +48,61 @@ Yes.
     uses your IAM permissions to run this document.
     default: ''
 
+## Outputs:
+### BackupSGId
+### BackupVPCId
+
 ## Details of SSM Document steps:
-1. aws:assertAwsResourceProperty - Assert alarm to be green before test
+1. aws:branch - Check if the rollback is requested
+        * Inputs:
+            * IsRollback
+        * Explanation:
+            * `IsRollback` it true, continue with step 2
+            * `IsRollback` it false, continue with step 5
+2. aws:executeScript - Prepare rollback, by getting outputs from previous SSM execution
+       * Inputs:
+            * PreviousExecutionId
+       * Outputs:
+            * BackupSGId
+            * BackupVPCId
+3. aws:executeScript - Rollback, execute Script to switch to Security group from previous SSM document execution
+      * Inputs:
+            * step2.BackupSGId
+            * step2.BackupVPCId
+4. aws:branch - Continue rollback
+      * Inputs:
+            * IsRollback 
+      * Explanation:
+            * `IsRollback` it true, continue with step 12
+5. aws:assertAwsResourceProperty - Assert alarm to be green before test
         * Inputs:
             * SyntheticAlarmName
-2. aws:executeScript - Backup initial Security group Id, VPC Id
+6. aws:executeScript - Backup initial Security group Id, VPC Id
         * Inputs:
             * DBClusterIdentifier
         * Outputs:
             * BackupSGId
             * BackupVPCId
-3. aws:executeAwsApi - Create temporary Security group
+7. aws:executeAwsApi - Create temporary Security group
         * Inputs:
             * BackupSGId
             * BackupVPCId
         * Outputs:
             * TempSGId
-4. aws:executeScript - execute Script to switch to the temporary Security group
+8. aws:executeScript - execute Script to switch to the temporary Security group
         * Inputs:
             * DBClusterIdentifier
             * TempSecurityGroupId
-5. aws:waitForAwsResourceProperty - Wait for alarms to trigger
+9. aws:waitForAwsResourceProperty - Wait for alarms to trigger
         * Inputs:
             * SyntheticAlarmName
-5. aws:executeScript - execute Script to switch to the initial Security group
+10. aws:executeScript - execute Script to switch to the initial Security group
         * Inputs:
             * DBClusterIdentifier
             * TempSecurityGroupId
-6. aws:executeAwsApi - Remove temporary Security group
+11. aws:executeAwsApi - Remove temporary Security group
         * Inputs:
             * TempSGId
-7. aws:waitForAwsResourceProperty - Wait for alarms to be green
+12. aws:waitForAwsResourceProperty - Wait for alarms to be green
         * Inputs:
             * SyntheticAlarmName
