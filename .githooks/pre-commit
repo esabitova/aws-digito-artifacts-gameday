@@ -1,0 +1,32 @@
+#!/bin/bash
+
+check_branch_name() {
+  LC_ALL=C
+
+  local_branch="$(git rev-parse --abbrev-ref HEAD)"
+  echo "Local branch name: $local_branch"
+  valid_branch_regex="^DIG-[0-9]{1,}_.+$"
+  message="Error occurred: the branch name $local_branch does not match to the regexp $valid_branch_regex
+Start the branch name with mention of the corresponding JIRA issue, e.g. DIG-519_scale_up_design.
+And make sure you have created necessary JIRA issue for your current work."
+
+  if [[ "$local_branch" =~ $valid_branch_regex ]]; then
+    echo "Branch name is valid"
+    exit 0
+  fi
+
+  echo "$message"
+  exit 1
+}
+
+start=$(date +%s)
+echo "========== Started pre-commit git hook at $(date -R) =========="
+# Keep in mind that the current working directory for .git/hooks is the root of the project
+(make -f common.mk test_linter)
+exit_code_1=$?
+(check_branch_name)
+exit_code_2=$?
+exit_code=$((exit_code_1 | exit_code_2))
+end=$(date +%s)
+echo "========== Finished pre-commit git hook with error code $exit_code at $(date -R). The duration is $((end - start)) second(-s) =========="
+exit $exit_code

@@ -21,3 +21,5 @@ private.env
 venv/
 .coverage*
 .pytest_cache/
+deps.json
+.pytest-incremental
