@@ -428,8 +428,8 @@ Integration test execution command line:
 
 
 # Design.md writing guidelines
-## Digito components relation
-![Components Relation](content/Digito_components_relation.png)
+## High-level users flow
+![Components Relation](content/high-level-users-flow.png)
 
 
 ## Gameday guidelines
