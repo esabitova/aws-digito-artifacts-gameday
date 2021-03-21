@@ -1,4 +1,4 @@
-#Table of Contents  
+# Table of Contents  
 1. [Digito Failure Injection Documents](#digito-failure-injection-documents) 
 2. [Contributing To This Package](#contributing-to-this-package)
    1. [Package Organization](#package-organization)
@@ -254,22 +254,22 @@ pool_size = dict(
 ```
 <b>File location:</b> .../AwsDigitoArtifactsGameday/resource_manager/config.py
 
-##Cloud Formation Templates
+## Cloud Formation Templates
 
 Cloud Formation templates which are used for SSM automation documents integration tests as a resources should have unique name and located under following folder:
 .../AwsDigitoArtifactsGameday/resource_manager/cloud_formation_templates
 
-##Pytest Integration with Resource Pooling
+## Pytest Integration with Resource Pooling
 
 To integrate Resource Manager with pytest we are using following file (more about pytest [fixtures](https://pytest-bdd.readthedocs.io/en/stable/#reusing-fixtures) and [hooks](https://docs.pytest.org/en/stable/reference.html#hooks)):
 .../AwsDigitoArtifactsGameday/conftest.py  This file contains hooks and fixtures to manage cloud formation resources. 
 
-##Common Given Steps for Cloud Formation Template
+## Common Given Steps for Cloud Formation Template
 
 Point of having these steps as a common steps is to allow them to be reused as SSM automation integration tests. Tests resources are all based on cloud formation. But if here will be some other cases test owner can customize this step the way he need by writing his own version in test implementation. 
 Common steps implementation are located in:.../AwsDigitoArtifactsGameday/conftest.py
 
-###Common step to define test resources
+### Common step to define test resources
 Generic “given“ step implementation which defines resources to be used by integration test scenario for passed parameters. This step is interacting with resource manager and store cloud formation template,  input parameters into resource manager. Those parameters will be used during SSM automation document execution to pull resources. 
 
 ```
@@ -298,7 +298,7 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
 ```
 <b>File location:</b>.../AwsDigitoArtifactsGameday/conftest.py
 
-###Common step to execute SSM automation
+### Common step to execute SSM automation
 Generic “given“ step implementation which executes SSM automation. Before execution it pulls available resources which will be used by SSM automation from resource manager [resource_manager.get_cfn_output_params()]. 
 ```
 @given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
@@ -318,7 +318,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ss
 ```
 <b>File location:</b>.../AwsDigitoArtifactsGameday/conftest.py
 
-###Common step to verify SSM  execution result
+### Common step to verify SSM  execution result
 Generic “given“ step implementation which waits for SSM automation completion by given execution id and expected execution state. 
 
 ```
@@ -370,7 +370,7 @@ Feature: SSM automation document for Aurora cluster failover.
 ```
 <b>File location:</b> .../AwsDigitoArtifactsGameday/documents/rds/test/force_aurora_failover/2020-04-01/Tests/features/aurora_failover_cluster.feature
 
-##Scenario Input Parameters 
+## Scenario Input Parameters 
 
 A the moment we are supporting following parameters types:
 
@@ -378,7 +378,7 @@ A the moment we are supporting following parameters types:
 * Cache parameter references (cache) - points to cached parameter values
 * Simple parameters - no reference, just a regular parameter value
 
-###CFN Parameter References
+### CFN Parameter References
 Let’s assume that we want to execute SSM automation and SSM automation expects input parameter with name “ClusterId” to be passed. As well we have used cloud formation template with name “RdsAuroraFailoverTestTemplate” as test resources which contains Output with name “ClusterId”. In this case we can define reference which is going to point to “cfn-output” for given CFN template “RdsAuroraFailoverTestTemplate” and template output parameter with name “ClusterId” as shown bellow. 
 <b>NOTE:</b> cfn-output parameters are populated when CFN test resources are available for test.
 ```
@@ -386,14 +386,14 @@ And SSM automation document "Digito-AuroraFailoverCluster" executed
   |ClusterId                                             |
   |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
 ```
-###Cache Parameter References
+### Cache Parameter References
 In order use cached parameter references that data should be cached at some point before fetching it. However same principal is used as with “cfn-output“ parameters except no template name, since it is completely up to a customer how data this case is going to be organized (keep in mind that cache data structure should be python [dictionary](https://docs.python.org/3/tutorial/datastructures.html#dictionaries)).
 ```
 And SSM automation document "Digito-AuroraFailoverCluster" executed
     |InstanceId                 |
     |{{cache:before>dbReaderId}}|
 ```
-###Simple Parameters
+### Simple Parameters
 Simple parameter meaning is that we are not using any references to find value for given parameter reference. It is just regular value for given parameter. 
 ```
 And SSM automation document "Digito-AuroraFailoverCluster" executed
@@ -401,7 +401,7 @@ And SSM automation document "Digito-AuroraFailoverCluster" executed
     |my-rds-instance-id-xxxx-2222|
 ```
 
-##Tests Isolation
+## Tests Isolation
 Usually when we write tests we don’t want to execute all tests to verify them. Instead we want to execute only those tests which we want. In this case test [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios) can help. You can register your in following way:
 ```
 [tool:pytest]
@@ -413,7 +413,7 @@ markers =
 ```
 <b>File location:</b> .../AwsDigitoArtifactsGameday/setup.cfg
 
-##Integration Test Execution 
+## Integration Test Execution 
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
