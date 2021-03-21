@@ -428,6 +428,10 @@ Integration test execution command line:
 
 
 # Design.md writing guidelines
+## Digito components relation
+![Components Relation](content/Digito_components_relation.png)
+
+
 ## Gameday guidelines
 1. Must be capable to restore the state of changes from previous execution.
     1. Use parameters with standard naming and description:
@@ -446,7 +450,7 @@ Checkout the template [here](templates/gameday_design_template.md)
 Coming soon...
 
 
-#TODO List
+# TODO List
 * https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
 * https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination
 * https://issues.amazon.com/issues/Digito-1546 - [SSM Testing Framework] Implement ability to override pool size over CLI
