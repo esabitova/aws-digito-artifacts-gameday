@@ -437,7 +437,7 @@ Integration test execution command line:
     1. Backup the current state of services under change
     1. Backup input parameters (e.g. `LambdaArn`, `ApiGatewayId`, `StageName`, and etc.)
 1. The `RollbackPreviousExecution` (when `IsRollback` is True) step must:
-    1. Take saved parameters from previous execution from  `BackupCurrentStateAndInputs` step
+    1. Take saved parameters from previous execution from  `Backup<WhatsGoingToBeBackedUp>ConfigurationAndInputs` step
     1. Compare the *previous parameters* with the *current given parameters* and throw an error if those are not equal. Node: you need to compare parameters that identify services themselves. Example is `LambdaArn`, `ApiGatewayId`, `SqsQueueUrl`, and etc.
 
 Checkout the template [here](templates/gameday_design_template.md)
