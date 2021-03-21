@@ -30,6 +30,7 @@
         3. [Simple Parameters](#simple-parameters)
     6. [Tests Isolation](#tests-isolation)
     7. [Integration Test Execution](#integration-test-execution) 
+5. [Design.md writing guidelines](#design.md-writing-guidelines) 
 5. [TODO List](#todo-list)
 
 # Digito Failure Injection Documents
@@ -424,6 +425,26 @@ Integration test execution command line:
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 * --aws_profile - (Optional) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
+
+
+# Design.md writing guidelines
+## Gameday guidelines
+1. Must be capable to restore the state of changes from previous execution.
+    1. Use parameters with standard naming and description:
+        * `PreviousExecutionId`
+        * `IsRollback`
+1. The `Backup<WhatsGoingToBeBackedUp>ConfigurationAndInputs` step must:
+    1. Backup the current state of services under change
+    1. Backup input parameters (e.g. `LambdaArn`, `ApiGatewayId`, `StageName`, and etc.)
+1. The `RollbackPreviousExecution` (when `IsRollback` is True) step must:
+    1. Take saved parameters from previous execution from  `BackupCurrentStateAndInputs` step
+    1. Compare the *previous parameters* with the *current given parameters* and throw an error if those are not equal. Node: you need to compare parameters that identify services themselves. Example is `LambdaArn`, `ApiGatewayId`, `SqsQueueUrl`, and etc.
+
+Checkout the template [here](templates/gameday_design_template.md)
+
+## SOP guidelines
+Coming soon...
+
 
 #TODO List
 * https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
