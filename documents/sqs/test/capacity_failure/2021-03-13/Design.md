@@ -25,10 +25,7 @@ Medium
 * sqs:SendMessage
 * sqs:ReceiveMessage
 * sqs:DeleteMessage
-* ssm:GetParameters
-* ssm:StartAutomationExecution
 * ssm:GetAutomationExecution
-* iam:PassRole
 
 ## Supports Rollback
 
