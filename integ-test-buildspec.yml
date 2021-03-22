@@ -29,17 +29,7 @@ phases:
     commands:
       - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
       - python get-pip.py
-      - python -m pip install flake8
-      - python -m pip install boto3==1.17.25
-      - python -m pip install setuptools==53.0.0
-      - python -m pip install pytest==6.2.2
-      - python -m pip install pytest_bdd==4.0.2
-      - python -m pip install pytest_html==3.1.1
-      - python -m pip install pytest-cov==2.11.1
-      - python -m pip install cfn_flip==1.2.3
-      - python -m pip install sttable==0.0.1
-      - python -m pip install pynamodb==5.0.2
-      - python -m pip install pytest-parallel==0.1.0
+      - python -m pip install -r requirements.txt
       - pip install --upgrade awscli
       - aws --version
   pre_build:

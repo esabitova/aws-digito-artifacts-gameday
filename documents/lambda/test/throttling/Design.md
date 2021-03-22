@@ -22,7 +22,7 @@ Medium
 
 ## Supports Rollback
 Yes. The script backups existing Reserved Concurrency value and restores it when the specified alarms fires.
-Users can run the script with `IsRollback` and `PreviousExecutionId` to rollbackup changes from the previous run 
+Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback changes from the previous run 
 
 ## Inputs
 ### `AutomationAssumeRole`
@@ -63,10 +63,13 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
     * Outputs: 
         * `RestoredReservedConcurrentExecutionsValue`: The restored value of Reserved Concurrency.
     * Explanation:
-        * Get value of `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue` from the previous execution using `PreviousExecutionId`
+        * Get values from previous execution by `PreviousExecutionId`
+          * `previousLambdaArn` = `BackupReservedConcurrentExecutions.LambdaARN` 
+          * `previousConcurrentExecutionsValue` = `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue` 
+        * Check if `previousLambdaArn` equals to `LambdaARN` if not raise an error
         * Set `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue` using  [put_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.put_function_concurrency). Parameters:
           * `FunctionName`='`LambdaARN`',
-          * `ReservedConcurrentExecutions`=`BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue`
+          * `ReservedConcurrentExecutions`=`previousConcurrentExecutionsValue`
         * Return `ReservedConcurrentExecutions` API JSON response
         * isEnd: true
 1. `BackupReservedConcurrentExecutions`
@@ -75,19 +78,23 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `LambdaARN`
     * Outputs:
         * `BackupReservedConcurrentExecutionsValue`
+        * `LambdaARN` - returns inputs
     * Explanation:
-        * Get Function concurrency using [get_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.get_function_concurrency). Parameters:
-          * FunctionName='`LambdaARN`'
+        * Get Function concurrency using [get_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.get_function_concurrency)
+            * Parameters:
+                * FunctionName='`LambdaARN`'
+            * Return `.ReservedConcurrentExecutions`
 1. `UpdateReservedConcurrentExecutions`
     * Type: aws:executeAwsApi
     * Inputs:
         * `LambdaARN`
     * Outputs: 
-        * `ReservedConcurrentExecutions`
+        * `ReservedConcurrentExecutionsNewValue`
     * Explanation:
         * Set `0` using  [put_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.put_function_concurrency). Parameters:
           * `FunctionName`='`LambdaARN`',
           * `ReservedConcurrentExecutions`=`0`
+        * Return `ReservedConcurrentExecutions` API JSON response
     * OnFailure: step: RollbackToPreviousReservedConcurrentExecutions 
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
@@ -95,14 +102,14 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `SyntheticAlarmName`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for 600 seconds
+        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `600` seconds
     * OnFailure: step: RollbackToPreviousReservedConcurrentExecutions 
 1. `RollbackToPreviousReservedConcurrentExecutions`
     * Type: aws:executeAwsApi
     * Inputs:
         * `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue`
     * Outputs:
-        * `RestoredReservedConcurrentExecutionsValue`: The restored value of Reserved Concurrency.
+        * `ReservedConcurrentExecutionsRestoredValue`: The restored value of Reserved Concurrency.
     * Explanation:
         * Set `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue` using  [put_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.put_function_concurrency). Parameters:
           * FunctionName='`LambdaARN`',
@@ -114,7 +121,15 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `SyntheticAlarmName`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `OK` for 600 seconds
+        * Wait for `SyntheticAlarmName` alarm to be `OK` for `600` seconds
     * isEnd: true
 ## Outputs
-`BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue`
+* `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue`
+* `BackupReservedConcurrentExecutions.LambdaARN`
+
+if `IsRollback`:
+* `RollbackPreviousExecution.RestoredReservedConcurrentExecutionsValue`
+
+if not `IsRollback`:
+* `UpdateReservedConcurrentExecutions.ReservedConcurrentExecutionsNewValue`
+* `RollbackToPreviousReservedConcurrentExecutions.ReservedConcurrentExecutionsRestoredValue`

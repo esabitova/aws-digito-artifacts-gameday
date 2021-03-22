@@ -19,7 +19,7 @@ from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from pytest import ExitCode
 from botocore.exceptions import ClientError
-from publisher.publish_documents import PublishDocuments
+from publisher.src.publish_documents import PublishDocuments
 
 
 def pytest_addoption(parser):
@@ -43,6 +43,10 @@ def pytest_addoption(parser):
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
                           "pool size (Example: template_1=3, template_2=4)")
+    parser.addoption("--skip_resource_fix",
+                     action="store_true",
+                     default=False,
+                     help="Flag to skip resource fix/destroy")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -67,7 +71,12 @@ def pytest_sessionstart(session):
         s3_helper = S3(boto3_session)
         rm = ResourceManager(cfn_helper, s3_helper)
         rm.init_ddb_tables(boto3_session)
-        rm.fix_stalled_resources()
+        # In case we do execute tests not in single session, for example in different machines, we don't want
+        # to perform resource fix since one session can try to modify resource state which is used by another session.
+        # At this moment this case is used on CodeCommit pipeline actions where we do execute tests in parallel
+        # on different machines in same AWS account.
+        if not session.config.option.skip_resource_fix:
+            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -77,8 +86,13 @@ def pytest_sessionfinish(session, exitstatus):
     :param exitstatus(int): The status which pytest will return to the system.
     :return:
     '''
-    # Execute only when running integration tests
-    if session.config.option.run_integration_tests:
+    # Execute only when running integration tests and disabled skip session level hooks
+    # In case we do execute tests not in single session, for example in different machines, we don't want
+    # to perform resource fix/destroy since one session can try to modify resource state which is used
+    # by another session.At this moment this case is used on CodeCommit pipeline actions where we do
+    # execute tests in parallel on different machines in same AWS account.
+    if session.config.option.run_integration_tests \
+            and not session.config.option.skip_resource_fix:
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
