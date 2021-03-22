@@ -11,7 +11,7 @@ publish_ssm_docs:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/publish_documents.py --region ${AWS_REGION} \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
 		--file-name documents/docdb/misc/docdb-manifest --log-level INFO && \
 	deactivate
 

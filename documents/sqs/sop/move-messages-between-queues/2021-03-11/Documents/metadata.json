@@ -1,0 +1,14 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "dependsOn": "Digito-MoveMessagesBetweenQueues_2021-03-11",
+  "displayName": "SOP - Move messages from one queue to another",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-MoveMessagesBetweenQueues_2021-03-11",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "To move messages from one queue to another",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "sqs:sop:move-messages-between-queues:2021-03-11"
+}
