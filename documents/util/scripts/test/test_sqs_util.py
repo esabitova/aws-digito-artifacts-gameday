@@ -11,6 +11,7 @@ from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_s
 @pytest.mark.unit_test
 class TestSqsUtil(unittest.TestCase):
     def setUp(self):
+        self.empty_policy = {"Policy": ""}
         self.queue_url = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
         self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
         self.action_to_deny = "sqs:DeleteMessage"
@@ -95,4 +96,5 @@ class TestSqsUtil(unittest.TestCase):
             "OptionalBackupPolicy": "{{VariableFromSsmDocument}}"
         }
         revert_sqs_policy(events, None)
-        self.client.set_queue_attributes.assert_called_once()
+        self.client.set_queue_attributes.assert_called_once_with(QueueUrl=self.queue_url,
+                                                                 Attributes=str(self.empty_policy))
