@@ -105,7 +105,7 @@ class TestSqsUtil(unittest.TestCase):
         }
         send_message_of_size(events, None)
         self.client.send_message.assert_called_once()
-        self.assertEqual(100, len(self.client.send_message.call_args.kwargs['MessageBody']))
+        self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
 
     def test_send_message_of_size_fifo_no_token(self):
         events = {
@@ -122,4 +122,4 @@ class TestSqsUtil(unittest.TestCase):
         }
         send_message_of_size(events, None)
         self.client.send_message.assert_called_once()
-        self.assertEqual(100, len(self.client.send_message.call_args.kwargs['MessageBody']))
+        self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
