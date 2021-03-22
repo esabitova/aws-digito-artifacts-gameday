@@ -1,5 +1,6 @@
 {
     "displayName": "Test - Force MAZ failover",
+    "description": "Test that the application automatically recovers in case of an automatic MAZ failover.",
     "documentName": "Digito-FailoverRdsInstance_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",
