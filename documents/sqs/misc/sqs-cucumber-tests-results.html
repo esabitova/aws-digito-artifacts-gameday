@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <style>body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.log {
+  background-color: #e6e6e6;
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  height: 230px;
+  overflow-y: scroll;
+  padding: 5px;
+  white-space: pre-wrap;
+}
+.log:only-child {
+  height: inherit;
+}
+
+div.image {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.image img {
+  width: 320px;
+}
+
+div.video {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.video video {
+  overflow: hidden;
+  width: 320px;
+  height: 240px;
+}
+
+.collapsed {
+  display: none;
+}
+
+.expander::after {
+  content: " (show details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.collapser::after {
+  content: " (hide details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+
+.sort-icon {
+  font-size: 0px;
+  float: left;
+  margin-right: 5px;
+  margin-top: 5px;
+  /*triangle*/
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+.inactive .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #E6E6E6;
+}
+.asc.active .sort-icon {
+  /*finish triangle*/
+  border-bottom: 8px solid #999;
+}
+.desc.active .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #999;
+}
+</style></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++)
+        filterItems[i].hidden = false;
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>sqs-cucumber-tests-results.html</h1>
+    <p>Report generated on 23-Mar-2021 at 20:41:56 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "0.13.1", "py": "1.10.0", "pytest": "6.2.2"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>macOS-10.14.6-x86_64-i386-64bit</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"bdd": "4.0.2", "cov": "2.11.1", "custom-exit-code": "0.3.0", "html": "3.1.1", "incremental": "0.5.0", "metadata": "1.11.0", "parallel": "0.1.0"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.9.2</td></tr></table>
+    <h2>Summary</h2>
+    <p>1 tests ran in 729.54 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">1 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Tests/step_defs/test_breaking_the_policy_for_sqs.py::test_breaking_the_policy_for_sqs</td>
+          <td class="col-duration">723.18</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:189 Creating boto3 session for [ut] profile.<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     botocore.credentials:credentials.py:1222 Found credentials in shared credentials file: ~/.aws/credentials
+INFO     root:conftest.py:345 Sleeping for [10] seconds
+WARNING  root:resource_manager.py:266 Pool size for [SqsTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/SqsTemplate.yml] template
+INFO     root:resource_manager.py:335 Creating stack [ON_DEMAND:SqsTemplate-0] with input params [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/SqsTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-ap-southeast-1]
+INFO     root:cloud_formation.py:115 Waiting for stack [SqsTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [SqsTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:335 Creating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] with input params [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-ap-southeast-1]
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:conftest.py:16 Sending 60 times...
+INFO     root:conftest.py:21 Sent 1 message with id = b011fdda-117c-4698-b4ca-65b8a2d389fa
+INFO     root:conftest.py:21 Sent 2 message with id = bc92bd9d-21d3-4f35-bc62-d9f952d337b3
+INFO     root:conftest.py:21 Sent 3 message with id = 2d512318-c9d1-4f2f-b2da-f6aa234e3e13
+INFO     root:conftest.py:21 Sent 4 message with id = c94c24ce-c41e-40d6-8319-0d19b9c463e2
+INFO     root:conftest.py:21 Sent 5 message with id = 14729b81-32a2-487a-8fa1-8f4fd3c0ab06
+INFO     root:conftest.py:21 Sent 6 message with id = b1c2a0ec-17a4-4f0e-ae00-516c7d46b214
+INFO     root:conftest.py:21 Sent 7 message with id = ff841979-634e-410b-a27c-b1a8c68d9d4f
+INFO     root:conftest.py:21 Sent 8 message with id = 0db3830b-938f-4841-a23d-346644541e32
+INFO     root:conftest.py:21 Sent 9 message with id = ee840373-46dc-4062-bd0e-c18974ea1a0d
+INFO     root:conftest.py:21 Sent 10 message with id = 6db54522-6d49-49d1-8e2f-4f2ef380003b
+INFO     root:conftest.py:21 Sent 11 message with id = 58e2ed21-a5de-4bfb-858b-f153a3481c4e
+INFO     root:conftest.py:21 Sent 12 message with id = 79e6016e-603f-4498-9ed0-60fee98cadef
+INFO     root:conftest.py:21 Sent 13 message with id = 32a156b9-11a9-49d5-b7e6-923fe6448e54
+INFO     root:conftest.py:21 Sent 14 message with id = 589ec487-b51c-4068-bd2a-9a84b57aa538
+INFO     root:conftest.py:21 Sent 15 message with id = 99a5bf8f-6610-4cb1-8464-0d33efaf2a61
+INFO     root:conftest.py:21 Sent 16 message with id = 4c3820a5-a466-4ead-aa46-79f95ca017aa
+INFO     root:conftest.py:21 Sent 17 message with id = 1165160b-9dc6-4005-bbf7-06ac42fc21b9
+INFO     root:conftest.py:21 Sent 18 message with id = 9a4faced-36d6-43dc-b748-12f834ccb554
+INFO     root:conftest.py:21 Sent 19 message with id = bb761f0d-9f74-4544-890d-5eac92bfba97
+INFO     root:conftest.py:21 Sent 20 message with id = 00457719-24f8-4990-8ec4-7d3615cedffd
+INFO     root:conftest.py:21 Sent 21 message with id = bddbd253-35ae-446a-b4f2-a73b7ae0fc74
+INFO     root:conftest.py:21 Sent 22 message with id = 3ade4468-33eb-403d-97c2-13145c753b05
+INFO     root:conftest.py:21 Sent 23 message with id = aa07b751-2ee8-4a04-aad4-61ed14999326
+INFO     root:conftest.py:21 Sent 24 message with id = ca2c13d8-2c1f-4af6-9112-7528da36f128
+INFO     root:conftest.py:21 Sent 25 message with id = 5d1886c5-3573-47c1-badc-7ad5399bb4de
+INFO     root:conftest.py:21 Sent 26 message with id = f3133b0c-3883-493e-8f1d-dccae0b123c8
+INFO     root:conftest.py:21 Sent 27 message with id = 26a9f56b-f989-4bc6-9a48-c9cf78ad7f4c
+INFO     root:conftest.py:21 Sent 28 message with id = 884425b8-09d5-4690-95b1-85674b7190d8
+INFO     root:conftest.py:21 Sent 29 message with id = b8b53794-5528-46c6-b4eb-ad2f5f5ad866
+INFO     root:conftest.py:21 Sent 30 message with id = b282d26d-7049-46bd-ba52-d938242af08b
+INFO     root:conftest.py:21 Sent 31 message with id = 9ddbafa3-6944-44a8-8481-c9d4f4910f5e
+INFO     root:conftest.py:21 Sent 32 message with id = a8d911ab-14e1-48ec-83b9-23cd99325953
+INFO     root:conftest.py:21 Sent 33 message with id = e11a8665-779b-4cdb-9850-e5dc0b08be0a
+INFO     root:conftest.py:21 Sent 34 message with id = e725cc21-f264-408a-b5ec-f389fb9b32ca
+INFO     root:conftest.py:21 Sent 35 message with id = 800e5561-c723-460d-b631-6b3b97afd3c3
+INFO     root:conftest.py:21 Sent 36 message with id = f06996c1-bc9d-4ec0-9c25-72caee75ece2
+INFO     root:conftest.py:21 Sent 37 message with id = 06c74a72-7639-4bf9-a1c9-a69037cc2edc
+INFO     root:conftest.py:21 Sent 38 message with id = f12d697a-2326-43b9-b13e-a79be3bc52f2
+INFO     root:conftest.py:21 Sent 39 message with id = 76a6c4b5-bbdb-418d-822f-8629547ef3a8
+INFO     root:conftest.py:21 Sent 40 message with id = b8912de8-fde9-4929-b248-6812582a10a6
+INFO     root:conftest.py:21 Sent 41 message with id = 69592103-4478-47b6-951c-b5051330970f
+INFO     root:conftest.py:21 Sent 42 message with id = f6aa5053-ba45-4cb5-b2e5-6bd58b6caa6a
+INFO     root:conftest.py:21 Sent 43 message with id = d37046e4-51f8-42bd-8eee-735170e481be
+INFO     root:conftest.py:21 Sent 44 message with id = 8e92e8ac-24d9-4d95-9767-f3e28ccfe0e8
+INFO     root:conftest.py:21 Sent 45 message with id = 81c65d56-627d-450f-8759-80afb294faef
+INFO     root:conftest.py:21 Sent 46 message with id = 3aec77dd-4b47-4d66-9165-03f96c4cba61
+INFO     root:conftest.py:21 Sent 47 message with id = 449117db-76c9-47d6-b2f8-2c93f7722834
+INFO     root:conftest.py:21 Sent 48 message with id = 25add91a-2f0d-4f9b-8bd6-9c3cda3b1fba
+INFO     root:conftest.py:21 Sent 49 message with id = bd4c4284-f190-41d6-960c-347a9337a36d
+INFO     root:conftest.py:21 Sent 50 message with id = a47ffbfd-aa6e-41a3-8d99-eb22ccc43325
+INFO     root:conftest.py:21 Sent 51 message with id = 871a5d35-73f7-4c15-ad13-1ef2e57e38d8
+INFO     root:conftest.py:21 Sent 52 message with id = 48ef1059-7ce5-4540-8959-1be53c7a7466
+INFO     root:conftest.py:21 Sent 53 message with id = 15a37055-27b4-476d-80dc-c91fd3a0c083
+INFO     root:conftest.py:21 Sent 54 message with id = ea923c26-4c2c-407d-9f8b-0fb53b7d3f01
+INFO     root:conftest.py:21 Sent 55 message with id = 644fc859-36ec-4c08-9978-1a53e3b280dd
+INFO     root:conftest.py:21 Sent 56 message with id = aefc340f-584f-40ce-b248-0bbefbc11de1
+INFO     root:conftest.py:21 Sent 57 message with id = ca092bea-6d2c-4911-afad-b99bf3fcdeaa
+INFO     root:conftest.py:21 Sent 58 message with id = f5d53eac-e850-479b-b4d9-8fdcc3d7acfc
+INFO     root:conftest.py:21 Sent 59 message with id = eb3d5960-ccb9-4201-be48-54ed63b7cea8
+INFO     root:conftest.py:21 Sent 60 message with id = caa6b98d-6b38-474f-aa17-b39ccdada6fe
+INFO     root:conftest.py:345 Sleeping for [30] seconds
+INFO     root:conftest.py:16 Sending 60 times...
+INFO     root:conftest.py:21 Sent 1 message with id = e89cfb9e-8de0-4958-82fd-96bc8a10fd94
+INFO     root:conftest.py:21 Sent 2 message with id = 5f30c7af-4e5c-4555-a9ad-249e8dfd4cd4
+INFO     root:conftest.py:21 Sent 3 message with id = ad566b69-d91c-4243-bddc-8937ac2ba7ce
+INFO     root:conftest.py:21 Sent 4 message with id = 642f6b27-d89e-4e7c-aad0-a648c5adaa96
+INFO     root:conftest.py:21 Sent 5 message with id = 83f58f0d-9227-4270-a807-3c9f2c1d0b32
+INFO     root:conftest.py:21 Sent 6 message with id = 68eac4f6-b055-4517-b9a2-9e43c920891e
+INFO     root:conftest.py:21 Sent 7 message with id = 479600ef-998a-4783-a580-decae45faa13
+INFO     root:conftest.py:21 Sent 8 message with id = 4265a8a7-6cf8-4948-a453-e1a51b2876fd
+INFO     root:conftest.py:21 Sent 9 message with id = e93889f3-f827-4108-b9b2-32196fbaa601
+INFO     root:conftest.py:21 Sent 10 message with id = fba5a8f2-dd8c-4290-a4b8-f054902eb654
+INFO     root:conftest.py:21 Sent 11 message with id = f6b61786-7f38-4793-b84e-f90713830826
+INFO     root:conftest.py:21 Sent 12 message with id = 34fadc05-5d78-4e5e-9bd6-5cfb1f2a6d55
+INFO     root:conftest.py:21 Sent 13 message with id = 0ecf85d6-32f4-4deb-82bb-4567d9a25c9f
+INFO     root:conftest.py:21 Sent 14 message with id = 207f5fea-172c-4dc0-9b20-0f72792b4eab
+INFO     root:conftest.py:21 Sent 15 message with id = 4f8985e5-c7f3-4338-a096-e29336bf7ded
+INFO     root:conftest.py:21 Sent 16 message with id = 2bf3a208-1053-4858-aeab-555bcec0894c
+INFO     root:conftest.py:21 Sent 17 message with id = d157c495-715f-444f-93c2-adb286fd90be
+INFO     root:conftest.py:21 Sent 18 message with id = 45ddb40f-6ff8-4cfc-b45a-90dd57f9220e
+INFO     root:conftest.py:21 Sent 19 message with id = dd94c9bb-c1a6-4bb6-a9ae-bc11747ac44a
+INFO     root:conftest.py:21 Sent 20 message with id = 5616409a-70c7-488b-a9aa-6f8b6af592b1
+INFO     root:conftest.py:21 Sent 21 message with id = adb33d26-8b04-4caf-a276-cafd5cc10a52
+INFO     root:conftest.py:21 Sent 22 message with id = edae7c34-2ea2-471a-820d-0e57ef8c588d
+INFO     root:conftest.py:21 Sent 23 message with id = 6b8afa66-8d91-44d3-b52a-800facee5f4d
+INFO     root:conftest.py:21 Sent 24 message with id = 98c1df8d-2712-4af1-9d7b-d7ca27cfd7f7
+INFO     root:conftest.py:21 Sent 25 message with id = 5f23bab1-f275-4d4f-92dc-01204106ee26
+INFO     root:conftest.py:21 Sent 26 message with id = 3f1c2524-7c61-48fa-bb03-c90cd15fcd8c
+INFO     root:conftest.py:21 Sent 27 message with id = 87d54a7b-e769-471d-9313-a241df2cb1bf
+INFO     root:conftest.py:21 Sent 28 message with id = e8083f2a-3835-4e8c-aaf1-9c7a256ffe19
+INFO     root:conftest.py:21 Sent 29 message with id = 2fde37d1-11b5-4f96-9890-82092e3f0d23
+INFO     root:conftest.py:21 Sent 30 message with id = f79ac37c-c696-404c-8c4b-66e033f90593
+INFO     root:conftest.py:21 Sent 31 message with id = 39d57218-9328-45cb-af09-c772494fac5a
+INFO     root:conftest.py:21 Sent 32 message with id = 45dfef26-0ff0-4182-9b48-946b5b0ecddb
+INFO     root:conftest.py:21 Sent 33 message with id = b89748da-01b4-490c-9d5e-c1dedac09733
+INFO     root:conftest.py:21 Sent 34 message with id = c827f3e0-dad8-4f38-a767-3903d2a5c808
+INFO     root:conftest.py:21 Sent 35 message with id = 71dfe79c-98bf-43f7-8a99-9b46b2588fe9
+INFO     root:conftest.py:21 Sent 36 message with id = f16bac68-48ff-46c3-917c-330e37feea6a
+INFO     root:conftest.py:21 Sent 37 message with id = 3478a45a-9131-4231-b714-fc7879665cca
+INFO     root:conftest.py:21 Sent 38 message with id = 2f452560-c84a-49f6-9977-7ce8c396c101
+INFO     root:conftest.py:21 Sent 39 message with id = 8a414c50-a4fa-4161-8f4e-5d0de3e03fa9
+INFO     root:conftest.py:21 Sent 40 message with id = 0bbd0aca-cee8-414e-8d04-d836d204de99
+INFO     root:conftest.py:21 Sent 41 message with id = 59bf1c14-11b3-4e30-a32a-e5018cc3ba31
+INFO     root:conftest.py:21 Sent 42 message with id = f85c29ba-b0c9-4fbc-8a21-5561eeebc801
+INFO     root:conftest.py:21 Sent 43 message with id = 45f02ea2-64af-4aff-ae75-0e176db68ad7
+INFO     root:conftest.py:21 Sent 44 message with id = ed719991-1165-470e-8986-dc0f1543f330
+INFO     root:conftest.py:21 Sent 45 message with id = 28e631e7-646d-44a2-8755-2fb7087b179a
+INFO     root:conftest.py:21 Sent 46 message with id = fb3f8a35-c780-4b4b-9b58-2dd2aa7a433a
+INFO     root:conftest.py:21 Sent 47 message with id = 4194c85d-46d7-46ae-b7d2-ae69681b37ce
+INFO     root:conftest.py:21 Sent 48 message with id = 480fa084-6d6e-4425-a76c-6c1a5e9b3d8b
+INFO     root:conftest.py:21 Sent 49 message with id = 92957c33-5463-4d4a-8daf-95b71a319122
+INFO     root:conftest.py:21 Sent 50 message with id = e8099235-5a05-467f-ab57-a19231c31a3b
+INFO     root:conftest.py:21 Sent 51 message with id = 3add4b36-2e45-4dfb-a050-1c4abc5dc454
+INFO     root:conftest.py:21 Sent 52 message with id = e6354272-6187-47eb-b84c-e71e99c5fdd4
+INFO     root:conftest.py:21 Sent 53 message with id = 5f1b3eab-21a7-43f3-a160-8279a3a3065f
+INFO     root:conftest.py:21 Sent 54 message with id = 0381af68-6ec6-457c-9861-94b649132105
+INFO     root:conftest.py:21 Sent 55 message with id = 73458f47-7235-40c5-9cdb-d8b10d9ddcce
+INFO     root:conftest.py:21 Sent 56 message with id = 059adae4-5b21-41e9-915a-bd6ab36203f3
+INFO     root:conftest.py:21 Sent 57 message with id = 2f53f95c-c701-461b-bddb-4adf2a4b83b1
+INFO     root:conftest.py:21 Sent 58 message with id = af50575b-9cc8-4897-885b-fe2a150e50ac
+INFO     root:conftest.py:21 Sent 59 message with id = 26761f67-4976-4b4f-a570-da1835bdb254
+INFO     root:conftest.py:21 Sent 60 message with id = b5d98e10-6769-4c3d-8c77-fd92d456bc1c
+INFO     root:conftest.py:345 Sleeping for [30] seconds
+INFO     root:conftest.py:16 Sending 60 times...
+INFO     root:conftest.py:21 Sent 1 message with id = be56d73c-7057-4d4f-b0a1-a4c71e4c05a1
+INFO     root:conftest.py:21 Sent 2 message with id = b8258701-a292-43d7-b29e-1689a9fa4e01
+INFO     root:conftest.py:21 Sent 3 message with id = f6c86489-ce3a-4c31-82d6-a05a8c2abc46
+INFO     root:conftest.py:21 Sent 4 message with id = 3f8613e4-9d14-4e78-9bc2-28d7b2cb8c2a
+INFO     root:conftest.py:21 Sent 5 message with id = e8ea05bc-c8bb-4a94-ba79-61b84b51796d
+INFO     root:conftest.py:21 Sent 6 message with id = bb1402e4-6207-4740-a0df-248fe886544f
+INFO     root:conftest.py:21 Sent 7 message with id = 3dfe1dec-e8de-4c64-a81a-e16e42621cde
+INFO     root:conftest.py:21 Sent 8 message with id = 71d930ba-ccc1-41f8-b31e-79f87c62b95e
+INFO     root:conftest.py:21 Sent 9 message with id = fbe152a0-07af-49e7-8207-9f1f43f3c63a
+INFO     root:conftest.py:21 Sent 10 message with id = 5fc9f35f-d275-4e61-9a96-2ecb2034df32
+INFO     root:conftest.py:21 Sent 11 message with id = f85a251e-114a-4337-8635-79ad2d5e3576
+INFO     root:conftest.py:21 Sent 12 message with id = 6bdf4179-adcc-4eef-b2d2-7af8bb94e154
+INFO     root:conftest.py:21 Sent 13 message with id = 949f670e-b336-4ca7-b409-6814b81ddd5f
+INFO     root:conftest.py:21 Sent 14 message with id = edbe1c26-9423-45b9-85a3-d994c1a412f5
+INFO     root:conftest.py:21 Sent 15 message with id = 710773dd-5b0f-40c2-8e55-3e44d1db19ad
+INFO     root:conftest.py:21 Sent 16 message with id = 9b59b57b-b7b8-4134-8637-b758bca62ad4
+INFO     root:conftest.py:21 Sent 17 message with id = 3225b92d-54d0-4391-9a15-88d32122997b
+INFO     root:conftest.py:21 Sent 18 message with id = 682c3e91-795c-4f0e-bbf4-debb3f4a91f4
+INFO     root:conftest.py:21 Sent 19 message with id = 40e030e8-e8ef-48cb-8294-2049b3c21352
+INFO     root:conftest.py:21 Sent 20 message with id = 72598166-6515-4163-b71d-7cd2fb2d1971
+INFO     root:conftest.py:21 Sent 21 message with id = 95d9caeb-536b-4dfe-b961-5bbf4354ffdb
+INFO     root:conftest.py:21 Sent 22 message with id = 297d97a6-d0a7-4de7-978a-c10ab5be55b0
+INFO     root:conftest.py:21 Sent 23 message with id = 1b2f27ff-10b5-47c2-a610-47e6490d04c6
+INFO     root:conftest.py:21 Sent 24 message with id = 50f77bfd-1227-45cf-b776-487fed112ec0
+INFO     root:conftest.py:21 Sent 25 message with id = 61f78774-19e2-4e70-86cc-45b08097158a
+INFO     root:conftest.py:21 Sent 26 message with id = e55e4973-04b3-4c91-aa54-c10b3ca69106
+INFO     root:conftest.py:21 Sent 27 message with id = 689dc251-fc79-493e-8109-1501770c538a
+INFO     root:conftest.py:21 Sent 28 message with id = 0f48c03d-a20b-45f9-8591-a180c5316697
+INFO     root:conftest.py:21 Sent 29 message with id = 26b5e33d-a9f9-4e00-b64b-707ffbb7f510
+INFO     root:conftest.py:21 Sent 30 message with id = 488cf9be-fa17-4481-befd-971f57938646
+INFO     root:conftest.py:21 Sent 31 message with id = fd6de154-7751-4134-acfa-86d96c1a5fec
+INFO     root:conftest.py:21 Sent 32 message with id = 315a9a40-a99d-4aec-82c5-8d805ca771fd
+INFO     root:conftest.py:21 Sent 33 message with id = a5550889-27aa-4c95-9e85-9ffdd5d76f60
+INFO     root:conftest.py:21 Sent 34 message with id = f3e00aae-9b82-4006-94a8-33b8aaefa28d
+INFO     root:conftest.py:21 Sent 35 message with id = 88defa86-8f88-4266-96f6-2d3134a4ac95
+INFO     root:conftest.py:21 Sent 36 message with id = 652a10a6-50fb-4499-9057-636273d66691
+INFO     root:conftest.py:21 Sent 37 message with id = ce641695-a27b-409f-9415-960fe12e0d70
+INFO     root:conftest.py:21 Sent 38 message with id = 7c5f70de-3109-46d6-8f1f-789f517b85dc
+INFO     root:conftest.py:21 Sent 39 message with id = e6e6a8f2-20d4-472d-bf54-a00f2c169ac4
+INFO     root:conftest.py:21 Sent 40 message with id = 6c40d867-0ab5-42a7-98bf-28663dc2c586
+INFO     root:conftest.py:21 Sent 41 message with id = 7dab21a0-ea90-4f22-bc79-4a23bce3dfc5
+INFO     root:conftest.py:21 Sent 42 message with id = 870b9151-af11-4293-8ebd-26343fd9ef85
+INFO     root:conftest.py:21 Sent 43 message with id = 6bf5a5c7-97b3-45fa-b81d-a1ea3b3d94d3
+INFO     root:conftest.py:21 Sent 44 message with id = 52a0ce93-5bab-4476-bfaf-5022e34f7910
+INFO     root:conftest.py:21 Sent 45 message with id = 3c475cc8-f6a3-4aa4-a293-39aafb3d72e5
+INFO     root:conftest.py:21 Sent 46 message with id = 5edf40cf-f904-44fb-ad0b-12f9fab52827
+INFO     root:conftest.py:21 Sent 47 message with id = 0f2d71fb-2eda-4398-a0f6-3bad1662c439
+INFO     root:conftest.py:21 Sent 48 message with id = 22c863d3-c0df-4941-a7df-afb8c198f5ad
+INFO     root:conftest.py:21 Sent 49 message with id = 6cd21436-f85a-4bbf-8dfa-b22c2155b5b6
+INFO     root:conftest.py:21 Sent 50 message with id = b6f5b6e0-c97d-47bb-ba1b-385d91db863e
+INFO     root:conftest.py:21 Sent 51 message with id = 7f58414d-0a18-448f-a228-cce12d8b980a
+INFO     root:conftest.py:21 Sent 52 message with id = d18011c6-183e-4059-a0cc-01d752117146
+INFO     root:conftest.py:21 Sent 53 message with id = a05cf8f7-ce71-442f-becb-4c26aac37a16
+INFO     root:conftest.py:21 Sent 54 message with id = 71bcce70-adb3-4929-a5f9-5abfc2d46a5d
+INFO     root:conftest.py:21 Sent 55 message with id = 76561f64-51b0-49bc-a2f6-eb64bcb9db3d
+INFO     root:conftest.py:21 Sent 56 message with id = f35df42b-9499-4dd5-9563-75f91f832af7
+INFO     root:conftest.py:21 Sent 57 message with id = 03ad12f6-d866-43a7-90bd-2aa9dd2f760f
+INFO     root:conftest.py:21 Sent 58 message with id = 33bb4841-1559-4cb7-b298-ac803874bc4c
+INFO     root:conftest.py:21 Sent 59 message with id = d7c4ede8-ea80-4bfd-9944-bd89d22c365b
+INFO     root:conftest.py:21 Sent 60 message with id = 85ea8e85-b99a-4dc7-ab23-27a25afdd78a
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-BreakingThePolicyForSQS_2020-11-27] with parameters: [{&#x27;QueueUrl&#x27;: [&#x27;https://sqs.ap-southeast-1.amazonaws.com/435978235099/SqsTemplate-0-SqsStandardQueue-QH1HT2UXK6DB&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoBreakingThePolicyF-GU64XDFAS5V3&#x27;], &#x27;SQSUserErrorAlarmName&#x27;: [&#x27;SQSNumberOfMessagesSentAlarm&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/7e6b93ce-ccce-41e0-a03e-91bac82812f3
+INFO     root:conftest.py:307 Waiting for Success status of AssertAlarmToBeGreenBeforeTest step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 1000 seconds
+INFO     root:conftest.py:307 Waiting for Success status of UpdateQueuePolicy step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 1000 seconds
+INFO     root:conftest.py:307 Waiting for Success status of AssertAlarmToBeRed step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 600 seconds
+INFO     root:conftest.py:307 Waiting for Success status of RollbackCurrentExecution step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 1000 seconds
+INFO     root:conftest.py:16 Sending 30 times...
+INFO     root:conftest.py:21 Sent 1 message with id = e5cab7a6-d0e4-4fc5-8e57-27b812ed64f0
+INFO     root:conftest.py:21 Sent 2 message with id = f05b48cb-a97a-4d4e-ad97-3698e57380f7
+INFO     root:conftest.py:21 Sent 3 message with id = c46d3672-9ef3-4199-9d46-9bfb7f177234
+INFO     root:conftest.py:21 Sent 4 message with id = 46c8aa0d-e26f-4d67-8acc-109b7b3c5a82
+INFO     root:conftest.py:21 Sent 5 message with id = 1c50b61b-51d3-4829-8e18-1e2b77ecdf71
+INFO     root:conftest.py:21 Sent 6 message with id = 0f1ada01-9da6-4f52-be5d-0182e9b5cf52
+INFO     root:conftest.py:21 Sent 7 message with id = e3e68986-20f4-457b-837b-f40a3fc835f9
+INFO     root:conftest.py:21 Sent 8 message with id = d5745176-07f0-4a93-8eb9-728e767bec6a
+INFO     root:conftest.py:21 Sent 9 message with id = 840a8376-8b89-409d-8451-76152d3bb95b
+INFO     root:conftest.py:21 Sent 10 message with id = 830f9ad3-48ae-4196-bca2-2006bc0022ca
+INFO     root:conftest.py:21 Sent 11 message with id = 6b7ce93e-ab10-462c-a9c7-7a49711ef307
+INFO     root:conftest.py:21 Sent 12 message with id = 158b6d4d-d5fb-4226-abaf-c4bc161ba1c7
+INFO     root:conftest.py:21 Sent 13 message with id = 8349505c-2f4c-44cc-9a33-2f3575ae74fb
+INFO     root:conftest.py:21 Sent 14 message with id = 06d2986b-c18d-435d-a1e9-a8b5e01edd05
+INFO     root:conftest.py:21 Sent 15 message with id = da15034e-2422-40ec-a7db-7122b29acd7b
+INFO     root:conftest.py:21 Sent 16 message with id = da02b215-8c9e-48a3-a445-e7838d27b547
+INFO     root:conftest.py:21 Sent 17 message with id = c45ba428-68ce-4c4e-af42-0e56559f3a28
+INFO     root:conftest.py:21 Sent 18 message with id = 35eec858-c779-4c15-aef2-25c76cee0b2e
+INFO     root:conftest.py:21 Sent 19 message with id = 86228c24-5707-48b2-9231-76f24bb3dac2
+INFO     root:conftest.py:21 Sent 20 message with id = ad567749-0deb-4663-ad36-88115d336752
+INFO     root:conftest.py:21 Sent 21 message with id = 0e8eff28-71e9-4017-a844-17471ba12dcc
+INFO     root:conftest.py:21 Sent 22 message with id = a4fddd22-03db-46c3-b892-0355b04ad670
+INFO     root:conftest.py:21 Sent 23 message with id = c0f608ef-cc87-4497-8332-8ddf76aef4bb
+INFO     root:conftest.py:21 Sent 24 message with id = b0428a05-8432-48e4-b19d-c305506ffb1f
+INFO     root:conftest.py:21 Sent 25 message with id = dee03d4e-6f35-4e24-b603-0f78373813f1
+INFO     root:conftest.py:21 Sent 26 message with id = 0b34dbd4-4f9e-4755-9e2d-77b75a3dac61
+INFO     root:conftest.py:21 Sent 27 message with id = 6c90ed17-118a-4cd5-aa1b-f4260f34ab66
+INFO     root:conftest.py:21 Sent 28 message with id = bec8e454-4137-42af-b0c1-fe04326c74fb
+INFO     root:conftest.py:21 Sent 29 message with id = 8d5a09df-b2f2-40d0-a820-9f270f087c20
+INFO     root:conftest.py:21 Sent 30 message with id = 902f2b4d-c04d-4bab-9efe-aa5fe818e95f
+INFO     root:conftest.py:345 Sleeping for [30] seconds
+INFO     root:conftest.py:16 Sending 30 times...
+INFO     root:conftest.py:21 Sent 1 message with id = 716fd2db-4341-4dc4-a478-d1327a7538ec
+INFO     root:conftest.py:21 Sent 2 message with id = 9dbe3e8b-5bf9-40a4-8436-de52857cebd5
+INFO     root:conftest.py:21 Sent 3 message with id = af678c8b-c1ad-41fd-84aa-8fc6621ab4e7
+INFO     root:conftest.py:21 Sent 4 message with id = 63382ab8-e0f1-4964-8040-877eedb3b635
+INFO     root:conftest.py:21 Sent 5 message with id = 562afba5-1757-477a-b0f7-f2259cab247a
+INFO     root:conftest.py:21 Sent 6 message with id = b1997f0b-3690-4bba-85dc-06ef2cd26bce
+INFO     root:conftest.py:21 Sent 7 message with id = 54068648-0215-4424-b178-321e023a4b4c
+INFO     root:conftest.py:21 Sent 8 message with id = 7a783a2e-7181-4a1c-b97c-b8d0967f9834
+INFO     root:conftest.py:21 Sent 9 message with id = 910d6c75-3bb1-4bda-bc33-49f7b2086d6f
+INFO     root:conftest.py:21 Sent 10 message with id = 7ee70387-0a54-47e5-8a91-d801ff838ec6
+INFO     root:conftest.py:21 Sent 11 message with id = 9e1780ab-d56f-4efb-ad8b-92d432d9ac13
+INFO     root:conftest.py:21 Sent 12 message with id = c8f5d8f4-bd45-4756-adda-0d356d3dfb08
+INFO     root:conftest.py:21 Sent 13 message with id = 2909647a-70a4-42e4-b2d9-8663521d5d1b
+INFO     root:conftest.py:21 Sent 14 message with id = 242669c1-46a8-45cc-8380-f49c73bbb42a
+INFO     root:conftest.py:21 Sent 15 message with id = fd0b8a37-8780-4272-be0a-d3b5b6ce77c5
+INFO     root:conftest.py:21 Sent 16 message with id = 190a391a-63c0-491a-9cb8-224f5f4b5f2f
+INFO     root:conftest.py:21 Sent 17 message with id = a4493aea-41c0-442e-af0f-17f198c7f739
+INFO     root:conftest.py:21 Sent 18 message with id = 097682d0-96b3-42fc-ab3b-65a8f7c28dfa
+INFO     root:conftest.py:21 Sent 19 message with id = 2f06175e-0118-4995-9bbf-86404eb04b98
+INFO     root:conftest.py:21 Sent 20 message with id = 99742ecd-7771-40b5-9e77-21e80548729b
+INFO     root:conftest.py:21 Sent 21 message with id = a6cba4d1-b18f-40ba-865e-bff55b60e306
+INFO     root:conftest.py:21 Sent 22 message with id = 21d058e0-93f4-4322-87a9-e6f619f34306
+INFO     root:conftest.py:21 Sent 23 message with id = c87fc453-386f-48df-bef5-a832e95fe7f5
+INFO     root:conftest.py:21 Sent 24 message with id = 00854519-8b31-4bb8-998a-df14f0173999
+INFO     root:conftest.py:21 Sent 25 message with id = 447ba2b4-6894-4843-9e7b-dc444a1fdb2b
+INFO     root:conftest.py:21 Sent 26 message with id = 6e301964-566d-446a-bc0c-fd5077657d5a
+INFO     root:conftest.py:21 Sent 27 message with id = 68eb2069-dc94-4841-8570-fe6ec89a9500
+INFO     root:conftest.py:21 Sent 28 message with id = bfc4bd85-3838-47ef-9387-ef294e375d09
+INFO     root:conftest.py:21 Sent 29 message with id = 97508a05-1643-4878-a9fc-40b64eecdd9f
+INFO     root:conftest.py:21 Sent 30 message with id = 8f0d9811-8984-442e-9514-f2ee53e259be
+INFO     root:conftest.py:345 Sleeping for [30] seconds
+INFO     root:conftest.py:16 Sending 30 times...
+INFO     root:conftest.py:21 Sent 1 message with id = 33404100-2ec6-44c3-8dc9-9de052efa508
+INFO     root:conftest.py:21 Sent 2 message with id = 45a0ab38-9254-4ba0-a734-91d57669d774
+INFO     root:conftest.py:21 Sent 3 message with id = 777db4fe-db2b-4578-b51b-f6b0006da1bb
+INFO     root:conftest.py:21 Sent 4 message with id = d8c2e65a-6eff-4c57-83ae-efe72cfae4cc
+INFO     root:conftest.py:21 Sent 5 message with id = 9e70aa3c-94c3-48e7-9ae6-1d94b4b7e2de
+INFO     root:conftest.py:21 Sent 6 message with id = 91a0baa3-b46b-4e99-9d12-324a3570bfa9
+INFO     root:conftest.py:21 Sent 7 message with id = 87491b3b-47fa-4202-9c99-98c7ac434417
+INFO     root:conftest.py:21 Sent 8 message with id = 46d79cfd-4e94-43c2-9a61-af616b0023e8
+INFO     root:conftest.py:21 Sent 9 message with id = 55c509f1-9c89-4c8a-81fa-87e2cd786176
+INFO     root:conftest.py:21 Sent 10 message with id = c6e90a5a-08da-46d0-882c-6c70bbccbe92
+INFO     root:conftest.py:21 Sent 11 message with id = 3c454fd3-dc30-4302-a9ff-b8ae1986d7a4
+INFO     root:conftest.py:21 Sent 12 message with id = 8d96d2e5-7712-4b0e-9f7a-80af01ab22a2
+INFO     root:conftest.py:21 Sent 13 message with id = f66eea5b-260f-4193-86ae-5a017030aaa8
+INFO     root:conftest.py:21 Sent 14 message with id = 6a5cda34-7dad-44d7-9d09-9f0a12118452
+INFO     root:conftest.py:21 Sent 15 message with id = dece4eea-3d4e-454a-9ffa-94b386d84954
+INFO     root:conftest.py:21 Sent 16 message with id = 1abc665b-ef78-4ac8-a802-e345d12f4cd7
+INFO     root:conftest.py:21 Sent 17 message with id = e19fb3bf-ccbf-4c28-9a4b-a3d4d9eb0ee0
+INFO     root:conftest.py:21 Sent 18 message with id = 7acf77cf-2466-419f-a2b7-770bd8b5eb69
+INFO     root:conftest.py:21 Sent 19 message with id = 19fcd088-f462-4697-8c7d-f4a100db48ee
+INFO     root:conftest.py:21 Sent 20 message with id = 17ea6c25-2a73-4b0c-9edf-0a0a2ca63a17
+INFO     root:conftest.py:21 Sent 21 message with id = b374ad63-00f1-4e45-912b-095c03bea931
+INFO     root:conftest.py:21 Sent 22 message with id = 24548c05-5722-468e-8969-531cd2c5eed6
+INFO     root:conftest.py:21 Sent 23 message with id = 43f67798-e5b6-4cc3-85af-38e874e0e409
+INFO     root:conftest.py:21 Sent 24 message with id = 9a66f92b-f54e-46e1-868f-2a1af27589c9
+INFO     root:conftest.py:21 Sent 25 message with id = cd02a890-0211-41cd-aee9-cb2e741df9f3
+INFO     root:conftest.py:21 Sent 26 message with id = be8af4f9-7342-4ae5-bd28-ec5c7b782ff5
+INFO     root:conftest.py:21 Sent 27 message with id = b9cae2cc-774a-498f-a74d-44165cfdd5b9
+INFO     root:conftest.py:21 Sent 28 message with id = 1e158eab-8315-4d53-8229-694279789caf
+INFO     root:conftest.py:21 Sent 29 message with id = 40a6e1e8-0838-4913-aa3a-7eca7fa3ab3e
+INFO     root:conftest.py:21 Sent 30 message with id = a64f5bb7-4638-44d1-a3ee-975ee84d30e3<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/7e6b93ce-ccce-41e0-a03e-91bac82812f3<br/></div></td></tr></tbody></table></body></html>
