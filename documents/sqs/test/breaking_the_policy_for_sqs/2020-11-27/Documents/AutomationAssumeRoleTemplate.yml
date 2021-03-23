@@ -49,5 +49,6 @@ Resources:
               - sqs:SetQueueAttributes
               - sqs:AddPermission
               - sqs:RemovePermission
+              - sqs:SendMessage
       Roles:
         - Ref: DigitoBreakingThePolicyForSQSAssumeRole
