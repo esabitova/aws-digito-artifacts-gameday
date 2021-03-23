@@ -18,7 +18,7 @@ publish_ssm_docs:
 	deactivate
 
 # Execute Cucumber tests
-test: publish_ssm_docs
+test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
@@ -32,5 +32,11 @@ test_one: test_linter publish_ssm_docs
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/sop/purge-queue/2021-03-11/Tests/step_defs/test_purge_queue.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+		documents/sqs/test/block_delete_message/2021-03-09/Tests/step_defs/test_block_delete_message.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+	deactivate
+
+service_unit_test:
+	cd ../../../ && \
+	source venv/bin/activate && \
+	python3 -m pytest -m unit_test documents/util/scripts/test/test_sqs_util.py && \
 	deactivate

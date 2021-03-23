@@ -6,6 +6,8 @@ SHELL := /bin/bash
 include ../../../private.env
 export $(shell sed 's/=.*//' ../../../private.env)
 
+include ../../../common.mk
+
 # Upload local SSM Documents to AWS SSM Documents service by specifying them in the manifest file
 publish_ssm_docs:
 	# Move to parent working directory
@@ -16,7 +18,7 @@ publish_ssm_docs:
 	deactivate
 
 # Execute Cucumber tests
-test: publish_ssm_docs
+test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
@@ -25,7 +27,7 @@ test: publish_ssm_docs
 	deactivate
 
 # Execute only one specified Cucumber test
-test_one: publish_ssm_docs
+test_one: test_linter publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
