@@ -7,7 +7,8 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
 
-    When send messages to the SQS queue "60" times
+    When sleep for "10" seconds
+    And send messages to the SQS queue "60" times
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "30" seconds
