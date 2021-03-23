@@ -60,6 +60,9 @@ Outputs:
   NumberOfMessagesSentBandAlarm:
     Description: Alarm
     Value: !Ref  NumberOfMessagesSentBandAlarm
+  NumberOfMessagesSentAlarm:
+    Description: Alarm
+    Value: !Ref  NumberOfMessagesSentAlarm
   SentMessageSizeAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeAlarm
