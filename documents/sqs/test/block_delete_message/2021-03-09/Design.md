@@ -4,7 +4,7 @@ sqs:test:block_delete_message:2021-03-09
 
 ## Intent
 
-Test SQS behavior after blocking sqs:DeleteMessage for the specified queue
+Test behavior when messages are not deleted from a specific queue
 
 ## Type
 
@@ -16,7 +16,7 @@ High
 
 ## Requirements
 
-* Existing queue 
+* Existing queue
 * Existing alarm the queue
 
 ## Permission required for AutomationAssumeRole
@@ -27,8 +27,7 @@ High
 
 ## Supports Rollback
 
-Yes. The script performs rollback of SQSPolicy. Users can run the script with IsRollback and PreviousExecutionId to purge dead letter queue
-from previous run.
+Yes. The script performs rollback of SQSPolicy. Users can run the script with IsRollback and PreviousExecutionId to purge dead letter queue from previous run.
 
 ## Inputs
 
@@ -40,8 +39,7 @@ from previous run.
 ### `SQSUserErrorAlarmName`
 
 * type: String
-* description: (Optional) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
-* default: 'ApproximateAgeOfOldestMessageMaximum'
+* description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
 
 ### `IsRollback`:
 

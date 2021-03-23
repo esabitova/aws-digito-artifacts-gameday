@@ -60,7 +60,7 @@ back changes from the previous run
 ### `S3UserErrorAlarmName`:
 
 * type: String
-* description: (Optional) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+* description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
 
 
 ### `SNSTopicARNForManualApproval`:
