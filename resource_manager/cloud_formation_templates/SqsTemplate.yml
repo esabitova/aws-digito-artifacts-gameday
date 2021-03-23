@@ -59,10 +59,10 @@ Outputs:
     Value: !GetAtt SqsDeadLetterQueue.Arn
   NumberOfMessagesSentBandAlarm:
     Description: Alarm
-    Value: !Ref  NumberOfMessagesSentBandAlarm
+    Value: !Ref  SQSNumberOfMessagesSentBandAlarm
   NumberOfMessagesSentAlarm:
     Description: Alarm
-    Value: !Ref  NumberOfMessagesSentAlarm
+    Value: !Ref  SQSNumberOfMessagesSentAlarm
   SentMessageSizeAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeAlarm
@@ -205,10 +205,10 @@ Resources:
                 AWS:SourceAccount: !Ref "AWS::AccountId"
       Topics:
         - !Ref SNSTopic
-  SqsNumberOfMessagesSentAlarm:
+  SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsNumberOfMessagesSentAlarm"
+      AlarmName: "SQSNumberOfMessagesSentAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       ActionsEnabled: true
       AlarmActions:
@@ -225,10 +225,10 @@ Resources:
       Threshold: !Ref NumberOfMessagesSentThreshold
       ComparisonOperator: "LessThanLowerThreshold"
       TreatMissingData: "breaching"
-  NumberOfMessagesSentBandAlarm:
+  SQSNumberOfMessagesSentBandAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsNumberOfMessagesSentBandAlarm"
+      AlarmName: "SQSNumberOfMessagesSentBandAlarm"
       ActionsEnabled: true
       AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       AlarmActions:
