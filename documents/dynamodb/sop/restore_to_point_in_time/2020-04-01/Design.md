@@ -127,7 +127,7 @@ No.
         * Check of the source table has backups. [list_backups](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.list_backups) method
         * If yes, get the last backup date time value. Otherwise the value will be none.
 
-1. `RecoveryStartExecutionTime`
+1. `RecordStartTime`
     * Type: aws:executeScript
     * Inputs:
         * `LastBackupCreationDateTime`: pass `LastBackupCreationDateTime` value from the previous step.
@@ -522,9 +522,9 @@ No.
 1. `RecoveryTime`
     * Type: aws:executeScript
     * Inputs:
-        * `StartExecutionTime`: pass `StartExecutionTime` value from the `RecoveryStartExecutionTime` step
+        * `StartExecutionTime`: pass `StartExecutionTime` value from the `RecordStartTime` step
     * Outputs:
-        * `RecoveryTime`: The time difference between the first step and last step for recovery (RTO).
+        * `OutputRecoveryTime`: The time difference between the first step and last step for recovery (RTO).
     * Explanation:
         * Calculate the time difference it takes to recover the dynamodb target table from the source table
 
@@ -532,5 +532,5 @@ No.
 
 * `RestoreToDateTimeDynamoDBTableToPointInTime.TargetTableArn`: The ARN of the target table recovered to the point in time
 * `RestoreToLatestDynamoDBTableToPointInTime.TargetTableArn`: The ARN of the target table recovered to the point in time
-* `RecoveryTime.RecoveryTime`: The time difference between the first step and last step for recovery (RTO)
-* `RecoveryStartExecutionTime.RecoveryPoint`: the recovery point objective (RPO)
+* `RecoveryTime.OutputRecoveryTime`: The time difference between the first step and last step for recovery (RTO)
+* `RecordStartTime.RecoveryPoint`: the recovery point objective (RPO)
