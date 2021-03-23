@@ -8,6 +8,6 @@
   "failureType": "SOFTWARE",
   "intent": "To clean up SQS queue",
   "minorVersion": "001",
-  "risk": "SMALL",
+  "risk": "HIGH",
   "tag": "sqs:sop:purge-queue:2021-03-11"
 }
