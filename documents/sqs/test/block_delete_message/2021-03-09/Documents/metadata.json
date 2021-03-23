@@ -7,7 +7,7 @@
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "displayName": "Test - Block sqs:DeleteMessage",
-  "intent": "Test SQS behavior after blocking sqs:DeleteMessage for the specified queue",
+  "intent": "Test behavior when messages are not deleted from a specific queue",
   "risk": "HIGH",
   "tag": "sqs:test:block_delete_message:2021-03-09",
   "recommendedAlarms": {
