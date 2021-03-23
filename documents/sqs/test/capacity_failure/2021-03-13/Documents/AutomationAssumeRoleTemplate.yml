@@ -49,5 +49,6 @@ Resources:
               - sqs:ReceiveMessage
               - sqs:DeleteMessage
               - ssm:GetAutomationExecution
+              - ssm:GetParameters
       Roles:
         - Ref: DigitoSQSCapacityFailureAssumeRole
