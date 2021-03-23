@@ -43,28 +43,28 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRollbackOfPreviousExecution
+        - NextStep: PrepareRollbackOfPreviousExecutionQueueUrl
           Variable: "{{ IsRollback }}"
           StringEquals: 'true'
       Default: AssertAlarmToBeGreenBeforeTest
 
   - name: PrepareRollbackOfPreviousExecutionQueueUrl
-      action: aws:executeScript
-      outputs:
-        - Name: QueueUrl
-          Selector: $.Payload.QueueUrl
-          Type: String
-      inputs:
-        Runtime: python3.6
-        Handler: get_inputs_from_ssm_step_execution
-        InputPayload:
-          ExecutionId: '{{ PreviousExecutionId }}'
-          StepName: 'BackupCurrentExecution'
-          ResponseField: 'QueueUrl'
-        Script: |-
-          SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: $.Payload.QueueUrl
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupCurrentExecution'
+        ResponseField: 'QueueUrl'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-          SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
 
   - name: PrepareRollbackOfPreviousExecutionPolicy
     action: aws:executeScript
@@ -94,13 +94,13 @@ mainSteps:
     isEnd: true
 
   - name: RollbackPreviousExecution
-    action: aws:executeScript
-      inputs:
-        Service: sqs
-          Api: SetQueueAttributes
-          QueueUrl: '{{ QueueUrl }}'
-        Attributes:
-          Policy: '{{ PrepareRollbackOfPreviousExecutionPolicy.Policy }}'
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: SetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
+      Attributes:
+        Policy: '{{ PrepareRollbackOfPreviousExecutionPolicy.Policy }}'
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
@@ -131,6 +131,7 @@ mainSteps:
         - Policy
         - QueueArn
       QueueUrl: '{{ QueueUrl }}'
+
   - name: AddDenySendMessage
     action: aws:executeScript
     outputs:
@@ -179,11 +180,11 @@ mainSteps:
       DesiredValues: [ "ALARM" ]
 
   - name: RollbackCurrentExecution
-    action: aws:executeScript
+    action: aws:executeAwsApi
     inputs:
       Service: sqs
-        Api: SetQueueAttributes
-        QueueUrl: '{{ QueueUrl }}'
+      Api: SetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
       Attributes:
         Policy: '{{ BackupCurrentExecution.Policy }}'
 
