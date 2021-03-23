@@ -52,7 +52,7 @@ Outputs:
     Description: Standard queue ARN
     Value: !GetAtt SqsStandardQueue.Arn
   SqsStandardQueueUrl:
-    Description: Standard queue ARN
+    Description: Standard queue URL
     Value: !Ref SqsStandardQueue
   SNSTopicARN:
     Description: SNS Topic ARN
@@ -104,7 +104,7 @@ Parameters:
   NumberOfMessagesSentThreshold:
     Type: Number
     Description: NumberOfMessagesSent * 0.3
-    Default: 30
+    Default: 1
   ApproximateNumberOfMessagesNotVisibleThresholdStandardQueue:
     Type: Number
     Description: ApproximateNumberOfMessagesNotVisible < 120000 - 10%
@@ -215,7 +215,7 @@ Resources:
         - !Ref SNSTopic
       MetricName: "NumberOfMessagesSent"
       Namespace: "AWS/SQS"
-      Statistic: "Sum"
+      Statistic: "Average"
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SqsStandardQueue.QueueName
@@ -223,7 +223,7 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: !Ref NumberOfMessagesSentThreshold
-      ComparisonOperator: "LessThanLowerThreshold"
+      ComparisonOperator: "LessThanThreshold"
       TreatMissingData: "breaching"
   SQSNumberOfMessagesSentBandAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -247,7 +247,7 @@ Resources:
                 - Name: "QueueName"
                   Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
             Period: 60
-            Stat: "Sum"
+            Stat: "Average"
           ReturnData: true
         - Id: "ad1"
           Expression:
@@ -328,8 +328,6 @@ Resources:
       AlarmName: "SqsApproximateAgeOfOldestMessageMaximumAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: "ApproximateAgeOfOldestMessage"
       Namespace: "AWS/SQS"
       Statistic: "Maximum"
@@ -348,8 +346,6 @@ Resources:
       AlarmName: "SqsThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_standard_queue:2020-11-26"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: "ApproximateNumberOfMessagesNotVisible"
       Namespace: "AWS/SQS"
       Statistic: "Maximum"
@@ -368,8 +364,6 @@ Resources:
       AlarmName: "SqsThresholdApproximateNumberOfMessagesNotVisibleFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: "ApproximateNumberOfMessagesNotVisible"
       Namespace: "AWS/SQS"
       Statistic: "Maximum"
@@ -388,8 +382,6 @@ Resources:
       AlarmName: "SqsApproximateAgeOfOldestMessageDlq"
       AlarmDescription: "sqs:alarm:recovery_alarm_approximate_age_of_oldest_message_dlq:2020-11-26"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: "ApproximateAgeOfOldestMessage"
       Namespace: "AWS/SQS"
       Statistic: "Maximum"

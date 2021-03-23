@@ -94,14 +94,18 @@ mainSteps:
     isEnd: true
 
   - name: RollbackPreviousExecution
-    action: aws:executeAwsApi
-    inputs:
-      Service: sqs
-      Api: SetQueueAttributes
-      QueueUrl: '{{ QueueUrl }}'
-      Attributes:
-        Policy: '{{ PrepareRollbackOfPreviousExecutionPolicy.Policy }}'
+    action: aws:executeScript
     isEnd: true
+    inputs:
+      Runtime: python3.6
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{ PrepareRollbackOfPreviousExecutionPolicy.Policy }}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
@@ -180,18 +184,22 @@ mainSteps:
       DesiredValues: [ "ALARM" ]
 
   - name: RollbackCurrentExecution
-    action: aws:executeAwsApi
+    action: aws:executeScript
     inputs:
-      Service: sqs
-      Api: SetQueueAttributes
-      QueueUrl: '{{ QueueUrl }}'
-      Attributes:
-        Policy: '{{ BackupCurrentExecution.Policy }}'
+      Runtime: python3.6
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{ BackupCurrentExecution.Policy }}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
-    timeoutSeconds: 600
+    maxAttempts: 120
+    timeoutSeconds: 5
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
