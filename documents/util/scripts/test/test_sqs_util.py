@@ -97,4 +97,4 @@ class TestSqsUtil(unittest.TestCase):
         }
         revert_sqs_policy(events, None)
         self.client.set_queue_attributes.assert_called_once_with(QueueUrl=self.queue_url,
-                                                                 Attributes=str(self.empty_policy))
+                                                                 Attributes=self.empty_policy)
