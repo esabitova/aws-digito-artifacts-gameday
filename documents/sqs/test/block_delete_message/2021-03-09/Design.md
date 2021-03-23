@@ -68,40 +68,45 @@ Yes. The script performs rollback of SQSPolicy. Users can run the script with Is
     * Inputs:
         * `PreviousExecutionId`
     * Outputs:
-        * `SQSPolicy`: The backup SQS Policy
+        * `Policy`: The backup SQS Policy
     * Explanation:
-        * Get values of SSM Document input parameters from the previous execution using `PreviousExecutionId`:
-            * `SQSPolicy`
+        * Get values of SSM Document output parameters from the previous execution using `PreviousExecutionId`:
+            * `Policy`
 1. `RollbackPreviousExecution`
     * Type: aws:executeAutomation
     * Inputs:
-        * `PrepareRollbackOfPreviousExecution.SQSPolicy`
+        * `PrepareRollbackOfPreviousExecution.Policy`
     * Outputs:
         * `ActualPolicy`
     * Explanation:
         * Update the policy by calling [set_queue_attributes](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.set_queue_attributes)
+1. `AssertAlarmToBeGreenBeforeTest`
+   * Type: aws:assertAwsResourceProperty
 1. `BackupCurrentExecution`
     * Type: aws:executeAwsApi
     * Inputs:
         * `QueueURL`
     * Outputs:
-        * `SQSPolicy`
+        * `Policy`
+        * `QueueArn`
     * Explanation:
         * Get `Policy` field from the response of method
           call [get_queue_attributes](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.get_queue_attributes)
 1. `GetPolicyWithDenyOnDeleteMessageAction`
     * Type: aws:executeScript
     * Inputs:
-        * `SQSPolicy`
+        * `Policy`
     * Outputs:
-        * `SQSPolicy`
+        * `Policy`
+        * `DenyPolicyStatementSid`
+        * `PolicySid`
     * Explanation:
         * Add deny on "Principal": "*" for sqs:DeleteMessage action
 1. `UpdatePolicy`
     * Type: aws:executeAwsApi
     * Inputs:
         * `QueueURL`
-        * `RemoveDeleteMessageAction.SQSPolicy`
+        * `RemoveDeleteMessageAction.Policy`
     * Outputs: None
     * Explanation:
         * Update the policy by calling [set_queue_attributes](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.set_queue_attributes)
@@ -118,7 +123,7 @@ Yes. The script performs rollback of SQSPolicy. Users can run the script with Is
     * Type: aws:executeAwsApi
     * Inputs:
         * `QueueURL`
-        * `BackupCurrentExecution.SQSPolicy`
+        * `BackupCurrentExecution.Policy`
     * Outputs:
         * `ActualPolicy`
     * Explanation:
