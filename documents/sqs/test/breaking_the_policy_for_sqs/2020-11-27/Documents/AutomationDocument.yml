@@ -105,8 +105,8 @@ mainSteps:
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 2
-    timeoutSeconds: 600
+    maxAttempts: 60
+    timeoutSeconds: 3
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -164,7 +164,7 @@ mainSteps:
       Api: SetQueueAttributes
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
-        Policy: '{{ AddDenyDeleteMessage.Policy }}'
+        Policy: '{{ AddDenySendMessage.Policy }}'
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
