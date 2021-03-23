@@ -26,6 +26,7 @@ Medium
 * sqs:ReceiveMessage
 * sqs:DeleteMessage
 * ssm:GetAutomationExecution
+* ssm:GetParameters
 
 ## Supports Rollback
 
