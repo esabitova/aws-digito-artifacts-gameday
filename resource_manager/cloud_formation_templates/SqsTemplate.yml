@@ -223,7 +223,7 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: !Ref NumberOfMessagesSentThreshold
-      ComparisonOperator: "LessThanThreshold"
+      ComparisonOperator: "LessThanLowerThreshold"
       TreatMissingData: "breaching"
   NumberOfMessagesSentBandAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -235,7 +235,7 @@ Resources:
         - !Ref SNSTopic
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
-      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      ComparisonOperator: "LessThanLowerThreshold"
       TreatMissingData: "breaching"
       Metrics:
         - Id: "m1"
