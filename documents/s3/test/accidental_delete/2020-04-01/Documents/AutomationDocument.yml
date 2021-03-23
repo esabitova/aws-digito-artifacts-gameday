@@ -28,6 +28,9 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  S3UserErrorAlarmName:
+    type: String
+    description: (Required) ARN of the role that allows Automation to perform the actions on your behalf.
   SNSTopicARNForManualApproval:
     type: String
     description: (Required) The ARN of the SNS Topic where a user will receive the notification about the manual approval of bucket clean-up if some files exist there.
