@@ -31,7 +31,7 @@ test_breaking_the_policy_for_sqs: test_linter publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --run_integration_tests \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests \
 		documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Tests/step_defs/test_breaking_the_policy_for_sqs.py -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
