@@ -13,7 +13,7 @@ publish_ssm_docs:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/publish_documents.py --region ${AWS_REGION} \
+	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
 		--file-name documents/s3/misc/s3-manifest --log-level INFO && \
 	deactivate
 
@@ -22,8 +22,7 @@ test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/s3/misc/s3-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
