@@ -108,9 +108,9 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
 
   - name: AssertAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
-    maxAttempts: 1
-    timeoutSeconds: 60
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 120
+    timeoutSeconds: 5
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
