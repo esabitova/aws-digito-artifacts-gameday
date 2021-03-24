@@ -19,7 +19,7 @@ from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from pytest import ExitCode
 from botocore.exceptions import ClientError
-from publisher.publish_documents import PublishDocuments
+from publisher.src.publish_documents import PublishDocuments
 
 
 def pytest_addoption(parser):
