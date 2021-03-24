@@ -2,7 +2,8 @@ import unittest
 import pytest
 from unittest.mock import MagicMock
 import resource_manager.src.util.docdb_utils as docdb_utils
-from documents.util.scripts.test.test_docdb_util import get_docdb_clusters_side_effect, DOCDB_CLUSTER_ID
+from documents.util.scripts.test.test_docdb_util import DOCDB_CLUSTER_ID, DOCDB_INSTANCE_ID, \
+    get_docdb_clusters_side_effect, get_docdb_instances_side_effect, get_cluster_azs_side_effect
 
 
 @pytest.mark.unit_test
@@ -36,3 +37,16 @@ class TestDocDBUtil(unittest.TestCase):
         result = docdb_utils.get_number_of_instances(self.session_mock, DOCDB_CLUSTER_ID)
         self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
         self.assertEqual(0, result)
+
+    def test_get_instance_az(self):
+        az = 'us-east-1b'
+        self.mock_docdb_service.describe_db_instances.return_value = get_docdb_instances_side_effect(az)
+        result = docdb_utils.get_instance_az(self.session_mock, DOCDB_INSTANCE_ID)
+        self.mock_docdb_service.describe_db_instances.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
+        self.assertEqual(result, az)
+
+    def test_get_cluster_azs(self):
+        self.mock_docdb_service.describe_db_clusters.return_value = get_cluster_azs_side_effect()
+        result = docdb_utils.get_cluster_azs(self.session_mock, DOCDB_CLUSTER_ID)
+        self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+        self.assertListEqual(result, ['us-east-1a', 'us-east-1b', 'us-east-1c'])
