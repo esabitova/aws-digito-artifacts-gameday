@@ -1,5 +1,6 @@
 {
     "displayName": "Test - Force Aurora failover",
+    "description": "Test that the application automatically recovers in case of an automatic aurora in-region failover",
     "documentName": "Digito-AuroraFailoverCluster_2020-04-01",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",

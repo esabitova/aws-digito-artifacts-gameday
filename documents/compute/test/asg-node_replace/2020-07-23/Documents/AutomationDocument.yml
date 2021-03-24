@@ -25,6 +25,14 @@ parameters:
     description: (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
 mainSteps:
+  - name: SelectExecutionMode
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: AssertNoSuspendedProcesses
+          Variable: '{{IsRollback}}'
+          StringEquals: 'false'
+      Default: CancelInstanceRefresh
   - name: AssertNoSuspendedProcesses
     action: 'aws:executeScript'
     onFailure: Abort
@@ -49,14 +57,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::asg_util.imports
 
         SCRIPT_PLACEHOLDER::asg_util.assert_no_refresh_in_progress
-  - name: SelectExecutionMode
-    action: 'aws:branch'
-    inputs:
-      Choices:
-        - NextStep: StartInstanceRefresh
-          Variable: '{{IsRollback}}'
-          StringEquals: 'false'
-      Default: CancelInstanceRefresh
   - name: StartInstanceRefresh
     action: 'aws:executeScript'
     onFailure: Abort

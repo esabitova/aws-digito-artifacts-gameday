@@ -53,8 +53,8 @@ mainSteps:
     description: Get DocDb cluster availability zones
     onFailure: Abort
     outputs:
-      - Name: CurrentClusterAZ
-        Selector: $.Payload.cluster_az
+      - Name: CurrentClusterAZs
+        Selector: $.Payload.cluster_azs
         Type: StringList
     inputs:
       Runtime: python3.7
@@ -76,7 +76,7 @@ mainSteps:
         DBClusterIdentifier: '{{ DBClusterIdentifier }}'
         DBInstanceIdentifier: '{{ DBInstanceIdentifier }}'
         DBInstanceClass: '{{ DBInstanceClass }}'
-        DBClusterAZ: '{{ GetClusterAZ.CurrentClusterAZ }}'
+        DBClusterAZs: '{{ GetClusterAZ.CurrentClusterAZs }}'
         AvailabilityZone: '{{ AvailabilityZone }}'
         Engine: '{{ Engine }}'
       Script: |-
