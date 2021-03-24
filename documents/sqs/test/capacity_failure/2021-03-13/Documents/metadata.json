@@ -8,7 +8,7 @@
   "failureType": "SOFTWARE",
   "displayName": "Test SQS message size get close to capacity limit",
   "intent": "Test SQS behavior after sending a message of size larger than threshold",
-  "risk": "SMALL",
+  "risk": "MEDIUM",
   "tag": "sqs:test:capacity_failure:2021-03-13",
   "recommendedAlarms": {
     "SentMessageSizeAlarmName": "sqs:alarm:health_alarm_sent_message_size:2020-11-26"
