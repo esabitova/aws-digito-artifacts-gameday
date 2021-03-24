@@ -43,10 +43,6 @@ def pytest_addoption(parser):
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
                           "pool size (Example: template_1=3, template_2=4)")
-    parser.addoption("--skip_resource_fix",
-                     action="store_true",
-                     default=False,
-                     help="Flag to skip resource fix/destroy")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -71,12 +67,7 @@ def pytest_sessionstart(session):
         s3_helper = S3(boto3_session)
         rm = ResourceManager(cfn_helper, s3_helper)
         rm.init_ddb_tables(boto3_session)
-        # In case we do execute tests not in single session, for example in different machines, we don't want
-        # to perform resource fix since one session can try to modify resource state which is used by another session.
-        # At this moment this case is used on CodeCommit pipeline actions where we do execute tests in parallel
-        # on different machines in same AWS account.
-        if not session.config.option.skip_resource_fix:
-            rm.fix_stalled_resources()
+        rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -86,13 +77,8 @@ def pytest_sessionfinish(session, exitstatus):
     :param exitstatus(int): The status which pytest will return to the system.
     :return:
     '''
-    # Execute only when running integration tests and disabled skip session level hooks
-    # In case we do execute tests not in single session, for example in different machines, we don't want
-    # to perform resource fix/destroy since one session can try to modify resource state which is used
-    # by another session.At this moment this case is used on CodeCommit pipeline actions where we do
-    # execute tests in parallel on different machines in same AWS account.
-    if session.config.option.run_integration_tests \
-            and not session.config.option.skip_resource_fix:
+    # Execute only when running integration tests
+    if session.config.option.run_integration_tests:
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
@@ -316,13 +302,17 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
     ssm_execution_id = parameters[0].get('ExecutionId')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+
+    int_time_to_wait = int(time_to_wait)
+    logging.info(f'Waiting for {expected_status} status of {ssm_step_name} step in {ssm_document_name} document '
+                 f'during {int_time_to_wait} seconds')
     if expected_status == 'InProgress':
         actual_status = ssm_document.wait_for_execution_step_status_is_in_progress(
-            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+            ssm_execution_id, ssm_document_name, ssm_step_name, int_time_to_wait
         )
     else:
         actual_status = ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
-            ssm_execution_id, ssm_document_name, ssm_step_name, int(time_to_wait)
+            ssm_execution_id, ssm_document_name, ssm_step_name, int_time_to_wait
         )
     assert expected_status == actual_status
 
@@ -348,8 +338,9 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
     return execution_id
 
 
+@when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
-def sleep_secons(seconds):
+def sleep_seconds(seconds):
     # Need to wait for more than 5 minutes for metric to be reported
     logging.info('Sleeping for [{}] seconds'.format(seconds))
     time.sleep(int(seconds))

@@ -13,12 +13,12 @@ publish_ssm_docs:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/publish_documents.py --region ${AWS_REGION} \
+	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
 		--file-name documents/sqs/misc/sqs-manifest --log-level INFO && \
 	deactivate
 
 # Execute Cucumber tests
-test: publish_ssm_docs
+test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
@@ -31,6 +31,12 @@ test_one: test_linter publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/sop/purge-queue/2021-03-11/Tests/step_defs/test_purge_queue.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests \
+		documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Tests/step_defs/test_breaking_the_policy_for_sqs.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+	deactivate
+
+service_unit_test:
+	cd ../../../ && \
+	source venv/bin/activate && \
+	python3 -m pytest -m unit_test documents/util/scripts/test/test_sqs_util.py && \
 	deactivate
