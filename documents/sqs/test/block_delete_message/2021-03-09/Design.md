@@ -106,7 +106,7 @@ Yes. The script performs rollback of SQSPolicy. Users can run the script with Is
     * Type: aws:executeAwsApi
     * Inputs:
         * `QueueURL`
-        * `RemoveDeleteMessageAction.Policy`
+        * `GetPolicyWithDenyOnDeleteMessageAction.Policy`
     * Outputs: None
     * Explanation:
         * Update the policy by calling [set_queue_attributes](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sqs.html#SQS.Client.set_queue_attributes)
