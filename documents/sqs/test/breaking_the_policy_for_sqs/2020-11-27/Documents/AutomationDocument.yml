@@ -27,7 +27,7 @@ parameters:
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
   SQSUserErrorAlarmName:
     type: String
-    description: (Optional) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   IsRollback:
     type: String
     description: >-
@@ -74,7 +74,7 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: get_inputs_from_ssm_step_execution
+      Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         StepName: 'BackupCurrentExecution'
@@ -108,9 +108,9 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
 
   - name: AssertAlarmToBeGreenBeforeTest
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 60
-    timeoutSeconds: 3
+    action: aws:assertAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 60
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms

@@ -34,15 +34,15 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "RollbackCurrentExecution" in status "Success" for "1000" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And send messages to the SQS queue "30" times
+    And send messages to the SQS queue "60" times
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "30" seconds
-    And send messages to the SQS queue "30" times
+    And send messages to the SQS queue "60" times
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "30" seconds
-    And send messages to the SQS queue "30" times
+    And send messages to the SQS queue "60" times
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
