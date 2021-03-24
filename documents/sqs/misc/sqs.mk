@@ -27,7 +27,7 @@ test: linter_and_unit_test publish_ssm_docs
 	deactivate
 
 # Execute only one specified Cucumber test
-test_breaking_the_policy_for_sqs: test_linter publish_ssm_docs
+test_one: test_linter publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \

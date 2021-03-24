@@ -429,7 +429,7 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
 }
 </script>
     <h1>sqs-cucumber-tests-results.html</h1>
-    <p>Report generated on 24-Mar-2021 at 16:05:30 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <p>Report generated on 16-Mar-2021 at 12:52:17 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
     <h2>Environment</h2>
     <table id="environment">
       <tr>
@@ -437,15 +437,15 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
         <td>{"pluggy": "0.13.1", "py": "1.10.0", "pytest": "6.2.2"}</td></tr>
       <tr>
         <td>Platform</td>
-        <td>macOS-10.14.6-x86_64-i386-64bit</td></tr>
+        <td>Linux-5.8.0-44-generic-x86_64-with-glibc2.29</td></tr>
       <tr>
         <td>Plugins</td>
-        <td>{"bdd": "4.0.2", "cov": "2.11.1", "custom-exit-code": "0.3.0", "html": "3.1.1", "incremental": "0.5.0", "metadata": "1.11.0", "parallel": "0.1.0"}</td></tr>
+        <td>{"bdd": "4.0.2", "cov": "2.11.1", "html": "3.1.1", "metadata": "1.11.0", "parallel": "0.1.0", "repeat": "0.9.1"}</td></tr>
       <tr>
         <td>Python</td>
-        <td>3.9.2</td></tr></table>
+        <td>3.8.5</td></tr></table>
     <h2>Summary</h2>
-    <p>1 tests ran in 343.60 seconds. </p>
+    <p>1 tests ran in 66.15 seconds. </p>
     <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">1 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
     <h2>Results</h2>
     <table id="results-table">
@@ -460,188 +460,27 @@ function filterTable(elem) { // eslint-disable-line no-unused-vars
       <tbody class="passed results-table-row">
         <tr>
           <td class="col-result">Passed</td>
-          <td class="col-name">documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Tests/step_defs/test_breaking_the_policy_for_sqs.py::test_breaking_the_policy_for_sqs</td>
-          <td class="col-duration">338.12</td>
+          <td class="col-name">documents/sqs/sop/purge-queue/2021-03-11/Tests/step_defs/test_purge_queue.py::test_purge_queue</td>
+          <td class="col-duration">65.16</td>
           <td class="col-links"></td></tr>
         <tr>
           <td class="extra" colspan="4">
-            <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:189 Creating boto3 session for [ut] profile.<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     botocore.credentials:credentials.py:1222 Found credentials in shared credentials file: ~/.aws/credentials
-INFO     root:conftest.py:345 Sleeping for [10] seconds
+            <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:189 Creating boto3 session for [ut] profile.<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     botocore.credentials:credentials.py:1275 Credentials found in config file: ~/.aws/config
 WARNING  root:resource_manager.py:266 Pool size for [SqsTemplate] template not found, using default: 1
 INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/SqsTemplate.yml] template
-INFO     root:resource_manager.py:292 Updating stack [ON_DEMAND:SqsTemplate-0] input params: [{}]
-INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/SqsTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-ap-southeast-1]
-INFO     root:cloud_formation.py:49 Stack [SqsTemplate-0] already exists, updating...
-INFO     root:cloud_formation.py:115 Waiting for stack [SqsTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
 INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
-INFO     root:resource_manager.py:119 Pulling resources for [documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml] template
-INFO     root:conftest.py:16 Sending 30 times...
-INFO     root:conftest.py:21 Sent 1 message with id = 168d47f9-27c9-44ca-a645-6f4f2a8b84aa
-INFO     root:conftest.py:21 Sent 2 message with id = 4193797c-bdd9-4418-acd0-daf42f45b6e5
-INFO     root:conftest.py:21 Sent 3 message with id = fcbe715c-a63b-47db-93e6-c7201c9b2f39
-INFO     root:conftest.py:21 Sent 4 message with id = 513ac712-6be7-4d0d-a60a-21f2fe832a92
-INFO     root:conftest.py:21 Sent 5 message with id = a793d62c-c0c0-42d0-af5b-2931fcf18271
-INFO     root:conftest.py:21 Sent 6 message with id = cdc1944b-7d9a-486d-ae96-c53202294564
-INFO     root:conftest.py:21 Sent 7 message with id = 158e96ca-c3b4-4ccd-afde-2662105c2101
-INFO     root:conftest.py:21 Sent 8 message with id = 19216c97-35b7-4bae-a45b-c2edb3fa122a
-INFO     root:conftest.py:21 Sent 9 message with id = bf559ddb-385f-4c28-b58c-2f71aa7be416
-INFO     root:conftest.py:21 Sent 10 message with id = 6e771ee1-01da-4e24-922b-767268facaee
-INFO     root:conftest.py:21 Sent 11 message with id = 599b8144-e370-489c-ba46-737930b3f7fa
-INFO     root:conftest.py:21 Sent 12 message with id = 924ce52c-f9c8-49bf-a817-b561db335aeb
-INFO     root:conftest.py:21 Sent 13 message with id = 3f1502be-d1ea-4702-a675-764cadc0d098
-INFO     root:conftest.py:21 Sent 14 message with id = 51bb6d30-b568-4fe0-a942-df09351340df
-INFO     root:conftest.py:21 Sent 15 message with id = ec80a3fb-80d2-48e9-8595-54d94a6756b0
-INFO     root:conftest.py:21 Sent 16 message with id = 0a6aa04d-8757-4be6-8f14-c490f86019fc
-INFO     root:conftest.py:21 Sent 17 message with id = 1ca8d9c6-b8d0-4d68-ad09-43aabd02b8e9
-INFO     root:conftest.py:21 Sent 18 message with id = e88c7c2c-b13e-4d74-89e3-b410efae0f0d
-INFO     root:conftest.py:21 Sent 19 message with id = bd89cc8b-5a75-48e7-bacf-af02b6b6b906
-INFO     root:conftest.py:21 Sent 20 message with id = 792fb61f-7b4d-45ea-9ce5-0e7e42942907
-INFO     root:conftest.py:21 Sent 21 message with id = 12443c56-527f-4ca5-943e-4772c7638cd6
-INFO     root:conftest.py:21 Sent 22 message with id = 548688f5-c6e2-445f-9fa5-9abdcce5b16c
-INFO     root:conftest.py:21 Sent 23 message with id = 984501a1-c9f7-40a8-8b19-135b6cd5ee8e
-INFO     root:conftest.py:21 Sent 24 message with id = 1cda91b1-1bbf-48c3-8a74-6c949467d523
-INFO     root:conftest.py:21 Sent 25 message with id = 183b93bc-3b7d-4f0a-983b-0a506dcbf664
-INFO     root:conftest.py:21 Sent 26 message with id = c1a5458b-c8ea-4bf5-bbc8-396e79bdea6b
-INFO     root:conftest.py:21 Sent 27 message with id = 0600d8a3-3ec5-4a8e-9245-8c5dc1a8c16d
-INFO     root:conftest.py:21 Sent 28 message with id = e1648f2a-e93f-4a51-9774-d47672a3cd9f
-INFO     root:conftest.py:21 Sent 29 message with id = eccd1e66-3de6-48e7-b215-96161e6badbe
-INFO     root:conftest.py:21 Sent 30 message with id = b31d1445-7686-41f1-bf6a-a577f052110b
-INFO     root:conftest.py:345 Sleeping for [30] seconds
-INFO     root:conftest.py:16 Sending 30 times...
-INFO     root:conftest.py:21 Sent 1 message with id = b74977a1-54e1-46ce-8a11-ec5a6b22a248
-INFO     root:conftest.py:21 Sent 2 message with id = b585d193-9497-4911-a173-f26935895cb4
-INFO     root:conftest.py:21 Sent 3 message with id = fd7bba8c-4e48-4d1f-aac2-c6058b075852
-INFO     root:conftest.py:21 Sent 4 message with id = c1623c76-f932-40a5-9151-b5a4e3a7d1b0
-INFO     root:conftest.py:21 Sent 5 message with id = 18f949e0-2cd0-4829-9b9f-7b0c722225d5
-INFO     root:conftest.py:21 Sent 6 message with id = 01e4285d-09c3-4c01-9e28-d9d794967652
-INFO     root:conftest.py:21 Sent 7 message with id = 6add5c73-d98a-4c47-9041-d0ba7130a56f
-INFO     root:conftest.py:21 Sent 8 message with id = d649acf7-baf1-4be3-964c-52c0534618be
-INFO     root:conftest.py:21 Sent 9 message with id = 940d8794-46c6-4370-9961-57238005498c
-INFO     root:conftest.py:21 Sent 10 message with id = 071c2387-68b4-4c58-bfcc-e06285ea7f27
-INFO     root:conftest.py:21 Sent 11 message with id = 8b3240aa-e592-447a-9d66-3ca170e6d51f
-INFO     root:conftest.py:21 Sent 12 message with id = 9666cc83-9260-417c-94b3-1db949f49dd1
-INFO     root:conftest.py:21 Sent 13 message with id = 1b2f65d9-5890-4b06-9e90-adf3a9fa1e4f
-INFO     root:conftest.py:21 Sent 14 message with id = 98a58d67-dd33-4f00-990d-3c8b24b86d1e
-INFO     root:conftest.py:21 Sent 15 message with id = 691d091f-fd73-4f74-ac13-3b60918cf16d
-INFO     root:conftest.py:21 Sent 16 message with id = 48e9d838-2164-4a6a-8981-7e4d8a9c78e4
-INFO     root:conftest.py:21 Sent 17 message with id = bf867abb-ea94-4fa1-813d-3081c16cab88
-INFO     root:conftest.py:21 Sent 18 message with id = ce182f03-5cea-4e63-88ea-93ac6eccf27e
-INFO     root:conftest.py:21 Sent 19 message with id = b11e3aee-45e6-4ab7-80a9-a24737ef7cd4
-INFO     root:conftest.py:21 Sent 20 message with id = 7dafe59d-012d-4c3b-b4b4-59fdeba1314d
-INFO     root:conftest.py:21 Sent 21 message with id = 798d7cb3-b9ef-426c-8800-29ff514447bc
-INFO     root:conftest.py:21 Sent 22 message with id = 98d6eaad-1434-47b7-9c02-7d1675b42e93
-INFO     root:conftest.py:21 Sent 23 message with id = 3238ffb2-309d-4d7a-b05f-b120dcf2d002
-INFO     root:conftest.py:21 Sent 24 message with id = a9bab131-ce65-4059-953f-a6e0e43c2e5b
-INFO     root:conftest.py:21 Sent 25 message with id = 2962dff7-ad04-493d-a0ce-b44f4b47b421
-INFO     root:conftest.py:21 Sent 26 message with id = bb8da1d1-7a16-4a18-a0fa-d9d485e2b56d
-INFO     root:conftest.py:21 Sent 27 message with id = 524879fa-83aa-4fe4-9ac7-de3fe67481fc
-INFO     root:conftest.py:21 Sent 28 message with id = 8433a8ff-5890-48ad-980a-5e1425ba6b84
-INFO     root:conftest.py:21 Sent 29 message with id = 3ee0c1ce-1502-4f66-a47e-50903592e708
-INFO     root:conftest.py:21 Sent 30 message with id = 7d8674fe-d482-4b5a-a811-8dc96a36c800
-INFO     root:conftest.py:345 Sleeping for [30] seconds
-INFO     root:ssm_document.py:25 Executing SSM document [Digito-BreakingThePolicyForSQS_2020-11-27] with parameters: [{&#x27;QueueUrl&#x27;: [&#x27;https://sqs.ap-southeast-1.amazonaws.com/435978235099/SqsTemplate-0-SqsStandardQueue-1AQOLZ5PYKR91&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoBreakingThePolicyF-GU64XDFAS5V3&#x27;], &#x27;SQSUserErrorAlarmName&#x27;: [&#x27;SQSNumberOfMessagesSentAlarm&#x27;]}]
-INFO     root:ssm_document.py:32 SSM execution URL: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/d46f0e2e-43f9-4af1-b324-66ac3c7c5403
-INFO     root:conftest.py:307 Waiting for Success status of AssertAlarmToBeGreenBeforeTest step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 1000 seconds
-INFO     root:conftest.py:307 Waiting for Success status of UpdateQueuePolicy step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 1000 seconds
-INFO     root:conftest.py:307 Waiting for Success status of AssertAlarmToBeRed step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 600 seconds
-INFO     root:conftest.py:307 Waiting for Success status of RollbackCurrentExecution step in Digito-BreakingThePolicyForSQS_2020-11-27 document during 1000 seconds
-INFO     root:conftest.py:345 Sleeping for [10] seconds
-INFO     root:conftest.py:16 Sending 30 times...
-INFO     root:conftest.py:21 Sent 1 message with id = 5960845d-3778-4b49-a457-63b85d213039
-INFO     root:conftest.py:21 Sent 2 message with id = b7a0e63b-fc09-41b5-94e6-3e2c6b5f5aac
-INFO     root:conftest.py:21 Sent 3 message with id = a02c87d6-ce96-4f55-a6a3-372c870dab74
-INFO     root:conftest.py:21 Sent 4 message with id = 58e4ac17-3dbf-4201-aafb-c1249b4e8069
-INFO     root:conftest.py:21 Sent 5 message with id = 94e1ccf9-dc0f-480a-a9f6-f8ceb26ce72e
-INFO     root:conftest.py:21 Sent 6 message with id = b4d73455-67f8-43f4-a31c-64155debd5df
-INFO     root:conftest.py:21 Sent 7 message with id = 47cfbb4e-91f9-4594-ae7e-07a077fc85f3
-INFO     root:conftest.py:21 Sent 8 message with id = 0ee2fb9b-c64f-49d6-bcb3-90d83666994f
-INFO     root:conftest.py:21 Sent 9 message with id = 741fe3c7-c7ba-48ae-a56b-f762ba0689c1
-INFO     root:conftest.py:21 Sent 10 message with id = d3601e03-ae3c-4245-9501-23313d3ad6cf
-INFO     root:conftest.py:21 Sent 11 message with id = 5946a355-da6e-4b20-8784-0eb25961fe30
-INFO     root:conftest.py:21 Sent 12 message with id = c0ab75c0-bfba-4be8-ade8-8de937e815c0
-INFO     root:conftest.py:21 Sent 13 message with id = 9b2e1213-197f-494b-a3b4-4b4f40f4e2ef
-INFO     root:conftest.py:21 Sent 14 message with id = 3bfe6f0c-dfbf-4a1b-a952-c4255d1aa320
-INFO     root:conftest.py:21 Sent 15 message with id = 238033a7-d773-4356-ba34-0f5e7b5e879f
-INFO     root:conftest.py:21 Sent 16 message with id = 8215c6a1-f7d2-4deb-9b88-91e1d24bdd44
-INFO     root:conftest.py:21 Sent 17 message with id = 0bc50e3f-5161-44d9-ac67-a27242102661
-INFO     root:conftest.py:21 Sent 18 message with id = f61cc974-c850-4266-b170-297721de400a
-INFO     root:conftest.py:21 Sent 19 message with id = 18d13e61-b1ba-49cc-b66d-2aac884dc64e
-INFO     root:conftest.py:21 Sent 20 message with id = e021804d-2e15-493b-9485-d9a39cd59104
-INFO     root:conftest.py:21 Sent 21 message with id = d4d68a5b-557c-40a4-b3ba-63ea243c4265
-INFO     root:conftest.py:21 Sent 22 message with id = f51d2ac4-2a40-462f-8cc7-4492df948484
-INFO     root:conftest.py:21 Sent 23 message with id = 9d260ab1-2154-4e02-b3f5-cce43b34be21
-INFO     root:conftest.py:21 Sent 24 message with id = 147706b1-aedb-4ac3-983e-7ca315c04b3b
-INFO     root:conftest.py:21 Sent 25 message with id = 669e1165-2048-446a-962f-2067e7bb9d82
-INFO     root:conftest.py:21 Sent 26 message with id = b2fcd650-2bce-460a-a114-f29f5b7560d5
-INFO     root:conftest.py:21 Sent 27 message with id = 44949386-b200-4c72-8648-018d12477a04
-INFO     root:conftest.py:21 Sent 28 message with id = 4133a60c-428c-4fe4-a605-3572b9202953
-INFO     root:conftest.py:21 Sent 29 message with id = 169cf78d-4065-41c7-9434-9c639d7834c8
-INFO     root:conftest.py:21 Sent 30 message with id = 495aea6a-0a19-4df0-b790-69ead021e676
-INFO     root:conftest.py:345 Sleeping for [30] seconds
-INFO     root:conftest.py:16 Sending 30 times...
-INFO     root:conftest.py:21 Sent 1 message with id = 37c0db8d-f364-447d-aecc-8b86ae962648
-INFO     root:conftest.py:21 Sent 2 message with id = 4a0a2286-078b-4337-ad92-61109b7f65e2
-INFO     root:conftest.py:21 Sent 3 message with id = c3a7d821-617e-4ded-b86b-e2bdaa22f59f
-INFO     root:conftest.py:21 Sent 4 message with id = 1fcfa06b-4b16-482e-bb3b-43b5dfd85787
-INFO     root:conftest.py:21 Sent 5 message with id = 2935ffa9-2175-4ed1-aa9d-e51ada4aa385
-INFO     root:conftest.py:21 Sent 6 message with id = d6c25c8b-53b9-4603-b724-0faa7a8c67e8
-INFO     root:conftest.py:21 Sent 7 message with id = 7d467a72-e186-4dea-b131-4e8edfb05bbc
-INFO     root:conftest.py:21 Sent 8 message with id = 04b2d51e-d3ac-405d-b106-08dd4b0d348c
-INFO     root:conftest.py:21 Sent 9 message with id = ab4d9358-f75f-4762-9b26-ae74dcdc9874
-INFO     root:conftest.py:21 Sent 10 message with id = 2766025c-8921-4347-a4c2-65768af70825
-INFO     root:conftest.py:21 Sent 11 message with id = 5483b195-c926-4296-bdc8-a96fcc5e559d
-INFO     root:conftest.py:21 Sent 12 message with id = 80299849-40a3-4e95-97cf-8180ffcaceb0
-INFO     root:conftest.py:21 Sent 13 message with id = 7b029adc-be66-4e25-afae-dc1974fd358f
-INFO     root:conftest.py:21 Sent 14 message with id = 51f75d31-ff70-4e01-97a0-44ab069448c3
-INFO     root:conftest.py:21 Sent 15 message with id = 0f671749-7ef1-4721-962f-e943efe4375c
-INFO     root:conftest.py:21 Sent 16 message with id = 5d3df15b-e576-4ae6-98fe-c4ccc6d9da01
-INFO     root:conftest.py:21 Sent 17 message with id = 77272ad0-66ec-4ef5-bc31-ec3c07c836fb
-INFO     root:conftest.py:21 Sent 18 message with id = 5e605da1-840a-462f-a28d-f0f60f6c7a8f
-INFO     root:conftest.py:21 Sent 19 message with id = d0c74200-7e09-425a-9417-c92792036d46
-INFO     root:conftest.py:21 Sent 20 message with id = a7243828-e45c-41f7-a088-67524886c333
-INFO     root:conftest.py:21 Sent 21 message with id = 0d6ceb4d-87fe-4052-9836-36666ca3b49e
-INFO     root:conftest.py:21 Sent 22 message with id = 64faf76b-90aa-420f-9b22-f6c484539bb9
-INFO     root:conftest.py:21 Sent 23 message with id = 28452c19-ffca-41f1-9d08-07f9c0a97013
-INFO     root:conftest.py:21 Sent 24 message with id = f81f9295-4758-4f60-9d08-8e8fa89fdcf3
-INFO     root:conftest.py:21 Sent 25 message with id = 2b677593-1bd5-4839-bbcc-0fbbdc51f1a2
-INFO     root:conftest.py:21 Sent 26 message with id = 470dcc77-5694-42aa-8591-c2ad0ab81ea3
-INFO     root:conftest.py:21 Sent 27 message with id = 4ce07498-b20a-4cc5-a265-72c3c92dfab0
-INFO     root:conftest.py:21 Sent 28 message with id = f239007a-9200-4e23-8d5d-82cba344f909
-INFO     root:conftest.py:21 Sent 29 message with id = 014875d3-cda4-4425-9c86-5926377b795d
-INFO     root:conftest.py:21 Sent 30 message with id = f8e8322f-0b10-4e58-aafe-884524d80364
-INFO     root:conftest.py:345 Sleeping for [30] seconds
-INFO     root:conftest.py:16 Sending 30 times...
-INFO     root:conftest.py:21 Sent 1 message with id = 4134ea9d-4e54-4c3d-a3e4-866c9fe7ad2e
-INFO     root:conftest.py:21 Sent 2 message with id = 6d2e878b-1f98-4cbc-ab56-e2980a07d7fd
-INFO     root:conftest.py:21 Sent 3 message with id = b8025e43-f022-4378-8696-fa19e2126cf9
-INFO     root:conftest.py:21 Sent 4 message with id = 3197bae5-9541-4c95-828d-e5dfaeceb508
-INFO     root:conftest.py:21 Sent 5 message with id = 99284b0a-fd56-4d1f-8052-3aca647c5f75
-INFO     root:conftest.py:21 Sent 6 message with id = d6f7657b-0499-4880-8e24-de3da0df5d4b
-INFO     root:conftest.py:21 Sent 7 message with id = e0dc82c6-23be-4917-90c6-d7040be85fed
-INFO     root:conftest.py:21 Sent 8 message with id = 64f8fca3-0bda-4536-92a3-ab59936aaa4d
-INFO     root:conftest.py:21 Sent 9 message with id = df3b5234-ae72-4729-954c-00c709a6f0f8
-INFO     root:conftest.py:21 Sent 10 message with id = 0407c1f5-4bed-4b07-8c64-3e1ffb0ccba7
-INFO     root:conftest.py:21 Sent 11 message with id = 754020f2-35b8-4886-9ce0-5738ac6cc04c
-INFO     root:conftest.py:21 Sent 12 message with id = 7863a09a-06fc-4058-946f-060d5ae3aba4
-INFO     root:conftest.py:21 Sent 13 message with id = 1933a150-6175-4480-ae80-f3d85b1b025f
-INFO     root:conftest.py:21 Sent 14 message with id = f4b96f42-b483-466a-bad7-0f72727ad173
-INFO     root:conftest.py:21 Sent 15 message with id = f8ac879e-b10b-47d6-b320-9329819f22f1
-INFO     root:conftest.py:21 Sent 16 message with id = 6f110448-05e5-46af-9739-84b4af43e57e
-INFO     root:conftest.py:21 Sent 17 message with id = 0be03d41-e6ee-46b0-b3df-23af4b447b48
-INFO     root:conftest.py:21 Sent 18 message with id = d3c776ff-c615-4cd5-8578-64376324b465
-INFO     root:conftest.py:21 Sent 19 message with id = 7700fb42-4299-4d98-8893-fd37563a1bda
-INFO     root:conftest.py:21 Sent 20 message with id = cc35d35c-11c4-41fd-8f0f-2f3d1e8ef0a6
-INFO     root:conftest.py:21 Sent 21 message with id = 517745dd-8ebd-4939-90e1-9614cf427fbf
-INFO     root:conftest.py:21 Sent 22 message with id = 14a2b4b8-9141-4220-a557-bf75be59d1b7
-INFO     root:conftest.py:21 Sent 23 message with id = caa285b7-d0c5-4777-a73d-bd8b9847e41c
-INFO     root:conftest.py:21 Sent 24 message with id = d87fc48f-ead6-4411-85c7-aa9a0f371820
-INFO     root:conftest.py:21 Sent 25 message with id = bb2a8096-1ba9-45f1-88fd-e6feaea7e3f7
-INFO     root:conftest.py:21 Sent 26 message with id = b721472c-5efb-467f-868f-9fae90694d5f
-INFO     root:conftest.py:21 Sent 27 message with id = c03af05a-1512-4048-9dff-77057960d099
-INFO     root:conftest.py:21 Sent 28 message with id = 91ef9c38-f206-4692-8f72-56b1e67c82f2
-INFO     root:conftest.py:21 Sent 29 message with id = 7e9d4a27-3823-4d0e-8f6d-d870b2f49846
-INFO     root:conftest.py:21 Sent 30 message with id = 24c8c2a8-9811-4e5d-bd71-0423c6d71f94
-INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-BreakingThePolicyForSQS_2020-11-27&gt;AssertAlarmToBeGreen] to be completed: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/d46f0e2e-43f9-4af1-b324-66ac3c7c5403/step/8/b02a7914-ee00-4b00-9c77-d62b15ccf1e5
-INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-BreakingThePolicyForSQS_2020-11-27&gt;AssertAlarmToBeGreen] to be completed: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/d46f0e2e-43f9-4af1-b324-66ac3c7c5403/step/8/b02a7914-ee00-4b00-9c77-d62b15ccf1e5
-INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-BreakingThePolicyForSQS_2020-11-27&gt;AssertAlarmToBeGreen] to be completed: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/d46f0e2e-43f9-4af1-b324-66ac3c7c5403/step/8/b02a7914-ee00-4b00-9c77-d62b15ccf1e5<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
-INFO     root:conftest.py:163 Canceling SSM execution: https://ap-southeast-1.console.aws.amazon.com/systems-manager/automation/execution/d46f0e2e-43f9-4af1-b324-66ac3c7c5403<br/></div></td></tr></tbody></table></body></html>
+INFO     root:resource_manager.py:119 Pulling resources for [documents/sqs/sop/purge-queue/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-PurgeQueue_2021-03-11] with parameters: [{&#x27;QueueUrl&#x27;: [&#x27;https://sqs.eu-central-1.amazonaws.com/435978235099/SqsTemplate-0-SqsStandardQueue-Q88GJWBFGHFN&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoPurgeQueueAssumeRo-43TO5A39PULH&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PurgeQueue_2021-03-11&gt;SleepUntilCompletionOfPurgeQueue] to be completed: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242/step/2/a4665232-461a-4cf0-8500-68811ddcbfa9<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-central-1.console.aws.amazon.com/systems-manager/automation/execution/1cfda41d-58a3-4edd-b289-d19e84baa242<br/></div></td></tr></tbody></table></body></html>
