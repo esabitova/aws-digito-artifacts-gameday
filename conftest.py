@@ -352,6 +352,7 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
     return execution_id
 
 
+@given(parse('sleep for "{seconds}" seconds'))
 @when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
 def sleep_seconds(seconds):

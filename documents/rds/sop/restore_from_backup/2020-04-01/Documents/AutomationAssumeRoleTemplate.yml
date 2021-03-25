@@ -17,6 +17,13 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for RDS restore from backup SOP
+Outputs:
+  DigitoRdsRestoreFromBackupAssumeRole:
+    Description: DigitoRdsRestoreFromBackup Automation Assume Role ARN
+    Value:
+      Fn::GetAtt: DigitoRdsRestoreFromBackupAssumeRole.Arn
+    Export:
+      Name: DigitoRdsRestoreFromBackupAssumeRole
 Resources:
   DigitoRdsRestoreFromBackupAssumeRole:
     Type: AWS::IAM::Role
@@ -42,6 +49,7 @@ Resources:
             Action:
               - 'rds:DeleteDBInstance'
               - 'rds:DescribeDBInstances'
+              - 'rds:DescribeDBSnapshots'
               - 'rds:ModifyDBInstance'
               - 'rds:RestoreDBInstanceFromDBSnapshot'
       Roles:
