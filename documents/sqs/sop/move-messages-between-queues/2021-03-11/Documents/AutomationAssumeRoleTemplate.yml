@@ -44,8 +44,13 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              - sqs:SendMessageBatch
-              - sqs:DeleteMessageBatch
+              - sqs:SendMessage
+              - sqs:DeleteMessage
               - sqs:ReceiveMessage
+              - sqs:GetQueueAttributes
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
       Roles:
         - Ref: DigitoMoveMessagesBetweenQueuesAssumeRole

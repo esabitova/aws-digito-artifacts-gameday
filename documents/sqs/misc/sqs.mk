@@ -22,8 +22,7 @@ test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/sqs/misc/sqs-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests -m sqs --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m sqs --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
@@ -32,7 +31,7 @@ test_one: test_linter publish_ssm_docs
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues.py::test_move_messages_from_standard_queue_to_standard -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 service_unit_test:

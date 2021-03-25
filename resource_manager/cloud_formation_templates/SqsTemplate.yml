@@ -56,7 +56,7 @@ Outputs:
     Value: !Ref SqsStandardQueue
   SqsDestinationStandardQueueUrl:
     Description: Standard queue ARN
-    Value: !Ref SqsStandardQueue
+    Value: !Ref SqsDestinationStandardQueue
   SNSTopicARN:
     Description: SNS Topic ARN
     Value: !GetAtt SqsDeadLetterQueue.Arn

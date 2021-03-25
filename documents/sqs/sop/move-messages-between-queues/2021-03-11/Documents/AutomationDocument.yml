@@ -23,7 +23,7 @@ parameters:
     type: String
     description: (Required) The URL of the source SQS Queue.
   TargetQueueUrl:
-    type: Integer
+    type: String
     description: (Required) The URL of the target SQS Queue.
   NumberOfMessagesToTransfer:
     type: Integer
@@ -31,7 +31,11 @@ parameters:
   MessagesTransferBatchSize:
     type: Integer
     description: (Optional) The number of messages that going to be transferred per batch. Maximum is 10
-    default: 1
+    default: 10
+  ForceExecution:
+    type: Boolean
+    description: (Optional) If True, validation of input parameters will be skipped
+    default: false
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
@@ -64,6 +68,7 @@ mainSteps:
         TargetQueueUrl: '{{TargetQueueUrl}}'
         NumberOfMessagesToTransfer: '{{NumberOfMessagesToTransfer}}'
         MessagesTransferBatchSize: '{{MessagesTransferBatchSize}}'
+        ForceExecution: '{{ForceExecution}}'
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
