@@ -30,6 +30,17 @@ def get_docdb_clusters_side_effect(number_of_instances=1):
     return result
 
 
+def get_docdb_instances_with_status_side_effect(number_of_instances):
+    result = {
+        'DBInstances': []
+    }
+    for i in range(0, number_of_instances):
+        result['DBInstances'].append({
+            'DBInstanceStatus': 'available'
+        })
+    return result
+
+
 def get_create_db_instance_side_effect(az):
     result = {
         'DBInstance': {
