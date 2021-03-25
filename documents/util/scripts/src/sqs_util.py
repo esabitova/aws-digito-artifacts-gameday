@@ -57,7 +57,7 @@ def revert_sqs_policy(events: dict, context: dict) -> dict:
     if "QueueUrl" not in events or "OptionalBackupPolicy" not in events:
         raise KeyError("Requires QueueUrl and OptionalBackupPolicy in events")
 
-    queue_url: List = events.get("QueueUrl")
+    queue_url: str = events.get("QueueUrl")
     optional_backup_policy: str = events.get("OptionalBackupPolicy")
     optional_backup_policy = None if optional_backup_policy.startswith("{{") else optional_backup_policy
     if optional_backup_policy is None:
