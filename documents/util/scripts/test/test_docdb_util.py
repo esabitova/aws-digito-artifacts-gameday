@@ -2,12 +2,14 @@ import unittest
 import pytest
 from unittest.mock import patch, MagicMock
 from documents.util.scripts.src.docdb_util import count_cluster_instances, verify_db_instance_exist, \
-    verify_cluster_instances
+    verify_cluster_instances, get_cluster_az, create_new_instance
 
 DOCDB_AZ = 'docdb-az'
 DOCDB_CLUSTER_ID = 'docdb-cluster-id'
 DOCDB_INSTANCE_ID = 'docdb-instance-id'
 DOCDB_INSTANCE_STATUS = 'docdb-instance-status'
+DOCDB_ENGINE = 'docdb'
+DOCDB_INSTANCE_CLASS = 'db.r5.large'
 
 
 def get_docdb_clusters_side_effect(number_of_instances=1):
@@ -25,6 +27,15 @@ def get_docdb_clusters_side_effect(number_of_instances=1):
         instance = {'DBInstanceIdentifier': DOCDB_INSTANCE_ID + f'-{i}', 'IsClusterWriter': is_first}
         result['DBClusters'][0]['DBClusterMembers'].append(instance)
         is_first = False
+    return result
+
+
+def get_create_db_instance_side_effect(az):
+    result = {
+        'DBInstance': {
+            'AvailabilityZone': az
+        }
+    }
     return result
 
 
@@ -99,7 +110,7 @@ class TestDocDBUtil(unittest.TestCase):
 
     def test_verify_db_instance_exist_missing_cluster_id(self):
         events = {
-            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBInstanceIdentifier': DOCDB_INSTANCE_ID,
         }
         self.assertRaises(Exception, verify_db_instance_exist, events, None)
 
@@ -152,3 +163,112 @@ class TestDocDBUtil(unittest.TestCase):
             'DBClusterIdentifier': DOCDB_CLUSTER_ID
         }
         self.assertRaises(Exception, verify_cluster_instances, events, None)
+
+    # Test get_cluster_az
+    def test_get_cluster_az_empty_events(self):
+        events = {}
+        self.assertRaises(Exception, get_cluster_az, events, None)
+
+    def test_get_cluster_az_valid_cluster(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.describe_db_clusters.return_value = get_docdb_clusters_side_effect(1)
+        response = get_cluster_az(events, None)
+        self.assertEqual([DOCDB_AZ], response['cluster_azs'])
+
+    def test_get_cluster_az_not_existing_cluster(self):
+        events = {
+            'DBClusterIdentifier': 'NOT_EXISTING_CLUSTER_ID'
+        }
+        self.mock_docdb.describe_db_clusters.return_value = {}
+        self.assertRaises(Exception, get_cluster_az, events, None)
+
+    # Test create_new_instance
+    def test_create_new_instance_az_from_AvailabilityZone(self):
+        events = {
+            'AvailabilityZone': DOCDB_AZ,
+            'DBInstanceIdentifier': 'id1',
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'Engine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        response = create_new_instance(events, None)
+        self.assertEqual({'instance_az': DOCDB_AZ}, response)
+        self.mock_docdb.create_db_instance.assert_called_once_with(
+            AvailabilityZone=DOCDB_AZ,
+            DBInstanceIdentifier='id1',
+            DBInstanceClass=DOCDB_INSTANCE_CLASS,
+            Engine=DOCDB_ENGINE,
+            DBClusterIdentifier=DOCDB_CLUSTER_ID
+        )
+
+    def test_create_new_instance_az_from_DBClusterAZs(self):
+        events = {
+            'DBClusterAZs': [DOCDB_AZ],
+            'DBInstanceIdentifier': 'id1',
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'Engine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        response = create_new_instance(events, None)
+        self.assertEqual({'instance_az': DOCDB_AZ}, response)
+        self.mock_docdb.create_db_instance.assert_called_once_with(
+            AvailabilityZone=DOCDB_AZ,
+            DBInstanceIdentifier='id1',
+            DBInstanceClass=DOCDB_INSTANCE_CLASS,
+            Engine=DOCDB_ENGINE,
+            DBClusterIdentifier=DOCDB_CLUSTER_ID
+        )
+
+    def test_create_new_instance_missing_az(self):
+        events = {
+            'DBInstanceIdentifier': 'id1',
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'Engine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        self.assertRaises(Exception, create_new_instance, events, None)
+
+    def test_create_new_instance_missing_instance_identifier(self):
+        events = {
+            'DBClusterAZs': [DOCDB_AZ],
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'Engine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        self.assertRaises(Exception, create_new_instance, events, None)
+
+    def test_create_new_instance_missing_cluster_identifier(self):
+        events = {
+            'DBClusterAZs': [DOCDB_AZ],
+            'DBInstanceIdentifier': 'id1',
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'Engine': DOCDB_ENGINE,
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        self.assertRaises(Exception, create_new_instance, events, None)
+
+    def test_create_new_instance_missing_engine(self):
+        events = {
+            'DBClusterAZs': [DOCDB_AZ],
+            'DBInstanceIdentifier': 'id1',
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        self.assertRaises(Exception, create_new_instance, events, None)
+
+    def test_create_new_instance_missing_instance_class(self):
+        events = {
+            'DBClusterAZs': [DOCDB_AZ],
+            'DBInstanceIdentifier': 'id1',
+            'Engine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.create_db_instance.return_value = get_create_db_instance_side_effect(DOCDB_AZ)
+        self.assertRaises(Exception, create_new_instance, events, None)

@@ -1,0 +1,13 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "displayName": "SOP - Clean up SQS queue",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-PurgeQueue_2021-03-11",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "To clean up SQS queue",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "tag": "sqs:sop:purge-queue:2021-03-11"
+}

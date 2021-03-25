@@ -16,16 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for RDS Aurora cluster backtrack SOP
+Description: Role for SSM PurgeQueue
 Outputs:
-  DigitoRdsBacktrackAssumeRole:
-    Description: DigitoRdsBacktrack Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRdsBacktrackAssumeRole.Arn
-    Export:
-      Name: DigitoRdsBacktrackAssumeRole
+  DigitoPurgeQueueAssumeRole:
+    Description: DigitoPurgeQueue Automation Assume Role ARN
+    Value: !GetAtt DigitoPurgeQueueAssumeRole.Arn
 Resources:
-  DigitoRdsBacktrackAssumeRole:
+  DigitoPurgeQueueAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -37,18 +34,16 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRdsBacktrackAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoPurgeQueueAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoRdsBacktrackAssumePolicy"
+      PolicyName: DigitoPurgeQueueAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
-              - 'rds:BacktrackDBCluster'
-              - 'rds:DescribeDBClusters'
-              - 'rds:DescribeDBClusterBacktracks'
+              - sqs:PurgeQueue
       Roles:
-        - Ref: DigitoRdsBacktrackAssumeRole
+        - Ref: DigitoPurgeQueueAssumeRole
