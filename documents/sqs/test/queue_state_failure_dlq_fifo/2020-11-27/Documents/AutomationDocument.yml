@@ -148,25 +148,6 @@ mainSteps:
         - RedrivePolicy
       QueueUrl: '{{ QueueUrl }}'
 
-  - name: GetDeadLetterQueueUrlTest
-    action: aws:executeScript
-    outputs:
-      - Name: DeadLetterQueueUrl
-        Selector: $.Payload.QueueUrl
-        Type: String
-      - Name: All
-        Selector: $
-    inputs:
-      Runtime: python3.6
-      Handler: get_dead_letter_queue_url
-      InputPayload:
-        SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
-        MaxReceiveCount: 1
-      Script: |-
-        SCRIPT_PLACEHOLDER::sqs_util.imports
-
-        SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
-
   - name: UpdatePolicy
     action: aws:executeScript
     outputs:
@@ -236,9 +217,6 @@ mainSteps:
 
   - name: ReadMessage1
     action: aws:executeAwsApi
-    outputs:
-      - Name: ReadMessageResult
-        Selector: '$.Messages.MessageId'
     inputs:
       Service: sqs
       Api: ReceiveMessage
@@ -248,9 +226,6 @@ mainSteps:
 
   - name: ReadMessage2
     action: aws:executeAwsApi
-    outputs:
-      - Name: ReadMessageResult
-        Selector: '$.Messages.MessageId'
     inputs:
       Service: sqs
       Api: ReceiveMessage
@@ -309,14 +284,11 @@ mainSteps:
       - Name: QueueUrl
         Selector: $.Payload.QueueUrl
         Type: String
-      - Name: All
-        Selector: $
     inputs:
       Runtime: python3.6
       Handler: get_dead_letter_queue_url
       InputPayload:
         SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
-        MaxReceiveCount: 1
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
@@ -324,9 +296,6 @@ mainSteps:
 
   - name: PurgeDeadLetterQueue
     action: aws:executeAwsApi
-    outputs:
-        - Name: PurgeDeadLetterQueueResult
-          Selector: '$'
     inputs:
       Service: sqs
       Api: PurgeQueue
