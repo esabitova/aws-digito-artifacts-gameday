@@ -52,6 +52,7 @@ Resources:
               - sqs:ReceiveMessage
               - sqs:SendMessage
               - sqs:PurgeQueue
+              - sqs:GetQueueUrl
               - ssm:StartAutomationExecution
               - ssm:GetAutomationExecution
               - iam:PassRole

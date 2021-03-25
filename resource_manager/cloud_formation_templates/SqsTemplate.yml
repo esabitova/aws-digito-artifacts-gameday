@@ -42,12 +42,12 @@ Outputs:
   SqsFifoQueueEnabledDlqName:
     Description: Name of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
-  SqsDeadLetterQueueEnabledDlqArn:
+  SqsDlqForFifoQueueArn:
     Description: Dead letter queue ARN
-    Value: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
-  SqsDeadLetterQueueEnabledDlqUrl:
+    Value: !GetAtt SqsDlqForFifoQueue.Arn
+  SqsDlqForFifoQueueUrl:
     Description: Dead letter queue URL
-    Value: !Ref SqsDeadLetterQueueEnabledDlq
+    Value: !Ref SqsDlqForFifoQueue
   SqsStandardQueueArn:
     Description: Standard queue ARN
     Value: !GetAtt SqsStandardQueue.Arn
@@ -66,12 +66,12 @@ Outputs:
   SentMessageSizeAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeAlarm
-  DLQMessageAlarm:
+  DlqMessageAlarm:
     Description: Alarm
     Value: !Ref  SQSDlqMessageAlarm
-  DLQMessageAlarmForEnabledDlq:
+  DlqMessageAlarmForFifoMainQueue:
     Description: Alarm
-    Value: !Ref  SQSDlqMessageAlarmForEnabledDlq
+    Value: !Ref  SqsDlqMessageAlarmForFifoMainQueue
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
@@ -155,7 +155,7 @@ Resources:
     Properties:
       FifoQueue: true
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
+        deadLetterTargetArn: !GetAtt SqsDlqForFifoQueue.Arn
         maxReceiveCount: !Ref SqsFifoQueueRedrivePolicyMaxReceiveCount
   SqsFifoQueueEnabledDlqPolicy:
     Type: "AWS::SQS::QueuePolicy"
@@ -177,7 +177,7 @@ Resources:
                 - ssm.amazonaws.com
               AWS: "*"
             Resource: !GetAtt SqsFifoQueueEnabledDlq.Arn
-  SqsDeadLetterQueueEnabledDlq:
+  SqsDlqForFifoQueue:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
@@ -274,10 +274,10 @@ Resources:
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "missing"
-  SQSDlqMessageAlarmForEnabledDlq:
+  SqsDlqMessageAlarmForFifoMainQueue:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsDlqMessageForEnabledDlqAlarm"
+      AlarmName: "SqsDlqMessageAlarmForFifoMainQueue"
       AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesVisible"
@@ -285,7 +285,7 @@ Resources:
       Statistic: "Sum"
       Dimensions:
         - Name: "QueueName"
-          Value: !GetAtt SqsDeadLetterQueueEnabledDlq.QueueName
+          Value: !GetAtt SqsDlqForFifoQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
