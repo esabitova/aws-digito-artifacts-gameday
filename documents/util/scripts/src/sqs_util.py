@@ -50,7 +50,7 @@ def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
                 "DenyPolicyStatementSid": deny_policy_statement_id}
 
 
-def revert_sqs_policy(events: dict, context: dict) -> dict:
+def revert_sqs_policy(events: dict, context: dict) -> None:
     """
     Revert SQS policy to the initial state by providing the backup policy
     """
