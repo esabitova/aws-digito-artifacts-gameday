@@ -295,11 +295,15 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
 
   - name: PurgeDeadLetterQueue
-    action: aws:executeAwsApi
+    action: aws:executeAutomation
+    maxAttempts: 3
+    timeoutSeconds: 600
+    onFailure: Abort
     inputs:
-      Service: sqs
-      Api: PurgeQueue
-      QueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
+      DocumentName: Digito-PurgeQueue_2021-03-11
+      RuntimeParameters:
+        QueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
@@ -312,5 +316,4 @@ mainSteps:
         - "{{ SQSUserErrorAlarmName }}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
-
 
