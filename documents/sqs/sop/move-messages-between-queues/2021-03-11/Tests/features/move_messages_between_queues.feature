@@ -23,14 +23,6 @@ Feature: SSM automation document to move messages from one queue to another
       | CfnTemplatePath                                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/sop/move-messages-between-queues/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-#    And sleep for "60" seconds
-#    And purge the queue
-#      | QueueUrl                                       |
-#      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-#    And purge the queue
-#      | QueueUrl                                   |
-#      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-#    And sleep for "60" seconds
     And send "1" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -48,14 +40,6 @@ Feature: SSM automation document to move messages from one queue to another
       | CfnTemplatePath                                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/sop/move-messages-between-queues/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-#    And sleep for "60" seconds
-#    And purge the queue
-#      | QueueUrl                                   |
-#      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-#    And purge the queue
-#      | QueueUrl                                       |
-#      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-#    And sleep for "60" seconds
     And send "1" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -73,15 +57,7 @@ Feature: SSM automation document to move messages from one queue to another
       | CfnTemplatePath                                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/sop/move-messages-between-queues/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-#    And sleep for "60" seconds
-#    And purge the queue
-#      | QueueUrl                                   |
-#      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-#    And purge the queue
-#      | QueueUrl                                             |
-#      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
-#    And sleep for "60" seconds
-    And send "1" messages to FIFO queue
+    And send "10" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
     And SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" executed

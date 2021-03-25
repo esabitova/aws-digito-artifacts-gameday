@@ -1,7 +1,7 @@
 import logging
 
 
-def send_message_to_standard_queue(boto3_session, queue_url: str, body: str, message_attributes: dict) -> dict:
+def send_message_to_standard_queue(boto3_session, queue_url: str, body: str, message_attributes: dict = None) -> dict:
     """
     Use send_message aws method to send message to queue
     :param boto3_session boto3 client session
@@ -20,7 +20,8 @@ def send_message_to_standard_queue(boto3_session, queue_url: str, body: str, mes
     return response
 
 
-def send_message_to_fifo_queue(boto3_session, queue_url: str, body: str, message_group_id: str, token: str) -> dict:
+def send_message_to_fifo_queue(boto3_session, queue_url: str, body: str, message_group_id: str, token: str,
+                               message_attributes: dict = None) -> dict:
     """
     Use send_message aws method to send message to queue
     :param boto3_session boto3 client session
@@ -31,9 +32,14 @@ def send_message_to_fifo_queue(boto3_session, queue_url: str, body: str, message
     """
     sqs_client = boto3_session.client('sqs')
     logging.info(f'Arguments for send_message method: QueueUrl={queue_url}, MessageBody={body}, '
-                 f'MessageDeduplicationId={token}, MessageGroupId= {message_group_id}')
-    response = sqs_client.send_message(QueueUrl=queue_url, MessageBody=body, MessageDeduplicationId=token,
-                                       MessageGroupId=message_group_id)
+                 f'MessageDeduplicationId={token}, MessageGroupId= {message_group_id}'
+                 f', MessageAttributes={message_attributes}')
+    if message_attributes is not None:
+        response = sqs_client.send_message(QueueUrl=queue_url, MessageBody=body, MessageDeduplicationId=token,
+                                           MessageGroupId=message_group_id, MessageAttributes=message_attributes)
+    else:
+        response = sqs_client.send_message(QueueUrl=queue_url, MessageBody=body, MessageDeduplicationId=token,
+                                           MessageGroupId=message_group_id)
     logging.info(f'Response of send_message method for FIFO queue: {response}')
     return response
 
