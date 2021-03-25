@@ -11,3 +11,10 @@ from pytest_bdd import (
           'queue')
 def test_purge_queue():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/purge_queue_fifo.feature',
+          'Create AWS resources using CloudFormation template and execute SSM automation document to clean up SQS '
+          'queue without approval to clean the restore bucket')
+def test_purge_fifo_queue():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""

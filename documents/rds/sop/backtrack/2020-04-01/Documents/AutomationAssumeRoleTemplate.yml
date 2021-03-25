@@ -17,6 +17,13 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for RDS Aurora cluster backtrack SOP
+Outputs:
+  DigitoRdsBacktrackAssumeRole:
+    Description: DigitoRdsBacktrack Automation Assume Role ARN
+    Value:
+      Fn::GetAtt: DigitoRdsBacktrackAssumeRole.Arn
+    Export:
+      Name: DigitoRdsBacktrackAssumeRole
 Resources:
   DigitoRdsBacktrackAssumeRole:
     Type: AWS::IAM::Role
