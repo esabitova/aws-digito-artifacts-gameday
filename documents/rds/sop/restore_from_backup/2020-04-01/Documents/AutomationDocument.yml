@@ -32,6 +32,7 @@ parameters:
   SnapshotId:
     type: String
     description: The identifier of the snapshot to restore
+    default: '$LATEST'
 outputs:
   - OutputRecoveryTime.RecoveryTime
 mainSteps:
@@ -69,6 +70,32 @@ mainSteps:
         def script_handler(events, context):
           from datetime import datetime, timezone
           return datetime.now(timezone.utc).isoformat()
+  - name: ResolveSnapshotId
+    action: 'aws:executeScript'
+    outputs:
+      - Name: SnapshotId
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          if events['SnapshotId'] != '$LATEST':
+            return events['SnapshotId']
+
+          #return latest snapshot
+          import boto3
+          rds = boto3.client('rds')
+          db_snapshots = rds.describe_db_snapshots(DBInstanceIdentifier = events['DbInstanceIdentifier'])['DBSnapshots']
+          if not db_snapshots:
+            raise Exception("No DB snapshots found for RDS instance " + events['DbInstanceIdentifier'])
+          sorted_snapshots = sorted(db_snapshots, key=lambda snapshot:snapshot['SnapshotCreateTime'], reverse=True)
+          return sorted_snapshots[0]['DBSnapshotIdentifier']
+      InputPayload:
+        Dryrun: '{{Dryrun}}'
+        SnapshotId: '{{SnapshotId}}'
+        DbInstanceIdentifier: '{{DbInstanceIdentifier}}'
   - name: RestoreSnapshot
     action: 'aws:executeScript'
     inputs:
@@ -95,7 +122,7 @@ mainSteps:
       InputPayload:
         SourceDBInstanceIdentifier: '{{DbInstanceIdentifier}}'
         TargetDBInstanceIdentifier: '{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}'
-        DBSnapshotIdentifier: '{{SnapshotId}}'
+        DBSnapshotIdentifier: '{{ResolveSnapshotId.SnapshotId}}'
   - name: WaitForNewDatabaseToBeAvailable
     action: 'aws:waitForAwsResourceProperty'
     timeoutSeconds: 1800
