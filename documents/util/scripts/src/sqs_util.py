@@ -61,7 +61,7 @@ def transfer_messages(events: dict, context: dict) -> dict:
     max_duration_seconds = 9 * 60
     loop_count = 1
 
-    while number_of_messages_transferred < number_of_messages_to_transfer or (now - start) < max_duration_seconds:
+    while number_of_messages_transferred < number_of_messages_to_transfer and (now - start) < max_duration_seconds:
         print(f'Entered into loop #{loop_count} with number_of_messages_transferred < number_of_messages_to_transfer = '
               f'{number_of_messages_transferred} < {number_of_messages_to_transfer}, '
               f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
