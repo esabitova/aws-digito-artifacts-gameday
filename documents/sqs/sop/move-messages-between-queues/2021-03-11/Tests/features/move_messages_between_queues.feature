@@ -6,12 +6,12 @@ Feature: SSM automation document to move messages from one queue to another
       | CfnTemplatePath                                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/sop/move-messages-between-queues/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And send "40" messages to queue
+    And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" executed
       | SourceQueueUrl                                 | TargetQueueUrl                                            | AutomationAssumeRole                                                                  | MessagesTransferBatchSize | NumberOfMessagesToTransfer | ForceExecution |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:SqsTemplate>SqsDestinationStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                         | 40                         | true           |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:SqsTemplate>SqsDestinationStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                        | 40                         | true           |
 
 
     When SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" execution in status "Success"
@@ -23,12 +23,12 @@ Feature: SSM automation document to move messages from one queue to another
       | CfnTemplatePath                                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/sop/move-messages-between-queues/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And send "1" messages to queue
+    And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" executed
       | SourceQueueUrl                                 | TargetQueueUrl                             | AutomationAssumeRole                                                                  | MessagesTransferBatchSize | NumberOfMessagesToTransfer | ForceExecution |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 1                         | 10                         | true           |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                        | 40                         | true           |
 
 
     When SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" execution in status "Success"
@@ -40,12 +40,12 @@ Feature: SSM automation document to move messages from one queue to another
       | CfnTemplatePath                                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/sop/move-messages-between-queues/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And send "1" messages to FIFO queue
+    And send "10" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
     And SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" executed
       | SourceQueueUrl                             | TargetQueueUrl                                            | AutomationAssumeRole                                                                  | MessagesTransferBatchSize | NumberOfMessagesToTransfer | ForceExecution |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:SqsTemplate>SqsDestinationStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 1                         | 10                         | true           |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:SqsTemplate>SqsDestinationStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                        | 40                         | true           |
 
 
     When SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" execution in status "Success"
@@ -62,7 +62,7 @@ Feature: SSM automation document to move messages from one queue to another
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
     And SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" executed
       | SourceQueueUrl                             | TargetQueueUrl                                       | AutomationAssumeRole                                                                  | MessagesTransferBatchSize | NumberOfMessagesToTransfer | ForceExecution |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 1                         | 10                         | true           |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                        | 40                         | true           |
 
 
     When SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" execution in status "Success"

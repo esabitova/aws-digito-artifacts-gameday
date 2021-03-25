@@ -75,10 +75,10 @@ def transfer_messages(events: dict, context: dict) -> dict:
                                            MessageAttributeNames=['All'],
                                            AttributeNames=['All'])
             print(f'receive_message response: {receive_message_response}')
-            messages_to_send: List[dict] = []
             received_messages: List[dict] = receive_message_response.get('Messages')
 
             if received_messages is not None:
+                messages_to_send: List[dict] = []
                 for received_message in received_messages:
                     deduplication_id = received_message.get('Attributes').get('MessageDeduplicationId')
                     message_group_id = received_message.get('Attributes').get('MessageGroupId')
@@ -124,6 +124,7 @@ def transfer_messages(events: dict, context: dict) -> dict:
             received_messages: List[dict] = receive_message_response.get('Messages')
 
             if received_messages is not None:
+                messages_to_send: List[dict] = []
                 for received_message in received_messages:
                     message_to_send = {'Id': received_message.get('MessageId'),
                                        'MessageBody': received_message.get('Body')}
@@ -157,27 +158,88 @@ def transfer_messages(events: dict, context: dict) -> dict:
             receive_message_response: dict = \
                 sqs_client.receive_message(QueueUrl=source_queue_url,
                                            MaxNumberOfMessages=messages_transfer_batch_size,
+                                           MessageAttributeNames=['All'],
                                            AttributeNames=['All'])
-            for message in receive_message_response.get('Messages'):
-                if 'MessageDeduplicationId' in receive_message_response:
-                    del message['MessageDeduplicationId']
-                if 'MessageGroupId' in receive_message_response:
-                    del message['MessageGroupId']
-            send_message_batch_response: dict = sqs_client.receive_message(QueueUrl=target_queue_url,
-                                                                           Entries=receive_message_response.get(
-                                                                               'Messages'))
+            print(f'receive_message response: {receive_message_response}')
+            received_messages: List[dict] = receive_message_response.get('Messages')
+
+            if received_messages is not None:
+                messages_to_send: List[dict] = []
+                for received_message in received_messages:
+                    message_to_send = {'Id': received_message.get('MessageId'),
+                                       'MessageBody': received_message.get('Body')}
+                    if received_message.get('MessageAttributes') is not None:
+                        message_to_send['MessageAttributes'] = received_message.get('MessageAttributes')
+                    attributes = received_message.get('Attributes')
+                    if attributes is not None:
+                        aws_trace_header = attributes.get('AWSTraceHeader')
+                        if aws_trace_header is not None:
+                            message_to_send['MessageSystemAttributes'] = \
+                                {'AWSTraceHeader': {'StringValue': aws_trace_header,
+                                                    'DataType': 'String'}}
+                    messages_to_send.append(message_to_send)
+
+                print(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
+                      f'Entries={messages_to_send}')
+                send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
+                                                                                  Entries=messages_to_send)
+                print(f'Received send_message_batch response: {send_message_batch_response}')
+            else:
+                statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
+                              'NumberOfMessagesFailedToDeleteFromSource':
+                                  number_of_messages_failed_to_delete_from_source,
+                              'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
+                              'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
+                print(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
+                      f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
+                      f'second(-s) of script\'s execution. Statistics: {statistics}')
+                return statistics
 
         elif not is_source_queue_fifo and is_target_queue_fifo:
             receive_message_response: dict = \
                 sqs_client.receive_message(QueueUrl=source_queue_url,
                                            MaxNumberOfMessages=messages_transfer_batch_size,
+                                           MessageAttributeNames=['All'],
                                            AttributeNames=['All'])
-            for message in receive_message_response.get('Messages'):
-                message['MessageDeduplicationId'] = str(uuid.uuid4())
-                message['MessageGroupId'] = str(uuid.uuid4())
-            send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
-                                                                              Entries=receive_message_response.get(
-                                                                                  'Messages'))
+            print(f'receive_message response: {receive_message_response}')
+            received_messages: List[dict] = receive_message_response.get('Messages')
+
+            if received_messages is not None:
+                messages_to_send: List[dict] = []
+                for received_message in received_messages:
+                    deduplication_id = str(uuid.uuid4())
+                    message_group_id = str(uuid.uuid4())
+                    message_to_send = {'Id': received_message.get('MessageId'),
+                                       'MessageBody': received_message.get('Body'),
+                                       'MessageDeduplicationId': deduplication_id,
+                                       'MessageGroupId': message_group_id}
+
+                    if received_message.get('MessageAttributes') is not None:
+                        message_to_send['MessageAttributes'] = received_message.get('MessageAttributes')
+                    attributes = received_message.get('Attributes')
+                    if attributes is not None:
+                        aws_trace_header = attributes.get('AWSTraceHeader')
+                        if aws_trace_header is not None:
+                            message_to_send['MessageSystemAttributes'] = \
+                                {'AWSTraceHeader': {'StringValue': aws_trace_header,
+                                                    'DataType': 'String'}}
+                    messages_to_send.append(message_to_send)
+
+                print(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
+                      f'Entries={messages_to_send}')
+                send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
+                                                                                  Entries=messages_to_send)
+                print(f'Received send_message_batch response: {send_message_batch_response}')
+            else:
+                statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
+                              'NumberOfMessagesFailedToDeleteFromSource':
+                                  number_of_messages_failed_to_delete_from_source,
+                              'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
+                              'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
+                print(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
+                      f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
+                      f'second(-s) of script\'s execution. Statistics: {statistics}')
+                return statistics
 
         successfully_sent_results = send_message_batch_response.get('Successful')
         print(f'Successfully sent results from send_message_batch_response response: {successfully_sent_results}')

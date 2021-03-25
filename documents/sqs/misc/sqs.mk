@@ -31,7 +31,7 @@ test_one: test_linter publish_ssm_docs
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues.py::test_move_messages_from_fifo_queue_to_fifo -m sqs  --aws_profile ${AWS_PROFILE} && \
+		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues.py -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 service_unit_test:
