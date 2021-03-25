@@ -70,46 +70,111 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
 
-  - name: PrepareRollbackOfPreviousExecutionPolicy
+  - name: AssertQueueUrl
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRollbackOfPreviousExecutionQueueAttributes
+          Variable: "{{ PrepareRollbackOfPreviousExecutionQueueUrl.QueueUrl }}"
+          StringEquals: '{{ QueueUrl }}'
+    isEnd: true
+
+  - name: PrepareRollbackOfPreviousExecutionQueueAttributes
     action: aws:executeScript
     outputs:
       - Name: Policy
         Selector: $.Payload.Policy
         Type: String
+      - Name: RedrivePolicy
+        Selector: $.Payload.RedrivePolicy
+        Type: String
+      - Name: VisibilityTimeout
+        Selector: $.Payload.VisibilityTimeout
+        Type: Integer
     inputs:
       Runtime: python3.6
       Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         StepName: 'BackupCurrentExecution'
-        ResponseField: 'Policy'
+        ResponseField: 'Policy, VisibilityTimeout, RedrivePolicy'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
-  - name: AssertQueueUrl
-    action: aws:branch
-    inputs:
-      Choices:
-        - NextStep: RollbackPreviousExecution
-          Variable: "{{ PrepareRollbackOfPreviousExecutionQueueUrl.QueueUrl }}"
-          StringEquals: '{{ QueueUrl }}'
-    isEnd: true
 
-  - name: RollbackPreviousExecution
+  - name: RollbackPreviousExecutionQueuePolicy
     action: aws:executeScript
-    isEnd: true
     inputs:
       Runtime: python3.6
       Handler: revert_sqs_policy
       InputPayload:
-        OptionalBackupPolicy: '{{ PrepareRollbackOfPreviousExecutionPolicy.Policy }}'
+        OptionalBackupPolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.Policy }}'
         QueueUrl: '{{ QueueUrl }}'
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
+
+  - name: RollbackPreviousExecutionQueueAttributes
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: SetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
+      Attributes:
+        VisibilityTimeout: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.VisibilityTimeout }}'
+        RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
+
+  - name: RollbackCheckIsPurgeDeadLetterQueue
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RollbackGetDeadLetterQueueUrl
+          Variable: "{{ PurgeDeadLetterQueue }}"
+          StringEquals: 'true'
+    isEnd: true
+
+  - name: RollbackGetDeadLetterQueueUrl
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: $.Payload.QueueUrl
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_dead_letter_queue_url
+      InputPayload:
+        SourceRedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
+
+  - name: RollbackPurgeDeadLetterQueue
+    action: aws:executeAutomation
+    maxAttempts: 3
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-PurgeQueue_2021-03-11
+      RuntimeParameters:
+        QueueUrl: '{{ RollbackGetDeadLetterQueueUrl.QueueUrl }}'
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+
+  - name: AssertAlarmToBeGreenAfterRollback
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 120
+    timeoutSeconds: 5
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ SQSUserErrorAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
