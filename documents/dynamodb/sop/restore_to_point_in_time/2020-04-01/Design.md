@@ -52,6 +52,7 @@ The following properties can't be restored by the recovery :
 * dynamodb:DescribeContinuousBackups
 * dynamodb:UpdateContinuousBackups
 * dynamodb:DescribeGlobalTable
+* sts:AssumeRole
 * dynamodb:CreateGlobalTable
 * application-autoscaling:RegisterScalableTarget
 * application-autoscaling:DescribeScalableTargets
@@ -110,6 +111,11 @@ No.
 * description: (Optional) Enter the available Point-in-Time date in UTC timezone following the pattern YYYY-MM-DDTHH:MM:SSZ
 * default: 'latest'
 
+### AppASGDynamoDBIamRole
+
+* Description: (Required) An IAM role to be assumed by the application autoscaling group and which allow it to dynamodb target table scaling propeties.
+* Type: String
+
 ### AutomationAssumeRole:
 
 * Description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
@@ -117,26 +123,13 @@ No.
 
 ## Details of SSM Document steps:
 
-1. `GetLastDynamoDBTableBackup`
-    * Type: aws:executeScript
-    * Inputs:
-        * `TableName`: pass DynamoDBTargetTableName parameter
-    * Outputs:
-        * `LastBackupCreationDateTime`: The dynamoDB source table last backup creation time value, can be date time value or none.
-    * Explanation:
-        * Check of the source table has backups. [list_backups](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.list_backups) method
-        * If yes, get the last backup date time value. Otherwise the value will be none.
-
 1. `RecordStartTime`
     * Type: aws:executeScript
     * Inputs:
-        * `LastBackupCreationDateTime`: pass `LastBackupCreationDateTime` value from the previous step.
     * Outputs:
         * `StartExecutionTime`: The timestamp when the step execution started
-        * `RecoveryPoint`: the time difference between the last backup, if it exists, and now (RPO).
     * Explanation:
         * Calculate the time when the the dynamodb table recovery starts
-        * Calculate the recovery point objective
 
 1. `FirstCheckRestoreToDateTime`
     * Type: aws:branch
@@ -157,6 +150,7 @@ No.
         * `RestoreDateTime`: pass the RestoreToDateTime parameter
     * Outputs:
         * `TargetTableArn`: The ARN of the target table recovered to the point in time
+        * `RecoveryPoint`: The recovery point objective: RestoreDateTime value
     * Explanation:
         * Restore the table to the specified point in time according to the `RestoreToDateTime` value.
         * If `RestoreToDateTime` is a defined date value, then `RestoreDateTime` property will be used when calling
@@ -172,6 +166,7 @@ No.
         * `UseLatestRestorableTime`: needs to be equal to True
     * Outputs:
         * `TargetTableArn`: The ARN of the target table recovered to the point in time
+        * `RecoveryPoint`: The recovery point objective : RestoreDateTime value
     * Explanation:
         * Restore to the latest time using the `UseLatestRestorableTime`
           property.[restore_table_to_point_in_time] (https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_RestoreTableToPointInTime.html) method.
@@ -430,7 +425,7 @@ No.
 1. `GetSourceDynamoDBTableAutoScalingPoliciesAndUpdateTargetDynamoDBTableAutoScalingPolicies`
     * Type: aws:executeScript
     * Inputs:
-        * `ServiceName`: dynamodb
+        * `AppASGDynamoDBIamRole`: pass the AppASGDynamoDBIamRole parameter
         * `SourceTableId`: pass `table/{{ DynamoDBSourceTableName }}`
     * Outputs:
         * `SourceTableScalableDimensions`: The dynamoDB source table scalable dimensions if exist: dynamodb:table:ReadCapacityUnits, dynamodb:table:WriteCapacityUnits, dynamodb:index:ReadCapacityUnits
@@ -443,8 +438,6 @@ No.
             * get the `ScalableDimension`, the `MinCapacity` and the `MaxCapacity` properties for each
               dimensions. [describe_scalable_targets](https://boto3.amazonaws.com/v1/documentation/api/1.9.42/reference/services/application-autoscaling.html#ApplicationAutoScaling.Client.describe_scalable_targets)
               method
-            * Create an IAM role to be assumed by the application autoscaling group and which allow it to dynamodb target table scaling
-              propeties. [create_role](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.Client.create_role) method
             * Register the dynamodb target table as a scalable target and pass the `ScalableDimension` the `MinCapacity` and the `MaxCapacity` properties for each dimensions so that the application
               autoscaling group can scale out and scale
               in. [register_scalable_target](https://boto3.amazonaws.com/v1/documentation/api/1.9.42/reference/services/application-autoscaling.html#ApplicationAutoScaling.Client.register_scalable_target)
@@ -519,12 +512,12 @@ No.
         * Wait for the dynamodb target global table to be in ACTIVE status. [describe_global_table](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeGlobalTable.html) method
         * Use the shared SSM Document as the step to avoid duplicates
 
-1. `RecoveryTime`
+1. `OutputRecoveryTime`
     * Type: aws:executeScript
     * Inputs:
         * `StartExecutionTime`: pass `StartExecutionTime` value from the `RecordStartTime` step
     * Outputs:
-        * `OutputRecoveryTime`: The time difference between the first step and last step for recovery (RTO).
+        * `RecoveryTime`: The time difference between the first step and last step for recovery (RTO).
     * Explanation:
         * Calculate the time difference it takes to recover the dynamodb target table from the source table
 
@@ -532,5 +525,6 @@ No.
 
 * `RestoreToDateTimeDynamoDBTableToPointInTime.TargetTableArn`: The ARN of the target table recovered to the point in time
 * `RestoreToLatestDynamoDBTableToPointInTime.TargetTableArn`: The ARN of the target table recovered to the point in time
-* `RecoveryTime.OutputRecoveryTime`: The time difference between the first step and last step for recovery (RTO)
-* `RecordStartTime.RecoveryPoint`: the recovery point objective (RPO)
+* `OutputRecoveryTime.RecoveryTime`: The time difference between the first step and last step for recovery (RTO)
+* `RestoreToDateTimeDynamoDBTableToPointInTime.RecoveryPoint`: the recovery point objective (RPO)
+* `RestoreToLatestTimeDynamoDBTableToPointInTime.RecoveryPoint`: the recovery point objective (RPO)
