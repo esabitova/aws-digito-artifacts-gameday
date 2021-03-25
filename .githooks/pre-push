@@ -7,4 +7,4 @@ echo "========== Started pre-push git hook at $(date -R) =========="
 exit_code=$?
 end=$(date +%s)
 echo "========== Finished pre-push git hook with error code $exit_code at $(date -R). The duration is $((end - start)) second(-s) =========="
-return $exit_code
+exit $exit_code

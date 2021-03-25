@@ -20,7 +20,10 @@ Description: Role for ASG scale-out SOP
 Outputs:
   DigitoAsgScaleOutAssumeRole:
     Description: DigitoAsgScaleOut Automation Assume Role ARN
-    Value: !GetAtt DigitoAsgScaleOutAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoAsgScaleOutAssumeRole.Arn
+    Export:
+      Name: DigitoAsgScaleOutAssumeRole
 Resources:
   DigitoAsgScaleOutAssumeRole:
     Type: AWS::IAM::Role
