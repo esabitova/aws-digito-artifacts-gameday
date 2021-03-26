@@ -129,6 +129,7 @@ def delete_message_by_id(event, context):
     response = sqs_client.delete_message(QueueUrl=queue_url, ReceiptHandle=receipt_handle)
     return response
 
+
 def update_sqs_redrive_policy(events: dict, context: dict) -> dict:
     """
     Update SQS Redrive Policy with new value of MaxReceiveCount
