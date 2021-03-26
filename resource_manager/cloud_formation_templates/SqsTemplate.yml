@@ -59,19 +59,26 @@ Outputs:
     Value: !GetAtt SqsDeadLetterQueue.Arn
   NumberOfMessagesSentBandAlarm:
     Description: Alarm
+    Value: !Ref  NumberOfMessagesSentBandAlarm
+  SentMessageSizeStandardQueueAlarm:
+    Description: Alarm
+    Value: !Ref  SQSSentMessageSizeStandardQueueAlarm
+  SentMessageSizeFifoQueueAlarm:
     Value: !Ref  SQSNumberOfMessagesSentBandAlarm
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
   SentMessageSizeAlarm:
     Description: Alarm
+    Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
+  DLQMessageAlarm:
     Value: !Ref  SQSSentMessageSizeAlarm
   DlqMessageAlarm:
     Description: Alarm
     Value: !Ref  SQSDlqMessageAlarm
-  DlqMessageAlarmForFifoMainQueue:
+  DlqMessageFifoQueueAlarm:
     Description: Alarm
-    Value: !Ref  SqsDlqMessageAlarmForFifoMainQueue
+    Value: !Ref  SqsDlqMessageFifoQueueAlarm
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
@@ -206,13 +213,13 @@ Resources:
   SQSNumberOfMessagesSentBandAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SQSNumberOfMessagesSentBandAlarm"
+      AlarmName: "SqsNumberOfMessagesSentBandAlarm"
       ActionsEnabled: false
-      AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
+      AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent_band:2020-11-26"
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       ComparisonOperator: "LessThanLowerThreshold"
-      TreatMissingData: "breaching"
+      TreatMissingData: "ignore"
       Metrics:
         - Id: "m1"
           MetricStat:
@@ -223,7 +230,7 @@ Resources:
                 - Name: "QueueName"
                   Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
             Period: 60
-            Stat: "Average"
+            Stat: "Sum"
           ReturnData: true
         - Id: "ad1"
           Expression:
@@ -238,10 +245,28 @@ Resources:
           Label: "NumberOfMessagesSent (expected)"
           ReturnData: true
       ThresholdMetricId: "ad1"
-  SQSSentMessageSizeAlarm:
+  SQSSentMessageSizeStandardQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsSentMessageSizeAlarm"
+      AlarmName: "SqsSentMessageSizeStandardQueueAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_sent_message_size:2020-11-26"
+      ActionsEnabled: false
+      MetricName: "SentMessageSize"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref SentMessageSizeMaximumMinus30Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+  SQSSentMessageSizeFifoQueueAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsSentMessageSizeFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_sent_message_size:2020-11-26"
       ActionsEnabled: false
       MetricName: "SentMessageSize"
@@ -255,7 +280,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: !Ref SentMessageSizeMaximumMinus30Percents
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SQSDlqMessageAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -274,10 +299,10 @@ Resources:
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "missing"
-  SqsDlqMessageAlarmForFifoMainQueue:
+  SqsDlqMessageFifoQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsDlqMessageAlarmForFifoMainQueue"
+      AlarmName: "SqsDlqMessageFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesVisible"

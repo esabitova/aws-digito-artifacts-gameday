@@ -16,16 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for RDS Aurora cluster backtrack SOP
+Description: Role for SSM BlockSQSDeleteMessage
 Outputs:
-  DigitoRdsBacktrackAssumeRole:
-    Description: DigitoRdsBacktrack Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRdsBacktrackAssumeRole.Arn
-    Export:
-      Name: DigitoRdsBacktrackAssumeRole
+  DigitoBlockSQSDeleteMessageAssumeRole:
+    Description: DigitoBlockSQSDeleteMessage Automation Assume Role ARN
+    Value: !GetAtt DigitoBlockSQSDeleteMessageAssumeRole.Arn
 Resources:
-  DigitoRdsBacktrackAssumeRole:
+  DigitoBlockSQSDeleteMessageAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -37,18 +34,20 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRdsBacktrackAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoBlockSQSDeleteMessageAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoRdsBacktrackAssumePolicy"
+      PolicyName: DigitoBlockSQSDeleteMessageAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
-              - 'rds:BacktrackDBCluster'
-              - 'rds:DescribeDBClusters'
-              - 'rds:DescribeDBClusterBacktracks'
+              - cloudwatch:DescribeAlarms
+              - sqs:GetQueueAttributes
+              - sqs:SetQueueAttributes
+              - ssm:GetParameters
+              - ssm:GetAutomationExecution
       Roles:
-        - Ref: DigitoRdsBacktrackAssumeRole
+        - Ref: DigitoBlockSQSDeleteMessageAssumeRole

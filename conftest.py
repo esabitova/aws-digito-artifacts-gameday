@@ -43,6 +43,10 @@ def pytest_addoption(parser):
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
                           "pool size (Example: template_1=3, template_2=4)")
+    parser.addoption("--skip_resource_fix",
+                     action="store_true",
+                     default=False,
+                     help="Flag to skip resource fix/destroy")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -67,7 +71,12 @@ def pytest_sessionstart(session):
         s3_helper = S3(boto3_session)
         rm = ResourceManager(cfn_helper, s3_helper)
         rm.init_ddb_tables(boto3_session)
-        rm.fix_stalled_resources()
+        # In case we do execute tests not in single session, for example in different machines, we don't want
+        # to perform resource fix since one session can try to modify resource state which is used by another session.
+        # At this moment this case is used on CodeCommit pipeline actions where we do execute tests in parallel
+        # on different machines in same AWS account.
+        if not session.config.option.skip_resource_fix:
+            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -77,8 +86,13 @@ def pytest_sessionfinish(session, exitstatus):
     :param exitstatus(int): The status which pytest will return to the system.
     :return:
     '''
-    # Execute only when running integration tests
-    if session.config.option.run_integration_tests:
+    # Execute only when running integration tests and disabled skip session level hooks
+    # In case we do execute tests not in single session, for example in different machines, we don't want
+    # to perform resource fix/destroy since one session can try to modify resource state which is used
+    # by another session.At this moment this case is used on CodeCommit pipeline actions where we do
+    # execute tests in parallel on different machines in same AWS account.
+    if session.config.option.run_integration_tests \
+            and not session.config.option.skip_resource_fix:
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
@@ -338,6 +352,7 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
     return execution_id
 
 
+@given(parse('sleep for "{seconds}" seconds'))
 @when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
 def sleep_seconds(seconds):

@@ -6,12 +6,17 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy
+from documents.util.scripts.src.sqs_util import send_message_of_size
+
+SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
+SQS_FIFO_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue.fifo"
 
 
 @pytest.mark.unit_test
 class TestSqsUtil(unittest.TestCase):
     def setUp(self):
-        self.queue_url = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
+        self.queue_url = SQS_STANDARD_QUEUE_URL
+        self.empty_policy = {"Policy": ""}
         self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
         self.action_to_deny = "sqs:DeleteMessage"
         self.patcher = patch("documents.util.scripts.src.sqs_util.sqs_client")
@@ -95,4 +100,31 @@ class TestSqsUtil(unittest.TestCase):
             "OptionalBackupPolicy": "{{VariableFromSsmDocument}}"
         }
         revert_sqs_policy(events, None)
-        self.client.set_queue_attributes.assert_called_once()
+        self.client.set_queue_attributes.assert_called_once_with(QueueUrl=self.queue_url,
+                                                                 Attributes=self.empty_policy)
+
+    def test_send_message_of_size_standard(self):
+        events = {
+            "QueueUrl": SQS_STANDARD_QUEUE_URL,
+            "MessageSize": 100
+        }
+        send_message_of_size(events, None)
+        self.client.send_message.assert_called_once()
+        self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
+
+    def test_send_message_of_size_fifo_no_token(self):
+        events = {
+            "QueueUrl": SQS_FIFO_QUEUE_URL,
+            "MessageSize": 100
+        }
+        self.assertRaises(KeyError, send_message_of_size, events, None)
+
+    def test_send_message_of_size_fifo(self):
+        events = {
+            "QueueUrl": SQS_FIFO_QUEUE_URL,
+            "MessageSize": 100,
+            "MessageDeduplicationId": 'some-token'
+        }
+        send_message_of_size(events, None)
+        self.client.send_message.assert_called_once()
+        self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))

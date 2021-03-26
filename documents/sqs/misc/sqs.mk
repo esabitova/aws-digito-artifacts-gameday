@@ -22,8 +22,7 @@ test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/sqs/misc/sqs-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests -m sqs --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests -m sqs --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
@@ -31,8 +30,8 @@ test_one: test_linter publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests \
-		documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Tests/step_defs/test_breaking_the_policy_for_sqs.py -m sqs  --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
+		documents/sqs/test/block_delete_message/2021-03-09/Tests/step_defs/test_block_delete_message.py -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 service_unit_test:

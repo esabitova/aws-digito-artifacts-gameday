@@ -16,16 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for RDS Aurora cluster backtrack SOP
+Description: Role for SQS capacity failure
 Outputs:
-  DigitoRdsBacktrackAssumeRole:
-    Description: DigitoRdsBacktrack Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRdsBacktrackAssumeRole.Arn
-    Export:
-      Name: DigitoRdsBacktrackAssumeRole
+  DigitoSQSCapacityFailureAssumeRole:
+    Description: DigitoSQSCapacityFailureAssumeRole Automation Assume Role ARN
+    Value: !GetAtt DigitoSQSCapacityFailureAssumeRole.Arn
 Resources:
-  DigitoRdsBacktrackAssumeRole:
+  DigitoSQSCapacityFailureAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -37,18 +34,21 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRdsBacktrackAssumePolicy:
+  DigitoSQSCapacityFailureAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoRdsBacktrackAssumePolicy"
+      PolicyName: "DigitoSQSCapacityFailureAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'rds:BacktrackDBCluster'
-              - 'rds:DescribeDBClusters'
-              - 'rds:DescribeDBClusterBacktracks'
+              - cloudwatch:DescribeAlarms
+              - sqs:SendMessage
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - ssm:GetAutomationExecution
+              - ssm:GetParameters
       Roles:
-        - Ref: DigitoRdsBacktrackAssumeRole
+        - Ref: DigitoSQSCapacityFailureAssumeRole
