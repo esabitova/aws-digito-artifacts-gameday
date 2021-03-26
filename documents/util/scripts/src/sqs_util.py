@@ -2,12 +2,16 @@ import json
 import time
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Callable, Optional
 
 import boto3
 from botocore.exceptions import ClientError
+import logging
 
 sqs_client = boto3.client("sqs")
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
@@ -132,9 +136,102 @@ def delete_message_by_id(event, context):
     return response
 
 
+def transform_message_general(message: dict) -> dict:
+    """
+    General method to transform one message
+    :param message: Message to transform
+    :return: transformed message
+    """
+    message_to_send = {'Id': message.get('MessageId'),
+                       'MessageBody': message.get('Body')}
+    if message.get('MessageAttributes') is not None:
+        message_to_send['MessageAttributes'] = message.get('MessageAttributes')
+    attributes = message.get('Attributes')
+    if attributes is not None:
+        aws_trace_header = attributes.get('AWSTraceHeader')
+        if aws_trace_header is not None:
+            message_to_send['MessageSystemAttributes'] = \
+                {'AWSTraceHeader': {'StringValue': aws_trace_header,
+                                    'DataType': 'String'}}
+    return message_to_send
+
+
+def transform_message_from_fifo_to_fifo(message: dict) -> dict:
+    """
+    Transform one message from FIFO to FIFO
+    :param message: Message to transform
+    :return: transformed message
+    """
+    message_to_send = transform_message_general(message)
+
+    attributes = message.get('Attributes')
+    if attributes is not None:
+        message_to_send['MessageDeduplicationId'] = attributes.get('MessageDeduplicationId')
+        message_to_send['MessageGroupId'] = str(attributes.get('MessageGroupId'))
+    logger.debug(f'message_to_send: {message_to_send}')
+    return message_to_send
+
+
+def transform_message_from_standard_to_fifo(message: dict) -> dict:
+    """
+    Transform one message from Standard to FIFO
+    :param message: Message to transform
+    :return: transformed message
+    """
+    message_to_send = transform_message_general(message)
+    message_to_send['MessageDeduplicationId'] = str(uuid.uuid4())
+    message_to_send['MessageGroupId'] = str(uuid.uuid4())
+    return message_to_send
+
+
+def transform_messages(messages: List[dict], transform_message_function: Callable) -> List[dict]:
+    """
+    Transform all messages
+    :param messages: messages to transform
+    :param transform_message_function: method to transform one message
+    :return: transformed messages
+    """
+    transformed_messages: List[dict] = []
+    for message in messages:
+        message = transform_message_function(message)
+        transformed_messages.append(message)
+    return transformed_messages
+
+
+def send_messages(messages_to_send: List[dict], target_queue_url: str) -> dict:
+    """
+    Send messages by batch operation
+    :param messages_to_send: messages to send
+    :param target_queue_url: URL of the queue to send
+    :return: response of send_message_batch method
+    """
+    logger.debug(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
+                 f'Entries={messages_to_send}')
+    send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
+                                                                      Entries=messages_to_send)
+    logger.debug(f'Received send_message_batch response: {send_message_batch_response}')
+    return send_message_batch_response
+
+
+def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -> Optional[List[dict]]:
+    """
+    Receive messages
+    :param messages_transfer_batch_size: how many messages to receive
+    :param source_queue_url:  URL of the queue where from messages are received
+    :return: response of receive_message method
+    """
+    receive_message_response: dict = \
+        sqs_client.receive_message(QueueUrl=source_queue_url,
+                                   MaxNumberOfMessages=messages_transfer_batch_size,
+                                   MessageAttributeNames=['All'],
+                                   AttributeNames=['All'])
+    logger.debug(f'receive_message response: {receive_message_response}')
+    return receive_message_response.get('Messages')
+
+
 def transfer_messages(events: dict, context: dict) -> dict:
     """
-    Move messages from one queue to another.
+    Move received_messages from one queue to another.
     """
     if "SourceQueueUrl" not in events or "TargetQueueUrl" not in events \
             or "NumberOfMessagesToTransfer" not in events or "ForceExecution" not in events \
@@ -150,27 +247,8 @@ def transfer_messages(events: dict, context: dict) -> dict:
     number_of_messages_to_transfer: int = int(events['NumberOfMessagesToTransfer'])
     messages_transfer_batch_size: int = int(events['MessagesTransferBatchSize'])
 
-    is_source_queue_fifo: bool = True
-    try:
-        sqs_client.get_queue_attributes(QueueUrl=source_queue_url, AttributeNames=['FifoQueue'])
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'InvalidAttributeName':
-            is_source_queue_fifo = False
-            print(f'Source queue with url = {source_queue_url} is not FIFO')
-        else:
-            print(e)
-            raise e
-
-    is_target_queue_fifo: bool = True
-    try:
-        sqs_client.get_queue_attributes(QueueUrl=target_queue_url, AttributeNames=['FifoQueue'])
-    except ClientError as e:
-        if e.response['Error']['Code'] == 'InvalidAttributeName':
-            is_target_queue_fifo = False
-            print(f'Target queue with url = {target_queue_url} is not FIFO')
-        else:
-            print(e)
-            raise e
+    is_source_queue_fifo: bool = is_queue_fifo(source_queue_url)
+    is_target_queue_fifo: bool = is_queue_fifo(target_queue_url)
 
     if force_execution is False and is_source_queue_fifo != is_target_queue_fifo:
         raise ValueError(f'The source queue and target queue have different types when ForceExecution '
@@ -185,187 +263,32 @@ def transfer_messages(events: dict, context: dict) -> dict:
     loop_count = 1
 
     while number_of_messages_transferred < number_of_messages_to_transfer and (now - start) < max_duration_seconds:
-        print(f'Entered into loop #{loop_count} with number_of_messages_transferred < number_of_messages_to_transfer = '
-              f'{number_of_messages_transferred} < {number_of_messages_to_transfer}, '
-              f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
+        logger.debug(f'Entered into loop #{loop_count} '
+                     f'with number_of_messages_transferred < number_of_messages_to_transfer = '
+                     f'{number_of_messages_transferred} < {number_of_messages_to_transfer}, '
+                     f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
 
-        send_message_batch_response: dict = {}
+        received_messages: Optional[List[dict]] = receive_messages(source_queue_url, messages_transfer_batch_size)
+        if received_messages is None:
+            return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
+                                  number_of_messages_failed_to_send_to_target,
+                                  number_of_messages_transferred_to_target, source_queue_url, start,
+                                  start_execution)
 
+        messages_to_send: List[dict] = []
         if is_source_queue_fifo and is_target_queue_fifo:  # If both queues are FIFO
-            receive_message_response: dict = \
-                sqs_client.receive_message(QueueUrl=source_queue_url,
-                                           MaxNumberOfMessages=messages_transfer_batch_size,
-                                           MessageAttributeNames=['All'],
-                                           AttributeNames=['All'])
-            print(f'receive_message response: {receive_message_response}')
-            received_messages: List[dict] = receive_message_response.get('Messages')
-
-            if received_messages is not None:
-                messages_to_send: List[dict] = []
-                for received_message in received_messages:
-                    deduplication_id = received_message.get('Attributes').get('MessageDeduplicationId')
-                    message_group_id = received_message.get('Attributes').get('MessageGroupId')
-                    message_to_send = {'Id': received_message.get('MessageId'),
-                                       'MessageBody': received_message.get('Body'),
-                                       'MessageDeduplicationId': deduplication_id,
-                                       'MessageGroupId': message_group_id}
-
-                    if received_message.get('MessageAttributes') is not None:
-                        message_to_send['MessageAttributes'] = received_message.get('MessageAttributes')
-                    attributes = received_message.get('Attributes')
-                    if attributes is not None:
-                        aws_trace_header = attributes.get('AWSTraceHeader')
-                        if aws_trace_header is not None:
-                            message_to_send['MessageSystemAttributes'] = \
-                                {'AWSTraceHeader': {'StringValue': aws_trace_header,
-                                                    'DataType': 'String'}}
-                    messages_to_send.append(message_to_send)
-
-                print(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
-                      f'Entries={messages_to_send}')
-                send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
-                                                                                  Entries=messages_to_send)
-                print(f'Received send_message_batch response: {send_message_batch_response}')
-            else:
-                statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
-                              'NumberOfMessagesFailedToDeleteFromSource':
-                                  number_of_messages_failed_to_delete_from_source,
-                              'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
-                              'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
-                print(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
-                      f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
-                      f'second(-s) of script\'s execution. Statistics: {statistics}')
-                return statistics
-
+            messages_to_send = transform_messages(received_messages, transform_message_from_fifo_to_fifo)
         elif not is_source_queue_fifo and not is_target_queue_fifo:  # If both queues are standard
-            receive_message_response: dict = \
-                sqs_client.receive_message(QueueUrl=source_queue_url,
-                                           MaxNumberOfMessages=messages_transfer_batch_size,
-                                           MessageAttributeNames=['All'],
-                                           AttributeNames=['All'])
-            print(f'receive_message response: {receive_message_response}')
-            received_messages: List[dict] = receive_message_response.get('Messages')
-
-            if received_messages is not None:
-                messages_to_send: List[dict] = []
-                for received_message in received_messages:
-                    message_to_send = {'Id': received_message.get('MessageId'),
-                                       'MessageBody': received_message.get('Body')}
-                    if received_message.get('MessageAttributes') is not None:
-                        message_to_send['MessageAttributes'] = received_message.get('MessageAttributes')
-                    attributes = received_message.get('Attributes')
-                    if attributes is not None:
-                        aws_trace_header = attributes.get('AWSTraceHeader')
-                        if aws_trace_header is not None:
-                            message_to_send['MessageSystemAttributes'] = \
-                                {'AWSTraceHeader': {'StringValue': aws_trace_header,
-                                                    'DataType': 'String'}}
-                    messages_to_send.append(message_to_send)
-
-                print(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
-                      f'Entries={messages_to_send}')
-                send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
-                                                                                  Entries=messages_to_send)
-                print(f'Received send_message_batch response: {send_message_batch_response}')
-            else:
-                statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
-                              'NumberOfMessagesFailedToDeleteFromSource':
-                                  number_of_messages_failed_to_delete_from_source,
-                              'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
-                              'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
-                print(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
-                      f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
-                      f'second(-s) of script\'s execution. Statistics: {statistics}')
-                return statistics
+            messages_to_send = transform_messages(received_messages, transform_message_general)
         elif is_source_queue_fifo and not is_target_queue_fifo:
-            receive_message_response: dict = \
-                sqs_client.receive_message(QueueUrl=source_queue_url,
-                                           MaxNumberOfMessages=messages_transfer_batch_size,
-                                           MessageAttributeNames=['All'],
-                                           AttributeNames=['All'])
-            print(f'receive_message response: {receive_message_response}')
-            received_messages: List[dict] = receive_message_response.get('Messages')
-
-            if received_messages is not None:
-                messages_to_send: List[dict] = []
-                for received_message in received_messages:
-                    message_to_send = {'Id': received_message.get('MessageId'),
-                                       'MessageBody': received_message.get('Body')}
-                    if received_message.get('MessageAttributes') is not None:
-                        message_to_send['MessageAttributes'] = received_message.get('MessageAttributes')
-                    attributes = received_message.get('Attributes')
-                    if attributes is not None:
-                        aws_trace_header = attributes.get('AWSTraceHeader')
-                        if aws_trace_header is not None:
-                            message_to_send['MessageSystemAttributes'] = \
-                                {'AWSTraceHeader': {'StringValue': aws_trace_header,
-                                                    'DataType': 'String'}}
-                    messages_to_send.append(message_to_send)
-
-                print(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
-                      f'Entries={messages_to_send}')
-                send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
-                                                                                  Entries=messages_to_send)
-                print(f'Received send_message_batch response: {send_message_batch_response}')
-            else:
-                statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
-                              'NumberOfMessagesFailedToDeleteFromSource':
-                                  number_of_messages_failed_to_delete_from_source,
-                              'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
-                              'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
-                print(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
-                      f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
-                      f'second(-s) of script\'s execution. Statistics: {statistics}')
-                return statistics
-
+            messages_to_send = transform_messages(received_messages, transform_message_general)
         elif not is_source_queue_fifo and is_target_queue_fifo:
-            receive_message_response: dict = \
-                sqs_client.receive_message(QueueUrl=source_queue_url,
-                                           MaxNumberOfMessages=messages_transfer_batch_size,
-                                           MessageAttributeNames=['All'],
-                                           AttributeNames=['All'])
-            print(f'receive_message response: {receive_message_response}')
-            received_messages: List[dict] = receive_message_response.get('Messages')
+            messages_to_send = transform_messages(received_messages, transform_message_from_standard_to_fifo)
 
-            if received_messages is not None:
-                messages_to_send: List[dict] = []
-                for received_message in received_messages:
-                    deduplication_id = str(uuid.uuid4())
-                    message_group_id = str(uuid.uuid4())
-                    message_to_send = {'Id': received_message.get('MessageId'),
-                                       'MessageBody': received_message.get('Body'),
-                                       'MessageDeduplicationId': deduplication_id,
-                                       'MessageGroupId': message_group_id}
-
-                    if received_message.get('MessageAttributes') is not None:
-                        message_to_send['MessageAttributes'] = received_message.get('MessageAttributes')
-                    attributes = received_message.get('Attributes')
-                    if attributes is not None:
-                        aws_trace_header = attributes.get('AWSTraceHeader')
-                        if aws_trace_header is not None:
-                            message_to_send['MessageSystemAttributes'] = \
-                                {'AWSTraceHeader': {'StringValue': aws_trace_header,
-                                                    'DataType': 'String'}}
-                    messages_to_send.append(message_to_send)
-
-                print(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
-                      f'Entries={messages_to_send}')
-                send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
-                                                                                  Entries=messages_to_send)
-                print(f'Received send_message_batch response: {send_message_batch_response}')
-            else:
-                statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
-                              'NumberOfMessagesFailedToDeleteFromSource':
-                                  number_of_messages_failed_to_delete_from_source,
-                              'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
-                              'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
-                print(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
-                      f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
-                      f'second(-s) of script\'s execution. Statistics: {statistics}')
-                return statistics
-
+        send_message_batch_response: dict = send_messages(messages_to_send, target_queue_url)
         successfully_sent_results = send_message_batch_response.get('Successful')
-        print(f'Successfully sent results from send_message_batch_response response: {successfully_sent_results}')
+        logger.debug(f'Successfully sent results from send_message_batch_response response: '
+                     f'{successfully_sent_results}')
 
         entries: List = []
 
@@ -374,16 +297,17 @@ def transfer_messages(events: dict, context: dict) -> dict:
 
             for result in successfully_sent_results:
                 result_id = result.get('Id')
-                for message in receive_message_response.get('Messages'):
+                for message in received_messages:
                     if result_id == message.get('MessageId'):
                         receipt_handle = message.get('ReceiptHandle')
                         entries.append({'Id': result_id, 'ReceiptHandle': receipt_handle})
-                        print(f'Found and added entry to delete message: Id={result_id}, '
-                              f'ReceiptHandle={receipt_handle}')
-                print(f'Executing delete_message_batch with arguments: QueueUrl={source_queue_url}, Entries= {entries}')
+                        logger.debug(f'Found and added entry to delete message: Id={result_id}, '
+                                     f'ReceiptHandle={receipt_handle}')
+                logger.debug(f'Executing delete_message_batch with arguments: QueueUrl={source_queue_url}, '
+                             f'Entries= {entries}')
                 delete_message_batch_response: dict = sqs_client.delete_message_batch(QueueUrl=source_queue_url,
                                                                                       Entries=entries)
-                print(f'Received delete_message_batch response: {delete_message_batch_response}')
+                logger.debug(f'Received delete_message_batch response: {delete_message_batch_response}')
                 failed_delete_message = delete_message_batch_response.get('Failed')
                 if failed_delete_message is not None:
                     number_of_messages_failed_to_delete_from_source += len(failed_delete_message)
@@ -393,11 +317,38 @@ def transfer_messages(events: dict, context: dict) -> dict:
                 number_of_messages_failed_to_send_to_target += len(failed_send_results)
 
         now = int(time.time())
-        if receive_message_response.get('Messages') is not None:
-            number_of_messages_transferred += len(receive_message_response.get('Messages'))
+        number_of_messages_transferred += len(received_messages)
         loop_count += 1
 
-    return {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
-            'NumberOfMessagesFailedToDeleteFromSource': number_of_messages_failed_to_delete_from_source,
-            'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
-            'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
+    return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
+                          number_of_messages_failed_to_send_to_target,
+                          number_of_messages_transferred_to_target, source_queue_url, start,
+                          start_execution)
+
+
+def get_statistics(loop_count: int, now, number_of_messages_failed_to_delete_from_source: int,
+                   number_of_messages_failed_to_send_to_target: int,
+                   number_of_messages_transferred_to_target: int,
+                   source_queue_url: str, start, start_execution):
+    statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
+                  'NumberOfMessagesFailedToDeleteFromSource':
+                      number_of_messages_failed_to_delete_from_source,
+                  'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
+                  'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
+    logger.info(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
+                f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
+                f'second(-s) of script\'s execution. Statistics: {statistics}')
+    return statistics
+
+
+def is_queue_fifo(queue_url: str):
+    try:
+        sqs_client.get_queue_attributes(QueueUrl=queue_url, AttributeNames=['FifoQueue'])
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'InvalidAttributeName':
+            logger.info(f'The queue with url = {queue_url} is not a FIFO')
+            return False
+        else:
+            logger.error(e)
+            raise e
+    return True
