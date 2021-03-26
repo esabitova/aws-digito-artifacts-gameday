@@ -6,26 +6,27 @@ SHELL := /bin/bash
 include ../../../private.env
 export $(shell sed 's/=.*//' ../../../private.env)
 
+include ../../../common.mk
+
 # Upload local SSM Documents to AWS SSM Documents service by specifying them in the manifest file
 publish_ssm_docs:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
+	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
 		--file-name documents/s3/misc/s3-manifest --log-level INFO && \
 	deactivate
 
 # Execute Cucumber tests
-test: publish_ssm_docs
+test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/s3/misc/s3-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
-test_one: publish_ssm_docs
+test_one: test_linter publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \

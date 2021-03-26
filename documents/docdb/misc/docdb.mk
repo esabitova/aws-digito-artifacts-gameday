@@ -11,15 +11,28 @@ publish_ssm_docs:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
+	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
 		--file-name documents/docdb/misc/docdb-manifest --log-level INFO && \
 	deactivate
 
 # Execute Cucumber tests
-test: publish_ssm_docs
+test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/docdb/misc/docdb-cucumber-tests-results.html --self-contained-html \
-		--keep_test_resources --run_integration_tests -m docdb --aws_profile ut && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests -m docdb --aws_profile ut && \
+	deactivate
+
+test_one: test_linter publish_ssm_docs
+	# Move to parent directory
+	cd ../../../ && \
+	source venv/bin/activate && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
+		documents/docdb/sop/create_new_instance/2020-09-21/Tests/step_defs/test_create_new_instance.py -m docdb --aws_profile ${AWS_PROFILE} && \
+	deactivate
+
+service_unit_test:
+	cd ../../../ && \
+	source venv/bin/activate && \
+	python3 -m pytest -m unit_test documents/util/scripts/test/test_docdb_util.py && \
 	deactivate

@@ -106,7 +106,7 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `SyntheticAlarmName`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `600` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for 600 seconds
     * OnFailure: step: `RollbackChanges` 
 1. `RollbackChanges`
     * Type: aws:executeScript
@@ -126,7 +126,7 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `SyntheticAlarmName`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `OK` for `600` seconds
+        * Wait for `SyntheticAlarmName` alarm to be `OK` for 600 seconds
     * isEnd: true
  
 ## Outputs
