@@ -57,22 +57,14 @@ Outputs:
   SNSTopicARN:
     Description: SNS Topic ARN
     Value: !GetAtt SqsDeadLetterQueue.Arn
-  NumberOfMessagesSentBandAlarm:
-    Description: Alarm
-    Value: !Ref  NumberOfMessagesSentBandAlarm
   SentMessageSizeStandardQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeStandardQueueAlarm
   SentMessageSizeFifoQueueAlarm:
-    Value: !Ref  SQSNumberOfMessagesSentBandAlarm
+    Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
-  SentMessageSizeAlarm:
-    Description: Alarm
-    Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
-  DLQMessageAlarm:
-    Value: !Ref  SQSSentMessageSizeAlarm
   DlqMessageAlarm:
     Description: Alarm
     Value: !Ref  SQSDlqMessageAlarm

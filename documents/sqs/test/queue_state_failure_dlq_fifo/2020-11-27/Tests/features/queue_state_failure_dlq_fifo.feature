@@ -8,7 +8,7 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | documents/sqs/test/queue_state_failure_dlq_fifo/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
       | QueueUrl                                             | AutomationAssumeRole                                                                 | SQSUserErrorAlarmName                                                |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageAlarmForFifoMainQueue}} |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} |
 
     When Wait for the SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution is on step "AssertAlarmToBeGreenBeforeTest" in status "Success" for "1000" seconds
       | ExecutionId                |
