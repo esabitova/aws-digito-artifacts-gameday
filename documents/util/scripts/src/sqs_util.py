@@ -165,5 +165,4 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     get_queue_url_response: dict = sqs_client.get_queue_url(QueueName=dead_letter_queue_name)
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
     print(f'Dead Letter queue URL is: {dead_letter_queue_url}')
-
     return {"QueueUrl": dead_letter_queue_url}
