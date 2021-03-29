@@ -127,12 +127,29 @@ mainSteps:
         VisibilityTimeout: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.VisibilityTimeout }}'
         RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
 
+  - name: GetPurgeDeadLetterQueueFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: PurgeDeadLetterQueue
+        Selector: $.Payload.PurgeDeadLetterQueue
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        InputName: 'PurgeDeadLetterQueue'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_document_execution
+
   - name: CheckIfPurgeEnabledInPreviousExecution
     action: aws:branch
     inputs:
       Choices:
         - NextStep: PreparePurgeOfDeadLetterQueueForRollback
-          Variable: "{{ PurgeDeadLetterQueue }}"
+          Variable: "{{ GetPurgeDeadLetterQueueFromPreviousExecution.PurgeDeadLetterQueue }}"
           StringEquals: 'true'
     isEnd: true
 
@@ -212,7 +229,6 @@ mainSteps:
         - VisibilityTimeout
         - RedrivePolicy
       QueueUrl: '{{ QueueUrl }}'
-      PurgeDeadLetterQueue: '{{ PurgeDeadLetterQueue }}'
 
   - name: GetUpdatedQueuePolicy
     action: aws:executeScript
