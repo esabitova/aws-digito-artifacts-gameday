@@ -191,7 +191,7 @@ Resources:
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SQSNumberOfMessagesSentAlarm"
+      AlarmName: "SqsNumberOfMessagesSentAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       ActionsEnabled: false
       MetricName: "NumberOfMessagesSent"
