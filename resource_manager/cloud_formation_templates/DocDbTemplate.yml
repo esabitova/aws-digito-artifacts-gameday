@@ -32,33 +32,33 @@ Outputs:
     Value: !GetAtt DBCluster.ClusterResourceId
   EngineVersion:
     Value: "4.0.0"
-Parameters: 
+Parameters:
   DBClusterIdentifier:
     Default: "docdb"
-    Description : "Cluster Identifier"
+    Description: "Cluster Identifier"
     Type: "String"
     MinLength: "1"
     MaxLength: "64"
-    AllowedPattern : "[a-z][a-z0-9]*(-[a-z0-9]+)*"
-    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters in lowercase."
+    AllowedPattern: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
   DBInstancePrimaryIdentifier:
     Default: "dbinstance01"
-    Description : "Instance name"
+    Description: "Instance name"
     Type: "String"
     MinLength: "1"
     MaxLength: "64"
-    AllowedPattern : "[a-z][a-z0-9]*(-[a-z0-9]+)*"
-    ConstraintDescription : "Must begin with a letter and contain only alphanumeric characters in lowercase."
+    AllowedPattern: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
   DBInstanceReplicaIdentifier:
     Default: "dbinstance02"
     Description: "Instance name"
     Type: "String"
     MinLength: "1"
     MaxLength: "64"
-    AllowedPattern : "[a-z][a-z0-9]*(-[a-z0-9]+)*"
+    AllowedPattern: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
     ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
   DBInstanceClass:
-    Description : "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
+    Description: "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
     Type: "String"
     Default: "db.t3.medium"
     AllowedValues:
@@ -68,8 +68,8 @@ Parameters:
       - db.r5.2xlarge
       - db.r5.4xlarge
       - db.r5.12xlarge
-      - db.r5.24xlarge                             
-    ConstraintDescription : "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"  
+      - db.r5.24xlarge
+    ConstraintDescription: "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
 Resources:
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret

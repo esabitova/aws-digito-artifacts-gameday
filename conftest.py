@@ -17,6 +17,7 @@ from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from pytest import ExitCode
 from botocore.exceptions import ClientError
 from publisher.src.publish_documents import PublishDocuments
@@ -43,6 +44,10 @@ def pytest_addoption(parser):
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
                           "pool size (Example: template_1=3, template_2=4)")
+    parser.addoption("--skip_resource_fix",
+                     action="store_true",
+                     default=False,
+                     help="Flag to skip resource fix/destroy")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -67,7 +72,12 @@ def pytest_sessionstart(session):
         s3_helper = S3(boto3_session)
         rm = ResourceManager(cfn_helper, s3_helper)
         rm.init_ddb_tables(boto3_session)
-        rm.fix_stalled_resources()
+        # In case we do execute tests not in single session, for example in different machines, we don't want
+        # to perform resource fix since one session can try to modify resource state which is used by another session.
+        # At this moment this case is used on CodeCommit pipeline actions where we do execute tests in parallel
+        # on different machines in same AWS account.
+        if not session.config.option.skip_resource_fix:
+            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -77,8 +87,13 @@ def pytest_sessionfinish(session, exitstatus):
     :param exitstatus(int): The status which pytest will return to the system.
     :return:
     '''
-    # Execute only when running integration tests
-    if session.config.option.run_integration_tests:
+    # Execute only when running integration tests and disabled skip session level hooks
+    # In case we do execute tests not in single session, for example in different machines, we don't want
+    # to perform resource fix/destroy since one session can try to modify resource state which is used
+    # by another session.At this moment this case is used on CodeCommit pipeline actions where we do
+    # execute tests in parallel on different machines in same AWS account.
+    if session.config.option.run_integration_tests \
+            and not session.config.option.skip_resource_fix:
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
@@ -230,6 +245,7 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
 
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @given(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
+@then(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, ssm_test_cache, ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
@@ -338,6 +354,7 @@ def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_
     return execution_id
 
 
+@given(parse('sleep for "{seconds}" seconds'))
 @when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
 def sleep_seconds(seconds):
@@ -423,3 +440,10 @@ def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_par
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
     ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
+
+
+@given(parse('cache constant value {value} as "{cache_property}" '
+             '"{step_key}" SSM automation execution'))
+def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
+    param_value = parse_param_value(value, {'cache': ssm_test_cache})
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
