@@ -147,3 +147,30 @@ def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric
                 "Instance [{}] expected [{}] load [{}%] but was [{}%]".format(instance_id, metric_name,
                                                                               exp_load_percentage,
                                                                               actual_cpu_load))
+
+
+def get_metric_alarm_threshold_values(event, context):
+    """
+    Get alarm threshold and return values above and below
+    """
+    alarm_name = event['AlarmName']
+    cw = boto3.client('cloudwatch')
+    response = cw.describe_alarms(
+        AlarmNames=[alarm_name],
+        AlarmTypes=['MetricAlarm']
+    )
+    metric_alarms = response.get('MetricAlarms')
+    if not metric_alarms:
+        raise Exception("MetricAlarm [{}] does not exist.".format(alarm_name))
+    threshold = metric_alarms[0]['Threshold']
+    if threshold == 0:
+        raise Exception("MetricAlarm [{}] has no threshold set.".format(alarm_name))
+
+    value_above_threshold = threshold + 1
+    value_below_threshold = threshold - 1
+
+    return {
+        'Threshold': int(threshold),
+        'ValueAboveThreshold': int(value_above_threshold),
+        'ValueBelowThreshold': int(value_below_threshold)
+    }
