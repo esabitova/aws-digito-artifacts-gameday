@@ -113,7 +113,7 @@ No.
 
 ### AppASGDynamoDBIamRole
 
-* Description: (Required) An IAM role to be assumed by the application autoscaling group and which allow it to dynamodb target table scaling propeties.
+* Description: (Required) An IAM role to be assumed by the application autoscaling group and which allow it to dynamodb target table scaling properties.
 * Type: String
 
 ### AutomationAssumeRole:
@@ -129,7 +129,7 @@ No.
     * Outputs:
         * `StartExecutionTime`: The timestamp when the step execution started
     * Explanation:
-        * Calculate the time when the the dynamodb table recovery starts
+        * Calculate the time when the dynamodb table recovery starts
 
 1. `FirstCheckRestoreToDateTime`
     * Type: aws:branch
@@ -240,7 +240,7 @@ No.
         * `SourceTableKinesisStreamDestinationStatus`: The source dynamodb table kinesis destination stream status from the `KinesisDataStreamDestinations` property, the value will be ACTIVE if at
           least one `DestinationStatus` is ACTIVE
     * Explanation:
-        * Get the list of source dynamodb table kinesis streaming ARNs and the destination status as they are not restored by the
+        * Get the list of source dynamodb table kinesis streaming ARNs, and the destination status as they are not restored by the
           recovery. [describe_kinesis_streaming_destination](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/dynamodb.html#DynamoDB.Client.describe_kinesis_streaming_destination)
           method
 
@@ -362,7 +362,7 @@ No.
     * Outputs:
         * `SourceTableContributorInsightsStatus`: The dynamoDB source table contributor insights status: enabled or disabled
     * Explanation:
-        * Get the status of dynamoDB source table contributor insights status as they are not restored by the recovery. If the value of the `IndexName` parameter is 'None', we we call
+        * Get the status of dynamoDB source table contributor insights status as they are not restored by the recovery. If the value of the `IndexName` parameter is 'None', we call
           the [describe_contributor_insights](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeContributorInsights.html) method using only the `TableName` parameter.
           Otherwise, we call it using both parameters.
 
@@ -436,9 +436,9 @@ No.
           method
         * If yes:
             * get the `ScalableDimension`, the `MinCapacity` and the `MaxCapacity` properties for each
-              dimensions. [describe_scalable_targets](https://boto3.amazonaws.com/v1/documentation/api/1.9.42/reference/services/application-autoscaling.html#ApplicationAutoScaling.Client.describe_scalable_targets)
+              dimension. [describe_scalable_targets](https://boto3.amazonaws.com/v1/documentation/api/1.9.42/reference/services/application-autoscaling.html#ApplicationAutoScaling.Client.describe_scalable_targets)
               method
-            * Register the dynamodb target table as a scalable target and pass the `ScalableDimension` the `MinCapacity` and the `MaxCapacity` properties for each dimensions so that the application
+            * Register the dynamodb target table as a scalable target and pass the `ScalableDimension` the `MinCapacity` and the `MaxCapacity` properties for each dimension's so that the application
               autoscaling group can scale out and scale
               in. [register_scalable_target](https://boto3.amazonaws.com/v1/documentation/api/1.9.42/reference/services/application-autoscaling.html#ApplicationAutoScaling.Client.register_scalable_target)
               method
