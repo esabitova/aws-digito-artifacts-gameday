@@ -7,8 +7,8 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                            | ON_DEMAND    |
       | documents/sqs/test/queue_state_failure_dlq_fifo/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
-      | QueueUrl                                             | AutomationAssumeRole                                                                 | SQSUserErrorAlarmName                                                |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} |
+      | QueueUrl                                             | AutomationAssumeRole                                                                 | SQSUserErrorAlarmName                               | PurgeDeadLetterQueue |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True                 |
 
     When SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution in status "Success"
       | ExecutionId                |

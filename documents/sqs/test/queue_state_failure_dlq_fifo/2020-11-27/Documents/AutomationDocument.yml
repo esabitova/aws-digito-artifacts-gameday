@@ -31,7 +31,7 @@ parameters:
   PurgeDeadLetterQueue:
     type: String
     description: (Optional) Purge dead-letter queue and assert alarm to be green after test and also during rollback execution
-    default: 'true'
+    default: 'false'
   IsRollback:
     type: String
     description: >-
