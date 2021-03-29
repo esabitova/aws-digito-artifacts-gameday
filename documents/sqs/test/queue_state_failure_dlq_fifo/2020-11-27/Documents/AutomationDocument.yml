@@ -127,16 +127,16 @@ mainSteps:
         VisibilityTimeout: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.VisibilityTimeout }}'
         RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
 
-  - name: RollbackCheckIsPurgeDeadLetterQueue
+  - name: CheckIfPurgeEnabledInPreviousExecution
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: RollbackGetDeadLetterQueueUrl
+        - NextStep: PreparePurgeOfDeadLetterQueueForRollback
           Variable: "{{ PurgeDeadLetterQueue }}"
           StringEquals: 'true'
     isEnd: true
 
-  - name: RollbackGetDeadLetterQueueUrl
+  - name: PreparePurgeOfDeadLetterQueueForRollback
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -160,7 +160,7 @@ mainSteps:
     inputs:
       DocumentName: Digito-PurgeQueue_2021-03-11
       RuntimeParameters:
-        QueueUrl: '{{ RollbackGetDeadLetterQueueUrl.QueueUrl }}'
+        QueueUrl: '{{ PreparePurgeOfDeadLetterQueueForRollback.QueueUrl }}'
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
 
   - name: AssertAlarmToBeGreenAfterRollback
