@@ -136,7 +136,7 @@ def delete_message_by_id(event, context):
     return response
 
 
-def transform_message_general(message: dict) -> dict:
+def transform_message_and_attributes(message: dict) -> dict:
     """
     General method to transform one message
     :param message: Message to transform
@@ -162,13 +162,12 @@ def transform_message_from_fifo_to_fifo(message: dict) -> dict:
     :param message: Message to transform
     :return: transformed message
     """
-    message_to_send = transform_message_general(message)
+    message_to_send = transform_message_and_attributes(message)
 
     attributes = message.get('Attributes')
     if attributes is not None:
         message_to_send['MessageDeduplicationId'] = attributes.get('MessageDeduplicationId')
         message_to_send['MessageGroupId'] = str(attributes.get('MessageGroupId'))
-    logger.debug(f'message_to_send: {message_to_send}')
     return message_to_send
 
 
@@ -178,7 +177,7 @@ def transform_message_from_standard_to_fifo(message: dict) -> dict:
     :param message: Message to transform
     :return: transformed message
     """
-    message_to_send = transform_message_general(message)
+    message_to_send = transform_message_and_attributes(message)
     message_to_send['MessageDeduplicationId'] = str(uuid.uuid4())
     message_to_send['MessageGroupId'] = str(uuid.uuid4())
     return message_to_send
@@ -205,11 +204,8 @@ def send_messages(messages_to_send: List[dict], target_queue_url: str) -> dict:
     :param target_queue_url: URL of the queue to send
     :return: response of send_message_batch method
     """
-    logger.debug(f'Executing send_message_batch with arguments: QueueUrl={target_queue_url}, '
-                 f'Entries={messages_to_send}')
     send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
                                                                       Entries=messages_to_send)
-    logger.debug(f'Received send_message_batch response: {send_message_batch_response}')
     return send_message_batch_response
 
 
@@ -225,7 +221,6 @@ def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -
                                    MaxNumberOfMessages=messages_transfer_batch_size,
                                    MessageAttributeNames=['All'],
                                    AttributeNames=['All'])
-    logger.debug(f'receive_message response: {receive_message_response}')
     return receive_message_response.get('Messages')
 
 
@@ -279,42 +274,53 @@ def transfer_messages(events: dict, context: dict) -> dict:
         if is_source_queue_fifo and is_target_queue_fifo:  # If both queues are FIFO
             messages_to_send = transform_messages(received_messages, transform_message_from_fifo_to_fifo)
         elif not is_source_queue_fifo and not is_target_queue_fifo:  # If both queues are standard
-            messages_to_send = transform_messages(received_messages, transform_message_general)
+            messages_to_send = transform_messages(received_messages, transform_message_and_attributes)
         elif is_source_queue_fifo and not is_target_queue_fifo:
-            messages_to_send = transform_messages(received_messages, transform_message_general)
+            messages_to_send = transform_messages(received_messages, transform_message_and_attributes)
         elif not is_source_queue_fifo and is_target_queue_fifo:
             messages_to_send = transform_messages(received_messages, transform_message_from_standard_to_fifo)
 
         send_message_batch_response: dict = send_messages(messages_to_send, target_queue_url)
+
+        delete_message_entries: List = []
+
         successfully_sent_results = send_message_batch_response.get('Successful')
-        logger.debug(f'Successfully sent results from send_message_batch_response response: '
-                     f'{successfully_sent_results}')
-
-        entries: List = []
-
         if successfully_sent_results is not None:
-            number_of_messages_transferred_to_target += len(successfully_sent_results)
+            successfully_sent_results_number = len(successfully_sent_results)
+            logger.info(f'Succeed to send {successfully_sent_results_number} message(-s) '
+                        f'during the loop #{loop_count}: ')
+
+            number_of_messages_transferred_to_target += successfully_sent_results_number
 
             for result in successfully_sent_results:
                 result_id = result.get('Id')
                 for message in received_messages:
                     if result_id == message.get('MessageId'):
                         receipt_handle = message.get('ReceiptHandle')
-                        entries.append({'Id': result_id, 'ReceiptHandle': receipt_handle})
-                        logger.debug(f'Found and added entry to delete message: Id={result_id}, '
-                                     f'ReceiptHandle={receipt_handle}')
-                logger.debug(f'Executing delete_message_batch with arguments: QueueUrl={source_queue_url}, '
-                             f'Entries= {entries}')
+                        delete_message_entries.append({'Id': result_id, 'ReceiptHandle': receipt_handle})
                 delete_message_batch_response: dict = sqs_client.delete_message_batch(QueueUrl=source_queue_url,
-                                                                                      Entries=entries)
-                logger.debug(f'Received delete_message_batch response: {delete_message_batch_response}')
-                failed_delete_message = delete_message_batch_response.get('Failed')
-                if failed_delete_message is not None:
-                    number_of_messages_failed_to_delete_from_source += len(failed_delete_message)
+                                                                                      Entries=delete_message_entries)
+                failed_delete_messages: List[dict] = delete_message_batch_response.get('Failed')
+                if failed_delete_messages is not None:
+                    failed_delete_messages_number = len(failed_delete_messages)
+                    logger.info(f'Failed to delete {failed_delete_messages_number} message(-s) '
+                                f'during the loop #{loop_count}: '
+                                f'{failed_delete_messages}')
+                    number_of_messages_failed_to_delete_from_source += failed_delete_messages_number
 
-            failed_send_results: dict = send_message_batch_response.get('Failed')
-            if failed_send_results is not None:
-                number_of_messages_failed_to_send_to_target += len(failed_send_results)
+                succeed_delete_messages = delete_message_batch_response.get('Successful')
+                if succeed_delete_messages is not None:
+                    logger.info(f'Succeed to delete {len(succeed_delete_messages)} message(-s) '
+                                f'during the loop #{loop_count}: '
+                                f'{succeed_delete_messages}')
+
+        failed_send_results: dict = send_message_batch_response.get('Failed')
+        if failed_send_results is not None:
+            failed_send_results_number = len(failed_send_results)
+            logger.info(f'Failed to send {failed_send_results_number} message(-s) '
+                        f'during the loop #{loop_count}: '
+                        f'{failed_send_results}')
+            number_of_messages_failed_to_send_to_target += failed_send_results_number
 
         now = int(time.time())
         number_of_messages_transferred += len(received_messages)

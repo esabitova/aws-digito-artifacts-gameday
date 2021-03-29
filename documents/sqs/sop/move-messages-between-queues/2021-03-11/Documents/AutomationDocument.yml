@@ -73,7 +73,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
         SCRIPT_PLACEHOLDER::sqs_util.transform_messages
-        SCRIPT_PLACEHOLDER::sqs_util.transform_message_general
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_and_attributes
         SCRIPT_PLACEHOLDER::sqs_util.transform_message_from_fifo_to_fifo
         SCRIPT_PLACEHOLDER::sqs_util.transform_message_from_standard_to_fifo
         SCRIPT_PLACEHOLDER::sqs_util.send_messages
