@@ -282,37 +282,37 @@ def transfer_messages(events: dict, context: dict) -> dict:
 
         send_message_batch_response: dict = send_messages(messages_to_send, target_queue_url)
 
-        delete_message_entries: List = []
-
         successfully_sent_results = send_message_batch_response.get('Successful')
         if successfully_sent_results is not None:
             successfully_sent_results_number = len(successfully_sent_results)
             logger.info(f'Succeed to send {successfully_sent_results_number} message(-s) '
-                        f'during the loop #{loop_count}: ')
+                        f'during the loop #{loop_count}: '
+                        f'{successfully_sent_results}')
 
             number_of_messages_transferred_to_target += successfully_sent_results_number
 
-            for result in successfully_sent_results:
-                result_id = result.get('Id')
-                for message in received_messages:
-                    if result_id == message.get('MessageId'):
-                        receipt_handle = message.get('ReceiptHandle')
-                        delete_message_entries.append({'Id': result_id, 'ReceiptHandle': receipt_handle})
-                delete_message_batch_response: dict = sqs_client.delete_message_batch(QueueUrl=source_queue_url,
-                                                                                      Entries=delete_message_entries)
-                failed_delete_messages: List[dict] = delete_message_batch_response.get('Failed')
-                if failed_delete_messages is not None:
-                    failed_delete_messages_number = len(failed_delete_messages)
-                    logger.info(f'Failed to delete {failed_delete_messages_number} message(-s) '
-                                f'during the loop #{loop_count}: '
-                                f'{failed_delete_messages}')
-                    number_of_messages_failed_to_delete_from_source += failed_delete_messages_number
+            message_id_to_receipt_handle = {message.get('MessageId'): message.get('ReceiptHandle')
+                                            for message in received_messages}
+            delete_message_entries: List = [{'Id': result.get('Id'),
+                                             'ReceiptHandle': message_id_to_receipt_handle.get(result.get('Id'))}
+                                            for result in successfully_sent_results]
 
-                succeed_delete_messages = delete_message_batch_response.get('Successful')
-                if succeed_delete_messages is not None:
-                    logger.info(f'Succeed to delete {len(succeed_delete_messages)} message(-s) '
-                                f'during the loop #{loop_count}: '
-                                f'{succeed_delete_messages}')
+            delete_message_batch_response: dict = sqs_client.delete_message_batch(QueueUrl=source_queue_url,
+                                                                                  Entries=delete_message_entries)
+
+            failed_delete_messages: List[dict] = delete_message_batch_response.get('Failed')
+            if failed_delete_messages is not None:
+                failed_delete_messages_number = len(failed_delete_messages)
+                logger.info(f'Failed to delete {failed_delete_messages_number} message(-s) '
+                            f'during the loop #{loop_count}: '
+                            f'{failed_delete_messages}')
+                number_of_messages_failed_to_delete_from_source += failed_delete_messages_number
+
+            succeed_delete_messages = delete_message_batch_response.get('Successful')
+            if succeed_delete_messages is not None:
+                logger.info(f'Succeed to delete {len(succeed_delete_messages)} message(-s) '
+                            f'during the loop #{loop_count}: '
+                            f'{succeed_delete_messages}')
 
         failed_send_results: dict = send_message_batch_response.get('Failed')
         if failed_send_results is not None:
@@ -341,7 +341,7 @@ def get_statistics(loop_count: int, now, number_of_messages_failed_to_delete_fro
                       number_of_messages_failed_to_delete_from_source,
                   'NumberOfMessagesFailedToSendToTarget': number_of_messages_failed_to_send_to_target,
                   'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
-    logger.info(f'Quiting the loop to receive the messages from source queue with URL: {source_queue_url} '
+    logger.info(f'Quiting the loop to receive the messages from source queue with URL = {source_queue_url} '
                 f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
                 f'second(-s) of script\'s execution. Statistics: {statistics}')
     return statistics
