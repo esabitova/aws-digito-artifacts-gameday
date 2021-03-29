@@ -1,10 +1,11 @@
 {
   "displayName": "High CPU utilization",
+  "description": "Reports when autoscale group used CPU is high",
   "alarmName": "Digito-HighCpuUtilization_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-cpu-util:2020-07-13",
-  "description": "Reports when autoscale group used CPU is high",
+  "failureType": "HARDWARE",
   "minorVersion": "001"
 }

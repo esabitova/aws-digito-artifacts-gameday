@@ -1,10 +1,11 @@
 {
   "displayName": "Over-utilized CPU",
+  "description": "Reports when database used CPU is high",
   "alarmName": "Digito-OverUtilizedCpu_2020-04-01",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "rds:alarms:health-cpu:2020-04-01",
-  "description": "Reports when database used CPU is high",
+  "failureType": "HARDWARE",
   "minorVersion": "001"
 }

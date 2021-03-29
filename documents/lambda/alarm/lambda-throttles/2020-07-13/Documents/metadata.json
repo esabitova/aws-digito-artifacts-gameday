@@ -1,10 +1,11 @@
 {
   "displayName": "Throttles",
+  "description": "Reports when sustained throttles occur",
   "alarmName": "Digito-Throttles_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:lambda-throttles:2020-07-13",
-  "description": "Reports when sustained throttles occur",
+  "failureType": "SOFTWARE",
   "minorVersion": "001"
 }

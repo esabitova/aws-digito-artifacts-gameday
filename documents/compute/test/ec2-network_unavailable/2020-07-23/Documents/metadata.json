@@ -1,5 +1,6 @@
 {
   "displayName": "Test - Inject Network Unavailable Error to EC2",
+  "description": "Test that the application correctly alerts if EC2 network is unavailable.",
   "documentName": "Digito-SimulateNetworkUnavailableInEc2_2020-07-23",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

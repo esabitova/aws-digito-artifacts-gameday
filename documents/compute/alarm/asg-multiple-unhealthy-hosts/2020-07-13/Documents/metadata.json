@@ -1,10 +1,11 @@
 {
   "displayName": "Concurrent unhealthy hosts",
+  "description": "Reports when Autoscale group has too many unhealthy hosts concurrently",
   "alarmName": "Digito-ConcurrentUnhealthyHosts_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-multiple-unhealthy-hosts:2020-07-13",
-  "description": "Reports when Autoscale group has too many unhealthy hosts concurrently",
+  "failureType": "HARDWARE",
   "minorVersion": "001"
 }

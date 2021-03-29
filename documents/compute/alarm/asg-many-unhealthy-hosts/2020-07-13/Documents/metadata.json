@@ -1,10 +1,11 @@
 {
   "displayName": "Multiple dying hosts CLB",
+  "description": "Reports when an ASG has many unhealthy hosts",
   "alarmName": "Digito-MultipleDyingHostsClb_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-many-unhealthy-hosts:2020-07-13",
-  "description": "Reports when an ASG has many unhealthy hosts",
+  "failureType": "HARDWARE",
   "minorVersion": "001"
 }

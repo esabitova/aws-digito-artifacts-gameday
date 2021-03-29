@@ -1,4 +1,6 @@
 {
+  "displayName": "Document DB Scale Up",
+  "description": " Used to scale up when the cluster has above the threshold utilization.",
   "documentName": "Digito-ScalingUp_2020-09-21",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

@@ -1,10 +1,11 @@
 {
   "displayName": "Abnormal requests per target",
+  "description": "Reports when target group request count is anomalous",
   "alarmName": "Digito-AbnormalRequestPerTarget_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-req-count:2020-07-13",
-  "description": "Reports when target group request count is anomalous",
+  "failureType": "SOFTWARE",
   "minorVersion": "001"
 }
