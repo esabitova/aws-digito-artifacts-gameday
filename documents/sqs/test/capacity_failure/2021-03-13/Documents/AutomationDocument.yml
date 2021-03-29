@@ -1,0 +1,153 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test SQS message size get close to threshold"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  QueueUrl:
+    type: String
+    description: (Required) The Url of the queue
+  SentMessageSizeAlarmName:
+    type: String
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  IsRollback:
+    type: String
+    description: (Optional) Provide true to cleanup appliance created in previous execution. Can be true or false
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRemoveOfFailureMessage
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default:
+        GetAlarmThreshold
+
+  - name: PrepareRemoveOfFailureMessage
+    action: aws:executeScript
+    outputs:
+      - Name: MessageId
+        Selector: $.Payload.MessageId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{PreviousExecutionId}}'
+        StepName: 'SendCapacityFailureMessage'
+        ResponseField: 'MessageId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: RemovePreviousExecutionFailureMessage
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.6
+      Handler: delete_message_by_id
+      InputPayload:
+        QueueUrl: '{{QueueUrl}}'
+        MessageId: '{{PrepareRemoveOfFailureMessage.MessageId}}'
+        TimeOut: '300'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
+        SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
+    isEnd: true
+
+  - name: GetAlarmThreshold
+    action: aws:executeScript
+    outputs:
+      - Name: SizeAboveThreshold
+        Selector: $.Payload.ValueAboveThreshold
+        Type: Integer
+    inputs:
+      Runtime: python3.6
+      Handler: get_metric_alarm_threshold_values
+      InputPayload:
+        AlarmName: '{{SentMessageSizeAlarmName}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+        SCRIPT_PLACEHOLDER::cloudwatch_util.get_metric_alarm_threshold_values
+
+  - name: SendCapacityFailureMessage
+    action: aws:executeScript
+    outputs:
+      - Name: MessageId
+        Selector: $.Payload.MessageId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: send_message_of_size
+      InputPayload:
+        QueueUrl: '{{QueueUrl}}'
+        MessageSize: '{{GetAlarmThreshold.SizeAboveThreshold}}'
+        MessageDeduplicationId: '{{global:DATE_TIME}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+        SCRIPT_PLACEHOLDER::sqs_util.send_message_of_size
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    onFailure: step:RollbackCurrentExecution
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SentMessageSizeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.6
+      Handler: delete_message_by_id
+      InputPayload:
+        QueueUrl: '{{QueueUrl}}'
+        MessageId: '{{SendCapacityFailureMessage.MessageId}}'
+        TimeOut: '300'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
+        SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SentMessageSizeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
