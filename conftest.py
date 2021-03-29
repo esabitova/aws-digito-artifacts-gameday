@@ -17,6 +17,7 @@ from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from pytest import ExitCode
 from botocore.exceptions import ClientError
 from publisher.src.publish_documents import PublishDocuments
@@ -244,6 +245,7 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
 
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @given(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
+@then(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, ssm_test_cache, ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
@@ -438,3 +440,10 @@ def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_par
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
     ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
+
+
+@given(parse('cache constant value {value} as "{cache_property}" '
+             '"{step_key}" SSM automation execution'))
+def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
+    param_value = parse_param_value(value, {'cache': ssm_test_cache})
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))

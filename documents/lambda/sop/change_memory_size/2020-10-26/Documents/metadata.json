@@ -1,0 +1,13 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "displayName": "SOP - Change Memory Size",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ChangeMemorySize_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Change Memory size",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "lambda:sop:change_memory_size:2020-10-26"
+}
