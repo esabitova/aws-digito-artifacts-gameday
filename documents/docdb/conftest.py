@@ -10,18 +10,6 @@ from resource_manager.src.util import docdb_utils as docdb_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.param_utils import parse_param_values_from_table
 
-
-def docdb_instance_status(db_instance_identifier, boto3_session):
-    try:
-        docdb = boto3_session.client('docdb')
-        response = docdb.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
-        current_instance_status = response['DBInstances'][0]['DBInstanceStatus']
-        return {'DBInstanceStatus': current_instance_status}
-    except Exception as e:
-        print(f'Error: {e}')
-        raise
-
-
 cache_number_of_clusters_expression = 'cache current number of clusters as "{cache_property}" "{step_key}" SSM ' \
                                       'automation execution' \
                                       '\n{input_parameters}'
@@ -128,12 +116,16 @@ def wait_for_documentdb_with_params(cfn_output_params, time_to_wait, boto3_sessi
     if db_instance_identifier is None:
         raise Exception('Parameter with name [DBInstanceIdentifier] should be provided')
 
-    actual_status = 'Unidentified'
+    actual_status = None
     timeout_timestamp = time.time() + int(time_to_wait)
-    wait_condition = True
-    while wait_condition:
-        actual_status = docdb_instance_status(db_instance_identifier, boto3_session)['DBInstanceStatus']
-        if actual_status == expected_status or time.time() > timeout_timestamp:
-            wait_condition = False
+    while time.time() < timeout_timestamp:
+        actual_status = docdb_utils.get_instance_status(
+            boto3_session=boto3_session,
+            db_instance_identifier=db_instance_identifier).get('DBInstanceStatus')
+        if actual_status == expected_status:
+            break
         time.sleep(5)
+    if actual_status != expected_status:
+        raise AssertionError(f'Expected status {expected_status} is not equal to the actual status {actual_status} '
+                             'after {time_to_wait} seconds')
     assert actual_status == expected_status

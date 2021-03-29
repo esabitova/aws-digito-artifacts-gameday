@@ -1,7 +1,7 @@
 @docdb
 Feature: SSM automation document to recover the database into a known good state.
 
-  Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to reboot DB instance when the database doesn’t respond to any requests
+  Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to reboot DB instance
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                              | ResourceType |
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                 | ON_DEMAND    |

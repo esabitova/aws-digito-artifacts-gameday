@@ -21,6 +21,15 @@ def get_number_of_instances(boto3_session, db_cluster_identifier: str):
     return number_of_instances
 
 
+def get_instance_status(boto3_session, db_instance_identifier: str):
+    docdb = boto3_session.client('docdb')
+    response = docdb.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
+    if not response.get('DBInstances'):
+        raise AssertionError('No DocumentDB instance found with identifier = %s' % db_instance_identifier)
+    current_instance_status = response.get('DBInstances')[0].get('DBInstanceStatus')
+    return {'DBInstanceStatus': current_instance_status}
+
+
 def get_instance_az(boto3_session, db_instance_identifier: str):
     """
     Use describe_db_instances aws method to get a Availability Zone of DocDB instance
@@ -30,7 +39,7 @@ def get_instance_az(boto3_session, db_instance_identifier: str):
     """
     docdb_client = boto3_session.client('docdb')
     response = docdb_client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
-    return response['DBInstances'][0]['AvailabilityZone']
+    return response['DBClusters'][0]['AvailabilityZone']
 
 
 def get_cluster_azs(boto3_session, db_cluster_identifier: str):
@@ -49,7 +58,7 @@ def delete_instance(boto3_session, db_instance_identifier: str):
     """
     Use delete_db_instance aws method to remove cluster's AvailabilityZones
     :param boto3_session boto3 client session
-    :param db_cluster_identifier DocDB cluster ID
+    :param db_instance_identifier DocDB cluster ID
     :return Availability Zones of cluster
     """
     docdb_client = boto3_session.client('docdb')
