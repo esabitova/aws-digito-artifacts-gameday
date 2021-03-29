@@ -59,7 +59,7 @@ Outputs:
     Value: !GetAtt SqsDeadLetterQueue.Arn
   NumberOfMessagesSentAlarm:
     Description: Alarm
-    Value: !Ref  SQSNumberOfMessagesSentlarm
+    Value: !Ref  SQSNumberOfMessagesSentAlarm
   NumberOfMessagesSentBandAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentBandAlarm
