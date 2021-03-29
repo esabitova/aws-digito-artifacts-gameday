@@ -57,6 +57,9 @@ Outputs:
   SNSTopicARN:
     Description: SNS Topic ARN
     Value: !GetAtt SqsDeadLetterQueue.Arn
+  NumberOfMessagesSentAlarm:
+    Description: Alarm
+    Value: !Ref  SQSNumberOfMessagesSentlarm
   NumberOfMessagesSentBandAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentBandAlarm
