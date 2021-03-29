@@ -39,7 +39,7 @@ def get_instance_az(boto3_session, db_instance_identifier: str):
     """
     docdb_client = boto3_session.client('docdb')
     response = docdb_client.describe_db_instances(DBInstanceIdentifier=db_instance_identifier)
-    return response['DBClusters'][0]['AvailabilityZone']
+    return response['DBInstances'][0]['AvailabilityZone']
 
 
 def get_cluster_azs(boto3_session, db_cluster_identifier: str):

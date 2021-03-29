@@ -1,5 +1,5 @@
 @docdb
-Feature: SSM automation document to recover the database into a known good state.
+Feature: SSM automation document to reboot DB Instance.
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to reboot DB instance
     Given the cloud formation templates as integration test resources
