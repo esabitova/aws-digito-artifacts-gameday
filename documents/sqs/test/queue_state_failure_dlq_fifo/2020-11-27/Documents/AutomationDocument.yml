@@ -47,12 +47,12 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRollbackOfPreviousExecutionQueueUrl
+        - NextStep: GetQueueUrlFromPreviousExecution
           Variable: "{{ IsRollback }}"
           StringEquals: 'true'
       Default: AssertAlarmToBeGreenBeforeTest
 
-  - name: PrepareRollbackOfPreviousExecutionQueueUrl
+  - name: GetQueueUrlFromPreviousExecution
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -75,7 +75,7 @@ mainSteps:
     inputs:
       Choices:
         - NextStep: PrepareRollbackOfPreviousExecutionQueueAttributes
-          Variable: "{{ PrepareRollbackOfPreviousExecutionQueueUrl.QueueUrl }}"
+          Variable: "{{ GetQueueUrlFromPreviousExecution.QueueUrl }}"
           StringEquals: '{{ QueueUrl }}'
     isEnd: true
 
@@ -212,8 +212,9 @@ mainSteps:
         - VisibilityTimeout
         - RedrivePolicy
       QueueUrl: '{{ QueueUrl }}'
+      PurgeDeadLetterQueue: '{{ PurgeDeadLetterQueue }}'
 
-  - name: UpdatePolicy
+  - name: GetUpdatedQueuePolicy
     action: aws:executeScript
     outputs:
       - Name: Policy
@@ -238,7 +239,7 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::sqs_util.add_deny_in_sqs_policy
 
-  - name: UpdateRedrivePolicy
+  - name: GetUpdatedRedrivePolicy
     action: aws:executeScript
     outputs:
       - Name: RedrivePolicy
@@ -263,8 +264,8 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
         VisibilityTimeout: "0"
-        Policy: '{{ UpdatePolicy.Policy }}'
-        RedrivePolicy: '{{ UpdateRedrivePolicy.RedrivePolicy }}'
+        Policy: '{{ GetUpdatedQueuePolicy.Policy }}'
+        RedrivePolicy: '{{ GetUpdatedRedrivePolicy.RedrivePolicy }}'
 
   - name: SendMessage
     action: aws:executeAwsApi
@@ -300,8 +301,8 @@ mainSteps:
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 120
-    timeoutSeconds: 5
+    maxAttempts: 900
+    timeoutSeconds: 10
     onFailure: step:RollbackCurrentExecutionQueuePolicy
     inputs:
       Service: cloudwatch
