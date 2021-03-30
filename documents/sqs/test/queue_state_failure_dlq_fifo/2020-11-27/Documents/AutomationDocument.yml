@@ -287,8 +287,9 @@ mainSteps:
       Api: SendMessage
       QueueUrl: '{{ QueueUrl }}'
       MessageBody: "Test message"
-      MessageDeduplicationId: "1"
-      MessageGroupId: "1"
+      MessageDeduplicationId: '{{global:DATE_TIME}}'
+      MessageGroupId: '{{global:DATE_TIME}}'
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: ReadMessage1
     action: aws:executeAwsApi
@@ -298,6 +299,7 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
       AttributeNames:
         - All
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: ReadMessage2
     action: aws:executeAwsApi
@@ -307,6 +309,7 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
       AttributeNames:
         - All
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
