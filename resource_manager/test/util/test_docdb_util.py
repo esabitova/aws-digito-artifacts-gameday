@@ -65,3 +65,15 @@ class TestDocDBUtil(unittest.TestCase):
         result = docdb_utils.get_cluster_azs(self.session_mock, DOCDB_CLUSTER_ID)
         self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
         self.assertListEqual(result, ['us-east-1a', 'us-east-1b', 'us-east-1c'])
+
+    def test_get_cluster_members(self):
+        cluster_members = [
+            {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1'},
+            {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2'}
+        ]
+        self.mock_docdb_service.describe_db_clusters.return_value = {
+            'DBClusters': [{'DBClusterMembers': cluster_members}]
+        }
+        result = docdb_utils.get_cluster_members(self.session_mock, DOCDB_CLUSTER_ID)
+        self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+        self.assertListEqual(result, cluster_members)

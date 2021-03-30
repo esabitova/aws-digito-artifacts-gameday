@@ -7,10 +7,17 @@ Feature: SSM automation document to promote read replica.
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                   | ON_DEMAND    |
       | documents/docdb/sop/promote_read_replica/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-PromoteReadReplica_2020-09-21" SSM document
+    And cache replica instance identifier as "DBInstanceReplicaIdentifier" at step "before"
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-PromoteReadReplica_2020-09-21" executed
-      | DBClusterIdentifier                                   | DBInstanceReplicaIdentifier                             |AutomationAssumeRole                                                           |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}}      |{{cfn-output:DocDbTemplate>DBInstanceReplicaIdentifier}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoPromoteReadReplicaAssumeRole}} |
+      | DBClusterIdentifier                              | DBInstanceReplicaIdentifier                  | AutomationAssumeRole                                                           |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoPromoteReadReplicaAssumeRole}} |
 
     Then SSM automation document "Digito-PromoteReadReplica_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
+    And assert if the cluster member is the primary instance
+      | DBClusterIdentifier                              | DBInstanceIdentifier                         |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} |

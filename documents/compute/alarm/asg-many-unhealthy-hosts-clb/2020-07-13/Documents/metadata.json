@@ -1,10 +1,10 @@
 {
-  "displayName": "Multiple dying hosts",
-  "alarmName": "Digito-MultipleDyingHosts_2020-07-13",
+  "displayName": "Multiple dying hosts CLB",
+  "alarmName": "Digito-MultipleDyingHostsClb_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-many-unhealthy-hosts-clb:2020-07-13",
-  "description": "Reports when an ASG has many unhealthy hosts",
+  "description": "Alerts when Auto Scaling group hosts keep dying and require replacing",
   "minorVersion": "001"
 }
