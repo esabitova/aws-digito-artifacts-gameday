@@ -67,10 +67,8 @@ Outputs:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeStandardQueueAlarm
   SentMessageSizeFifoQueueAlarm:
-    Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
-  NumberOfMessagesSentAlarm:
     Description: Alarm
-    Value: !Ref  SQSNumberOfMessagesSentAlarm
+    Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
   DlqMessageAlarm:
     Description: Alarm
     Value: !Ref  SQSDlqMessageAlarm
@@ -213,11 +211,11 @@ Resources:
     Properties:
       AlarmName: "SqsNumberOfMessagesSentBandAlarm"
       ActionsEnabled: false
-      AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent_band:2020-11-26"
+      AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       ComparisonOperator: "LessThanLowerThreshold"
-      TreatMissingData: "ignore"
+      TreatMissingData: "breaching"
       Metrics:
         - Id: "m1"
           MetricStat:
