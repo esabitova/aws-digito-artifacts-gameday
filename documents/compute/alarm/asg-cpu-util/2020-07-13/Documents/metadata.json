@@ -6,6 +6,9 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-cpu-util:2020-07-13",
+  "minorVersion": "001",
   "failureType": "HARDWARE",
-  "minorVersion": "001"
+  "relatedSOPs": [
+    "compute:sop:asg-scale_out:2020-07-01"
+  ]
 }

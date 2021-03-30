@@ -1,6 +1,6 @@
 {
   "displayName": "Concurrent unhealthy hosts CLB",
-  "description": "Reports when Autoscale group has too many unhealthy hosts concurrently",
+  "description": "Alerts when Auto Scaling group has multiple unhealthy hosts concurrently",
   "alarmName": "Digito-ConcurrentUnhealthyHostsClb_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
