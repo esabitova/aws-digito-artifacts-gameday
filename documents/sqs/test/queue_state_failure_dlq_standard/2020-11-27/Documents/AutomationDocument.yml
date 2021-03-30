@@ -102,6 +102,24 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
+  - name: PrepareRollbackOfPreviousExecutionMessageId
+    action: aws:executeScript
+    outputs:
+      - Name: MessageId
+        Selector: $.Payload.Policy
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'SendMessage'
+        ResponseField: 'MessageId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
 
   - name: RollbackPreviousExecutionQueuePolicy
     action: aws:executeScript
@@ -363,7 +381,7 @@ mainSteps:
       Handler: delete_message_by_id
       InputPayload:
         QueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
-        MessageId: 'SendMessage.MessageId'
+        MessageId: '{{ SendMessage.MessageId }}'
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
@@ -393,8 +411,7 @@ mainSteps:
       RuntimeParameters:
         SourceQueueUrl: '{{ QueueUrl }}'
         TargetQueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
-        NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMove.pproximateNumberOfMessages }}'
-        MessagesTransferBatchSize: 1
+        NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMove.ApproximateNumberOfMessages }}'
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
@@ -407,4 +424,3 @@ mainSteps:
         - "{{ DeadLetterQueueAlarmName }}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
-
