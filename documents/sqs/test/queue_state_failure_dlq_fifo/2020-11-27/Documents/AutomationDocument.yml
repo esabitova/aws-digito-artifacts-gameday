@@ -289,7 +289,6 @@ mainSteps:
       MessageBody: "Test message"
       MessageDeduplicationId: '{{global:DATE_TIME}}'
       MessageGroupId: '{{global:DATE_TIME}}'
-    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: ReadMessage1
     action: aws:executeAwsApi
