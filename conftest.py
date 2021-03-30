@@ -17,7 +17,8 @@ from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache, extract_param_value, \
+    generate_different_value_by_ranges
 from pytest import ExitCode
 from botocore.exceptions import ClientError
 from publisher.src.publish_documents import PublishDocuments
@@ -166,6 +167,7 @@ def setup(request, ssm_test_cache, boto3_session):
     :param ssm_test_cache The test cache
     :param boto3_session The boto3 session
     """
+
     def tear_down():
         # Terminating SSM automation execution at the end of each test.
         ssm = boto3_session.client('ssm')
@@ -447,3 +449,16 @@ def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_par
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
     param_value = parse_param_value(value, {'cache': ssm_test_cache})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
+
+
+@given(parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" '
+             'to "{to_range}" as "{new_property}" "{step_key}" SSM automation execution'
+             '\n{input_parameters}'))
+@when(parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" '
+            'to "{to_range}" as "{new_property}" "{step_key}" SSM automation execution'
+            '\n{input_parameters}'))
+def generate_different_value(resource_manager, ssm_test_cache, target_property, old_property, from_range: str,
+                             to_range: str, new_property, step_key, input_parameters):
+    old_value = extract_param_value(input_parameters, old_property, resource_manager, ssm_test_cache)
+    new_value = generate_different_value_by_ranges(int(from_range), int(to_range), int(old_value))
+    put_to_ssm_test_cache(ssm_test_cache, step_key, new_property, new_value)

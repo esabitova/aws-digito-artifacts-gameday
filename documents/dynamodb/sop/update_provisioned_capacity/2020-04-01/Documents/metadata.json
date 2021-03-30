@@ -1,0 +1,12 @@
+{
+  "documentName": "Digito-UpdateProvisionedCapacity_2020-04-01",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "dynamodb:sop:update_provisioned_capacity:2020-04-01",
+  "failureType": "NONE",
+  "risk": "SMALL",
+  "intent": "Used to Update provisioned capacity for DynamoDB Table",
+  "minorVersion": "001"
+}

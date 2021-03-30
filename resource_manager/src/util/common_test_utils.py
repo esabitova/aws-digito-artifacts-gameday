@@ -1,3 +1,5 @@
+import random
+
 from sttable import parse_str_table
 
 from resource_manager.src.util import param_utils as param_utils
@@ -31,3 +33,17 @@ def put_to_ssm_test_cache(ssm_test_cache: dict, cache_key, cache_property, value
         cache_by_key[cache_property] = value
     else:
         ssm_test_cache[cache_key] = {cache_property: value}
+
+
+def generate_different_value_by_ranges(from_range: int, to_range: int, old_value: int) -> int:
+    """
+    Generate different string value by ranges
+    :param from_range: from range
+    :param to_range: to range inclusively
+    :param old_value: new value will not be equal to old_value
+    :return: generated new value
+    """
+    new_value = random.randint(from_range, to_range)
+    while new_value == old_value:
+        new_value = random.randint(from_range, to_range)
+    return new_value
