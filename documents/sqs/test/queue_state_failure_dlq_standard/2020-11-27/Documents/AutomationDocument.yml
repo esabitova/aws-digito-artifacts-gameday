@@ -1,0 +1,384 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test standard Queue behavior after receiving a message maximum allowed times"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  QueueUrl:
+    type: String
+    description: (Required) The URL of the queue
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  DeadLetterQueueAlarmName:
+    type: String
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  PurgeDeadLetterQueue:
+    type: String
+    description: (Optional) Purge dead-letter queue and assert alarm to be green after test and also during rollback execution
+    default: 'false'
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetQueueUrlFromPreviousExecution
+          Variable: "{{ IsRollback }}"
+          EqualsIgnoreCase: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetQueueUrlFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: $.Payload.QueueUrl
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        InputFields: 'QueueUrl'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+
+  - name: AssertQueueUrl
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRollbackOfPreviousExecutionQueueAttributes
+          Variable: "{{ GetInputsFromPreviousExecution.QueueUrl }}"
+          StringEquals: '{{ QueueUrl }}'
+    isEnd: true
+
+  - name: PrepareRollbackOfPreviousExecutionQueueAttributes
+    action: aws:executeScript
+    outputs:
+      - Name: Policy
+        Selector: $.Payload.Policy
+        Type: String
+      - Name: RedrivePolicy
+        Selector: $.Payload.RedrivePolicy
+        Type: String
+      - Name: VisibilityTimeout
+        Selector: $.Payload.VisibilityTimeout
+        Type: Integer
+    inputs:
+      Runtime: python3.6
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupCurrentExecution'
+        ResponseField: 'Policy, VisibilityTimeout, RedrivePolicy'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+
+  - name: RollbackPreviousExecutionQueuePolicy
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.6
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.Policy }}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
+
+  - name: RollbackPreviousExecutionQueueAttributes
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: SetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
+      Attributes:
+        VisibilityTimeout: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.VisibilityTimeout }}'
+        RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
+
+  - name: CheckIfPurgeEnabledInPreviousExecution
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: AssertPurgeEnabledFlag
+          Variable: "{{ GetInputsFromPreviousExecution.PurgeDeadLetterQueue }}"
+          EqualsIgnoreCase: 'true'
+    isEnd: true
+
+  - name: AssertPurgeEnabledFlag
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PreparePurgeOfDeadLetterQueueForRollback
+          Variable: "{{ GetInputsFromPreviousExecution.PurgeDeadLetterQueue }}"
+          StringEquals: '{{ PurgeDeadLetterQueue }}'
+    isEnd: true
+
+  - name: PreparePurgeOfDeadLetterQueueForRollback
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: $.Payload.QueueUrl
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_dead_letter_queue_url
+      InputPayload:
+        SourceRedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
+
+  - name: RollbackPurgeDeadLetterQueue
+    action: aws:executeAutomation
+    maxAttempts: 3
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-PurgeQueue_2021-03-11
+      RuntimeParameters:
+        QueueUrl: '{{ PreparePurgeOfDeadLetterQueueForRollback.QueueUrl }}'
+        AutomationAssumeRole: '{{AutomationAssumeRole}}'
+
+  - name: AssertAlarmToBeGreenAfterRollback
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 120
+    timeoutSeconds: 5
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ DeadLetterQueueAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 120
+    timeoutSeconds: 5
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ DeadLetterQueueAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: BackupCurrentExecution
+    action: aws:executeAwsApi
+    outputs:
+      - Name: Policy
+        Selector: '$.Attributes.Policy'
+        Type: String
+      - Name: QueueArn
+        Selector: '$.Attributes.QueueArn'
+        Type: String
+      - Name: VisibilityTimeout
+        Selector: '$.Attributes.VisibilityTimeout'
+        Type: String
+      - Name: RedrivePolicy
+        Selector: '$.Attributes.RedrivePolicy'
+        Type: String
+    inputs:
+      Service: sqs
+      Api: GetQueueAttributes
+      AttributeNames:
+        - Policy
+        - QueueArn
+        - VisibilityTimeout
+        - RedrivePolicy
+      QueueUrl: '{{ QueueUrl }}'
+
+  - name: GetUpdatedQueuePolicy
+    action: aws:executeScript
+    outputs:
+      - Name: Policy
+        Selector: $.Payload.Policy
+        Type: String
+      - Name: PolicySid
+        Selector: $.Payload.PolicySid
+        Type: String
+      - Name: DenyPolicyStatementSid
+        Selector: $.Payload.DenyPolicyStatementSid
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: add_deny_in_sqs_policy
+      InputPayload:
+        SourcePolicy: '{{ BackupCurrentExecution.Policy }}'
+        ActionsToDeny:
+          - "sqs:DeleteMessage"
+        Resource: '{{ BackupCurrentExecution.QueueArn }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.add_deny_in_sqs_policy
+
+  - name: GetUpdatedRedrivePolicy
+    action: aws:executeScript
+    outputs:
+      - Name: RedrivePolicy
+        Selector: $.Payload.RedrivePolicy
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: update_sqs_redrive_policy
+      InputPayload:
+        SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
+        MaxReceiveCount: 1
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.update_sqs_redrive_policy
+
+  - name: SetQueueAttributes
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: SetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
+      Attributes:
+        VisibilityTimeout: "0"
+        Policy: '{{ GetUpdatedQueuePolicy.Policy }}'
+        RedrivePolicy: '{{ GetUpdatedRedrivePolicy.RedrivePolicy }}'
+
+  - name: SendMessage
+    action: aws:executeAwsApi
+    outputs:
+      - Name: MessageId
+        Selector: '$.MessageId'
+        Type: String
+    inputs:
+      Service: sqs
+      Api: SendMessage
+      QueueUrl: '{{ QueueUrl }}'
+      MessageBody: "Test message"
+
+  - name: ReadMessage1
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: ReceiveMessage
+      QueueUrl: '{{ QueueUrl }}'
+      AttributeNames:
+        - All
+
+  - name: ReadMessage2
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: ReceiveMessage
+      QueueUrl: '{{ QueueUrl }}'
+      AttributeNames:
+        - All
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 900
+    timeoutSeconds: 10
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ DeadLetterQueueAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecutionQueuePolicy
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.6
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{ BackupCurrentExecution.Policy }}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
+
+  - name: RollbackCurrentExecutionQueueAttributes
+    action: aws:executeAwsApi
+    inputs:
+      Service: sqs
+      Api: SetQueueAttributes
+      QueueUrl: '{{ QueueUrl }}'
+      Attributes:
+        VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
+        RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
+
+  - name: DeleteMessage
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.6
+      Handler: delete_message_by_id
+      InputPayload:
+        QueueUrl: '{{ QueueUrl }}'
+        MessageId: 'SendMessage.MessageId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
+        SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
+
+  - name: GetDeadLetterQueueUrl
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: $.Payload.QueueUrl
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_dead_letter_queue_url
+      InputPayload:
+        SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 120
+    timeoutSeconds: 5
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ DeadLetterQueueAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+
