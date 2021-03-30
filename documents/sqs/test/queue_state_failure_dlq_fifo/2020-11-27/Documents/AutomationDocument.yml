@@ -148,9 +148,18 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PreparePurgeOfDeadLetterQueueForRollback
+        - NextStep: AssertPurgeEnabledFlag
           Variable: "{{ GetPurgeDeadLetterQueueFromPreviousExecution.PurgeDeadLetterQueue }}"
           StringEquals: 'true'
+    isEnd: true
+
+  - name: AssertPurgeEnabledFlag
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PreparePurgeOfDeadLetterQueueForRollback
+          Variable: "{{ GetPurgeDeadLetterQueueFromPreviousExecution.PurgeDeadLetterQueue }}"
+          StringEquals: '{{ PurgeDeadLetterQueue }}'
     isEnd: true
 
   - name: PreparePurgeOfDeadLetterQueueForRollback
