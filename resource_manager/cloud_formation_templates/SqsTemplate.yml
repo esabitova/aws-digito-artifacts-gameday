@@ -27,12 +27,6 @@ Outputs:
   SqsFifoQueueUrl:
     Description: Fifo queue URL
     Value: !Ref SqsFifoQueue
-  SqsDeadLetterQueueArn:
-    Description: Dead letter queue ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
-  SqsDeadLetterQueueUrl:
-    Description: Dead letter queue URL
-    Value: !Ref SqsDeadLetterQueue
   SqsFifoQueueEnabledDlqArn:
     Description: ARN of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.Arn
@@ -54,9 +48,19 @@ Outputs:
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
+  SqsStandardQueueEnabledDlqArn:
+    Value: !GetAtt SqsStandardQueueEnabledDlq.Arn
+  SqsStandardQueueEnabledDlqUrl:
+    Value: !Ref SqsStandardQueueEnabledDlq
+  SqsDlqForStandardQueueArn:
+    Description: Dead letter queue ARN
+    Value: !GetAtt SqsDlqForStandardQueue.Arn
+  SqsDlqForStandardQueueUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDlqForStandardQueue
   SNSTopicARN:
     Description: SNS Topic ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
+    Value: !GetAtt SqsDlqForStandardQueue.Arn
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -89,8 +93,8 @@ Outputs:
     Value: !Ref SQSApproximateAgeOfOldestMessageDLQAlarm
 
 Parameters:
-  SqsFifoQueueRedrivePolicyMaxReceiveCount:
-    Type: Number
+  SqsQueueRedrivePolicyMaxReceiveCount:
+    Type: String
     Default: 5
   SentMessageSizeMaximumMinus30Percents:
     Type: Number
@@ -149,17 +153,13 @@ Resources:
             Condition:
               StringEquals:
                 AWS:SourceAccount: !Ref "AWS::AccountId"
-  SqsDeadLetterQueue:
-    Type: "AWS::SQS::Queue"
-    Properties:
-      FifoQueue: true
   SqsFifoQueueEnabledDlq:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SqsDlqForFifoQueue.Arn
-        maxReceiveCount: !Ref SqsFifoQueueRedrivePolicyMaxReceiveCount
+        maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
   SqsFifoQueueEnabledDlqPolicy:
     Type: "AWS::SQS::QueuePolicy"
     Properties:
@@ -185,6 +185,14 @@ Resources:
     Properties:
       FifoQueue: true
   SqsStandardQueue:
+    Type: "AWS::SQS::Queue"
+  SqsStandardQueueEnabledDlq:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SqsDlqForStandardQueue.Arn
+        maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
+  SqsDlqForStandardQueue:
     Type: "AWS::SQS::Queue"
   SNSTopic:
     Type: "AWS::SNS::Topic"
@@ -277,24 +285,6 @@ Resources:
       Threshold: !Ref SentMessageSizeMaximumMinus30Percents
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "notBreaching"
-  SQSDlqMessageAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmName: "SqsDlqMessageAlarm"
-      AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
-      ActionsEnabled: false
-      MetricName: "ApproximateNumberOfMessagesVisible"
-      Namespace: "AWS/SQS"
-      Statistic: "Sum"
-      Dimensions:
-        - Name: "QueueName"
-          Value: !GetAtt SqsDeadLetterQueue.QueueName
-      Period: 60
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      Threshold: 0
-      ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
   SqsDlqMessageFifoQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -307,6 +297,24 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SqsDlqForFifoQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SqsDlqMessageStandardQueueAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsDlqMessageStandardQueueAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
+      ActionsEnabled: false
+      MetricName: "ApproximateNumberOfMessagesVisible"
+      Namespace: "AWS/SQS"
+      Statistic: "Sum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsDlqForStandardQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -378,7 +386,7 @@ Resources:
       Statistic: "Maximum"
       Dimensions:
         - Name: "QueueName"
-          Value: !GetAtt SqsDeadLetterQueue.QueueName
+          Value: !GetAtt SqsDlqForStandardQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
