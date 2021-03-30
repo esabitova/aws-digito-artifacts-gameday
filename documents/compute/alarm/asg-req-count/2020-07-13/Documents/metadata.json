@@ -6,5 +6,8 @@
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-req-count:2020-07-13",
   "description": "Reports when target group request count is anomalous",
-  "minorVersion": "001"
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "compute:sop:asg-scale_out:2020-07-01"
+  ]
 }

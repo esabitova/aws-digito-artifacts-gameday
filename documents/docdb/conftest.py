@@ -23,6 +23,9 @@ assert_azs_expression = 'assert instance AZ value "{actual_property}" at "{step_
                         'cluster AZs' \
                         '\n{input_parameters}'
 remove_instance_expression = 'delete created instance\n{input_parameters}'
+cache_replica_id_expression = 'cache replica instance identifier as "{cache_property}" at step "{step_key}"' \
+                              '\n{input_parameters}'
+assert_primary_instance_expression = 'assert if the cluster member is the primary instance\n{input_parameters}'
 
 
 @given(parsers.parse(cache_number_of_clusters_expression))
@@ -129,3 +132,37 @@ def wait_for_documentdb_with_params(cfn_output_params, time_to_wait, boto3_sessi
         raise AssertionError(f'Expected status {expected_status} is not equal to the actual status {actual_status} '
                              'after {time_to_wait} seconds')
     assert actual_status == expected_status
+
+
+@given(parsers.parse(cache_replica_id_expression))
+def cache_replica_identifier(
+        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+):
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+    )
+    cluster_members = docdb_utils.get_cluster_members(boto3_session, cluster_id)
+    replica_identifier = cluster_members[0]['DBInstanceIdentifier']
+    for cluster_member in cluster_members:
+        if cluster_member['IsClusterWriter'] is False:
+            replica_identifier = cluster_member['DBInstanceIdentifier']
+            break
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, replica_identifier)
+
+
+@then(parsers.parse(assert_primary_instance_expression))
+def assert_is_cluster_member_primary_instance(
+        resource_manager, ssm_test_cache, boto3_session, input_parameters
+):
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+    )
+    instance_id = extract_param_value(
+        input_parameters, "DBInstanceIdentifier", resource_manager, ssm_test_cache
+    )
+    cluster_members = docdb_utils.get_cluster_members(boto3_session, cluster_id)
+    is_cluster_writer = False
+    for cluster_member in cluster_members:
+        if cluster_member['DBInstanceIdentifier'] == instance_id and cluster_member['IsClusterWriter'] is True:
+            is_cluster_writer = True
+    assert is_cluster_writer
