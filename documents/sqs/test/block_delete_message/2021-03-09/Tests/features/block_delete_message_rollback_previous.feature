@@ -36,15 +36,26 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And send "5" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "Success" for "600" seconds
+
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "RollbackCurrentExecution" in status "Success" for "1000" seconds
+    Then terminate "Digito-BlockSQSDeleteMessage_2021-03-09" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    When SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Cancelled"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
+    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" executed
+      | QueueUrl                                       | AutomationAssumeRole                                                              | SQSUserErrorAlarmName                                                | IsRollback | PreviousExecutionId        |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBlockSQSDeleteMessageAssumeRole}} | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumAlarm}} | true       | {{cache:SsmExecutionId>1}} |
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "RollbackPreviousExecution" in status "Success" for "1000" seconds
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -58,7 +69,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Success"
       | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
+      | {{cache:SsmExecutionId>2}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

@@ -10,3 +10,17 @@ from pytest_bdd import (
           'sqs:DeleteMessage')
 def test_block_delete_message_usual_case():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/block_delete_message_failed.feature',
+          'Create AWS resources using CloudFormation template and execute SSM automation document to block '
+          'sqs:DeleteMessage')
+def test_block_delete_message_failed():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/block_delete_message_rollback_previous.feature',
+          'Create AWS resources using CloudFormation template and execute SSM automation document to block '
+          'sqs:DeleteMessage')
+def test_block_delete_message_frollback_previous():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
