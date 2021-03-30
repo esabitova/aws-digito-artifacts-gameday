@@ -268,7 +268,7 @@ def transfer_messages(events: dict, context: dict) -> dict:
             return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
                                   number_of_messages_failed_to_send_to_target,
                                   number_of_messages_transferred_to_target, source_queue_url, start,
-                                  start_execution)
+                                  start_execution, max_duration_seconds)
 
         messages_to_send: List[dict] = []
         if is_source_queue_fifo and is_target_queue_fifo:  # If both queues are FIFO
@@ -313,6 +313,7 @@ def transfer_messages(events: dict, context: dict) -> dict:
                 logger.info(f'Succeed to delete {len(succeed_delete_messages)} message(-s) '
                             f'during the loop #{loop_count}: '
                             f'{succeed_delete_messages}')
+                number_of_messages_transferred += len(succeed_delete_messages)
 
         failed_send_results: dict = send_message_batch_response.get('Failed')
         if failed_send_results is not None:
@@ -323,19 +324,18 @@ def transfer_messages(events: dict, context: dict) -> dict:
             number_of_messages_failed_to_send_to_target += failed_send_results_number
 
         now = int(time.time())
-        number_of_messages_transferred += len(received_messages)
         loop_count += 1
 
     return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
                           number_of_messages_failed_to_send_to_target,
                           number_of_messages_transferred_to_target, source_queue_url, start,
-                          start_execution)
+                          start_execution, max_duration_seconds)
 
 
 def get_statistics(loop_count: int, now, number_of_messages_failed_to_delete_from_source: int,
                    number_of_messages_failed_to_send_to_target: int,
                    number_of_messages_transferred_to_target: int,
-                   source_queue_url: str, start, start_execution):
+                   source_queue_url: str, start, start_execution, max_duration_seconds: int):
     statistics = {'NumberOfMessagesTransferredToTarget': number_of_messages_transferred_to_target,
                   'NumberOfMessagesFailedToDeleteFromSource':
                       number_of_messages_failed_to_delete_from_source,
@@ -343,7 +343,8 @@ def get_statistics(loop_count: int, now, number_of_messages_failed_to_delete_fro
                   'TimeElapsed': str((datetime.utcnow() - start_execution).total_seconds())}
     logger.info(f'Quiting the loop to receive the messages from source queue with URL = {source_queue_url} '
                 f'because there are no messages received during the loop #{loop_count} and {(now - start)} '
-                f'second(-s) of script\'s execution. Statistics: {statistics}')
+                f'second(-s) of script\'s execution or the maximum time in {max_duration_seconds} was elapsed. '
+                f'Statistics: {statistics}')
     return statistics
 
 
