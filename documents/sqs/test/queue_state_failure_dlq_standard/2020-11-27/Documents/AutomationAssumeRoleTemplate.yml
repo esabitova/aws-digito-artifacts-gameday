@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM QueueStateFailureDlqFifo
+Description: Role for SSM QueueStateFailureDlqStandard
 Outputs:
-  DigitoQueueStateFailureDlqStandardQueueAssumeRole:
-    Description: DigitoQueueStateFailureDlqStandardQueue Automation Assume Role ARN
-    Value: !GetAtt DigitoQueueStateFailureDlqStandardQueueAssumeRole.Arn
+  SqsDlqMessageStandardQueueAlarmAssumeRole:
+    Description: SqsDlqMessageStandardQueueAlarm Automation Assume Role ARN
+    Value: !GetAtt SqsDlqMessageStandardQueueAlarmAssumeRole.Arn
 Resources:
-  DigitoQueueStateFailureDlqStandardQueueAssumeRole:
+  SqsDlqMessageStandardQueueAlarmAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoQueueStateFailureDlqStandardQueueAssumePolicy:
+  SqsDlqMessageStandardQueueAlarmAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoQueueStateFailureDlqStandardQueueAssumePolicy
+      PolicyName: SqsDlqMessageStandardQueueAlarmAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -51,14 +51,10 @@ Resources:
               - sqs:RemovePermission
               - sqs:ReceiveMessage
               - sqs:SendMessage
-              - sqs:PurgeQueue
+              - sqs:DeleteMessage
               - sqs:GetQueueUrl
               - ssm:StartAutomationExecution
               - ssm:GetAutomationExecution
               - iam:PassRole
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-              - logs:DescribeLogGroups
-              - logs:DescribeLogStreams
       Roles:
-        - Ref: DigitoQueueStateFailureDlqStandardQueueAssumeRole
+        - Ref: SqsDlqMessageStandardQueueAlarmAssumeRole
