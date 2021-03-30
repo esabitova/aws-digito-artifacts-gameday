@@ -49,7 +49,7 @@ mainSteps:
       Choices:
         - NextStep: GetInputsFromPreviousExecution
           Variable: "{{ IsRollback }}"
-          StringEquals: 'true'
+          EqualsIgnoreCase: 'true'
       Default: AssertAlarmToBeGreenBeforeTest
 
   - name: GetInputsFromPreviousExecution
@@ -134,7 +134,7 @@ mainSteps:
       Choices:
         - NextStep: AssertPurgeEnabledFlag
           Variable: "{{ GetInputsFromPreviousExecution.PurgeDeadLetterQueue }}"
-          StringEquals: 'true'
+          EqualsIgnoreCase: 'true'
     isEnd: true
 
   - name: AssertPurgeEnabledFlag
@@ -350,7 +350,7 @@ mainSteps:
       Choices:
         - NextStep: GetDeadLetterQueueUrl
           Variable: "{{ PurgeDeadLetterQueue }}"
-          StringEquals: 'true'
+          EqualsIgnoreCase: 'true'
     isEnd: true
 
   - name: GetDeadLetterQueueUrl
