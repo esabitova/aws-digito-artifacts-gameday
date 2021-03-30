@@ -47,24 +47,25 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: GetQueueUrlFromPreviousExecution
+        - NextStep: GetInputsFromPreviousExecution
           Variable: "{{ IsRollback }}"
           StringEquals: 'true'
       Default: AssertAlarmToBeGreenBeforeTest
 
-  - name: GetQueueUrlFromPreviousExecution
+  - name: GetInputsFromPreviousExecution
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
         Selector: $.Payload.QueueUrl
         Type: String
+      - Name: PurgeDeadLetterQueue
+        Selector: $.Payload.PurgeDeadLetterQueue
     inputs:
       Runtime: python3.6
       Handler: get_inputs_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
-        StepName: 'BackupCurrentExecution'
-        ResponseField: 'QueueUrl'
+        InputFields: 'QueueUrl, PurgeDeadLetterQueue'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
@@ -75,7 +76,7 @@ mainSteps:
     inputs:
       Choices:
         - NextStep: PrepareRollbackOfPreviousExecutionQueueAttributes
-          Variable: "{{ GetQueueUrlFromPreviousExecution.QueueUrl }}"
+          Variable: "{{ GetInputsFromPreviousExecution.QueueUrl }}"
           StringEquals: '{{ QueueUrl }}'
     isEnd: true
 
@@ -127,29 +128,12 @@ mainSteps:
         VisibilityTimeout: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.VisibilityTimeout }}'
         RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
 
-  - name: GetPurgeDeadLetterQueueFromPreviousExecution
-    action: aws:executeScript
-    outputs:
-      - Name: PurgeDeadLetterQueue
-        Selector: $.Payload.PurgeDeadLetterQueue
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: get_inputs_from_ssm_execution
-      InputPayload:
-        ExecutionId: '{{ PreviousExecutionId }}'
-        InputFields: 'PurgeDeadLetterQueue'
-      Script: |-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
-
   - name: CheckIfPurgeEnabledInPreviousExecution
     action: aws:branch
     inputs:
       Choices:
         - NextStep: AssertPurgeEnabledFlag
-          Variable: "{{ GetPurgeDeadLetterQueueFromPreviousExecution.PurgeDeadLetterQueue }}"
+          Variable: "{{ GetInputsFromPreviousExecution.PurgeDeadLetterQueue }}"
           StringEquals: 'true'
     isEnd: true
 
@@ -158,7 +142,7 @@ mainSteps:
     inputs:
       Choices:
         - NextStep: PreparePurgeOfDeadLetterQueueForRollback
-          Variable: "{{ GetPurgeDeadLetterQueueFromPreviousExecution.PurgeDeadLetterQueue }}"
+          Variable: "{{ GetInputsFromPreviousExecution.PurgeDeadLetterQueue }}"
           StringEquals: '{{ PurgeDeadLetterQueue }}'
     isEnd: true
 
