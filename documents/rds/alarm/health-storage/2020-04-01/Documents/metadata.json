@@ -6,6 +6,6 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "rds:alarms:health-storage:2020-04-01",
-  "failureType": "HARDWARE",
+  "failureType": "SOFTWARE",
   "minorVersion": "001"
 }
