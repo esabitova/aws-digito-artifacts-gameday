@@ -1,9 +1,10 @@
 import json
 import unittest
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 
 import pytest
+from botocore.exceptions import ClientError
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy, transfer_messages
 from documents.util.scripts.src.sqs_util import send_message_of_size
@@ -11,6 +12,222 @@ from documents.util.scripts.src.sqs_util import send_message_of_size
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_STANDARD_DEST_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyDestQueue"
 SQS_FIFO_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue.fifo"
+
+SUCCESSFUL_ID = "28004ed8-264f-4070-9937-bceb040d4393"
+SUCCESSFUL_RECEIPT_HANDLE = "asads"
+SUCCESSFUL_BODY = "This is message 1"
+
+FAILED_TO_SEND_ID = "7b95db9e-e1a1-45fa-a3f7-69be3965e834"
+FAILED_TO_SEND_BODY = "This is message 3"
+
+FAILED_TO_DELETE_ID = "b0993f80-5629-49e9-be68-1c31fa15d14d"
+FAILED_TO_DELETE_RECEIPT_HANDLE = "asdadsad"
+FAILED_TO_DELETE_BODY = "This is message 2"
+
+AWS_TRACE_HEADER = "1617093473357"
+
+MESSAGE_DEDUPLICATION_ID = "2dc6c953-a523-4dee-9b76-14db5096c8cd"
+MESSAGE_GROUP_ID = "70b31170-f246-46ba-b55c-d1f906887c5c"
+message_attributes = {
+    "test_attribute_name_1": {
+        "StringValue": "test_attribute_value_1",
+        "DataType": "String"
+    }
+}
+RECEIVE_MESSAGE_RESPONSE_FROM_FIFO = {
+    "Messages": [
+        {
+            "MessageId": SUCCESSFUL_ID,
+            "ReceiptHandle": SUCCESSFUL_RECEIPT_HANDLE,
+            "MD5OfBody": "17363d9618bbd089e643f59ff71cff86",
+            "Body": SUCCESSFUL_BODY,
+            "Attributes": {
+                "SenderId": "AIDAWLAST5TNZEFJSIWHG",
+                "ApproximateFirstReceiveTimestamp": "1617116187961",
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1617116181170",
+                "MessageDeduplicationId": MESSAGE_DEDUPLICATION_ID,
+                "MessageGroupId": MESSAGE_GROUP_ID,
+                "AWSTraceHeader": AWS_TRACE_HEADER
+            },
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233",
+            "MessageAttributes": message_attributes
+        },
+        {
+            "MessageId": FAILED_TO_DELETE_ID,
+            "ReceiptHandle": FAILED_TO_DELETE_RECEIPT_HANDLE,
+            "MD5OfBody": "6ea7555c95fea7ff1e840422be25d632",
+            "Body": FAILED_TO_DELETE_BODY,
+            "Attributes": {
+                "SenderId": "AIDAWLAST5TNZEFJSIWHG",
+                "ApproximateFirstReceiveTimestamp": "1617116188014",
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1617116181398",
+                "MessageDeduplicationId": MESSAGE_DEDUPLICATION_ID,
+                "MessageGroupId": MESSAGE_GROUP_ID,
+                "AWSTraceHeader": AWS_TRACE_HEADER
+            },
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233",
+            "MessageAttributes": message_attributes
+        },
+        {
+            "MessageId": FAILED_TO_SEND_ID,
+            "ReceiptHandle": "asdasd",
+            "MD5OfBody": "56b24f6d8b2e1555249bd38ae3668c2f",
+            "Body": FAILED_TO_SEND_BODY,
+            "Attributes": {
+                "SenderId": "AIDAWLAST5TNZEFJSIWHG",
+                "ApproximateFirstReceiveTimestamp": "1617116187963",
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1617116181640",
+                "MessageDeduplicationId": MESSAGE_DEDUPLICATION_ID,
+                "MessageGroupId": MESSAGE_GROUP_ID,
+                "AWSTraceHeader": AWS_TRACE_HEADER
+            },
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233",
+            "MessageAttributes": message_attributes
+        }
+    ]}
+RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD = {
+    "Messages": [
+        {
+            "MessageId": SUCCESSFUL_ID,
+            "ReceiptHandle": SUCCESSFUL_RECEIPT_HANDLE,
+            "MD5OfBody": "17363d9618bbd089e643f59ff71cff86",
+            "Body": SUCCESSFUL_BODY,
+            "Attributes": {
+                "SenderId": "AIDAWLAST5TNZEFJSIWHG",
+                "ApproximateFirstReceiveTimestamp": "1617116187961",
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1617116181170",
+                "AWSTraceHeader": AWS_TRACE_HEADER
+            },
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233",
+            "MessageAttributes": message_attributes
+        },
+        {
+            "MessageId": FAILED_TO_DELETE_ID,
+            "ReceiptHandle": FAILED_TO_DELETE_RECEIPT_HANDLE,
+            "MD5OfBody": "6ea7555c95fea7ff1e840422be25d632",
+            "Body": FAILED_TO_DELETE_BODY,
+            "Attributes": {
+                "SenderId": "AIDAWLAST5TNZEFJSIWHG",
+                "ApproximateFirstReceiveTimestamp": "1617116188014",
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1617116181398",
+                "AWSTraceHeader": AWS_TRACE_HEADER
+            },
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233",
+            "MessageAttributes": message_attributes
+        },
+        {
+            "MessageId": FAILED_TO_SEND_ID,
+            "ReceiptHandle": "asdasd",
+            "MD5OfBody": "56b24f6d8b2e1555249bd38ae3668c2f",
+            "Body": FAILED_TO_SEND_BODY,
+            "Attributes": {
+                "SenderId": "AIDAWLAST5TNZEFJSIWHG",
+                "ApproximateFirstReceiveTimestamp": "1617116187963",
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1617116181640",
+                "AWSTraceHeader": AWS_TRACE_HEADER
+            },
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233",
+            "MessageAttributes": message_attributes
+        }
+    ]}
+
+MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO = [
+    {
+        "Id": SUCCESSFUL_ID,
+        "MessageBody": SUCCESSFUL_BODY,
+        "MessageAttributes": message_attributes,
+        "MessageDeduplicationId": MESSAGE_DEDUPLICATION_ID,
+        "MessageGroupId": MESSAGE_GROUP_ID,
+        'MessageSystemAttributes': {
+            'AWSTraceHeader': {'StringValue': AWS_TRACE_HEADER, 'DataType': 'String'}
+        }
+    },
+    {
+        "Id": FAILED_TO_DELETE_ID,
+        "MessageBody": FAILED_TO_DELETE_BODY,
+        "MessageAttributes": message_attributes,
+        "MessageDeduplicationId": MESSAGE_DEDUPLICATION_ID,
+        "MessageGroupId": MESSAGE_GROUP_ID,
+        'MessageSystemAttributes': {
+            'AWSTraceHeader': {'StringValue': AWS_TRACE_HEADER, 'DataType': 'String'}
+        }
+    },
+    {
+        "Id": FAILED_TO_SEND_ID,
+        "MessageBody": FAILED_TO_SEND_BODY,
+        "MessageAttributes": message_attributes,
+        "MessageDeduplicationId": MESSAGE_DEDUPLICATION_ID,
+        "MessageGroupId": MESSAGE_GROUP_ID,
+        'MessageSystemAttributes': {
+            'AWSTraceHeader': {'StringValue': AWS_TRACE_HEADER, 'DataType': 'String'}
+        }
+    }
+]
+MESSAGES_TO_SEND_TO_STANDARD = [
+    {
+        "Id": SUCCESSFUL_ID,
+        "MessageBody": SUCCESSFUL_BODY,
+        "MessageAttributes": message_attributes,
+        'MessageSystemAttributes': {
+            'AWSTraceHeader': {'StringValue': AWS_TRACE_HEADER, 'DataType': 'String'}
+        }
+    },
+    {
+        "Id": FAILED_TO_DELETE_ID,
+        "MessageBody": FAILED_TO_DELETE_BODY,
+        "MessageAttributes": message_attributes,
+        'MessageSystemAttributes': {
+            'AWSTraceHeader': {'StringValue': AWS_TRACE_HEADER, 'DataType': 'String'}
+        }
+    },
+    {
+        "Id": FAILED_TO_SEND_ID,
+        "MessageBody": FAILED_TO_SEND_BODY,
+        "MessageAttributes": message_attributes,
+        'MessageSystemAttributes': {
+            'AWSTraceHeader': {'StringValue': AWS_TRACE_HEADER, 'DataType': 'String'}
+        }
+    }
+]
+
+SEND_MESSAGE_BATCH_RESPONSE = {
+    "Successful": [
+        {
+            "Id": SUCCESSFUL_ID,
+            "MessageId": "d99dfb34-be9a-4f90-98d6-7a0d9173c7ec",
+            "MD5OfMessageBody": "17363d9618bbd089e643f59ff71cff86",
+            "MD5OfMessageAttributes": "ba056227cfd9533dba1f72ad9816d233"
+        },
+        {
+            "Id": FAILED_TO_DELETE_ID,
+            "MessageId": "123dfb34-be9a-4f90-98d6-7a0d9173c7ec",
+            "MD5OfMessageBody": "12363d9618bbd089e643f59ff71cff86",
+            "MD5OfMessageAttributes": "12356227cfd9533dba1f72ad9816d233"
+        },
+    ],
+    "Failed": [
+        {
+            "Id": FAILED_TO_SEND_ID,
+            "SenderFault": True,
+            "Code": "123456",
+            "Message": "123456789"
+        },
+    ]
+}
+
+DELETE_MESSAGE_ENTRIES = [{"Id": SUCCESSFUL_ID, "ReceiptHandle": SUCCESSFUL_RECEIPT_HANDLE},
+                          {'Id': FAILED_TO_DELETE_ID, 'ReceiptHandle': FAILED_TO_DELETE_RECEIPT_HANDLE}]
+
+DELETE_MESSAGE_BATCH_RESPONSE = {"Successful": [{"Id": SUCCESSFUL_ID}],
+                                 "Failed": [{"Id": FAILED_TO_DELETE_ID}]}
+
+INVALID_ATTRIBUTE_NAME_ERROR = ClientError({'Error': {'Code': 'InvalidAttributeName'}}, "")
 
 
 @pytest.mark.unit_test
@@ -25,6 +242,8 @@ class TestSqsUtil(unittest.TestCase):
         self.patcher = patch("documents.util.scripts.src.sqs_util.sqs_client")
         self.client = self.patcher.start()
         self.client.side_effect = MagicMock()
+        self.client.send_message_batch.return_value = SEND_MESSAGE_BATCH_RESPONSE
+        self.client.delete_message_batch.return_value = DELETE_MESSAGE_BATCH_RESPONSE
 
     def tearDown(self):
         self.patcher.stop()
@@ -187,20 +406,192 @@ class TestSqsUtil(unittest.TestCase):
         self.assertRaises(KeyError, transfer_messages, events, None)
         self.client.receive_message.assert_not_called()
 
-    # def test_transfer_messages(self):
-    #     events = {
-    #         "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
-    #         "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
-    #         "MessagesTransferBatchSize": self.messages_transfer_batch_size,
-    #         "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
-    #         "ForceExecution": True
-    #     }
-    #     transfer_messages(events, None)
-    #     self.client.get_queue_attributes.assert_called_once_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-    #                                                              AttributeNames=['FifoQueue'])
-    #     self.client.get_queue_attributes.assert_called_once_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
-    #                                                              AttributeNames=['FifoQueue'])
-    #     self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-    #                                                    MaxNumberOfMessages=self.messages_transfer_batch_size,
-    #                                                    MessageAttributeNames=['All'],
-    #                                                    AttributeNames=['All'])
+    def test_transfer_messages_from_standard_to_standard(self):
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": True
+        }
+        self.client.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD, {'Messages': []}]
+        self.client.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
+        actual_response = transfer_messages(events, None)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(1, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertIsNotNone(actual_response['TimeElapsed'])
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                       MaxNumberOfMessages=self.messages_transfer_batch_size,
+                                                       MessageAttributeNames=['All'],
+                                                       AttributeNames=['All'])
+        self.client.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
+                                                          Entries=MESSAGES_TO_SEND_TO_STANDARD)
+        self.client.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                            Entries=DELETE_MESSAGE_ENTRIES)
+
+    def test_transfer_messages_from_standard_to_fifo(self):
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": True
+        }
+        self.client.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD, {'Messages': []}]
+        self.client.get_queue_attributes.side_effect = [INVALID_ATTRIBUTE_NAME_ERROR, {}]
+        actual_response = transfer_messages(events, None)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(1, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertIsNotNone(actual_response['TimeElapsed'])
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                       MaxNumberOfMessages=self.messages_transfer_batch_size,
+                                                       MessageAttributeNames=['All'],
+                                                       AttributeNames=['All'])
+        actual_send_message_batch_args = self.client.send_message_batch.call_args.kwargs
+        self.assertEqual(SQS_STANDARD_DEST_QUEUE_URL, actual_send_message_batch_args['QueueUrl'])
+        actual_send_message_batch_entries = actual_send_message_batch_args['Entries']
+        for i in range(0, len(MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO)):
+            expected = MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO[i]
+            actual = actual_send_message_batch_entries[i]
+            for k in expected:
+                if k in ["MessageDeduplicationId", "MessageGroupId"]:
+                    continue
+                self.assertEqual(expected[k], actual[k])
+
+        self.client.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                            Entries=DELETE_MESSAGE_ENTRIES)
+
+    def test_transfer_messages_from_fifo_to_standard(self):
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": True
+        }
+        self.client.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_FIFO, {'Messages': []}]
+        self.client.get_queue_attributes.side_effect = [{}, INVALID_ATTRIBUTE_NAME_ERROR]
+        actual_response = transfer_messages(events, None)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(1, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertIsNotNone(actual_response['TimeElapsed'])
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                       MaxNumberOfMessages=self.messages_transfer_batch_size,
+                                                       MessageAttributeNames=['All'],
+                                                       AttributeNames=['All'])
+        self.client.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
+                                                          Entries=MESSAGES_TO_SEND_TO_STANDARD)
+        self.client.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                            Entries=DELETE_MESSAGE_ENTRIES)
+
+    def test_transfer_messages_from_fifo_to_fifo(self):
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": True
+        }
+        self.client.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_FIFO, {'Messages': []}]
+        self.client.get_queue_attributes.side_effect = [{}, {}]
+        actual_response = transfer_messages(events, None)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(1, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertIsNotNone(actual_response['TimeElapsed'])
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                       MaxNumberOfMessages=self.messages_transfer_batch_size,
+                                                       MessageAttributeNames=['All'],
+                                                       AttributeNames=['All'])
+        self.client.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
+                                                          Entries=MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO)
+        self.client.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                            Entries=DELETE_MESSAGE_ENTRIES)
+
+    def test_transfer_messages_exceed_number_of_messages_to_transfer(self):
+        number_of_messages_to_transfer = 1
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": number_of_messages_to_transfer,
+            "ForceExecution": True
+        }
+        self.client.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD, {'Messages': []}]
+        self.client.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
+        actual_response = transfer_messages(events, None)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(number_of_messages_to_transfer, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertIsNotNone(actual_response['TimeElapsed'])
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                       MaxNumberOfMessages=self.messages_transfer_batch_size,
+                                                       MessageAttributeNames=['All'],
+                                                       AttributeNames=['All'])
+        self.client.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
+                                                          Entries=MESSAGES_TO_SEND_TO_STANDARD)
+        self.client.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                            Entries=DELETE_MESSAGE_ENTRIES)
+
+    def test_transfer_messages_different_queue_types_and_force_execution_false(self):
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": False
+        }
+        self.client.get_queue_attributes.side_effect = [INVALID_ATTRIBUTE_NAME_ERROR, {}]
+        self.assertRaises(ValueError, transfer_messages, events, None)
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_not_called()
+        self.client.send_message_batch.assert_not_called()
+        self.client.delete_message_batch.assert_not_called()
+
+    def test_transfer_messages_different_error(self):
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": self.messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": False
+        }
+        self.client.get_queue_attributes.side_effect = ClientError({'Error': {'Code': 'Other'}}, "")
+        self.assertRaises(Exception, transfer_messages, events, None)
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+        ])
+        self.client.receive_message.assert_not_called()
+        self.client.send_message_batch.assert_not_called()
+        self.client.delete_message_batch.assert_not_called()

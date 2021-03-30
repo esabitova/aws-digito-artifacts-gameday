@@ -1,4 +1,5 @@
 import json
+import logging
 import time
 import uuid
 from datetime import datetime
@@ -6,7 +7,6 @@ from typing import List, Callable, Optional
 
 import boto3
 from botocore.exceptions import ClientError
-import logging
 
 sqs_client = boto3.client("sqs")
 
@@ -249,7 +249,6 @@ def transfer_messages(events: dict, context: dict) -> dict:
         raise ValueError(f'The source queue and target queue have different types when ForceExecution '
                          f'parameter is {force_execution}: ')
 
-    number_of_messages_transferred = 0
     number_of_messages_transferred_to_target = 0
     number_of_messages_failed_to_send_to_target = 0
     number_of_messages_failed_to_delete_from_source = 0
@@ -257,14 +256,15 @@ def transfer_messages(events: dict, context: dict) -> dict:
     max_duration_seconds = 9 * 60
     loop_count = 1
 
-    while number_of_messages_transferred < number_of_messages_to_transfer and (now - start) < max_duration_seconds:
+    while number_of_messages_transferred_to_target < number_of_messages_to_transfer and (
+            now - start) < max_duration_seconds:
         logger.debug(f'Entered into loop #{loop_count} '
-                     f'with number_of_messages_transferred < number_of_messages_to_transfer = '
-                     f'{number_of_messages_transferred} < {number_of_messages_to_transfer}, '
+                     f'with number_of_messages_transferred_to_target < number_of_messages_to_transfer = '
+                     f'{number_of_messages_transferred_to_target} < {number_of_messages_to_transfer}, '
                      f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
 
         received_messages: Optional[List[dict]] = receive_messages(source_queue_url, messages_transfer_batch_size)
-        if received_messages is None:
+        if received_messages is None or len(received_messages) == 0:
             return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
                                   number_of_messages_failed_to_send_to_target,
                                   number_of_messages_transferred_to_target, source_queue_url, start,
@@ -281,7 +281,6 @@ def transfer_messages(events: dict, context: dict) -> dict:
             messages_to_send = transform_messages(received_messages, transform_message_from_standard_to_fifo)
 
         send_message_batch_response: dict = send_messages(messages_to_send, target_queue_url)
-
         successfully_sent_results = send_message_batch_response.get('Successful')
         if successfully_sent_results is not None:
             successfully_sent_results_number = len(successfully_sent_results)
@@ -289,17 +288,13 @@ def transfer_messages(events: dict, context: dict) -> dict:
                         f'during the loop #{loop_count}: '
                         f'{successfully_sent_results}')
 
-            number_of_messages_transferred_to_target += successfully_sent_results_number
-
             message_id_to_receipt_handle = {message.get('MessageId'): message.get('ReceiptHandle')
                                             for message in received_messages}
             delete_message_entries: List = [{'Id': result.get('Id'),
                                              'ReceiptHandle': message_id_to_receipt_handle.get(result.get('Id'))}
                                             for result in successfully_sent_results]
-
             delete_message_batch_response: dict = sqs_client.delete_message_batch(QueueUrl=source_queue_url,
                                                                                   Entries=delete_message_entries)
-
             failed_delete_messages: List[dict] = delete_message_batch_response.get('Failed')
             if failed_delete_messages is not None:
                 failed_delete_messages_number = len(failed_delete_messages)
@@ -313,7 +308,7 @@ def transfer_messages(events: dict, context: dict) -> dict:
                 logger.info(f'Succeed to delete {len(succeed_delete_messages)} message(-s) '
                             f'during the loop #{loop_count}: '
                             f'{succeed_delete_messages}')
-                number_of_messages_transferred += len(succeed_delete_messages)
+                number_of_messages_transferred_to_target += len(succeed_delete_messages)
 
         failed_send_results: dict = send_message_batch_response.get('Failed')
         if failed_send_results is not None:
