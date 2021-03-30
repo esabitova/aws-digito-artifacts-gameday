@@ -57,6 +57,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And sleep for "60" seconds
     And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
