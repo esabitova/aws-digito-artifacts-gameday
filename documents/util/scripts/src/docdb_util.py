@@ -107,14 +107,18 @@ def get_latest_snapshot_id(events, context):
     try:
         docdb = boto3.client('docdb')
         response = docdb.describe_db_cluster_snapshots(DBClusterIdentifier=events['DBClusterIdentifier'])
-        last_snapshot_id = response['DBClusterSnapshots'][-1]['DBClusterSnapshotIdentifier']
-        last_snapshot_engine = response['DBClusterSnapshots'][-1]['Engine']
-        last_cluster_identifier = response['DBClusterSnapshots'][-1]['DBClusterIdentifier']
-        return {
-            'LatestSnapshotIdentifier': last_snapshot_id,
-            'LatestSnapshotEngine': last_snapshot_engine,
-            'LatestClusterIdentifier': last_cluster_identifier
-        }
+        if len(response['DBClusterSnapshots']) != 0:
+            last_snapshot_id = response['DBClusterSnapshots'][-1]['DBClusterSnapshotIdentifier']
+            last_snapshot_engine = response['DBClusterSnapshots'][-1]['Engine']
+            last_cluster_identifier = response['DBClusterSnapshots'][-1]['DBClusterIdentifier']
+            return {
+                'LatestSnapshotIdentifier': last_snapshot_id,
+                'LatestSnapshotEngine': last_snapshot_engine,
+                'LatestClusterIdentifier': last_cluster_identifier
+            }
+        else:
+            print('No snapshots available.')
+            raise Exception('No snapshots available.')
     except Exception as e:
         print(f'Error: {e}')
         raise

@@ -137,12 +137,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::docdb_util.imports
         SCRIPT_PLACEHOLDER::docdb_util.restore_db_cluster
 
-  - name: WaitForRenamedClusterId
-    action: aws:sleep
-    inputs:
-      Duration: PT10S
-
-  - name: WaitUntilClusterStateRunning
+  - name: WaitUntilClusterStateAvailable
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 1200
     inputs:
@@ -207,7 +202,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::docdb_util.imports
         SCRIPT_PLACEHOLDER::docdb_util.rename_replaced_db_instances
 
-  - name: WaitUntilInstanceStateRunning
+  - name: WaitUntilInstanceStateAvailable
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 1200
     inputs:

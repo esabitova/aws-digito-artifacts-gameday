@@ -1,8 +1,13 @@
 {
-  "documentName": "Digito-DocDbRestoreFromBackup_2020-09-21",
-  "documentType": "Automation",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "displayName": "SOP - DocumentDb restore from backup",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "tag": "docdb:sop:docdb_restore_from_backup:2020-09-21",
-  "minorVersion": "001"
+  "documentName": "Digito-DocDbRestoreFromBackup_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "description": "Used to recover the database into a known good state",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "docdb:sop:docdb_restore_from_backup:2020-09-21"
 }
