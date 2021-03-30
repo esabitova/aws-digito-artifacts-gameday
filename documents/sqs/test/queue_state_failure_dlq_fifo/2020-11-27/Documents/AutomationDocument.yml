@@ -135,14 +135,14 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: get_inputs_from_ssm_step_execution
+      Handler: get_inputs_from_ssm_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
-        InputName: 'PurgeDeadLetterQueue'
+        InputFields: 'PurgeDeadLetterQueue'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_document_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: CheckIfPurgeEnabledInPreviousExecution
     action: aws:branch
