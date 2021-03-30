@@ -6,30 +6,29 @@ SHELL := /bin/bash
 include ../../../private.env
 export $(shell sed 's/=.*//' ../../../private.env)
 
-include ../../../common.mk
-
 # Upload local SSM Documents to AWS SSM Documents service by specifying them in the manifest file
 publish_ssm_docs:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
-		--file-name documents/s3/misc/s3-manifest --log-level INFO && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/publish_documents.py --region ${AWS_REGION} \
+		--file-name documents/lambda/misc/lambda-manifest --log-level INFO && \
 	deactivate
 
 # Execute Cucumber tests
-test: linter_and_unit_test publish_ssm_docs
+test: publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --html=documents/lambda/misc/lambda-cucumber-tests-results.html --self-contained-html \
+		--keep_test_resources --run_integration_tests -m lambda --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
-test_one: test_linter publish_ssm_docs
+test_one: publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/s3/test/accidental_delete/2020-04-01/Tests/step_defs/test_accidental_delete_rollback_usual_case.py -m s3  --aws_profile ${AWS_PROFILE} && \
+		documents/lambda/test/change_memory_size/2020-10-26/tests/step_defs/test_change_memory_size.py -m lambda  --aws_profile ${AWS_PROFILE} && \
 	deactivate

@@ -30,6 +30,17 @@ def get_docdb_clusters_side_effect(number_of_instances=1):
     return result
 
 
+def get_docdb_instances_with_status_side_effect(number_of_instances):
+    result = {
+        'DBInstances': []
+    }
+    for i in range(0, number_of_instances):
+        result['DBInstances'].append({
+            'DBInstanceStatus': 'available'
+        })
+    return result
+
+
 def get_create_db_instance_side_effect(az):
     result = {
         'DBInstance': {
@@ -37,6 +48,14 @@ def get_create_db_instance_side_effect(az):
         }
     }
     return result
+
+
+def get_docdb_instances_side_effect(az):
+    return {'DBInstances': [{'AvailabilityZone': az}]}
+
+
+def get_cluster_azs_side_effect():
+    return {'DBClusters': [{'AvailabilityZones': ['us-east-1a', 'us-east-1b', 'us-east-1c']}]}
 
 
 DOCDB_INSTANCES = {

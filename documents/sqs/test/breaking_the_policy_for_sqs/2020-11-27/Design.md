@@ -83,12 +83,11 @@ Yes. The script will perform rollback of SQS Policy attribute. Users can run the
     * Explanation:
         * Set `Policy` queue attribute
 1. `AssertAlarmToBeGreenBeforeStart`
-    * Type: aws:assertAwsResourceProperty
+    * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `NumberOfMessagesSentAlarmName`
-        * `timeoutSeconds=10`
     * Explanation:
-        * Ensure that `NumberOfMessagesSentAlarmName` alarm is `OK`
+        * Ensure that `NumberOfMessagesSentAlarmName` alarm is `OK` for 600 seconds
 1. `BackupCurrentExecution`
     * Type: aws:executeAwsApi
     * Inputs:
