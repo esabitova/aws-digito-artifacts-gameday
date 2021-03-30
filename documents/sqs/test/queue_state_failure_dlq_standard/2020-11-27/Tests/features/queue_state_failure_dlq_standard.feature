@@ -5,7 +5,7 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                            | ON_DEMAND    |
-      | documents/sqs/test/queue_state_failure_dlq_fifo/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | documents/sqs/test/queue_state_failure_dlq_standard/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" executed
       | QueueUrl                                             | AutomationAssumeRole                                                                              | DeadLetterQueueAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqStandardQueueAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageStandardQueueAlarm}} |
