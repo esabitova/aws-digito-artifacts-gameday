@@ -384,6 +384,17 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
 
   - name: MoveMessages
+    action: aws:executeAutomation
+    maxAttempts: 3
+    timeoutSeconds: 600
+    onFailure: Abort
+    inputs:
+      DocumentName: Digito-MoveMessagesBetweenQueues_2021-03-11
+      RuntimeParameters:
+        SourceQueueUrl: '{{ QueueUrl }}'
+        TargetQueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
+        NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMove.pproximateNumberOfMessages }}'
+        MessagesTransferBatchSize: 1
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
