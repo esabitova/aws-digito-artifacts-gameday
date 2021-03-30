@@ -46,7 +46,7 @@ mainSteps:
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default:
-        GetAlarmThreshold
+        AssertAlarmToBeGreenBeforeTest
 
   - name: PrepareRemoveOfFailureMessage
     action: aws:executeScript
@@ -79,6 +79,18 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
         SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
     isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SentMessageSizeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
 
   - name: GetAlarmThreshold
     action: aws:executeScript

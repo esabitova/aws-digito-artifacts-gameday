@@ -18,18 +18,42 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | QueueUrl                                   | AutomationAssumeRole                                                           | SentMessageSizeAlarmName                                 |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
 
-    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "Success" for "600" seconds
+    # Terminate execution before rollback
+    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    Then terminate "Digito-SQSCapacityFailure_2021-03-13" SSM automation document
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Cancelled"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
+
+    # Wait until alarm goes on
+    When Wait for alarm to be in state "ALARM" for "300" seconds
+      | AlarmName                                                |
+      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
+
+    # Rollback previous
+    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" executed
+      | QueueUrl                                   | AutomationAssumeRole                                                           | SentMessageSizeAlarmName                                 | IsRollback | PreviousExecutionId        |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} | true       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Success"
       | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
+      | {{cache:SsmExecutionId>2}} |
+    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
+
+    # Alarm should return to OK
+    When Wait for alarm to be in state "OK" for "600" seconds
+      | AlarmName                                                |
+      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
 
     Then assert "NumberOfMessages" at "before" became equal to "NumberOfMessages" at "after"
     And assert "NumberOfMessages" at "after-send" became not equal to "NumberOfMessages" at "before"

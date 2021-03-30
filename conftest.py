@@ -13,7 +13,7 @@ from datetime import timedelta, datetime
 from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.s3 import S3
-from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
+from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
@@ -447,3 +447,14 @@ def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_par
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
     param_value = parse_param_value(value, {'cache': ssm_test_cache})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
+
+
+@when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
+def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state, timeout, input_parameters):
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    alarm_name = parameters[0].get('AlarmName')
+    if alarm_name is None:
+        raise Exception('Parameter with name [AlarmName] should be provided')
+    time_to_wait = int(timeout)
+    wait_for_metric_alarm_state(boto3_session, alarm_name, alarm_state, time_to_wait)
