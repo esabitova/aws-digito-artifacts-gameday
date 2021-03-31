@@ -62,14 +62,14 @@ mainSteps:
         Selector: $.Payload.PurgeDeadLetterQueue
     inputs:
       Runtime: python3.6
-      Handler: get_inputs_from_ssm_step_execution
+      Handler: get_inputs_from_ssm_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         InputFields: 'QueueUrl, PurgeDeadLetterQueue'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: AssertQueueUrl
     action: aws:branch
@@ -143,7 +143,7 @@ mainSteps:
       Choices:
         - NextStep: PreparePurgeOfDeadLetterQueueForRollback
           Variable: "{{ GetInputsFromPreviousExecution.PurgeDeadLetterQueue }}"
-          StringEquals: '{{ PurgeDeadLetterQueue }}'
+          EqualsIgnoreCase: '{{ PurgeDeadLetterQueue }}'
     isEnd: true
 
   - name: PreparePurgeOfDeadLetterQueueForRollback
@@ -166,24 +166,11 @@ mainSteps:
     action: aws:executeAutomation
     maxAttempts: 3
     timeoutSeconds: 600
-    onFailure: Abort
     inputs:
       DocumentName: Digito-PurgeQueue_2021-03-11
       RuntimeParameters:
         QueueUrl: '{{ PreparePurgeOfDeadLetterQueueForRollback.QueueUrl }}'
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
-
-  - name: AssertAlarmToBeGreenAfterRollback
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 120
-    timeoutSeconds: 5
-    inputs:
-      Service: cloudwatch
-      Api: DescribeAlarms
-      AlarmNames:
-        - "{{ DeadLetterQueueAlarmName }}"
-      PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "OK" ]
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
