@@ -152,12 +152,15 @@ def update_sqs_redrive_policy(events: dict, context: dict) -> dict:
 
 def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     """
-    Retrieves dead-letter queue URL
+    Retrieves dead-letter queue URL by RedrivePolicy
     """
     if "SourceRedrivePolicy" not in events:
         raise KeyError("Requires SourceRedrivePolicy in events")
 
     source_redrive_policy: str = events.get("SourceRedrivePolicy")
+    if not source_redrive_policy:
+        raise KeyError("Requires not empty SourceRedrivePolicy")
+
     source_redrive_policy: dict = json.loads(source_redrive_policy)
     dead_letter_queue_arn: str = source_redrive_policy.get("deadLetterTargetArn")
     dead_letter_queue_name: str = dead_letter_queue_arn.split(':', 5)[5]

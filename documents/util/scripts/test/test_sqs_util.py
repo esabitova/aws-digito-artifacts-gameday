@@ -150,3 +150,13 @@ class TestSqsUtil(unittest.TestCase):
         }
         get_dead_letter_queue_url(events, None)
         self.client.get_queue_url.assert_called_once_with(QueueName=self.queue_name)
+
+    def test_get_dead_letter_queue_url_empty_events(self):
+        events = {}
+        self.assertRaises(KeyError, get_dead_letter_queue_url, events, None)
+
+    def test_get_dead_letter_queue_url_empty_source_redrive_policy(self):
+        events = {
+            "SourceRedrivePolicy": ""
+        }
+        self.assertRaises(KeyError, get_dead_letter_queue_url, events, None)
