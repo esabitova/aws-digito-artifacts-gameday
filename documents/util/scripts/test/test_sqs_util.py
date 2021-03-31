@@ -15,13 +15,18 @@ SQS_FIFO_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue.f
 @pytest.mark.unit_test
 class TestSqsUtil(unittest.TestCase):
     def setUp(self):
+        self.patcher = patch('boto3.client')
+        self.client = self.patcher.start()
+        self.sqs_client_mock = MagicMock()
+        self.side_effect_map = {
+            'sqs': self.sqs_client_mock
+        }
+        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+
         self.queue_url = SQS_STANDARD_QUEUE_URL
         self.empty_policy = {"Policy": ""}
         self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
         self.action_to_deny = "sqs:DeleteMessage"
-        self.patcher = patch("documents.util.scripts.src.sqs_util.sqs_client")
-        self.client = self.patcher.start()
-        self.client.side_effect = MagicMock()
 
     def tearDown(self):
         self.patcher.stop()
@@ -92,7 +97,7 @@ class TestSqsUtil(unittest.TestCase):
             "OptionalBackupPolicy": "some_policy"
         }
         revert_sqs_policy(events, None)
-        self.client.set_queue_attributes.assert_called_once()
+        self.sqs_client_mock.set_queue_attributes.assert_called_once()
 
     def test_revert_sqs_policy_empty_optional_backup_policy(self):
         events = {
@@ -100,8 +105,8 @@ class TestSqsUtil(unittest.TestCase):
             "OptionalBackupPolicy": "{{VariableFromSsmDocument}}"
         }
         revert_sqs_policy(events, None)
-        self.client.set_queue_attributes.assert_called_once_with(QueueUrl=self.queue_url,
-                                                                 Attributes=self.empty_policy)
+        self.sqs_client_mock.set_queue_attributes.assert_called_once_with(QueueUrl=self.queue_url,
+                                                                          Attributes=self.empty_policy)
 
     def test_send_message_of_size_standard(self):
         events = {
@@ -109,8 +114,8 @@ class TestSqsUtil(unittest.TestCase):
             "MessageSize": 100
         }
         send_message_of_size(events, None)
-        self.client.send_message.assert_called_once()
-        self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
+        self.sqs_client_mock.send_message.assert_called_once()
+        self.assertEqual(100, len(self.sqs_client_mock.send_message.call_args[1]['MessageBody']))
 
     def test_send_message_of_size_fifo_no_token(self):
         events = {
@@ -126,5 +131,5 @@ class TestSqsUtil(unittest.TestCase):
             "MessageDeduplicationId": 'some-token'
         }
         send_message_of_size(events, None)
-        self.client.send_message.assert_called_once()
-        self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
+        self.sqs_client_mock.send_message.assert_called_once()
+        self.assertEqual(100, len(self.sqs_client_mock.send_message.call_args[1]['MessageBody']))

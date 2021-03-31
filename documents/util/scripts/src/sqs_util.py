@@ -1,11 +1,8 @@
 import json
 import uuid
+import boto3
 from datetime import datetime
 from typing import List
-
-import boto3
-
-sqs_client = boto3.client("sqs")
 
 
 def add_deny_in_sqs_policy(events: dict, context: dict) -> dict:
@@ -57,7 +54,7 @@ def revert_sqs_policy(events: dict, context: dict) -> None:
     """
     if "QueueUrl" not in events or "OptionalBackupPolicy" not in events:
         raise KeyError("Requires QueueUrl and OptionalBackupPolicy in events")
-
+    sqs_client = boto3.client("sqs")
     queue_url: str = events.get("QueueUrl")
     optional_backup_policy: str = events.get("OptionalBackupPolicy")
     optional_backup_policy = None if optional_backup_policy.startswith("{{") else optional_backup_policy
@@ -71,6 +68,7 @@ def send_message_of_size(events, context):
     """
     Sends a message of given size in bytes. Character u'a' is equal to one byte
     """
+    sqs_client = boto3.client("sqs")
     queue_url = events['QueueUrl']
     message_size = events['MessageSize']
     message_body = 'a' * message_size
@@ -102,7 +100,7 @@ def get_message_receipt_handle(queue_url: str, message_id: str, timeout: int):
     :return ReceiptHandle of the message
     """
     start = datetime.now()
-
+    sqs_client = boto3.client("sqs")
     while True:
         response = sqs_client.receive_message(
             QueueUrl=queue_url,
@@ -122,6 +120,7 @@ def delete_message_by_id(event, context):
     """
     Delete message by its ID
     """
+    sqs_client = boto3.client("sqs")
     queue_url = event['QueueUrl']
     message_id = event['MessageId']
     timeout = int(event.get('TimeOut', 100))
