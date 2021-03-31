@@ -1,13 +1,9 @@
 import json
-import time
 import uuid
 from datetime import datetime
-from typing import List, Callable, Optional, Tuple, Union
+from typing import List
 
 import boto3
-import botocore
-from botocore.exceptions import ClientError
-import logging
 
 sqs_client = boto3.client("sqs")
 
@@ -165,8 +161,6 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     source_redrive_policy: dict = json.loads(source_redrive_policy)
     dead_letter_queue_arn: str = source_redrive_policy.get("deadLetterTargetArn")
     dead_letter_queue_name: str = dead_letter_queue_arn.split(':', 5)[5]
-    print(f'Dead Letter queue name is: {dead_letter_queue_name}')
     get_queue_url_response: dict = sqs_client.get_queue_url(QueueName=dead_letter_queue_name)
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
-    print(f'Dead Letter queue URL is: {dead_letter_queue_url}')
     return {"QueueUrl": dead_letter_queue_url}
