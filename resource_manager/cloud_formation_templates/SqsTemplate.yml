@@ -66,9 +66,6 @@ Outputs:
   DlqMessageFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SqsDlqMessageFifoQueueAlarm
-  DlqMessageStandardQueueAlarm:
-    Description: Alarm
-    Value: !Ref SqsDlqMessageStandardQueueAlarm
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
