@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy
-from documents.util.scripts.src.sqs_util import send_message_of_size
+from documents.util.scripts.src.sqs_util import send_message_of_size, update_sqs_redrive_policy
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_FIFO_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue.fifo"
@@ -19,9 +19,6 @@ class TestSqsUtil(unittest.TestCase):
         self.empty_policy = {"Policy": ""}
         self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
         self.action_to_deny = "sqs:DeleteMessage"
-        self.redrive_policy = {"deadLetterTargetArn": "arn:aws:sqs:ap-southeast-1:435978235099:SqsTemplate-0"
-                                                      "-SqsDlqForFifoQueue-O0ISQAHFIID7.fifo",
-                               "maxReceiveCount": 5}
         self.patcher = patch("documents.util.scripts.src.sqs_util.sqs_client")
         self.client = self.patcher.start()
         self.client.side_effect = MagicMock()
@@ -132,12 +129,19 @@ class TestSqsUtil(unittest.TestCase):
         self.client.send_message.assert_called_once()
         self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
 
-    # def test_update_sqs_redrive_policy(self, max_recieve_count=None):
-    #     events = {
-    #         "MaxReceiveCount": 1,
-    #         "SourceRedrivePolicy": json.dumps(self.redrive_policy)
-    #     }
-    #     response = update_sqs_redrive_policy(events, None)
-    #     redrive_policy = json.load(response)
-    #     max_recieve_count = redrive_policy.get("maxReceiveCount")
-    #     self.assertEqual(1, max_recieve_count)
+    def test_update_sqs_redrive_policy(self, max_recieve_count=None):
+        events = {
+            "MaxReceiveCount": 1,
+            "SourceRedrivePolicy": json.dumps(
+                {
+                    "deadLetterTargetArn": self.resource,
+                    "maxReceiveCount": 5
+                }
+            )
+        }
+        response = update_sqs_redrive_policy(events, None)
+        updated_redrive_policy = json.loads(response["RedrivePolicy"])
+        self.assertIsNotNone(updated_redrive_policy["deadLetterTargetArn"])
+        self.assertEqual(self.resource, updated_redrive_policy["deadLetterTargetArn"])
+        self.assertIsNotNone(updated_redrive_policy["maxReceiveCount"])
+        self.assertEqual(1, updated_redrive_policy["maxReceiveCount"])
