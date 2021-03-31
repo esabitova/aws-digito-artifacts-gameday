@@ -7,7 +7,7 @@
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "displayName": "Test - breaking the Policy for SQS",
-  "intent": "Test behavior when messages cannot be sent to an SQS queue",
+  "description": "Test behavior when messages cannot be sent to an SQS queue",
   "risk": "HIGH",
   "tag": "sqs:test:breaking_the_policy_for_sqs:2020-11-27",
   "recommendedAlarms": {

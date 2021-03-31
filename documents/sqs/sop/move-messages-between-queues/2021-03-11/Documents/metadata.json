@@ -7,7 +7,7 @@
   "documentName": "Digito-MoveMessagesBetweenQueues_2021-03-11",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
-  "intent": "To move messages from one queue to another",
+  "description": "To move messages from one queue to another",
   "minorVersion": "001",
   "risk": "MEDIUM",
   "tag": "sqs:sop:move-messages-between-queues:2021-03-11"

@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 CWD:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-
 clean:
 	rm -rf venv
 
@@ -29,7 +28,7 @@ pip_install: enable_git_hooks
 publish_all_ssm_docs:
 	# Move to parent working directory
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 publisher/src/publish_documents.py --region ${AWS_REGION}  --log-level INFO && \
+	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION}  --log-level INFO && \
 	deactivate
 
 # Execute linter to test code style
