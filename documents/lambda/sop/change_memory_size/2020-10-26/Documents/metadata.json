@@ -1,6 +1,7 @@
 {
-  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "displayName": "SOP - Change Memory Size",
+  "description": "Change Memory size",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "documentName": "Digito-ChangeMemorySize_2020-10-26",

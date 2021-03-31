@@ -1,5 +1,6 @@
 {
   "displayName": "SOP - Restore to previous version",
+  "description": "Used to restore an S3 object into previous version",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "documentName": "Digito-RestoringToPreviousVersion_2020-09-21",

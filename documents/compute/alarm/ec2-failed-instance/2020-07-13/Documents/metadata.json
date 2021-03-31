@@ -1,10 +1,11 @@
 {
   "displayName": "Failed instance",
+  "description": "Reports when instance status check is failing",
   "alarmName": "Digito-FailedInstance_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:ec2-failed-instance:2020-07-13",
-  "description": "Reports when instance status check is failing",
+  "failureType": "HARDWARE",
   "minorVersion": "001"
 }

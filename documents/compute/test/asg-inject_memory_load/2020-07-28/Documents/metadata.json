@@ -1,5 +1,6 @@
 {
     "displayName": "Test - Inject Memory load to ASG",
+    "description": "Test app performance under load.",
     "documentName": "Digito-SimulateHighMemoryLoadInAsg_2020-07-28",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",

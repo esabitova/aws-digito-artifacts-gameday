@@ -6,6 +6,7 @@ Feature: SSM automation document to change memory size of the given Lambda Funct
       | CfnTemplatePath                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/LambdaTemplate.yml                                 | ON_DEMAND    |
       | documents/lambda/sop/change_memory_size/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+    And published "Digito-ChangeMemorySize_2020-10-26" SSM document
     And cache value of memory size as "OldMemorySize" at the lambda "before" SSM automation execution
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
