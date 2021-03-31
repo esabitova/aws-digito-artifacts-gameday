@@ -15,9 +15,10 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
-      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
+      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
+    # Terminate execution
     When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreenBeforeTest" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -27,41 +28,43 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    Then terminate "Digito-BreakingThePolicyForSQS_2020-11-27" SSM automation document
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    When SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Cancelled"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
 
-    # Try to send some messages until alarm triggers
+    When Wait for alarm to be in state "ALARM" for "300" seconds
+      | AlarmName                                                |
+      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
+
+    # Try to send some messages to check that policy was removed
     And send "5" messages to queue with error
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "30" seconds
-    And send "5" messages to queue with error
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "30" seconds
-    And send "5" messages to queue with error
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    # Alarm should still be triggered
+    When Wait for alarm to be in state "ALARM" for "50" seconds
+      | AlarmName                                                |
+      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
 
-    # Alarm should be triggered despite messages being sent in less then 60 secs after last send attempt
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "Success" for "50" seconds
+    # Run rollback
+    And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
+      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
+    And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
       | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
+      | {{cache:SsmExecutionId>2}} |
 
-    And Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "600" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
     And send "5" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And sleep for "60" seconds
-    And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And Wait for alarm to be in state "OK" for "50" seconds
+      | AlarmName                                                |
+      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
+
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "60" seconds
-
-    Then assert "NumberOfMessages" at "before" became not equal to "NumberOfMessages" at "after"

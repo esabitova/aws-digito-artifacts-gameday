@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from botocore.exceptions import ClientError
 
 from pytest_bdd import (
     given,
@@ -36,6 +37,17 @@ def send_messages_to_fifo(resource_manager, ssm_test_cache, boto3_session, numbe
         sqs_utils.send_message_to_fifo_queue(
             boto3_session, queue_url, f'This is message {i}', 'digito-test-group', datetime.now().isoformat()
         )
+
+
+@given(parsers.parse('send "{number_of_messages}" messages to queue with error\n{input_parameters}'))
+@when(parsers.parse('send "{number_of_messages}" messages to queue with error\n{input_parameters}'))
+def send_messages_with_error(resource_manager, ssm_test_cache, boto3_session, number_of_messages, input_parameters):
+    queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
+    for i in range(int(number_of_messages)):
+        try:
+            sqs_utils.send_message_to_standard_queue(boto3_session, queue_url, f'This is message {i}')
+        except ClientError:
+            logging.info('Message sending failed due to access denied')
 
 
 cache_number_of_messages_expression = 'cache number of messages in queue as "{cache_property}" "{step_key}" SSM ' \
