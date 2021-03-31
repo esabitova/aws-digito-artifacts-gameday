@@ -9,6 +9,6 @@
   "tag": "docdb:sop:reboot_db_instance:2020-09-21",
   "failureType": "SOFTWARE",
   "risk": "SMALL",
-  "intent": "| Used to reboot DB instance when the database doesn’t respond to any requests.",
+  "intent": "| Used to reboot DB instance.",
   "minorVersion": "001"
 }

@@ -7,7 +7,7 @@ from pytest_bdd import (
 
 
 @scenario('../features/reboot_db_instance.feature',
-          'Create AWS resources using CloudFormation template and execute SSM automation document to reboot DB '
-          'instance when the database doesn’t respond to any requests')
+          'Create AWS resources using CloudFormation template and execute SSM automation document to '
+          'reboot DB instance')
 def test_reboot_db_instance():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""

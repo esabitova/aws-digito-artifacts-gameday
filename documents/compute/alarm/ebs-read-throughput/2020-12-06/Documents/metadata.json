@@ -6,6 +6,6 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:ebs-read-throughput:2020-12-06",
-  "failureType": "SOFTWARE",
+  "failureType": "SOFTWARE,HARDWARE,AZ",
   "minorVersion": "001"
 }
