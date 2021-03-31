@@ -54,6 +54,9 @@ Outputs:
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
+  SqsDestinationStandardQueueUrl:
+    Description: Standard queue ARN
+    Value: !Ref SqsDestinationStandardQueue
   SNSTopicARN:
     Description: SNS Topic ARN
     Value: !GetAtt SqsDeadLetterQueue.Arn
@@ -188,6 +191,8 @@ Resources:
     Properties:
       FifoQueue: true
   SqsStandardQueue:
+    Type: "AWS::SQS::Queue"
+  SqsDestinationStandardQueue:
     Type: "AWS::SQS::Queue"
   SNSTopic:
     Type: "AWS::SNS::Topic"

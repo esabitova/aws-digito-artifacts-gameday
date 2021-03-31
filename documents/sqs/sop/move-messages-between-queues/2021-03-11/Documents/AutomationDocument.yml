@@ -1,0 +1,83 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "To move messages from one queue to another"
+schemaVersion: "0.3"
+assumeRole: "{{AutomationAssumeRole}}"
+parameters:
+  SourceQueueUrl:
+    type: String
+    description: (Required) The URL of the source SQS Queue.
+  TargetQueueUrl:
+    type: String
+    description: (Required) The URL of the target SQS Queue.
+  NumberOfMessagesToTransfer:
+    type: Integer
+    description: (Required) The number of messages to be sent.
+  MessagesTransferBatchSize:
+    type: Integer
+    description: (Optional) The number of messages that going to be transferred per batch. Maximum is 10
+    default: 10
+  ForceExecution:
+    type: Boolean
+    description: (Optional) If True, validation of input parameters will be skipped
+    default: false
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+outputs:
+  - "TransferMessages.NumberOfMessagesTransferredToTarget"
+  - "TransferMessages.NumberOfMessagesFailedToSendToTarget"
+  - "TransferMessages.NumberOfMessagesFailedToDeleteFromSource"
+  - "TransferMessages.TimeElapsed"
+mainSteps:
+  - name: TransferMessages
+    action: aws:executeScript
+    outputs:
+      - Name: "NumberOfMessagesTransferredToTarget"
+        Selector: "$.Payload.NumberOfMessagesTransferredToTarget"
+        Type: Integer
+      - Name: "NumberOfMessagesFailedToSendToTarget"
+        Selector: "$.Payload.NumberOfMessagesFailedToSendToTarget"
+        Type: Integer
+      - Name: "NumberOfMessagesFailedToDeleteFromSource"
+        Selector: "$.Payload.NumberOfMessagesFailedToDeleteFromSource"
+        Type: Integer
+      - Name: "TimeElapsed"
+        Selector: "$.Payload.TimeElapsed"
+        Type: String
+    inputs:
+      Runtime: "python3.7"
+      Handler: "transfer_messages"
+      InputPayload:
+        SourceQueueUrl: '{{SourceQueueUrl}}'
+        TargetQueueUrl: '{{TargetQueueUrl}}'
+        NumberOfMessagesToTransfer: '{{NumberOfMessagesToTransfer}}'
+        MessagesTransferBatchSize: '{{MessagesTransferBatchSize}}'
+        ForceExecution: '{{ForceExecution}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.transform_messages
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_and_attributes
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_from_fifo_to_fifo
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_from_standard_to_fifo
+        SCRIPT_PLACEHOLDER::sqs_util.send_messages
+        SCRIPT_PLACEHOLDER::sqs_util.receive_messages
+        SCRIPT_PLACEHOLDER::sqs_util.transfer_messages
+        SCRIPT_PLACEHOLDER::sqs_util.get_statistics
+        SCRIPT_PLACEHOLDER::sqs_util.is_queue_fifo

@@ -31,7 +31,7 @@ test_one: test_linter publish_ssm_docs
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/test/capacity_failure/2021-03-13/Tests/step_defs/test_capacity_failure.py -m actual  --aws_profile ${AWS_PROFILE} && \
+		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues.py::test_move_messages_from_standard_queue_to_standard -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 service_unit_test:

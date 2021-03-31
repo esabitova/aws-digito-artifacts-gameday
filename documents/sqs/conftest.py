@@ -26,7 +26,10 @@ def purge_the_queue(boto3_session, resource_manager, ssm_test_cache, input_param
 def send_messages(resource_manager, ssm_test_cache, boto3_session, number_of_messages, input_parameters):
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     for i in range(int(number_of_messages)):
-        sqs_utils.send_message_to_standard_queue(boto3_session, queue_url, f'This is message {i}')
+        sqs_utils.send_message_to_standard_queue(boto3_session, queue_url, f'This is message {i}',
+                                                 {'test_attribute_name_1': {'StringValue': 'test_attribute_value_1',
+                                                                            'DataType': 'String'}
+                                                  })
 
 
 @given(parsers.parse('send "{number_of_messages}" messages to FIFO queue\n{input_parameters}'))
@@ -34,8 +37,10 @@ def send_messages_to_fifo(resource_manager, ssm_test_cache, boto3_session, numbe
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     for i in range(int(number_of_messages)):
         sqs_utils.send_message_to_fifo_queue(
-            boto3_session, queue_url, f'This is message {i}', 'digito-test-group', datetime.now().isoformat()
-        )
+            boto3_session, queue_url, f'This is message {i}', 'digito-test-group', datetime.now().isoformat(),
+            {'test_attribute_name_1': {'StringValue': 'test_attribute_value_1',
+                                       'DataType': 'String'}
+             })
 
 
 cache_number_of_messages_expression = 'cache number of messages in queue as "{cache_property}" "{step_key}" SSM ' \
