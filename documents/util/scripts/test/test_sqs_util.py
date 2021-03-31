@@ -20,7 +20,7 @@ class TestSqsUtil(unittest.TestCase):
         self.empty_policy = {"Policy": ""}
         self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
         self.queue_name = "queue1"
-        self.redrive_policy = { "deadLetterTargetArn": self.resource, "maxReceiveCount": 5}
+        self.redrive_policy = {"deadLetterTargetArn": self.resource, "maxReceiveCount": 5}
         self.action_to_deny = "sqs:DeleteMessage"
         self.patcher = patch("documents.util.scripts.src.sqs_util.sqs_client")
         self.client = self.patcher.start()
