@@ -303,6 +303,7 @@ mainSteps:
 
   - name: ReadMessage1
     action: aws:executeAwsApi
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
     inputs:
       Service: sqs
       Api: ReceiveMessage
