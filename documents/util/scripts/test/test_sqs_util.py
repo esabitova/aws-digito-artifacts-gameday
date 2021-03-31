@@ -592,7 +592,11 @@ class TestSqsUtil(unittest.TestCase):
         self.client.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                             Entries=DELETE_MESSAGE_ENTRIES)
 
-    def test_transfer_messages_exceed_number_of_messages_to_transfer(self):
+    def test_transfer_messages_if_receive_messages_number_is_higher_than_number_of_messages_to_transfer(self):
+        """
+        Test :func:`documents.util.scripts.src.sqs_util.transfer_messages`
+        when there are more messages available to receive but we want to transfer part of them
+        """
         number_of_messages_to_transfer = 2
         events = {
             "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
@@ -601,8 +605,7 @@ class TestSqsUtil(unittest.TestCase):
             "NumberOfMessagesToTransfer": number_of_messages_to_transfer,
             "ForceExecution": True
         }
-        self.client.receive_message.side_effect = [{'Messages': RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][:2]},
-                                                   {'Messages': []}]
+        self.client.receive_message.side_effect = [{'Messages': RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][:2]}]
         self.client.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
         self.client.delete_message_batch.return_value = {'Successful': DELETE_MESSAGE_BATCH_RESPONSE['Successful']}
         self.client.send_message_batch.return_value = {'Successful': SEND_MESSAGE_BATCH_RESPONSE['Successful'][:2]}
@@ -626,6 +629,10 @@ class TestSqsUtil(unittest.TestCase):
                                                             Entries=DELETE_MESSAGE_ENTRIES[:2])
 
     def test_transfer_messages_different_queue_types_and_force_execution_false(self):
+        """
+        Test :func:`documents.util.scripts.src.sqs_util.transfer_messages`
+        when ForceExecution input parameter is False and the types of queues are different
+        """
         events = {
             "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
             "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
@@ -644,6 +651,10 @@ class TestSqsUtil(unittest.TestCase):
         self.client.delete_message_batch.assert_not_called()
 
     def test_transfer_messages_different_error(self):
+        """
+        Test :func:`documents.util.scripts.src.sqs_util.transfer_messages`
+        when there is another error occurred while checking the type of queue
+        """
         events = {
             "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
             "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
@@ -659,3 +670,50 @@ class TestSqsUtil(unittest.TestCase):
         self.client.receive_message.assert_not_called()
         self.client.send_message_batch.assert_not_called()
         self.client.delete_message_batch.assert_not_called()
+
+    def test_transfer_messages_from_standard_to_standard_multiple_loop(self):
+        """
+        Test :func:`documents.util.scripts.src.sqs_util.transfer_messages`
+        when it makes multiple loops
+        """
+        messages_transfer_batch_size = 1
+        events = {
+            "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
+            "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
+            "MessagesTransferBatchSize": messages_transfer_batch_size,
+            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "ForceExecution": True
+        }
+        self.client.receive_message.side_effect = \
+            [{'Messages': [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][0]]},
+             {'Messages': [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][1]]},
+             {'Messages': []}]
+        self.client.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
+        self.client.delete_message_batch.side_effect = \
+            [{'Successful': [DELETE_MESSAGE_BATCH_RESPONSE['Successful'][0]]},
+             {'Successful': [DELETE_MESSAGE_BATCH_RESPONSE['Successful'][1]]}]
+        self.client.send_message_batch.side_effect = \
+            [{'Successful': [SEND_MESSAGE_BATCH_RESPONSE['Successful'][0]]},
+             {'Successful': [SEND_MESSAGE_BATCH_RESPONSE['Successful'][1]]}]
+        actual_response = transfer_messages(events, None)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(2, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(0, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(0, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertIsNotNone(actual_response['TimeElapsed'])
+        self.client.get_queue_attributes.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
+        ])
+        self.client.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
+                                                       MaxNumberOfMessages=messages_transfer_batch_size,
+                                                       MessageAttributeNames=['All'],
+                                                       AttributeNames=['All'])
+        self.client.send_message_batch.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[0]]),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[1]])
+        ])
+        self.client.delete_message_batch.assert_has_calls([
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[0]]),
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[1]])
+        ])
