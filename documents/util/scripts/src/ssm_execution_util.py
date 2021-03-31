@@ -110,7 +110,6 @@ def get_inputs_from_ssm_execution(events, context):
 
     print('Fetching SSM response for execution')
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print(ssm_response)
     ssm_response_parameters = ssm_response['AutomationExecution']['Parameters']
     input_parameters = events['InputFields'].replace(' ', '').split(',')
     output = {}
