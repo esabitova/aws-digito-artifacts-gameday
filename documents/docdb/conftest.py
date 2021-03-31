@@ -98,9 +98,9 @@ def delete_instance_after_test(
     docdb_utils.delete_instance(boto3_session, instance_id)
 
 
-@when(parsers.parse('Wait for DocumentDB instance is in "{expected_status}" status for '
+@when(parsers.parse('Assert that DocumentDB instance is in "{expected_status}" status with timeout of '
                     '"{time_to_wait}" seconds\n{input_parameters}'))
-@then(parsers.parse('Wait for DocumentDB instance is in "{expected_status}" status for '
+@then(parsers.parse('Assert that DocumentDB instance is in "{expected_status}" status with timeout of '
                     '"{time_to_wait}" seconds\n{input_parameters}'))
 def wait_for_documentdb_with_params(cfn_output_params, time_to_wait, boto3_session,
                                     expected_status, input_parameters, ssm_test_cache):
