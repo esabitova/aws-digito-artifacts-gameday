@@ -400,17 +400,55 @@ mainSteps:
         - ApproximateNumberOfMessages
       QueueUrl: '{{ QueueUrl }}'
 
+## Invocation of Digito-MoveMessagesBetweenQueues_2021-03-11 provokes a bug at the moment. Bug report will be frovided in Jira ticket
+#  - name: MoveMessages
+#    action: aws:executeAutomation
+#    maxAttempts: 3
+#    timeoutSeconds: 600
+#    onFailure: Abort
+#    inputs:
+#      DocumentName: Digito-MoveMessagesBetweenQueues_2021-03-11
+#      RuntimeParameters:
+#        SourceQueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
+#        TargetQueueUrl: '{{ QueueUrl }}'
+#        NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMove.ApproximateNumberOfMessages }}'
+
   - name: MoveMessages
-    action: aws:executeAutomation
-    maxAttempts: 3
-    timeoutSeconds: 600
-    onFailure: Abort
+    action: aws:executeScript
+    outputs:
+      - Name: "NumberOfMessagesTransferredToTarget"
+        Selector: "$.Payload.NumberOfMessagesTransferredToTarget"
+        Type: Integer
+      - Name: "NumberOfMessagesFailedToSendToTarget"
+        Selector: "$.Payload.NumberOfMessagesFailedToSendToTarget"
+        Type: Integer
+      - Name: "NumberOfMessagesFailedToDeleteFromSource"
+        Selector: "$.Payload.NumberOfMessagesFailedToDeleteFromSource"
+        Type: Integer
+      - Name: "TimeElapsed"
+        Selector: "$.Payload.TimeElapsed"
+        Type: String
     inputs:
-      DocumentName: Digito-MoveMessagesBetweenQueues_2021-03-11
-      RuntimeParameters:
+      Runtime: "python3.7"
+      Handler: "transfer_messages"
+      InputPayload:
         SourceQueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
         TargetQueueUrl: '{{ QueueUrl }}'
         NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMove.ApproximateNumberOfMessages }}'
+        MessagesTransferBatchSize: 10
+        ForceExecution: 'false'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.transform_messages
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_and_attributes
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_from_fifo_to_fifo
+        SCRIPT_PLACEHOLDER::sqs_util.transform_message_from_standard_to_fifo
+        SCRIPT_PLACEHOLDER::sqs_util.send_messages
+        SCRIPT_PLACEHOLDER::sqs_util.receive_messages
+        SCRIPT_PLACEHOLDER::sqs_util.transfer_messages
+        SCRIPT_PLACEHOLDER::sqs_util.get_statistics
+        SCRIPT_PLACEHOLDER::sqs_util.is_queue_fifo
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
