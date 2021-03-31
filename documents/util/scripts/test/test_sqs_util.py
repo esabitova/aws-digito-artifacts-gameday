@@ -155,9 +155,16 @@ class TestSqsUtil(unittest.TestCase):
         }
         self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
 
-    def test_update_sqs_redrive_policy_wrong_max_recieve_count(self):
+    def test_update_sqs_redrive_policy_max_recieve_count_lower_than_range(self):
         events = {
             "MaxReceiveCount": 0,
+            "SourceRedrivePolicy": json.dumps(self.redrive_policy)
+        }
+        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+
+    def test_update_sqs_redrive_policy_max_recieve_count_upper_than_range(self):
+        events = {
+            "MaxReceiveCount": 1001,
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
         self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
