@@ -18,7 +18,7 @@ enable_git_hooks:
 	chmod +x ./.git/hooks/*
 
 venv: clean clean_test_artifacts enable_git_hooks
-	python3 -m virtualenv venv
+	python3.7 -m virtualenv venv
 
 pip_install: enable_git_hooks
 	source venv/bin/activate && \

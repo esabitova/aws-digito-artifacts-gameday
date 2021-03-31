@@ -519,7 +519,7 @@ class TestSqsUtil(unittest.TestCase):
                                                        MaxNumberOfMessages=self.messages_transfer_batch_size,
                                                        MessageAttributeNames=['All'],
                                                        AttributeNames=['All'])
-        actual_send_message_batch_args = self.client.send_message_batch.call_args.kwargs
+        actual_send_message_batch_args = self.client.send_message_batch.call_args[1]
         self.assertEqual(SQS_STANDARD_DEST_QUEUE_URL, actual_send_message_batch_args['QueueUrl'])
         actual_send_message_batch_entries = actual_send_message_batch_args['Entries']
         for i in range(0, len(MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO)):
