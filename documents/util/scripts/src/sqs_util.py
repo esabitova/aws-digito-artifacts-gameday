@@ -138,6 +138,9 @@ def update_sqs_redrive_policy(events: dict, context: dict) -> dict:
         raise KeyError("Requires SourceRedrivePolicy and MaxReceiveCount in events")
 
     source_redrive_policy: str = events.get("SourceRedrivePolicy")
+    if not source_redrive_policy:
+        raise KeyError("Requires not empty SourceRedrivePolicy")
+
     max_receive_count: int = events.get("MaxReceiveCount")
     if not 1 <= max_receive_count <= 1000:
         raise KeyError("Requires MaxReceiveCount to be in a range 1...1000")
