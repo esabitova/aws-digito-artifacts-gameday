@@ -28,10 +28,6 @@ parameters:
   DeadLetterQueueAlarmName:
     type: String
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
-  PurgeDeadLetterQueue:
-    type: String
-    description: (Optional) Purge dead-letter queue and assert alarm to be green after test and also during rollback execution
-    default: 'false'
   IsRollback:
     type: String
     description: >-
@@ -60,14 +56,14 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: get_inputs_from_ssm_step_execution
+      Handler: get_inputs_from_ssm_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         InputFields: 'QueueUrl'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: AssertQueueUrl
     action: aws:branch
@@ -102,7 +98,7 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
-  - name: PrepareRollbackOfPreviousExecutionGetDeadLetterQueueUrl
+  - name: GetDeadLetterQueueUrlFromPreviousExecution
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -112,7 +108,7 @@ mainSteps:
       Runtime: python3.6
       Handler: get_dead_letter_queue_url
       InputPayload:
-        SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
+        SourceRedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
@@ -167,13 +163,14 @@ mainSteps:
       Runtime: python3.6
       Handler: delete_message_by_id
       InputPayload:
-        QueueUrl: '{{ PrepareRollbackOfPreviousExecutionGetDeadLetterQueueUrl.QueueUrl }}'
+        QueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
         MessageId: '{{ PrepareRollbackOfPreviousExecutionGetSendMessageId.MessageId }}'
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
         SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
         SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
+
 
   - name: GetNumberOfMessagesToMoveForPreviousExecution
     action: aws:executeAwsApi
@@ -196,21 +193,9 @@ mainSteps:
     inputs:
      DocumentName: Digito-MoveMessagesBetweenQueues_2021-03-11
      RuntimeParameters:
-       SourceQueueUrl: '{{ PrepareRollbackOfPreviousExecutionGetDeadLetterQueueUrl.QueueUrl }}'
+       SourceQueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
        TargetQueueUrl: '{{ GetQueueUrlFromPreviousExecution.QueueUrl }}'
        NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMoveForPreviousExecution.ApproximateNumberOfMessages }}'
-
-  - name: AssertAlarmToBeGreenAfterRollback
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 120
-    timeoutSeconds: 5
-    inputs:
-      Service: cloudwatch
-      Api: DescribeAlarms
-      AlarmNames:
-        - "{{ DeadLetterQueueAlarmName }}"
-      PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "OK" ]
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
@@ -305,6 +290,7 @@ mainSteps:
 
   - name: SendMessage
     action: aws:executeAwsApi
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
     outputs:
       - Name: MessageId
         Selector: '$.MessageId'
@@ -326,6 +312,7 @@ mainSteps:
 
   - name: ReadMessage2
     action: aws:executeAwsApi
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
     inputs:
       Service: sqs
       Api: ReceiveMessage
@@ -420,8 +407,8 @@ mainSteps:
     inputs:
       DocumentName: Digito-MoveMessagesBetweenQueues_2021-03-11
       RuntimeParameters:
-        SourceQueueUrl: '{{ QueueUrl }}'
-        TargetQueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
+        SourceQueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
+        TargetQueueUrl: '{{ QueueUrl }}'
         NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMove.ApproximateNumberOfMessages }}'
 
   - name: AssertAlarmToBeGreen
