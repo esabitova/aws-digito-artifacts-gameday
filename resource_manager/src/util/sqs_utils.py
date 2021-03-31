@@ -1,3 +1,6 @@
+import logging
+
+
 def send_message_to_standard_queue(boto3_session, queue_url: str, body: str):
     """
     Use send_message aws method to send message to queue
@@ -42,6 +45,10 @@ def get_number_of_messages(boto3_session, queue_url: str):
         QueueUrl=queue_url,
         AttributeNames=['ApproximateNumberOfMessages']
     )
-    if response['Attributes'] and response['Attributes']['ApproximateNumberOfMessages']:
-        return response['Attributes']['ApproximateNumberOfMessages']
+    if response['Attributes']:
+        visible_messages = "0"
+        if 'ApproximateNumberOfMessages' in response['Attributes']:
+            visible_messages = response['Attributes']['ApproximateNumberOfMessages']
+        logging.info(f'Queue has {visible_messages} visible messages')
+        return visible_messages
     raise Exception('Queue not found')

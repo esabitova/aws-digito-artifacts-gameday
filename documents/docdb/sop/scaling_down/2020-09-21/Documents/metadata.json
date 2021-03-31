@@ -1,4 +1,6 @@
 {
+  "displayName": "Document DB Scale Down",
+  "description": "Used to scale down the cluster has below the threshold utilization.",
   "documentName": "Digito-ScalingDown_2020-09-21",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

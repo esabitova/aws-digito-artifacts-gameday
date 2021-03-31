@@ -1,10 +1,11 @@
 {
   "displayName": "Replica lag",
+  "description": "Reports when non-Aurora database replica lag is high",
   "alarmName": "Digito-ReplicaLag_2020-04-01",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "rds:alarms:recovery-replica_lag:2020-04-01",
-  "description": "Reports when non-Aurora database replica lag is high",
+  "failureType": "SOFTWARE",
   "minorVersion": "001"
 }

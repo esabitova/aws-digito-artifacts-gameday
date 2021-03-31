@@ -87,6 +87,9 @@ Outputs:
   ApproximateAgeOfOldestMessageDLQAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageDLQAlarm
+  AlwaysOKAlarm:
+    Description: Alarm
+    Value: !Ref SQSAlwaysOKAlarm
 
 Parameters:
   SqsFifoQueueRedrivePolicyMaxReceiveCount:
@@ -384,3 +387,17 @@ Resources:
       Threshold: !Ref ApproximateAgeOfOldestMessageDLQThreshold
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "missing"
+  SQSAlwaysOKAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsSQSAlwaysOKAlarm"
+      AlarmDescription: "sqs:alarm:always_ok:2021-03-24"
+      ActionsEnabled: false
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 1
+      MetricName: "AlwaysOK"
+      Namespace: "AWS/SQS"
+      Period: 60
+      Statistic: "Minimum"
+      TreatMissingData: "notBreaching"
+      Threshold: 100

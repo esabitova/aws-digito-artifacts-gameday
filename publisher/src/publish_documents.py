@@ -24,10 +24,8 @@ class PublishDocuments:
             doc_type = document_metadata['documentType']
             doc_format = document_metadata['documentFormat']
             tag_value = document_metadata['tag']
-            # metadata_file_path = document_metadata['location'] + '/metadata.json'
 
-            # TODO(semiond): Disabled for now to fix metadata.json
-            # self.validate_metadata(document_metadata, metadata_file_path)
+            self.validate_metadata(document_metadata)
 
             document_content = self.get_document_content(document_metadata)
             if self.document_exists(doc_name):
@@ -196,13 +194,13 @@ class PublishDocuments:
 
         return script_lines_to_be_included
 
-    def validate_metadata(self, document_metadata, metadata_file_path):
+    def validate_metadata(self, document_metadata):
         """
         Validates metadata.json files for SSM documents based on given required attributes
         and returns failed attributes messages for given metadata.json file.
         :param document_metadata The metadata.json file content
-        :param metadata_file_path The metadata.json file path.
         """
+        metadata_file_path = document_metadata['location'] + '/metadata.json'
         meta_attrs_map = metadata_attrs.metadata_attrs_map
         required_attributes = []
         if 'test' in metadata_file_path:

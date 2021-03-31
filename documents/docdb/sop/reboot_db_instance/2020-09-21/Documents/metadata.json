@@ -1,4 +1,6 @@
 {
+  "displayName": "Reboot DB Instance",
+  "description": "Used to reboot DB instance when the database doesn’t respond to any requests.",
   "documentName": "Digito-RebootDbInstance_2020-09-21",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

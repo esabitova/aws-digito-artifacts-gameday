@@ -1,11 +1,11 @@
 import unittest
 import time
 import pytest
-from src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint, verify_ec2_stress,\
-    verify_alarm_triggered
+from documents.util.scripts.src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint,\
+    verify_ec2_stress, verify_alarm_triggered, get_metric_alarm_threshold_values
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from test.test_data_provider import get_instance_ids_by_count
+from documents.util.scripts.test.test_data_provider import get_instance_ids_by_count
 import datetime
 
 
@@ -28,10 +28,13 @@ class TestCloudWatchUtil(unittest.TestCase):
         expected_cpu_load = 95
         actual_cpu_load = '50'
         latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
-                                                           [{'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
-                                                            {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
-                                                            {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}]}
+        self.cw_mock.get_metric_statistics.return_value = {
+            'Datapoints': [
+                {'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
+                {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
+                {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}
+            ]
+        }
 
         stress_duration = 3
         exp_recovery_time = 10
@@ -44,10 +47,13 @@ class TestCloudWatchUtil(unittest.TestCase):
         expected_cpu_load = 95
         actual_cpu_load = '95'
         latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
-                                                           [{'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
-                                                            {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
-                                                            {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}]}
+        self.cw_mock.get_metric_statistics.return_value = {
+            'Datapoints': [
+                {'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
+                {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
+                {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}
+            ]
+        }
         stress_duration = 3
         exp_recovery_time = 10
         instance_ids = get_instance_ids_by_count(5)
@@ -63,10 +69,13 @@ class TestCloudWatchUtil(unittest.TestCase):
         expected_cpu_load = 95
         actual_cpu_load = '95'
         latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
-                                                           [{'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
-                                                            {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
-                                                            {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}]}
+        self.cw_mock.get_metric_statistics.return_value = {
+            'Datapoints': [
+                {'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
+                {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
+                {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}
+            ]
+        }
 
         stress_duration = 3
         exp_recovery_time = 1
@@ -95,11 +104,14 @@ class TestCloudWatchUtil(unittest.TestCase):
 
     def test_get_ec2_cpu_metric_max_datapoint_success(self):
         latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
-        self.cw_mock.get_metric_statistics.return_value = {'Datapoints':
-                                                           [{'Maximum': '10', 'Timestamp': datetime.datetime.utcnow()},
-                                                            {'Maximum': '5', 'Timestamp': datetime.datetime.utcnow()},
-                                                            {'Maximum': '100', 'Timestamp': latest_timestamp},
-                                                            {'Maximum': '7', 'Timestamp': datetime.datetime.utcnow()}]}
+        self.cw_mock.get_metric_statistics.return_value = {
+            'Datapoints': [
+                {'Maximum': '10', 'Timestamp': datetime.datetime.utcnow()},
+                {'Maximum': '5', 'Timestamp': datetime.datetime.utcnow()},
+                {'Maximum': '100', 'Timestamp': latest_timestamp},
+                {'Maximum': '7', 'Timestamp': datetime.datetime.utcnow()}
+            ]
+        }
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)
         self.assertEqual(dp, 100)
 
@@ -109,9 +121,12 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.assertEqual(dp, 0.0)
 
     def test_verify_alarm_triggered_success(self):
-        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
-                                                            [{'HistorySummary': 'Alarm updated from OK to ALARM'},
-                                                             {'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+        self.cw_mock.describe_alarm_history.return_value = {
+            'AlarmHistoryItems': [
+                {'HistorySummary': 'Alarm updated from OK to ALARM'},
+                {'HistorySummary': 'Alarm updated from ALARM to OK'}
+            ]
+        }
 
         events = {}
         events['AlarmName'] = 'AlarmName'
@@ -120,8 +135,9 @@ class TestCloudWatchUtil(unittest.TestCase):
         verify_alarm_triggered(events, None)
 
     def test_verify_alarm_triggered_fail(self):
-        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
-                                                            [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+        self.cw_mock.describe_alarm_history.return_value = {
+            'AlarmHistoryItems': [{'HistorySummary': 'Alarm updated from ALARM to OK'}]
+        }
 
         events = {}
         events['AlarmName'] = 'AlarmName'
@@ -130,8 +146,9 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.assertRaises(Exception, verify_alarm_triggered, events, None)
 
     def test_verify_alarm_triggered_missing_duration(self):
-        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
-                                                            [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+        self.cw_mock.describe_alarm_history.return_value = {
+            'AlarmHistoryItems': [{'HistorySummary': 'Alarm updated from ALARM to OK'}]
+        }
 
         events = {}
         events['AlarmName'] = 'AlarmName'
@@ -139,10 +156,23 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.assertRaises(KeyError, verify_alarm_triggered, events, None)
 
     def test_verify_alarm_triggered_missing_alarm_name(self):
-        self.cw_mock.describe_alarm_history.return_value = {'AlarmHistoryItems':
-                                                            [{'HistorySummary': 'Alarm updated from ALARM to OK'}]}
+        self.cw_mock.describe_alarm_history.return_value = {
+            'AlarmHistoryItems': [{'HistorySummary': 'Alarm updated from ALARM to OK'}]
+        }
 
         events = {}
         events['DurationInMinutes'] = '1'
 
         self.assertRaises(KeyError, verify_alarm_triggered, events, None)
+
+    def test_get_metric_alarm_threshold_values(self):
+        self.cw_mock.describe_alarms.return_value = {
+            'MetricAlarms': [{'Threshold': 100}]
+        }
+
+        events = {}
+        events['AlarmName'] = 'AlarmName'
+        response = get_metric_alarm_threshold_values(events, None)
+        self.assertEqual(100, response['Threshold'])
+        self.assertGreater(100, response['ValueBelowThreshold'])
+        self.assertLess(100, response['ValueAboveThreshold'])

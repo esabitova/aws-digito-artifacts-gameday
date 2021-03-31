@@ -1,5 +1,6 @@
 {
   "displayName": "Test - Inject CPU load to ASG",
+  "description": "Test app performance under load.",
   "documentName": "Digito-SimulateHighCpuLoadInAsg_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

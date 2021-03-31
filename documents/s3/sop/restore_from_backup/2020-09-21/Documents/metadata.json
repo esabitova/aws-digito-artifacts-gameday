@@ -1,5 +1,6 @@
 {
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "description": "To restore an S3 bucket from a backup bucket",
   "dependsOn": "Digito-CleanS3Bucket_2021-03-03",
   "displayName": "SOP - Restore From Backup",
   "documentContentPath": "AutomationDocument.yml",

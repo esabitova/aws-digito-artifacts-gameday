@@ -1,0 +1,14 @@
+{
+  "displayName": "Document DB Restore From Point In Time",
+  "description": "Used to restore a database to an old stable state from a Point in Time snapshot.",
+  "documentName": "Digito-RestoreFromPointInTime_2020-09-21",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "docdb:sop:restore_from_point_in_time:2020-09-21",
+  "failureType": "SOFTWARE",
+  "risk": "SMALL",
+  "intent": "| Used to restore a database to an old stable state from a Point in Time snapshot.",
+  "minorVersion": "001"
+}
