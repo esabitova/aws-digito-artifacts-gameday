@@ -521,8 +521,6 @@ Resources:
       TreatMissingData: "missing"
   SNSTopic:
     Type: "AWS::SNS::Topic"
-    Properties:
-      TopicName: "sns-topic"
   SNSTopicPolicy:
     Type: "AWS::SNS::TopicPolicy"
     Properties:
@@ -533,18 +531,14 @@ Resources:
           - Sid: SNSTopicPolicyStatement
             Effect: Allow
             Principal:
-              AWS: "*"
+              Service:
+                - cloudwatch.amazonaws.com
             Action:
-              - SNS:GetTopicAttributes
-              - SNS:SetTopicAttributes
-              - SNS:AddPermission
-              - SNS:RemovePermission
-              - SNS:DeleteTopic
-              - SNS:Subscribe
-              - SNS:ListSubscriptionsByTopic
               - SNS:Publish
-              - SNS:Receive
             Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref "AWS::AccountId"
       Topics:
         - !Ref SNSTopic
   StateMachine:
