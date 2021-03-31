@@ -7,6 +7,7 @@ import pytest
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy
 from documents.util.scripts.src.sqs_util import send_message_of_size, update_sqs_redrive_policy
+from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_FIFO_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue.fifo"
@@ -18,6 +19,8 @@ class TestSqsUtil(unittest.TestCase):
         self.queue_url = SQS_STANDARD_QUEUE_URL
         self.empty_policy = {"Policy": ""}
         self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
+        self.queue_name = "queue1"
+        self.redrive_policy = { "deadLetterTargetArn": self.resource, "maxReceiveCount": 5}
         self.action_to_deny = "sqs:DeleteMessage"
         self.patcher = patch("documents.util.scripts.src.sqs_util.sqs_client")
         self.client = self.patcher.start()
@@ -129,15 +132,10 @@ class TestSqsUtil(unittest.TestCase):
         self.client.send_message.assert_called_once()
         self.assertEqual(100, len(self.client.send_message.call_args[1]['MessageBody']))
 
-    def test_update_sqs_redrive_policy(self, max_recieve_count=None):
+    def test_update_sqs_redrive_policy(self):
         events = {
             "MaxReceiveCount": 1,
-            "SourceRedrivePolicy": json.dumps(
-                {
-                    "deadLetterTargetArn": self.resource,
-                    "maxReceiveCount": 5
-                }
-            )
+            "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
         response = update_sqs_redrive_policy(events, None)
         updated_redrive_policy = json.loads(response["RedrivePolicy"])
@@ -145,3 +143,10 @@ class TestSqsUtil(unittest.TestCase):
         self.assertEqual(self.resource, updated_redrive_policy["deadLetterTargetArn"])
         self.assertIsNotNone(updated_redrive_policy["maxReceiveCount"])
         self.assertEqual(1, updated_redrive_policy["maxReceiveCount"])
+
+    def test_get_dead_letter_queue_url(self):
+        events = {
+            "SourceRedrivePolicy": json.dumps(self.redrive_policy)
+        }
+        get_dead_letter_queue_url(events, None)
+        self.client.get_queue_url.assert_called_once_with(QueueName=self.queue_name)
