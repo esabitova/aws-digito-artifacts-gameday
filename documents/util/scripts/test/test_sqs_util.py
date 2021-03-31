@@ -144,6 +144,24 @@ class TestSqsUtil(unittest.TestCase):
         self.assertIsNotNone(updated_redrive_policy["maxReceiveCount"])
         self.assertEqual(1, updated_redrive_policy["maxReceiveCount"])
 
+    def test_update_sqs_redrive_policy_empty_events(self):
+        events = {}
+        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+
+    def test_update_sqs_redrive_policy_empty_redrive_policy(self):
+        events = {
+            "MaxReceiveCount": 1,
+            "SourceRedrivePolicy": ""
+        }
+        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+
+    def test_update_sqs_redrive_policy_wrong_max_recieve_count(self):
+        events = {
+            "MaxReceiveCount": 0,
+            "SourceRedrivePolicy": json.dumps(self.redrive_policy)
+        }
+        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+
     def test_get_dead_letter_queue_url(self):
         events = {
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
