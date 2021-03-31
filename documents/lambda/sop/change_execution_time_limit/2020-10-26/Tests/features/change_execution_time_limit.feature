@@ -7,6 +7,7 @@ Feature: SSM automation document for changing execution time limit of Lambda.
       | CfnTemplatePath                                                                                         | ResourceType |
       | resource_manager/cloud_formation_templates/LambdaTemplate.yml                                           | ON_DEMAND    |
       | documents/lambda/sop/change_execution_time_limit/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+    And published "Digito-ChangeExecutionTimeLimit_2020-10-26" SSM document
     And SSM automation document "Digito-ChangeExecutionTimeLimit_2020-10-26" executed
       | NewTimeoutValueSeconds                       | LambdaARN                               | AutomationAssumeRole                                                                 |
       | 570 | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeExecutionTimeLimitAssumeRole}} |

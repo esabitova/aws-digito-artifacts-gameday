@@ -65,7 +65,7 @@ Yes. The script removes test message from the queue. Users can run the script wi
    * Outputs: none
    * Explanation:
       * if `IsRollback` is true, continue with `PrepareRemoveOfFailureMessage` step
-      * if `IsRollback` is false, continue with `SendCapacityFailureMessage` step
+      * if `IsRollback` is false, continue with `AssertAlarmToBeGreenBeforeTest` step
 1. `PrepareRemoveOfFailureMessage`
    * Type: aws:executeScript
    * Inputs:
@@ -88,6 +88,13 @@ Yes. The script removes test message from the queue. Users can run the script wi
       from `sqs` service to delete the message by its `ReceiptHandle`
       * Throw exception if message not found before `TimeOut`
 
+1. `AssertAlarmToBeGreenBeforeTest`
+    * Type: aws:waitForAwsResourceProperty
+    * Inputs:
+        * `AlarmNames`: Name of the alarm with SentMessageSize metric (`SentMessageSizeAlarmName`)
+    * Outputs: none
+    * Explanation:
+        * Wait for 600 seconds for the alarm to be in `OK` state
 1. `GetAlarmThreshold`
     * Type: aws:executeScript
         * Inputs:

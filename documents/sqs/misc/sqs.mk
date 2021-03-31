@@ -39,4 +39,3 @@ service_unit_test:
 	source venv/bin/activate && \
 	python3 -m pytest -m unit_test documents/util/scripts/test/test_sqs_util.py && \
 	deactivate
-	

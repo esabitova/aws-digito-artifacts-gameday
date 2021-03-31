@@ -1,5 +1,6 @@
 {
     "displayName": "Test - Recover after all ASG nodes replaced",
+    "description": "Test that the application stays up even if all instances are replaced. This proves that the app will work even with fresh installs.",
     "documentName": "Digito-RefreshAsgInstances_2020-07-23",
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",

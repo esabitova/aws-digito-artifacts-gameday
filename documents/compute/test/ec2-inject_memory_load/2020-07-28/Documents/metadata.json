@@ -1,5 +1,6 @@
 {
   "displayName": "Test - Inject Memory load to EC2",
+  "description": "Test app monitor under load.",
   "documentName": "Digito-SimulateHighMemoryLoadInEc2_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

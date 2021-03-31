@@ -52,13 +52,14 @@ def get_number_of_messages(boto3_session, queue_url: str):
     :return Number of messages in queue
     """
     sqs_client = boto3_session.client('sqs')
-    logging.info(f'Arguments for get_queue_attributes method: QueueUrl={queue_url},'
-                 f'AttributeNames= [\'ApproximateNumberOfMessages\']')
     response = sqs_client.get_queue_attributes(
         QueueUrl=queue_url,
         AttributeNames=['ApproximateNumberOfMessages']
     )
-    logging.info(f'Response of get_queue_attributes method: {response}')
-    if response['Attributes'] and response['Attributes']['ApproximateNumberOfMessages']:
-        return response['Attributes']['ApproximateNumberOfMessages']
+    if response['Attributes']:
+        visible_messages = "0"
+        if 'ApproximateNumberOfMessages' in response['Attributes']:
+            visible_messages = response['Attributes']['ApproximateNumberOfMessages']
+        logging.info(f'Queue has {visible_messages} visible messages')
+        return visible_messages
     raise Exception('Queue not found')
