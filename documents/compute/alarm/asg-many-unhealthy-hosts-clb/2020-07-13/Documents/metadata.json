@@ -6,6 +6,6 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-many-unhealthy-hosts-clb:2020-07-13",
-  "failureType": "HARDWARE",
+  "failureType": "SOFTWARE,HARDWARE,AZ",
   "minorVersion": "001"
 }
