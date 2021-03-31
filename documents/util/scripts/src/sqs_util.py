@@ -255,20 +255,28 @@ def transfer_messages(events: dict, context: dict) -> dict:
     start = now = int(time.time())
     max_duration_seconds = 9 * 60
     loop_count = 1
+    number_of_messages_received_from_source = 0
 
-    while number_of_messages_transferred_to_target < number_of_messages_to_transfer and (
-            now - start) < max_duration_seconds:
+    while number_of_messages_received_from_source < number_of_messages_to_transfer \
+            and (now - start) < max_duration_seconds:
         logger.debug(f'Entered into loop #{loop_count} '
                      f'with number_of_messages_transferred_to_target < number_of_messages_to_transfer = '
                      f'{number_of_messages_transferred_to_target} < {number_of_messages_to_transfer}, '
                      f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
 
-        received_messages: Optional[List[dict]] = receive_messages(source_queue_url, messages_transfer_batch_size)
+        messages_transfer_batch_size_for_each_call = \
+            min((number_of_messages_to_transfer - number_of_messages_received_from_source),
+                messages_transfer_batch_size)
+
+        received_messages: Optional[List[dict]] = receive_messages(source_queue_url,
+                                                                   messages_transfer_batch_size_for_each_call)
         if received_messages is None or len(received_messages) == 0:
             return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
                                   number_of_messages_failed_to_send_to_target,
                                   number_of_messages_transferred_to_target, source_queue_url, start,
                                   start_execution, max_duration_seconds)
+        else:
+            number_of_messages_received_from_source += len(received_messages)
 
         messages_to_send: List[dict] = []
         if is_source_queue_fifo and is_target_queue_fifo:  # If both queues are FIFO
