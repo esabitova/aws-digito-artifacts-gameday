@@ -73,9 +73,6 @@ Outputs:
   SentMessageSizeFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
-  DlqMessageAlarm:
-    Description: Alarm
-    Value: !Ref  SQSDlqMessageAlarm
   DlqMessageFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SqsDlqMessageFifoQueueAlarm
