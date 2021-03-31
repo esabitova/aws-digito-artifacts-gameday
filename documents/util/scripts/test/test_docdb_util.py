@@ -323,6 +323,14 @@ class TestDocDBUtil(unittest.TestCase):
         }, response)
         self.mock_docdb.describe_db_cluster_snapshots.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
 
+    def test_get_latest_snapshot_id_no_snapshots_available(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.describe_db_cluster_snapshots.return_value = {'DBClusterSnapshots': []}
+        self.assertRaises(Exception, get_latest_snapshot_id, events, None)
+        self.mock_docdb.describe_db_cluster_snapshots.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+
     def test_get_latest_snapshot_id_empty_events(self):
         self.assertRaises(Exception, get_latest_snapshot_id, {}, None)
 
