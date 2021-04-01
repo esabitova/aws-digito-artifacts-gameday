@@ -19,5 +19,18 @@ pool_size = dict(
  default=1,
  # The pool size configuration for RdsAuroraFailoverTestTemplate.yml (file name with no extension)
  RdsAuroraFailoverTestTemplate=2,
- EC2WithCWAgentCfnTemplate=1
+ RdsCfnTemplate=3,
+ # We have 8 tests which are using EC2WithCWAgentCfnTemplate.yml template
+ EC2WithCWAgentCfnTemplate=4,
+ RdsAuroraWithBacktrackTemplate=1,
+ # We have 7 tests which are using DocDbTemplate.yml template
+ DocDbTemplate=4,
+ # We have 10 tests which are using AsgCfnTemplate.yml template,
+ # however we cannot create many templates since it creates VPC,
+ # to fix this issues need to work on: https://issues.amazon.com/issues/Digito-1741
+ AsgCfnTemplate=1,
+ # We have 22 tests which are using SqsTemplate.yml template
+ SqsTemplate=8,
+ # We have 6 tests which are using S3Template.yml template
+ S3Template=3
 )
