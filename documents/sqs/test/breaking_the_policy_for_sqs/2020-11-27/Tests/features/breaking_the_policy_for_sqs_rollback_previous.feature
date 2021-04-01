@@ -7,6 +7,9 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-BreakingThePolicyForSQS_2020-11-27" SSM document
+    And cache policy as "Policy" "before" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -15,7 +18,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
-      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                                |
+      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
     # Terminate execution
@@ -35,36 +38,36 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    When Wait for alarm to be in state "ALARM" for "300" seconds
-      | AlarmName                                                |
-      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
-
     # Try to send some messages to check that policy was removed
     And send "5" messages to queue with error
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "30" seconds
     # Alarm should still be triggered
     When Wait for alarm to be in state "ALARM" for "50" seconds
-      | AlarmName                                                |
-      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
+      | AlarmName                                            |
+      | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
     # Run rollback
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
-      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
+      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                | IsRollback | PreviousExecutionId        |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} | true       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
+    And cache policy as "Policy" "after" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     And send "5" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And Wait for alarm to be in state "OK" for "50" seconds
-      | AlarmName                                                |
-      | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
+      | AlarmName                                            |
+      | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "60" seconds
+
+    Then assert "Policy" at "before" became equal to "Policy" at "after"
