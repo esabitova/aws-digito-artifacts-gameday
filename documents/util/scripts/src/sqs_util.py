@@ -404,8 +404,7 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
 
     sqs_client = boto3.client("sqs")
     source_redrive_policy: dict = json.loads(source_redrive_policy)
-    dead_letter_queue_arn: str = source_redrive_policy.get("deadLetterTargetArn")
-    dead_letter_queue_name: str = dead_letter_queue_arn.split(':', 5)[5]
+    dead_letter_queue_name: str = source_redrive_policy.get("deadLetterTargetArn").split(':', 5)[5]
     get_queue_url_response: dict = sqs_client.get_queue_url(QueueName=dead_letter_queue_name)
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
 
