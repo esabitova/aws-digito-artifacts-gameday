@@ -27,6 +27,12 @@ Outputs:
   SqsFifoQueueUrl:
     Description: Fifo queue URL
     Value: !Ref SqsFifoQueue
+  SqsDeadLetterQueueArn:
+    Description: Dead letter queue ARN
+    Value: !GetAtt SqsDeadLetterQueue.Arn
+  SqsDeadLetterQueueUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDeadLetterQueue
   SqsFifoQueueEnabledDlqArn:
     Description: ARN of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.Arn
@@ -36,31 +42,21 @@ Outputs:
   SqsFifoQueueEnabledDlqName:
     Description: Name of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
-  SqsDlqForFifoQueueArn:
+  SqsDeadLetterQueueEnabledDlqArn:
     Description: Dead letter queue ARN
-    Value: !GetAtt SqsDlqForFifoQueue.Arn
-  SqsDlqForFifoQueueUrl:
+    Value: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
+  SqsDeadLetterQueueEnabledDlqUrl:
     Description: Dead letter queue URL
-    Value: !Ref SqsDlqForFifoQueue
+    Value: !Ref SqsDeadLetterQueueEnabledDlq
   SqsStandardQueueArn:
     Description: Standard queue ARN
     Value: !GetAtt SqsStandardQueue.Arn
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
-  SqsStandardQueueEnabledDlqArn:
-    Value: !GetAtt SqsStandardQueueEnabledDlq.Arn
-  SqsStandardQueueEnabledDlqUrl:
-    Value: !Ref SqsStandardQueueEnabledDlq
-  SqsDlqForStandardQueueArn:
-    Description: Dead letter queue ARN
-    Value: !GetAtt SqsDlqForStandardQueue.Arn
-  SqsDlqForStandardQueueUrl:
-    Description: Dead letter queue URL
-    Value: !Ref SqsDlqForStandardQueue
   SNSTopicARN:
     Description: SNS Topic ARN
-    Value: !GetAtt SqsDlqForStandardQueue.Arn
+    Value: !GetAtt SqsDeadLetterQueue.Arn
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -73,9 +69,12 @@ Outputs:
   SentMessageSizeFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
-  DlqMessageFifoQueueAlarm:
+  DLQMessageAlarm:
     Description: Alarm
-    Value: !Ref  SqsDlqMessageFifoQueueAlarm
+    Value: !Ref  SQSDlqMessageAlarm
+  DLQMessageAlarmForEnabledDlq:
+    Description: Alarm
+    Value: !Ref  SQSDlqMessageAlarmForEnabledDlq
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
@@ -185,6 +184,8 @@ Resources:
     Properties:
       FifoQueue: true
   SqsStandardQueue:
+    Type: "AWS::SQS::Queue"
+  SqsDestinationStandardQueue:
     Type: "AWS::SQS::Queue"
   SqsStandardQueueEnabledDlq:
     Type: "AWS::SQS::Queue"

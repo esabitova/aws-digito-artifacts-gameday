@@ -2,10 +2,13 @@ from pytest_bdd import (
     given,
     parsers, when, then
 )
+
+import time
 import random
 
 from resource_manager.src.util import docdb_utils as docdb_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
+from resource_manager.src.util.param_utils import parse_param_values_from_table
 
 cache_number_of_clusters_expression = 'cache current number of clusters as "{cache_property}" "{step_key}" SSM ' \
                                       'automation execution' \
@@ -93,6 +96,42 @@ def delete_instance_after_test(
         input_parameters, "DBInstanceIdentifier", resource_manager, ssm_test_cache
     )
     docdb_utils.delete_instance(boto3_session, instance_id)
+
+
+@when(parsers.parse('Assert that DocumentDB instance is in "{expected_status}" status with timeout of '
+                    '"{time_to_wait}" seconds\n{input_parameters}'))
+@then(parsers.parse('Assert that DocumentDB instance is in "{expected_status}" status with timeout of '
+                    '"{time_to_wait}" seconds\n{input_parameters}'))
+def wait_for_documentdb_with_params(cfn_output_params, time_to_wait, boto3_session,
+                                    expected_status, input_parameters, ssm_test_cache):
+    """
+    Common step to wait for SSM document execution step waiting of final status
+    :param cfn_output_params The cfn output params from resource manager
+    :param boto3_session boto3 client session
+    :param time_to_wait Timeout in seconds to wait until step status is resolved
+    :param expected_status The expected SSM document execution status
+    :param input_parameters The input parameters
+    :param ssm_test_cache The custom test cache
+    """
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    db_instance_identifier = parameters[0].get('DBInstanceIdentifier')
+    if db_instance_identifier is None:
+        raise Exception('Parameter with name [DBInstanceIdentifier] should be provided')
+
+    actual_status = None
+    timeout_timestamp = time.time() + int(time_to_wait)
+    while time.time() < timeout_timestamp:
+        actual_status = docdb_utils.get_instance_status(
+            boto3_session=boto3_session,
+            db_instance_identifier=db_instance_identifier).get('DBInstanceStatus')
+        if actual_status == expected_status:
+            break
+        time.sleep(5)
+    if actual_status != expected_status:
+        raise AssertionError(f'Expected status {expected_status} is not equal to the actual status {actual_status} '
+                             'after {time_to_wait} seconds')
+    assert actual_status == expected_status
 
 
 @given(parsers.parse(cache_replica_id_expression))
