@@ -308,8 +308,8 @@ class TestSqsUtil(unittest.TestCase):
         self.messages_transfer_batch_size = 10
         self.queue_url = SQS_STANDARD_QUEUE_URL
         self.empty_policy = {"Policy": ""}
-        self.resource = "arn:aws:sqs:us-east-2:444455556666:queue1"
-        self.queue_name = "queue1"
+        self.resource = "arn:aws:sqs:us-east-2:444455556666:MyQueue"
+        self.queue_name = "MyQueue"
         self.redrive_policy = {"deadLetterTargetArn": self.resource, "maxReceiveCount": 5}
         self.action_to_deny = "sqs:DeleteMessage"
 
@@ -770,8 +770,13 @@ class TestSqsUtil(unittest.TestCase):
         events = {
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
-        get_dead_letter_queue_url(events, None)
+        self.sqs_client_mock.get_queue_url.return_value = \
+            {'QueueUrl': self.queue_url}
+
+        actual_response = get_dead_letter_queue_url(events, None)
         self.sqs_client_mock.get_queue_url.assert_called_once_with(QueueName=self.queue_name)
+        self.assertIsNotNone(actual_response)
+        self.assertEqual(self.queue_url, actual_response['QueueUrl'])
 
     def test_get_dead_letter_queue_url_empty_events(self):
         events = {}
