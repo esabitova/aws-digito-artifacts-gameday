@@ -54,6 +54,9 @@ Outputs:
   SentMessageSizeStandardQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeStandardQueueAlarm
+  SqsDestinationStandardQueueUrl:
+    Description: Standard queue ARN
+    Value: !Ref SqsDestinationStandardQueue
   SentMessageSizeFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
