@@ -6,6 +6,6 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:ec2-failed-instance:2020-07-13",
-  "failureType": "HARDWARE",
+  "failureType": "SOFTWARE,HARDWARE,AZ",
   "minorVersion": "001"
 }

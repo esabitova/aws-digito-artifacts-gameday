@@ -16,16 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for RDS promote read replica SOP
+Description: Role for SSM MoveMessagesBetweenQueues
 Outputs:
-  DigitoRdsPromoteReadReplicaAssumeRole:
-    Description: Digito Rds Promote Read Replica Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRdsPromoteReadReplicaAssumeRole.Arn
-    Export:
-      Name: DigitoRdsPromoteReadReplicaAssumeRole
+  DigitoMoveMessagesBetweenQueuesAssumeRole:
+    Description: DigitoMoveMessagesBetweenQueues Automation Assume Role ARN
+    Value: !GetAtt DigitoMoveMessagesBetweenQueuesAssumeRole.Arn
 Resources:
-  DigitoRdsPromoteReadReplicaAssumeRole:
+  DigitoMoveMessagesBetweenQueuesAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -37,20 +34,23 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRdsPromoteReadReplicaAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoMoveMessagesBetweenQueuesAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoRdsPromoteReadReplicaAssumePolicy"
+      PolicyName: DigitoMoveMessagesBetweenQueuesAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
-              - 'rds:CreateDBInstanceReadReplica'
-              - 'rds:DeleteDBInstance'
-              - 'rds:DescribeDBInstances'
-              - 'rds:ModifyDBInstance'
-              - 'rds:PromoteReadReplica'
+              - sqs:SendMessage
+              - sqs:DeleteMessage
+              - sqs:ReceiveMessage
+              - sqs:GetQueueAttributes
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
       Roles:
-        - Ref: DigitoRdsPromoteReadReplicaAssumeRole
+        - Ref: DigitoMoveMessagesBetweenQueuesAssumeRole

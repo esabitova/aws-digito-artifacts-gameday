@@ -2,7 +2,7 @@
 docdb:sop:reboot_db_instance:2020-09-21
 
 ## Intent
-Used to reboot DB instance when the database doesn’t respond to any requests
+Used to reboot DB instance
 
 ## Type
 Software Outage SOP
@@ -37,7 +37,7 @@ No.
    * Inputs:
       * `DBInstanceIdentifier`
    * Explanation:
-      * Reboot DB instance when the database doesn’t respond to any requests by
+      * Reboot DB instance by
         calling [RebootDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_RebootDBInstance.html)
 2. `WaitUntilInstancesAvailable`
     * Type: aws:waitForAwsResourceProperty

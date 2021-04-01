@@ -38,7 +38,7 @@ parameters:
 mainSteps:
   - name: RebootDbInstance
     action: aws:executeAwsApi
-    description: Reboot DB instance when the database doesn’t respond to any requests
+    description: Reboot DB instance
     inputs:
       Service: docdb
       Api: RebootDBInstance

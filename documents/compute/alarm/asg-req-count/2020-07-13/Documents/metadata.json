@@ -6,7 +6,7 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:asg-req-count:2020-07-13",
-  "failureType": "SOFTWARE",
+  "failureType": "SOFTWARE,HARDWARE,AZ",
   "minorVersion": "001",
   "relatedSOPs": [
     "compute:sop:asg-scale_out:2020-07-01"

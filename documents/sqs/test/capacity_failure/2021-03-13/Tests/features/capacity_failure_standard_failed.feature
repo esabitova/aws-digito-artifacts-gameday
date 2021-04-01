@@ -21,12 +21,14 @@ Feature: SSM automation document to test SQS message size get close to threshold
     When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
