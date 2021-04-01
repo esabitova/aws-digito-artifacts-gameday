@@ -57,9 +57,6 @@ Outputs:
   SqsDestinationStandardQueueUrl:
     Description: Standard queue ARN
     Value: !Ref SqsDestinationStandardQueue
-  SNSTopicARN:
-    Description: SNS Topic ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -194,28 +191,6 @@ Resources:
     Type: "AWS::SQS::Queue"
   SqsDestinationStandardQueue:
     Type: "AWS::SQS::Queue"
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
-  SNSTopicPolicy:
-    Type: "AWS::SNS::TopicPolicy"
-    Properties:
-      PolicyDocument:
-        Version: '2008-10-17'
-        Id: SNSTopicPolicy
-        Statement:
-          - Sid: SNSTopicPolicyStatement
-            Effect: Allow
-            Principal:
-              Service:
-                - cloudwatch.amazonaws.com
-            Action:
-              - SNS:Publish
-            Resource: !Ref SNSTopic
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref "AWS::AccountId"
-      Topics:
-        - !Ref SNSTopic
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
