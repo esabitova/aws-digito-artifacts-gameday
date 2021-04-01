@@ -118,8 +118,8 @@ def get_inputs_from_ssm_execution(events, context):
         if input_parameter in ssm_response_parameters:
             print("Input parameter in response: ", input_parameter)
             output[input_parameter] = ssm_response_parameters[input_parameter][0]
-    else:
-        print("Input parameter not in response: ", input_parameter)
-        output[input_parameter] = "None"
+        else:
+            print("Input parameter not in response: ", input_parameter)
+            output[input_parameter] = "None"
 
     return output
