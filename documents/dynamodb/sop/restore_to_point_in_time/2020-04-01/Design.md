@@ -217,7 +217,7 @@ No.
         * `TargetTableStreamEnabled`: The dynamoDB target table stream status value, true or false, from the `StreamSpecification` property
         * `TargetTableStreamViewType`: The type of the stream view value for the target dynamodb table, KEYS_ONLY, NEW_IMAGE, OLD_IMAGE or NEW_AND_OLD_IMAGES, from the `StreamSpecification` property
     * Explanation:
-        * Restore the target dynamodb table stream properties from the source dynamodb table. [update_table](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html) method
+        * Restore the target dynamodb table stream properties to the source dynamodb table. [update_table](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html) method
 
 1. `VerifyDynamoDBTableTargetStatusAfterUpdateTargetDynamoDBTableStream`
     * Type: aws:waitForAwsResourceProperty
