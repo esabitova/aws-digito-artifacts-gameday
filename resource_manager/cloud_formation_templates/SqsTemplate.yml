@@ -27,12 +27,6 @@ Outputs:
   SqsFifoQueueUrl:
     Description: Fifo queue URL
     Value: !Ref SqsFifoQueue
-  SqsDeadLetterQueueArn:
-    Description: Dead letter queue ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
-  SqsDeadLetterQueueUrl:
-    Description: Dead letter queue URL
-    Value: !Ref SqsDeadLetterQueue
   SqsFifoQueueEnabledDlqArn:
     Description: ARN of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.Arn
@@ -42,12 +36,6 @@ Outputs:
   SqsFifoQueueEnabledDlqName:
     Description: Name of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
-  SqsDeadLetterQueueEnabledDlqArn:
-    Description: Dead letter queue ARN
-    Value: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
-  SqsDeadLetterQueueEnabledDlqUrl:
-    Description: Dead letter queue URL
-    Value: !Ref SqsDeadLetterQueueEnabledDlq
   SqsStandardQueueArn:
     Description: Standard queue ARN
     Value: !GetAtt SqsStandardQueue.Arn
@@ -56,7 +44,7 @@ Outputs:
     Value: !Ref SqsStandardQueue
   SNSTopicARN:
     Description: SNS Topic ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
+    Value: !GetAtt SqsStandardQueue.Arn
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -69,12 +57,9 @@ Outputs:
   SentMessageSizeFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
-  DLQMessageAlarm:
+  DlqMessageFifoQueueAlarm:
     Description: Alarm
-    Value: !Ref  SQSDlqMessageAlarm
-  DLQMessageAlarmForEnabledDlq:
-    Description: Alarm
-    Value: !Ref  SQSDlqMessageAlarmForEnabledDlq
+    Value: !Ref  SqsDlqMessageFifoQueueAlarm
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
