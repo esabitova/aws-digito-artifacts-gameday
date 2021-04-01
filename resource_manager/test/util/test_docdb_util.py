@@ -1,6 +1,8 @@
 import unittest
-import pytest
 from unittest.mock import MagicMock
+
+import pytest
+
 import resource_manager.src.util.docdb_utils as docdb_utils
 from documents.util.scripts.test.test_docdb_util import DOCDB_CLUSTER_ID, DOCDB_INSTANCE_ID, \
     get_docdb_instances_side_effect, get_cluster_azs_side_effect, get_docdb_instances_with_status_side_effect

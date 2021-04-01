@@ -1,7 +1,8 @@
-import boto3
 import random
 from datetime import datetime
 from operator import itemgetter
+
+import boto3
 
 
 def get_cluster_az(events, context):

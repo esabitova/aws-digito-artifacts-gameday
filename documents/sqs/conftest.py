@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pytest_bdd import (
     given,
-    parsers, when
+    parsers, when, then
 )
 
 from resource_manager.src.util import sqs_utils as sqs_utils
@@ -44,13 +44,15 @@ def send_messages_to_fifo(resource_manager, ssm_test_cache, boto3_session, numbe
              })
 
 
-cache_number_of_messages_expression = 'cache number of messages in queue as "{cache_property}" "{step_key}" SSM ' \
-                                      'automation execution' \
-                                      '\n{input_parameters}'
-
-
-@given(parsers.parse(cache_number_of_messages_expression))
-@when(parsers.parse(cache_number_of_messages_expression))
+@given(parsers.parse('cache number of messages in queue as "{cache_property}" "{step_key}" SSM '
+                     'automation execution'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache number of messages in queue as "{cache_property}" "{step_key}" SSM '
+                    'automation execution'
+                    '\n{input_parameters}'))
+@then(parsers.parse('cache number of messages in queue as "{cache_property}" "{step_key}" SSM '
+                    'automation execution'
+                    '\n{input_parameters}'))
 def cache_number_of_messages(
         resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
