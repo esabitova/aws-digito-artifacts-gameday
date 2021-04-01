@@ -70,12 +70,6 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events = {}
         self.assertRaises(KeyError, get_inputs_from_ssm_execution, events, None)
 
-    def test_get_inputs_from_ssm_execution_empty_input_fields(self):
-        events = {
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
-        }
-        self.assertRaises(KeyError, get_inputs_from_ssm_execution, events, None)
-
     def test_get_inputs_from_ssm_execution_empty_input_fields_execution_id(self):
         events = {
             'InputFields': 'some-data'
@@ -96,10 +90,3 @@ class TestSsmExecutionUtil(unittest.TestCase):
                          actual_output[test_data_provider.SSM_EXECUTION_PARAMETER_2])
         self.assertEqual(test_data_provider.SSM_EXECUTION_PARAMETER_3_VALUE,
                          actual_output[test_data_provider.SSM_EXECUTION_PARAMETER_3])
-
-    def test_get_inputs_from_ssm_execution_input_fields_non_existing(self):
-        events = {
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
-            'InputFields': 'blabla'
-        }
-        self.assertRaises(KeyError, get_inputs_from_ssm_execution, events, None)
