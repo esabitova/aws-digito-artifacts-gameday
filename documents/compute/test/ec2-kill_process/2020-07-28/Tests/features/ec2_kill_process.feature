@@ -9,6 +9,7 @@ Feature: SSM automation document EC2 CPU kill process document testing
       |CfnTemplatePath                                                                              |ResourceType|InstanceType          |AlarmGreaterThanOrEqualToThreshold          |
       |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                     |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
       |documents/compute/test/ec2-kill_process/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml| ASSUME_ROLE|                      |                                            |
+    And published "Digito-KillProcessEc2_2020-07-28" SSM document
     And SSM automation document "AWS-RestartEC2Instance" executed
       |InstanceId                                         |
       |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|
@@ -32,6 +33,7 @@ Feature: SSM automation document EC2 CPU kill process document testing
       |CfnTemplatePath                                                                              |ResourceType|InstanceType          |AlarmGreaterThanOrEqualToThreshold          |
       |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                     |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
       |documents/compute/test/ec2-kill_process/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml| ASSUME_ROLE|                      |                                            |
+    And published "Digito-KillProcessEc2_2020-07-28" SSM document
 
     When SSM automation document "Digito-KillProcessEc2_2020-07-28" executed
       |InstanceId                                         |AutomationAssumeRole                                                      |SyntheticAlarmName                                  |ProcessName          |
