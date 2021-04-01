@@ -1,18 +1,15 @@
-import boto3
 import json
+
+import boto3
 
 
 def get_output_from_ssm_step_execution(events, context):
-    print('Creating ssm client')
-    print(events)
     ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
 
-    print('Fetching SSM response for execution')
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssm_response)
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == events['StepName']:
             responseFields = events['ResponseField'].split(',')
@@ -28,16 +25,12 @@ def get_output_from_ssm_step_execution(events, context):
 
 
 def get_inputs_from_ssm_step_execution(events, context):
-    print('Creating ssm client')
-    print(events)
     ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
 
-    print('Fetching SSM response for execution')
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssm_response)
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == events['StepName']:
             response_fields = events['ResponseField'].split(',')
@@ -58,7 +51,6 @@ def get_step_durations(events, context):
         raise KeyError('Requires ExecutionId, StepName in events')
 
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssm_response)
 
     step_names = events['StepName'].split(',')
     duration = 0
@@ -102,8 +94,6 @@ def run_command_document_async(events, context):
 
 
 def get_inputs_from_ssm_execution(events, context):
-    print('Creating ssm client')
-    print(events)
     ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'InputFields' not in events:
