@@ -81,6 +81,9 @@ Outputs:
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
+  ApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Description: Alarm
+    Value: !Ref SQSApproximateAgeOfOldestMessageMaximumFifoAlarm
   ThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
     Description: Alarm
     Value: !Ref SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm
@@ -332,6 +335,24 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref AverageDurationToProcessSentMessagePlus10Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumFifoAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
+      ActionsEnabled: false
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsFifoQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
