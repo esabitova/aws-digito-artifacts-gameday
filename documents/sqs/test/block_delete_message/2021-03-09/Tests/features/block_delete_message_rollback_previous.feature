@@ -14,6 +14,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     # Only one PurgeQueue operation is allowed every 60 seconds.
+    When sleep for "60" seconds
     And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                       |
@@ -29,9 +30,6 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeGreenBeforeTest" in status "Success" for "1000" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
     And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "UpdatePolicy" in status "Success" for "1000" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -39,30 +37,38 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And send "5" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "Success" for "600" seconds
+
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    Then terminate "Digito-BlockSQSDeleteMessage_2021-03-09" SSM automation document
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    When sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "RollbackCurrentExecution" in status "Success" for "1000" seconds
+    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Cancelled"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And purge the queue
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
-    And send "5" messages to queue
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "5" seconds
-    And purge the queue
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
+
+    # Run rollback
+    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" executed
+      | QueueUrl                                       | AutomationAssumeRole                                                              | SQSUserErrorAlarmName                                                | IsRollback | PreviousExecutionId        |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBlockSQSDeleteMessageAssumeRole}} | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumAlarm}} | true       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Success"
       | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
+      | {{cache:SsmExecutionId>2}} |
+    And cache number of messages in queue as "NumberOfMessages" "after-rollback" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And purge the queue
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And sleep for "60" seconds
+    And Wait for alarm to be in state "OK" for "600" seconds
+      | AlarmName                                                            |
+      | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumAlarm}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -72,5 +78,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
 
     Then assert "NumberOfMessages" at "before" became equal to "NumberOfMessages" at "after"
     And assert "NumberOfMessages" at "after-send" became not equal to "NumberOfMessages" at "before"
+    # Assert rollback didn't change number of messages
+    And assert "NumberOfMessages" at "after-rollback" became equal to "NumberOfMessages" at "after-send"
     And assert "NumberOfMessages" at "after" became equal to "0"
     And assert "Policy" at "before" became equal to "Policy" at "after"

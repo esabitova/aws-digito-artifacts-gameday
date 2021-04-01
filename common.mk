@@ -8,9 +8,9 @@ clean:
 clean_test_artifacts:
 	rm -rf documentation && \
 	rm -rf .pytest_cache && \
-	rm -rf .coverage && \
+	rm -rf .coverage* && \
 	rm -rf deps.json && \
-	rm -rf .pytest-incremental
+	rm -rf .pytest-incremental*
 
 
 enable_git_hooks:

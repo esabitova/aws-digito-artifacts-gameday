@@ -54,9 +54,9 @@ Outputs:
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
-  SqsDestinationStandardQueueUrl:
-    Description: Standard queue ARN
-    Value: !Ref SqsDestinationStandardQueue
+  SqsDlqForStandardQueueUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDlqForStandardQueue
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -78,6 +78,9 @@ Outputs:
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
+  ApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Description: Alarm
+    Value: !Ref SQSApproximateAgeOfOldestMessageMaximumFifoAlarm
   ThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
     Description: Alarm
     Value: !Ref SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm
@@ -94,6 +97,9 @@ Outputs:
 Parameters:
   SqsFifoQueueRedrivePolicyMaxReceiveCount:
     Type: Number
+    Default: 5
+  SqsQueueRedrivePolicyMaxReceiveCount:
+    Type: String
     Default: 5
   SentMessageSizeMaximumMinus30Percents:
     Type: Number
@@ -189,7 +195,11 @@ Resources:
       FifoQueue: true
   SqsStandardQueue:
     Type: "AWS::SQS::Queue"
-  SqsDestinationStandardQueue:
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SqsDlqForStandardQueue.Arn
+        maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
+  SqsDlqForStandardQueue:
     Type: "AWS::SQS::Queue"
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -327,6 +337,24 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref AverageDurationToProcessSentMessagePlus10Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumFifoAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
+      ActionsEnabled: false
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsFifoQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1

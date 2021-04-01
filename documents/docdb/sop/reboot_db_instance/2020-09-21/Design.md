@@ -37,8 +37,7 @@ No.
    * Inputs:
       * `DBInstanceIdentifier`
    * Explanation:
-      * Reboot DB instance by
-        calling [RebootDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_RebootDBInstance.html)
+       * Reboot DB instance by calling [RebootDBInstance](https://docs.aws.amazon.com/documentdb/latest/developerguide/API_RebootDBInstance.html)
 2. `WaitUntilInstancesAvailable`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
