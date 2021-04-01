@@ -1,8 +1,6 @@
 import boto3
 import json
 
-ssm = boto3.client('ssm')
-
 
 def get_output_from_ssm_step_execution(events, context):
     print('Creating ssm client')
@@ -32,6 +30,7 @@ def get_output_from_ssm_step_execution(events, context):
 def get_inputs_from_ssm_step_execution(events, context):
     print('Creating ssm client')
     print(events)
+    ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
@@ -80,6 +79,8 @@ def cancel_command_execution(events, context):
         raise KeyError('Requires DocumentName, InstanceIds, Parameters in events')
     events['ResponseField'] = 'CommandId'
     command_id = get_output_from_ssm_step_execution(events, context)[events['ResponseField']]
+
+    ssm = boto3.client('ssm')
     ssm.cancel_command(
         CommandId=command_id,
         InstanceIds=events['InstanceIds']
