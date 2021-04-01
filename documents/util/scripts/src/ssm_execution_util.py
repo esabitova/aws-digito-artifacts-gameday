@@ -96,12 +96,12 @@ def run_command_document_async(events, context):
 def get_inputs_from_ssm_execution(events, context):
     ssm = boto3.client('ssm')
 
-    if 'ExecutionId' not in events or 'InputFields' not in events:
-        raise KeyError('Requires ExecutionId, InputFields in events')
+    if 'ExecutionId' not in events:
+        raise KeyError('Requires ExecutionId')
 
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    input_parameters = events['InputFields'].replace(' ', '').split(',')
+    ssm_response_parameters = ssm_response['AutomationExecution']['Parameters']
     output = {}
-    for input_parameter in input_parameters:
-        output[input_parameter] = ssm_response['AutomationExecution']['Parameters'][input_parameter][0]
+    for parameter in ssm_response_parameters:
+        output[parameter] = ssm_response_parameters[parameter][0]
     return output

@@ -65,7 +65,6 @@ mainSteps:
       Handler: get_inputs_from_ssm_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
-        InputFields: 'QueueUrl, PurgeDeadLetterQueue'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
