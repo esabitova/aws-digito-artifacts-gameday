@@ -1,9 +1,11 @@
 import unittest
-import pytest
-from test import test_data_provider
-from unittest.mock import patch
 from unittest.mock import MagicMock
-from src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations
+from unittest.mock import patch
+
+import pytest
+
+from documents.util.scripts.src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations
+from documents.util.scripts.test import test_data_provider
 
 
 @pytest.mark.unit_test
