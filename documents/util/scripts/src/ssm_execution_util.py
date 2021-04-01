@@ -109,17 +109,9 @@ def get_inputs_from_ssm_execution(events, context):
     if 'ExecutionId' not in events or 'InputFields' not in events:
         raise KeyError('Requires ExecutionId, InputFields in events')
 
-    print('Fetching SSM response for execution')
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    ssm_response_parameters = ssm_response['AutomationExecution']['Parameters']
     input_parameters = events['InputFields'].replace(' ', '').split(',')
     output = {}
     for input_parameter in input_parameters:
-        if input_parameter in ssm_response_parameters:
-            print("Input parameter in response: ", input_parameter)
-            output[input_parameter] = ssm_response_parameters[input_parameter][0]
-        else:
-            print("Input parameter not in response: ", input_parameter)
-            output[input_parameter] = "None"
-
+        output[input_parameter] = ssm_response['AutomationExecution']['Parameters'][input_parameter][0]
     return output
