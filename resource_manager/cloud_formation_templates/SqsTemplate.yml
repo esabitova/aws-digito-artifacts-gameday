@@ -153,11 +153,9 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
-              AWS: "*"
+              AWS:
+                - !Ref "AWS::AccountId"
             Resource: !GetAtt SqsFifoQueue.Arn
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref "AWS::AccountId"
   SqsDeadLetterQueue:
     Type: "AWS::SQS::Queue"
     Properties:
@@ -187,7 +185,8 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
-              AWS: "*"
+              AWS:
+                - !Ref "AWS::AccountId"
             Resource: !GetAtt SqsFifoQueueEnabledDlq.Arn
   SqsDeadLetterQueueEnabledDlq:
     Type: "AWS::SQS::Queue"
