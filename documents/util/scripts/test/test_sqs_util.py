@@ -774,7 +774,7 @@ class TestSqsUtil(unittest.TestCase):
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
         get_dead_letter_queue_url(events, None)
-        self.client.get_queue_url.assert_called_once_with(QueueName=self.queue_name)
+        self.sqs_client_mock.get_queue_url.assert_called_once_with(QueueName=self.queue_name)
 
     def test_get_dead_letter_queue_url_empty_events(self):
         events = {}
