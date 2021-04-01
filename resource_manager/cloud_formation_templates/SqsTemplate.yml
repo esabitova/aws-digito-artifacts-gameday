@@ -42,9 +42,6 @@ Outputs:
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
-  SNSTopicARN:
-    Description: SNS Topic ARN
-    Value: !GetAtt SqsStandardQueue.Arn
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -183,8 +180,6 @@ Resources:
         maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
   SqsDlqForStandardQueue:
     Type: "AWS::SQS::Queue"
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
