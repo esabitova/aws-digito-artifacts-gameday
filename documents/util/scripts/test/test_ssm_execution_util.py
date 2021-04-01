@@ -4,7 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
-from documents.util.scripts.src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations
+from documents.util.scripts.src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations, \
+    get_inputs_from_ssm_execution
 from documents.util.scripts.test import test_data_provider
 
 
@@ -64,3 +65,7 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events['StepName'] = test_data_provider.MISSING_STEP_NAME
 
         self.assertRaises(Exception, get_step_durations, events, None)
+
+    def test_get_inputs_from_ssm_execution_empty_events(self):
+        events = {}
+        self.assertRaises(KeyError, get_inputs_from_ssm_execution, events, None)
