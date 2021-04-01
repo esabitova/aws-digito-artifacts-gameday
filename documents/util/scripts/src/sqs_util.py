@@ -365,3 +365,48 @@ def is_queue_fifo(queue_url: str, sqs_client):
             logger.error(e)
             raise e
     return True
+
+
+def update_sqs_redrive_policy(events: dict, context: dict) -> dict:
+    """
+    Update SQS Redrive Policy with new value of MaxReceiveCount
+    """
+    if "SourceRedrivePolicy" not in events or "MaxReceiveCount" not in events:
+        raise KeyError("Requires SourceRedrivePolicy and MaxReceiveCount in events")
+
+    source_redrive_policy: str = events.get("SourceRedrivePolicy")
+    if not source_redrive_policy:
+        raise KeyError("Requires not empty SourceRedrivePolicy")
+
+    max_receive_count: int = events.get("MaxReceiveCount")
+    if not 1 <= max_receive_count <= 1000:
+        raise KeyError("Requires MaxReceiveCount to be in a range 1...1000")
+
+    source_redrive_policy: dict = json.loads(source_redrive_policy)
+    redrive_policy: dict = {
+        "deadLetterTargetArn": source_redrive_policy.get("deadLetterTargetArn"),
+        "maxReceiveCount": max_receive_count
+    }
+
+    return {"RedrivePolicy": json.dumps(redrive_policy)}
+
+
+def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
+    """
+    Retrieves dead-letter queue URL by RedrivePolicy
+    """
+    if "SourceRedrivePolicy" not in events:
+        raise KeyError("Requires SourceRedrivePolicy in events")
+
+    source_redrive_policy: str = events.get("SourceRedrivePolicy")
+    if not source_redrive_policy:
+        raise KeyError("Requires not empty SourceRedrivePolicy")
+
+    sqs_client = boto3.client("sqs")
+    source_redrive_policy: dict = json.loads(source_redrive_policy)
+    dead_letter_queue_arn: str = source_redrive_policy.get("deadLetterTargetArn")
+    dead_letter_queue_name: str = dead_letter_queue_arn.split(':', 5)[5]
+    get_queue_url_response: dict = sqs_client.get_queue_url(QueueName=dead_letter_queue_name)
+    dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
+
+    return {"QueueUrl": dead_letter_queue_url}
