@@ -1,4 +1,4 @@
-@sqs @actual
+@sqs
 Feature: SSM automation document to to test behavior when messages cannot be sent to an SQS queue
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to test behavior when messages cannot be sent to an SQS queue
@@ -7,6 +7,9 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-BreakingThePolicyForSQS_2020-11-27" SSM document
+    And cache policy as "Policy" "before" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -59,5 +62,9 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "60" seconds
+    And cache policy as "Policy" "after" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     Then assert "NumberOfMessages" at "before" became not equal to "NumberOfMessages" at "after"
+    And assert "Policy" at "before" became equal to "Policy" at "after"
