@@ -293,7 +293,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SqsDlqMessageStandardQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -311,7 +311,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SQSApproximateAgeOfOldestMessageMaximumAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
