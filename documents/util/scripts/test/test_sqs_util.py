@@ -772,11 +772,10 @@ class TestSqsUtil(unittest.TestCase):
         }
         self.sqs_client_mock.get_queue_url.return_value = \
             {'QueueUrl': self.queue_url}
-
-        actual_response = get_dead_letter_queue_url(events, None)
+        response = get_dead_letter_queue_url(events, None)
         self.sqs_client_mock.get_queue_url.assert_called_once_with(QueueName=self.queue_name)
-        self.assertIsNotNone(actual_response)
-        self.assertEqual(self.queue_url, actual_response['QueueUrl'])
+        self.assertIsNotNone(response)
+        self.assertEqual(self.queue_url, response['QueueUrl'])
 
     def test_get_dead_letter_queue_url_empty_events(self):
         events = {}
