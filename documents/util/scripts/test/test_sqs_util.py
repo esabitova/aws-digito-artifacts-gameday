@@ -313,9 +313,6 @@ class TestSqsUtil(unittest.TestCase):
         self.redrive_policy = {"deadLetterTargetArn": self.resource, "maxReceiveCount": 5}
         self.action_to_deny = "sqs:DeleteMessage"
 
-
-
-
     def tearDown(self):
         self.patcher.stop()
 

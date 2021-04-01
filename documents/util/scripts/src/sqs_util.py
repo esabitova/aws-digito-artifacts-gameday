@@ -366,6 +366,7 @@ def is_queue_fifo(queue_url: str, sqs_client):
             raise e
     return True
 
+
 def update_sqs_redrive_policy(events: dict, context: dict) -> dict:
     """
     Update SQS Redrive Policy with new value of MaxReceiveCount
