@@ -12,11 +12,10 @@ def get_output_from_ssm_step_execution(events, context):
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == events['StepName']:
-            responseFields = events['ResponseField'].split(',')
+            response_fields = events['ResponseField'].split(',')
             output = {}
-            for responseField in responseFields:
-                stepOutput = step['Outputs'][responseField][0]
-                output[responseField] = stepOutput
+            for responseField in response_fields:
+                output[responseField] = step['Outputs'][responseField][0]
 
             return output
 
@@ -59,8 +58,7 @@ def get_step_durations(events, context):
             duration += (step['ExecutionEndTime'] - step['ExecutionStartTime']).seconds
 
     if duration > 0:
-        output = {}
-        output['duration'] = str(round(duration))
+        output = {'duration': str(round(duration))}
         return output
 
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
