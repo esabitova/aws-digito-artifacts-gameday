@@ -114,4 +114,5 @@ def get_inputs_from_ssm_execution(events, context):
     output = {}
     for parameter in ssm_response_parameters:
         output[parameter] = ssm_response_parameters[parameter][0]
+
     return output
