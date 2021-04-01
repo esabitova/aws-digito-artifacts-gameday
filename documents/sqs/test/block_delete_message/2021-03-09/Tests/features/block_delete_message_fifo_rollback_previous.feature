@@ -1,4 +1,4 @@
-@sqs @actual
+@sqs
 Feature: SSM automation document to block sqs:DeleteMessage
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to block sqs:DeleteMessage
