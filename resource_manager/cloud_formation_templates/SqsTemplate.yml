@@ -36,6 +36,12 @@ Outputs:
   SqsFifoQueueEnabledDlqName:
     Description: Name of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
+  SqsDlqForFifoQueueArn:
+    Description: ARN of DLQ for Fifo queue
+    Value: !GetAtt SqsDlqForFifoQueue.Arn
+  SqsDlqForFifoQueueUrl:
+    Description: URL of DLQ for Fifo queue
+    Value: !Ref SqsDlqForFifoQueue
   SqsStandardQueueArn:
     Description: Standard queue ARN
     Value: !GetAtt SqsStandardQueue.Arn
