@@ -49,8 +49,8 @@ def send_messages_to_fifo(resource_manager, ssm_test_cache, boto3_session, numbe
 def send_messages_with_error(resource_manager, ssm_test_cache, boto3_session, number_of_messages,
                              input_parameters):
     """
-    This method expects that message can fail due to AccessDenied
-    Any other error should be raised
+    This method expects that message should fail due to AccessDenied
+    Any other error should be raised and message should not be sent
     """
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     for i in range(int(number_of_messages)):
@@ -59,6 +59,7 @@ def send_messages_with_error(resource_manager, ssm_test_cache, boto3_session, nu
                 boto3_session, queue_url, f'This is message {i}',
                 {'test_attribute_name_1': {'StringValue': 'test_attribute_value_1', 'DataType': 'String'}}
             )
+            raise Exception('Message was sent successfully but error was expected')
         except ClientError as error:
             if error.response['Error']['Code'] == 'AccessDenied':
                 logging.info('Message sending failed due to access denied')
