@@ -26,12 +26,13 @@ test: linter_and_unit_test publish_ssm_docs
 	deactivate
 
 # Execute only one specified Cucumber test
-test_one: test_linter publish_ssm_docs
+test_one: test_linter
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/sqs/test/capacity_failure/2021-03-13/Tests/step_defs/test_capacity_failure.py -m actual  --aws_profile ${AWS_PROFILE} && \
+		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues_usual_cases.py \
+		documents/sqs/sop/move-messages-between-queues/2021-03-11/Tests/step_defs/test_move_messages_between_queues_without_force_execution.py -m sqs  --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 service_unit_test:

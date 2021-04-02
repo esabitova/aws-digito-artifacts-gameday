@@ -1,7 +1,8 @@
-import boto3
 import random
 from datetime import datetime
 from operator import itemgetter
+
+import boto3
 
 
 def get_cluster_az(events, context):
@@ -95,6 +96,7 @@ def get_recovery_point_input(events, context):
             return {'RecoveryPoint': date}
     except Exception as e:
         print(f'Error: {e}')
+        raise
 
 
 def backup_cluster_instances_type(events, context):
@@ -116,6 +118,7 @@ def backup_cluster_instances_type(events, context):
         return {'DBClusterInstancesMetadata': restorable_instances_metadata}
     except Exception as e:
         print(f'Error: {e}')
+        raise
 
 
 def restore_to_point_in_time(events, context):
@@ -144,6 +147,7 @@ def restore_to_point_in_time(events, context):
         return {'RestoredClusterIdentifier': new_cluster_identifier}
     except Exception as e:
         print(f'Error: {e}')
+        raise
 
 
 def restore_db_cluster_instances(events, context):
@@ -171,6 +175,7 @@ def restore_db_cluster_instances(events, context):
         return restored_instances_identifiers
     except Exception as e:
         print(f'Error: {e}')
+        raise
 
 
 def rename_replaced_db_cluster(events, context):
@@ -186,6 +191,7 @@ def rename_replaced_db_cluster(events, context):
         return {'ReplacedClusterIdentifier': new_db_cluster_identifier}
     except Exception as e:
         print(f'Error: {e}')
+        raise
 
 
 def rename_replaced_db_instances(events, context):
@@ -203,6 +209,7 @@ def rename_replaced_db_instances(events, context):
         return replaced_instances_identifiers
     except Exception as e:
         print(f'Error: {e}')
+        raise
 
 
 def rename_restored_db_instances(events, context):
@@ -221,3 +228,4 @@ def rename_restored_db_instances(events, context):
         return restored_instances_identifiers
     except Exception as e:
         print(f'Error: {e}')
+        raise

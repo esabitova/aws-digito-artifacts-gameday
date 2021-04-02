@@ -18,7 +18,10 @@ def get_output_from_ssm_step_execution(events, context):
             responseFields = events['ResponseField'].split(',')
             output = {}
             for responseField in responseFields:
-                stepOutput = step['Outputs'][responseField][0]
+                if responseField in step['Outputs']:
+                    stepOutput = step['Outputs'][responseField][0]
+                else:
+                    stepOutput = ''
                 output[responseField] = stepOutput
 
             return output
