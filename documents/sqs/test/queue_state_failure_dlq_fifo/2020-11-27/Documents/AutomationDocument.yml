@@ -242,14 +242,14 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: update_sqs_redrive_policy
+      Handler: update_max_receive_count
       InputPayload:
         SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
         MaxReceiveCount: 1
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
-        SCRIPT_PLACEHOLDER::sqs_util.update_sqs_redrive_policy
+        SCRIPT_PLACEHOLDER::sqs_util.update_max_receive_count
 
   - name: SetQueueAttributes
     action: aws:executeAwsApi

@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy
 from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages
-from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url, update_sqs_redrive_policy
+from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url, update_max_receive_count
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_STANDARD_DEST_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyDestQueue"
@@ -729,42 +729,42 @@ class TestSqsUtil(unittest.TestCase):
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[1]])
         ])
 
-    def test_update_sqs_redrive_policy(self):
+    def test_update_max_receive_count(self):
         events = {
             "MaxReceiveCount": 1,
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
-        response = update_sqs_redrive_policy(events, None)
+        response = update_max_receive_count(events, None)
         updated_redrive_policy = json.loads(response["RedrivePolicy"])
         self.assertIsNotNone(updated_redrive_policy["deadLetterTargetArn"])
         self.assertEqual(self.resource, updated_redrive_policy["deadLetterTargetArn"])
         self.assertIsNotNone(updated_redrive_policy["maxReceiveCount"])
         self.assertEqual(1, updated_redrive_policy["maxReceiveCount"])
 
-    def test_update_sqs_redrive_policy_empty_events(self):
+    def test_update_max_receive_count_empty_events(self):
         events = {}
-        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+        self.assertRaises(KeyError, update_max_receive_count, events, None)
 
-    def test_update_sqs_redrive_policy_empty_redrive_policy(self):
+    def test_update_max_receive_count_empty_redrive_policy(self):
         events = {
             "MaxReceiveCount": 1,
             "SourceRedrivePolicy": ""
         }
-        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+        self.assertRaises(KeyError, update_max_receive_count, events, None)
 
-    def test_update_sqs_redrive_policy_max_recieve_count_lower_than_range(self):
+    def test_update_max_receive_count_max_recieve_count_lower_than_range(self):
         events = {
             "MaxReceiveCount": 0,
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
-        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+        self.assertRaises(KeyError, update_max_receive_count, events, None)
 
-    def test_update_sqs_redrive_policy_max_recieve_count_upper_than_range(self):
+    def test_update_max_receive_count_max_recieve_count_upper_than_range(self):
         events = {
             "MaxReceiveCount": 1001,
             "SourceRedrivePolicy": json.dumps(self.redrive_policy)
         }
-        self.assertRaises(KeyError, update_sqs_redrive_policy, events, None)
+        self.assertRaises(KeyError, update_max_receive_count, events, None)
 
     def test_get_dead_letter_queue_url(self):
         events = {
