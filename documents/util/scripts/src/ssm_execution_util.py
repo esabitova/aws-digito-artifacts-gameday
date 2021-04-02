@@ -98,6 +98,9 @@ def get_inputs_from_ssm_execution(events, context):
     if 'ExecutionId' not in events:
         raise KeyError('Requires ExecutionId')
 
+    if not events['ExecutionId']:
+        raise KeyError('Requires not empty ExecutionId')
+
     response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
     response_parameters = response['AutomationExecution']['Parameters']
     for parameter in response_parameters:
