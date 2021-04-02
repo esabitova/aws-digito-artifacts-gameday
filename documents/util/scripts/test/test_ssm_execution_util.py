@@ -70,18 +70,15 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events = {}
         self.assertRaises(KeyError, get_inputs_from_ssm_execution, events, None)
 
-    def test_get_inputs_from_ssm_execution_empty_input_fields_execution_id(self):
+    def test_get_inputs_from_ssm_execution_empty_execution_id(self):
         events = {
-            'InputFields': 'some-data'
+            'ExecutionId': ''
         }
         self.assertRaises(KeyError, get_inputs_from_ssm_execution, events, None)
 
     def test_get_inputs_from_ssm_execution(self):
         events = {
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
-            'InputFields': f'{test_data_provider.SSM_EXECUTION_PARAMETER_1}, '
-                           f'{test_data_provider.SSM_EXECUTION_PARAMETER_2},'
-                           f'{test_data_provider.SSM_EXECUTION_PARAMETER_3}'
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
         }
         actual_output = get_inputs_from_ssm_execution(events, None)
         self.assertEqual(test_data_provider.SSM_EXECUTION_PARAMETER_1_VALUE,
