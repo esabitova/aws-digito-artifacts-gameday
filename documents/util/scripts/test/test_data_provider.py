@@ -50,7 +50,7 @@ SSM_EXECUTION_PARAMETER_2_VALUE = \
 
 SSM_EXECUTION_PARAMETER_3 = 'SentMessageSizeAlarmName'
 SSM_EXECUTION_PARAMETER_3_VALUE = \
-    'SqsSQSAlwaysOKAlarm'
+    ['SqsSQSAlwaysOKAlarm']
 
 
 def get_sample_ssm_execution_response():
