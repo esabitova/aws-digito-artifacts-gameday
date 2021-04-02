@@ -1,4 +1,4 @@
-@sqs @actual
+@sqs
 Feature: SSM automation document to to test behavior when messages cannot be sent to an SQS queue
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to test behavior when messages cannot be sent to an SQS queue

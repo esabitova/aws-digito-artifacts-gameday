@@ -14,7 +14,7 @@ from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.s3 import S3
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
-from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
+from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table, parse_pool_size
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
@@ -70,7 +70,7 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper)
+        rm = ResourceManager(cfn_helper, s3_helper, dict())
         rm.init_ddb_tables(boto3_session)
         # In case we do execute tests not in single session, for example in different machines, we don't want
         # to perform resource fix since one session can try to modify resource state which is used by another session.
@@ -97,7 +97,7 @@ def pytest_sessionfinish(session, exitstatus):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper)
+        rm = ResourceManager(cfn_helper, s3_helper, dict())
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
@@ -139,7 +139,8 @@ def resource_manager(request, boto3_session):
     '''
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
-    rm = ResourceManager(cfn_helper, s3_helper)
+    custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
+    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size)
     yield rm
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
