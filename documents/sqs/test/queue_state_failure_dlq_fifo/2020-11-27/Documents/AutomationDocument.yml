@@ -300,8 +300,8 @@ mainSteps:
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 900
-    timeoutSeconds: 10
+    maxAttempts: 120
+    timeoutSeconds: 5
     onFailure: step:RollbackCurrentExecutionQueuePolicy
     inputs:
       Service: cloudwatch
