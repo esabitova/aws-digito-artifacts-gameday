@@ -61,7 +61,7 @@ mainSteps:
       - Name: PurgeDeadLetterQueue
         Selector: $.Payload.PurgeDeadLetterQueue
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: get_inputs_from_ssm_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
@@ -92,7 +92,7 @@ mainSteps:
         Selector: $.Payload.VisibilityTimeout
         Type: Integer
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
@@ -107,7 +107,7 @@ mainSteps:
   - name: RollbackPreviousExecutionQueuePolicy
     action: aws:executeScript
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: revert_sqs_policy
       InputPayload:
         OptionalBackupPolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.Policy }}'
@@ -152,7 +152,7 @@ mainSteps:
         Selector: $.Payload.QueueUrl
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: get_dead_letter_queue_url
       InputPayload:
         SourceRedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
@@ -222,7 +222,7 @@ mainSteps:
         Selector: $.Payload.DenyPolicyStatementSid
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: add_deny_in_sqs_policy
       InputPayload:
         SourcePolicy: '{{ BackupCurrentExecution.Policy }}'
@@ -241,7 +241,7 @@ mainSteps:
         Selector: $.Payload.RedrivePolicy
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: update_max_receive_count
       InputPayload:
         SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
@@ -314,7 +314,7 @@ mainSteps:
   - name: RollbackCurrentExecutionQueuePolicy
     action: aws:executeScript
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: revert_sqs_policy
       InputPayload:
         OptionalBackupPolicy: '{{ BackupCurrentExecution.Policy }}'
@@ -350,7 +350,7 @@ mainSteps:
         Selector: $.Payload.QueueUrl
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: get_dead_letter_queue_url
       InputPayload:
         SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
