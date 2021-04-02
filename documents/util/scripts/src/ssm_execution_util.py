@@ -15,6 +15,7 @@ def get_output_from_ssm_step_execution(events, context):
             response_fields = events['ResponseField'].split(',')
             output = {}
             for responseField in response_fields:
+                # TODO DIG-854
                 output[responseField] = step['Outputs'][responseField][0]
 
             return output
@@ -103,7 +104,8 @@ def get_inputs_from_ssm_execution(events, context):
 
     response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
     response_parameters = response['AutomationExecution']['Parameters']
+    # TODO DIG-853
     for parameter in response_parameters:
-        output[parameter] = response_parameters[parameter][0]
+        output[parameter] = response_parameters[parameter]
 
     return output

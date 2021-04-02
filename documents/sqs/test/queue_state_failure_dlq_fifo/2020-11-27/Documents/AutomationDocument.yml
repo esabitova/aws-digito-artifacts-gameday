@@ -56,10 +56,11 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
-        Selector: $.Payload.QueueUrl
+        Selector: $.Payload.QueueUrl[0]
         Type: String
       - Name: PurgeDeadLetterQueue
-        Selector: $.Payload.PurgeDeadLetterQueue
+        Selector: $.Payload.PurgeDeadLetterQueue[0]
+        Type: String
     inputs:
       Runtime: python3.7
       Handler: get_inputs_from_ssm_execution
