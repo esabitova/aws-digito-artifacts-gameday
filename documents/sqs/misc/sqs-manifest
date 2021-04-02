@@ -3,3 +3,4 @@ Digito-PurgeQueue_2021-03-11
 Digito-SQSCapacityFailure_2021-03-13
 Digito-BlockSQSDeleteMessage_2021-03-09
 Digito-BreakingThePolicyForSQS_2020-11-27
+Digito-QueueStateFailureDlqFifo_2020-11-27
