@@ -42,12 +42,19 @@ def send_messages_to_fifo(resource_manager, ssm_test_cache, boto3_session, numbe
 @given(parsers.parse('send "{number_of_messages}" messages to queue with error\n{input_parameters}'))
 @when(parsers.parse('send "{number_of_messages}" messages to queue with error\n{input_parameters}'))
 def send_messages_with_error(resource_manager, ssm_test_cache, boto3_session, number_of_messages, input_parameters):
+    """
+    This method expects that message can fail due to AccessDenied
+    Any other error should be raised
+    """
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     for i in range(int(number_of_messages)):
         try:
             sqs_utils.send_message_to_standard_queue(boto3_session, queue_url, f'This is message {i}')
-        except ClientError:
-            logging.info('Message sending failed due to access denied')
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'AccessDenied':
+                logging.info('Message sending failed due to access denied')
+            else:
+                raise error
 
 
 cache_number_of_messages_expression = 'cache number of messages in queue as "{cache_property}" "{step_key}" SSM ' \

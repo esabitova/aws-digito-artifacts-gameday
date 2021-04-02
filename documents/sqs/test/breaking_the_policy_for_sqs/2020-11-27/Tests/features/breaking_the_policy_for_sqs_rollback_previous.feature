@@ -14,9 +14,6 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "60" seconds
-    And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
       | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |

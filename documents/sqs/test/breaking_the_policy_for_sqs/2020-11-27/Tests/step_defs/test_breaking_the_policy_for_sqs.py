@@ -13,8 +13,8 @@ def test_breaking_the_policy_for_sqs():
 
 
 @scenario('../features/breaking_the_policy_for_sqs_failed.feature',
-          'Create AWS resources using CloudFormation template and execute SSM automation document to test behavior '
-          'when messages cannot be sent to an SQS queue')
+          'Create AWS resources using CloudFormation template and execute SSM automation document to test behavior when'
+          ' policy won\'t allow message sending but alarm isn\'t triggered')
 def test_breaking_the_policy_for_sqs_failed():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
