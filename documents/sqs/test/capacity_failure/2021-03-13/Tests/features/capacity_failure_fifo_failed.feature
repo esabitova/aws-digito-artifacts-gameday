@@ -1,4 +1,4 @@
-@sqs @actual
+@sqs
 Feature: SSM automation document to test SQS message size get close to threshold
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document

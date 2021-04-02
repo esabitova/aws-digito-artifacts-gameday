@@ -1,10 +1,10 @@
+import random
+import time
+
 from pytest_bdd import (
     given,
     parsers, when, then
 )
-
-import time
-import random
 
 from resource_manager.src.util import docdb_utils as docdb_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache

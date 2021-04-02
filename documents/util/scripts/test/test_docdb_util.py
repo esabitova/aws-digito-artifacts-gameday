@@ -1,7 +1,9 @@
 import unittest
-import pytest
 from datetime import datetime
 from unittest.mock import patch, MagicMock, call
+
+import pytest
+
 from documents.util.scripts.src.docdb_util import count_cluster_instances, verify_db_instance_exist, \
     verify_cluster_instances, get_cluster_az, create_new_instance, get_recovery_point_input, \
     backup_cluster_instances_type, restore_to_point_in_time, restore_db_cluster_instances, rename_replaced_db_cluster, \

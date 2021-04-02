@@ -42,6 +42,9 @@ Outputs:
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
+  SqsDlqForStandardQueueUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDlqForStandardQueue
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -51,9 +54,6 @@ Outputs:
   SentMessageSizeStandardQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeStandardQueueAlarm
-  SqsDestinationStandardQueueUrl:
-    Description: Standard queue ARN
-    Value: !Ref SqsDestinationStandardQueue
   SentMessageSizeFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
@@ -63,6 +63,9 @@ Outputs:
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
+  ApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Description: Alarm
+    Value: !Ref SQSApproximateAgeOfOldestMessageMaximumFifoAlarm
   ThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
     Description: Alarm
     Value: !Ref SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm
@@ -78,7 +81,7 @@ Outputs:
 
 Parameters:
   SqsQueueRedrivePolicyMaxReceiveCount:
-    Type: String
+    Type: Number
     Default: 5
   SentMessageSizeMaximumMinus30Percents:
     Type: Number
@@ -132,11 +135,9 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
-              AWS: "*"
+              AWS:
+                - !Ref "AWS::AccountId"
             Resource: !GetAtt SqsFifoQueue.Arn
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref "AWS::AccountId"
   SqsFifoQueueEnabledDlq:
     Type: "AWS::SQS::Queue"
     Properties:
@@ -162,17 +163,14 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
-              AWS: "*"
+              AWS:
+                - !Ref "AWS::AccountId"
             Resource: !GetAtt SqsFifoQueueEnabledDlq.Arn
   SqsDlqForFifoQueue:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
   SqsStandardQueue:
-    Type: "AWS::SQS::Queue"
-  SqsDestinationStandardQueue:
-    Type: "AWS::SQS::Queue"
-  SqsStandardQueueEnabledDlq:
     Type: "AWS::SQS::Queue"
     Properties:
       RedrivePolicy:
@@ -317,6 +315,24 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref AverageDurationToProcessSentMessagePlus10Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumFifoAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
+      ActionsEnabled: false
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsFifoQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
