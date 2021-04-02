@@ -158,17 +158,29 @@ def restore_db_cluster_instances(events, context):
         instances_sorted = sorted(instances, key=itemgetter('IsClusterWriter'), reverse=True)
         db_cluster_identifier = events['DBClusterIdentifier']
         restored_instances_identifiers = []
+        cluster_info = docdb.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)['DBClusters'][0]
+        new_cluster_azs = cluster_info['AvailabilityZones']
+        instances_by_az = {}
+        for az in new_cluster_azs:
+            instances_by_az[az] = 0
         for instance in instances_sorted:
             primary_instance = 1 if instance['IsClusterWriter'] else 2
             restorable_instance_identifier = instance['DBInstanceIdentifier']
             restored_instance_identifier = instance['DBInstanceIdentifier'] + '-restored'
+            availability_zone = None
+            if events['DBClusterInstancesMetadata'][restorable_instance_identifier]['AvailabilityZone'] \
+                    in new_cluster_azs:
+                availability_zone = events['DBClusterInstancesMetadata'][restorable_instance_identifier][
+                    'AvailabilityZone']
+            else:
+                availability_zone = sorted(instances_by_az, key=instances_by_az.get)[0]
+            instances_by_az[availability_zone] += 1
             docdb.create_db_instance(
                 DBInstanceIdentifier=restored_instance_identifier,
                 DBInstanceClass=events['DBClusterInstancesMetadata'][restorable_instance_identifier]['DBInstanceClass'],
                 Engine=events['DBClusterInstancesMetadata'][restorable_instance_identifier]['Engine'],
                 DBClusterIdentifier=db_cluster_identifier,
-                AvailabilityZone=events['DBClusterInstancesMetadata'][restorable_instance_identifier][
-                    'AvailabilityZone'],
+                AvailabilityZone=availability_zone,
                 PromotionTier=primary_instance
             )
             restored_instances_identifiers.append(restored_instance_identifier)
