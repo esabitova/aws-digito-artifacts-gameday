@@ -1,8 +1,7 @@
-from resource_manager.src.util.dynamo_db_utils import drop_and_wait_dynamo_db_table_if_exists
-from pytest_bdd import given, parsers, when, then
-from resource_manager.src.util import lambda_utils, param_utils
-from resource_manager.src.util.common_test_utils import (extract_param_value,
-                                                         put_to_ssm_test_cache)
+from pytest_bdd import given, parsers, then
+from resource_manager.src.util import param_utils
+from resource_manager.src.util.dynamo_db_utils import \
+    drop_and_wait_dynamo_db_table_if_exists
 
 DROP_TABLE_DESCRIPTION = "Drop Dynamo DB table with the name {table_name_ref} and wait " \
     "for {wait_sec} seconds with interval {delay_sec} seconds"

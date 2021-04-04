@@ -63,5 +63,5 @@ def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
         end = time.time()
         elapsed = end - start
         time.sleep(delay_sec)
-    
+
     raise TimeoutError(f'Timeout of waiting `{table_name}` deletion')

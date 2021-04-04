@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from documents.util.scripts.src.dynamo_db_util import (_parse_recovery_date_time,
-                                                  parse_recovery_date_time)
+                                                       parse_recovery_date_time)
 
 
 @pytest.mark.unit_test
