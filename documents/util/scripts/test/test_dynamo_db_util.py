@@ -44,7 +44,7 @@ class TestS3Util(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    @patch('documents.util.scripts.src.dynamo_db._parse_recovery_date_time',
+    @patch('documents.util.scripts.src.dynamo_db_util._parse_recovery_date_time',
            return_value=datetime(2021, 1, 1, 4, 0, 0))
     def test_parse_recovery_date_time_input_valid(self, parse_mock):
 
@@ -57,7 +57,7 @@ class TestS3Util(unittest.TestCase):
         parse_mock.assert_called_with(restore_date_time_str='some_valid_date',
                                       format='%Y-%m-%dT%H:%M:%S%z')
 
-    @patch('documents.util.scripts.src.dynamo_db._parse_recovery_date_time',
+    @patch('documents.util.scripts.src.dynamo_db_util._parse_recovery_date_time',
            return_value=None)
     def test_parse_recovery_date_time_input_not_valid(self, parse_mock):
 
