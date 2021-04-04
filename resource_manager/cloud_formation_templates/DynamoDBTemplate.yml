@@ -91,34 +91,6 @@ Resources:
           KeyType: "HASH"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
-    Properties:
-      TopicName: "sns-topic"
-  SNSTopicPolicy:
-    Type: "AWS::SNS::TopicPolicy"
-    Properties:
-      PolicyDocument:
-        Version: '2008-10-17'
-        Id: SNSTopicPolicy
-        Statement:
-          - Sid: SNSTopicPolicyStatement
-            Effect: Allow
-            Principal:
-              AWS: "*"
-            Action:
-              - SNS:GetTopicAttributes
-              - SNS:SetTopicAttributes
-              - SNS:AddPermission
-              - SNS:RemovePermission
-              - SNS:DeleteTopic
-              - SNS:Subscribe
-              - SNS:ListSubscriptionsByTopic
-              - SNS:Publish
-              - SNS:Receive
-            Resource: !Ref SNSTopic
-      Topics:
-        - !Ref SNSTopic
 
   ##### Health Alarms #####
   WriteThrottleEventsAlarm:
@@ -127,8 +99,6 @@ Resources:
       AlarmName: WriteThrottleEvents
       AlarmDescription: "dynamodb:alarm:health-write_throttle_events:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: WriteThrottleEvents
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -148,8 +118,6 @@ Resources:
       AlarmName: ReadThrottleEvents
       AlarmDescription: "dynamodb:alarm:health-read_throttle_events:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: ReadThrottleEvents
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -169,8 +137,6 @@ Resources:
       AlarmName: ThrottledRequests
       AlarmDescription: "dynamodb:alarm:health-throttled_requests:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: ThrottledRequests
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -190,8 +156,6 @@ Resources:
       AlarmName: ConditionalCheckFailedRequests
       AlarmDescription: "dynamodb:alarm:health-conditional_check_failed_requests:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: ConditionalCheckFailedRequests
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -211,8 +175,6 @@ Resources:
       AlarmName: UserErrors
       AlarmDescription: "dynamodb:alarm:health-user_errors:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: UserErrors
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -232,8 +194,6 @@ Resources:
       AlarmName: SystemErrors
       AlarmDescription: "dynamodb:alarm:health-system_errors:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: SystemErrors
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -253,8 +213,6 @@ Resources:
       AlarmName: TransactionConflict
       AlarmDescription: "dynamodb:alarm:health-transaction_conflict:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: TransactionConflict
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -274,8 +232,6 @@ Resources:
       AlarmName: OnlineIndexThrottleEvents
       AlarmDescription: "dynamodb:alarm:health-online_index_throttle_events:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: OnlineIndexThrottleEvents
       Namespace: AWS/DynamoDB
       Statistic: Maximum
@@ -295,8 +251,6 @@ Resources:
       AlarmName: SuccessfulRequestLatency
       AlarmDescription: "dynamodb:alarm:health-successful_request_latency:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: SuccessfulRequestLatency
       Namespace: AWS/DynamoDB
       Statistic: Maximum
@@ -316,8 +270,6 @@ Resources:
       AlarmName: AccountProvisionedReadCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-account_read_capacity_utilization:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: AccountProvisionedReadCapacityUtilization
       Namespace: AWS/DynamoDB
       Statistic: Maximum
@@ -337,8 +289,6 @@ Resources:
       AlarmName: AccountProvisionedWriteCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-account_write_capacity_utilization:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: AccountProvisionedWriteCapacityUtilization
       Namespace: AWS/DynamoDB
       Statistic: Maximum
@@ -358,8 +308,6 @@ Resources:
       AlarmName: MaxProvisionedTableReadCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-table_read_utilization:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: MaxProvisionedTableReadCapacityUtilization
       Namespace: AWS/DynamoDB
       Statistic: Maximum
@@ -379,8 +327,6 @@ Resources:
       AlarmName: MaxProvisionedTableWriteCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-table_write_utilization:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: MaxProvisionedTableWriteCapacityUtilization
       Namespace: AWS/DynamoDB
       Statistic: Maximum
@@ -402,8 +348,6 @@ Resources:
       AlarmName: PendingReplicationCount
       AlarmDescription: "dynamodb:alarm:recovery-pending_replication_count:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: PendingReplicationCount
       Namespace: AWS/DynamoDB
       Statistic: Sum
@@ -423,8 +367,6 @@ Resources:
       AlarmName: ReplicationLatency
       AlarmDescription: "dynamodb:alarm:recovery-replication_latency:2020-04-01"
       ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
       MetricName: ReplicationLatency
       Namespace: AWS/DynamoDB
       Statistic: Maximum
