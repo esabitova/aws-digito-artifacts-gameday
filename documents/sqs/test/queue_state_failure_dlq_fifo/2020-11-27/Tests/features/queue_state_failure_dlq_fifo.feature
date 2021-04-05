@@ -1,7 +1,7 @@
 @sqs
 Feature: SSM automation document to test behavior of FIFO queue after receiving a message maximum allowed times
 
-  Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to test behavior of FIFO queue after receiving a message maximum allowed times
+  Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to test behavior of FIFO queue after receiving a message maximum allowed times  and purge DLQ afterwards
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                            | ON_DEMAND    |
