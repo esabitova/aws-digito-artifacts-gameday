@@ -1,6 +1,7 @@
 {
-  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "displayName": "SOP - Clean up SQS queue",
+  "description": "To clean up SQS queue",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "documentName": "Digito-PurgeQueue_2021-03-11",

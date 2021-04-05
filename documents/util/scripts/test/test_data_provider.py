@@ -1,6 +1,7 @@
+import json
 from datetime import datetime, timezone, timedelta
 from io import BytesIO
-import json
+
 import urllib3
 
 AUTOMATION_EXECUTION_ID = '123e4567-e89b-12d3-a456-426614174000'
@@ -40,6 +41,15 @@ VPC_ID = 'vpc-12345'
 PUBLIC_SUBNET_ID = 'subnet-public'
 INSTANCE_REFRESH_ID = 'refresh-id'
 AZ_USW2A = 'us-west-2a'
+SSM_EXECUTION_PARAMETER_1 = 'AutomationAssumeRole'
+SSM_EXECUTION_PARAMETER_1_VALUE = \
+    [f'arn:aws:iam::{ACCOUNT_ID}:role/AutomationAssumeRoleTempl-DigitoSQSCapacityFailure-PK7O48UEHKGL']
+SSM_EXECUTION_PARAMETER_2 = 'QueueUrl'
+SSM_EXECUTION_PARAMETER_2_VALUE = \
+    [f'https://sqs.ap-southeast-1.amazonaws.com/{ACCOUNT_ID}/SqsTemplate-0-SqsStandardQueue-1EO9FAEL376IM']
+SSM_EXECUTION_PARAMETER_3 = 'SentMessageSizeAlarmName'
+SSM_EXECUTION_PARAMETER_3_VALUE = \
+    ['SqsSQSAlwaysOKAlarm']
 
 
 def get_sample_ssm_execution_response():
@@ -56,6 +66,11 @@ def get_sample_ssm_execution_response():
     automation_execution = {}
     automation_execution['StepExecutions'] = [step_execution]
     automation_execution['AutomationExecutionId'] = AUTOMATION_EXECUTION_ID
+    automation_execution['Parameters'] = {
+        SSM_EXECUTION_PARAMETER_1: SSM_EXECUTION_PARAMETER_1_VALUE,
+        SSM_EXECUTION_PARAMETER_2: SSM_EXECUTION_PARAMETER_2_VALUE,
+        SSM_EXECUTION_PARAMETER_3: SSM_EXECUTION_PARAMETER_3_VALUE
+    }
 
     ssm_execution_response = {}
     ssm_execution_response['AutomationExecution'] = automation_execution

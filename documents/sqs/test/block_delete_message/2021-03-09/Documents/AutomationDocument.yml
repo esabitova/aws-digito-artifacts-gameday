@@ -56,7 +56,7 @@ mainSteps:
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: get_outputs_from_ssm_step_execution
+      Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{PreviousExecutionId}}'
         StepName: 'BackupCurrentExecution'
@@ -64,7 +64,7 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_outputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
   - name: RollbackPreviousExecution
     action: aws:executeScript
     inputs:
@@ -77,6 +77,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
+    isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty

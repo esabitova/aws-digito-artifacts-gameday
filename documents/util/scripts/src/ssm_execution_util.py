@@ -1,25 +1,22 @@
-import boto3
 import json
+
+import boto3
 
 
 def get_output_from_ssm_step_execution(events, context):
-    print('Creating ssm client')
-    print(events)
     ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
 
-    print('Fetching SSM response for execution')
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssm_response)
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == events['StepName']:
-            responseFields = events['ResponseField'].split(',')
+            response_fields = events['ResponseField'].split(',')
             output = {}
-            for responseField in responseFields:
-                stepOutput = step['Outputs'][responseField][0]
-                output[responseField] = stepOutput
+            for responseField in response_fields:
+                # TODO DIG-854
+                output[responseField] = step['Outputs'][responseField][0]
 
             return output
 
@@ -28,16 +25,12 @@ def get_output_from_ssm_step_execution(events, context):
 
 
 def get_inputs_from_ssm_step_execution(events, context):
-    print('Creating ssm client')
-    print(events)
     ssm = boto3.client('ssm')
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
 
-    print('Fetching SSM response for execution')
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssm_response)
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == events['StepName']:
             response_fields = events['ResponseField'].split(',')
@@ -58,7 +51,6 @@ def get_step_durations(events, context):
         raise KeyError('Requires ExecutionId, StepName in events')
 
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
-    print('SSM response for execution : ', ssm_response)
 
     step_names = events['StepName'].split(',')
     duration = 0
@@ -67,8 +59,7 @@ def get_step_durations(events, context):
             duration += (step['ExecutionEndTime'] - step['ExecutionStartTime']).seconds
 
     if duration > 0:
-        output = {}
-        output['duration'] = str(round(duration))
+        output = {'duration': str(round(duration))}
         return output
 
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
@@ -99,3 +90,22 @@ def run_command_document_async(events, context):
         Parameters=params
     )
     return {'CommandId': response['Command']['CommandId']}
+
+
+def get_inputs_from_ssm_execution(events, context):
+    output = {}
+    ssm = boto3.client('ssm')
+
+    if 'ExecutionId' not in events:
+        raise KeyError('Requires ExecutionId')
+
+    if not events['ExecutionId']:
+        raise KeyError('Requires not empty ExecutionId')
+
+    response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+    response_parameters = response['AutomationExecution']['Parameters']
+    # TODO DIG-853
+    for parameter in response_parameters:
+        output[parameter] = response_parameters[parameter]
+
+    return output

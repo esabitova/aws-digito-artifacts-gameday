@@ -1,4 +1,6 @@
 {
+  "displayName": "Test SQS message size get close to capacity limit",
+  "description": "Test SQS behavior after sending a message of size larger than threshold",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "attachments": "digito_gameday_primitives.zip",
   "documentContentPath": "AutomationDocument.yml",
@@ -6,7 +8,6 @@
   "documentName": "Digito-SQSCapacityFailure_2021-03-13",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
-  "displayName": "Test SQS message size get close to capacity limit",
   "intent": "Test SQS behavior after sending a message of size larger than threshold",
   "risk": "MEDIUM",
   "tag": "sqs:test:capacity_failure:2021-03-13",

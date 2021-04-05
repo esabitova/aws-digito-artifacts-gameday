@@ -31,11 +31,12 @@ class ResourceManager:
                     return rt
             raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
 
-    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3):
+    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict):
         self.cfn_helper = cfn_helper
         self.s3_helper = s3_helper
         self.cfn_templates = dict()
         self.cfn_resources = dict()
+        self.custom_pool_size = custom_pool_size
 
     def init_ddb_tables(self, boto3_session):
         """
@@ -252,21 +253,26 @@ class ResourceManager:
         logging.info("Destroying [%s] stack.", resource.cf_stack_name)
         cfn_helper.delete_cf_stack(resource.cf_stack_name)
 
-    def _get_resource_pool_size(self, cf_template_name, resource_type: ResourceType):
+    def _get_resource_pool_size(self, cfn_template_name: str, resource_type: ResourceType) -> int:
         """
-        Using config.py finds pool size for given template
-        (number of cloud formation stack copies to be created for given cloud formation template).
-        :param cf_template_name The file path to cloud formation template
+        Finds pool size (number of cloud formation stack copies to be created for given cloud formation template)
+        defined in config.pool_size or custom_pool_size for given template
+        if custom_pool_size has configuration for cfn_template_name it will override config.pool_size.
+        :param cfn_template_name The file path to cloud formation template
         :return The pool size
         """
-        pool_size = 1 if resource_type == ResourceManager.ResourceType.ASSUME_ROLE \
-            else config.pool_size.get(cf_template_name)
-        if pool_size is None:
-            default_pool_size = config.pool_size['default']
-            logging.warning("Pool size for [%s] template not found, using default: %d",
-                            cf_template_name, default_pool_size)
-            return default_pool_size
-        logging.info("Pool size for [%s] template: %d", cf_template_name, pool_size)
+        pool_size = 1
+        if resource_type == ResourceManager.ResourceType.ASSUME_ROLE:
+            return pool_size
+        elif self.custom_pool_size and self.custom_pool_size.get(cfn_template_name):
+            pool_size = self.custom_pool_size.get(cfn_template_name)
+        else:
+            pool_size = config.pool_size.get(cfn_template_name)
+            if pool_size is None:
+                pool_size = config.pool_size['default']
+                logging.warning("Pool size for [%s] template not found, using default: %d",
+                                cfn_template_name, pool_size)
+        logging.info("Pool size for [%s] template: %d", cfn_template_name, pool_size)
         return pool_size
 
     def _update_resource(self, index: int, cfn_template_path: str, cfn_content: dict, resource: ResourceModel):

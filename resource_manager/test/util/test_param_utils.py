@@ -59,3 +59,17 @@ class TestParamUtils(unittest.TestCase):
         expected_value = 'simple_value'
         actual_value = param_utils.parse_param_value(expected_value, containers)
         self.assertEqual(expected_value, actual_value)
+
+    def test_parse_pool_size_success(self):
+        actual_pool_size = param_utils.parse_pool_size('TemplateA=1,TemplateB=2,TemplateC=3,S3TemplateC=4')
+        expected_pool_size = dict(TemplateA=1, TemplateB=2, TemplateC=3, S3TemplateC=4)
+        self.assertEqual(actual_pool_size, expected_pool_size)
+
+    def test_parse_pool_size_extra_space_fail(self):
+        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,TemplateB=2, TemplateC=3,S3TemplateC=4')
+
+    def test_parse_pool_size_bad_number_fail(self):
+        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,TemplateB=B,TemplateC=3,S3TemplateC=4')
+
+    def test_parse_pool_size_bad_char_fail(self):
+        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,?TemplateB=1,TemplateC=3,S3TemplateC=4')

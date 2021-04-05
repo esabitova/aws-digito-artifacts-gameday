@@ -19,7 +19,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Role for RDS promote read replica SOP
 Outputs:
   DigitoRdsPromoteReadReplicaAssumeRole:
-    Description: DigitoRdsPromoteReadReplica Automation Assume Role ARN
+    Description: Digito Rds Promote Read Replica Automation Assume Role ARN
     Value:
       Fn::GetAtt: DigitoRdsPromoteReadReplicaAssumeRole.Arn
     Export:

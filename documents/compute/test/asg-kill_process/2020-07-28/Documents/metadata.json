@@ -1,5 +1,6 @@
 {
   "displayName": "Test - Inject process kill to ASG",
+  "description": "Test app if process suddenly dies.",
   "documentName": "Digito-KillProcessAsg_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

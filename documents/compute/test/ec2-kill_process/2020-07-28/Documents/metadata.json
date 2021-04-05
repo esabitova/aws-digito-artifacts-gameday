@@ -1,5 +1,6 @@
 {
   "displayName": "Test - Inject process kill to EC2",
+  "description": "Test app if process suddenly dies.",
   "documentName": "Digito-KillProcessEc2_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

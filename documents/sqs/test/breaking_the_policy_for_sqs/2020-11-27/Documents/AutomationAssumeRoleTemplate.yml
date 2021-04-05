@@ -50,5 +50,7 @@ Resources:
               - sqs:AddPermission
               - sqs:RemovePermission
               - sqs:SendMessage
+              - ssm:GetAutomationExecution
+              - ssm:GetParameters
       Roles:
         - Ref: DigitoBreakingThePolicyForSQSAssumeRole

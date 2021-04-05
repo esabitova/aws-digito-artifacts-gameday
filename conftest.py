@@ -13,12 +13,11 @@ from datetime import timedelta, datetime
 from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.s3 import S3
-from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint
-from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
+from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
+from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table, parse_pool_size
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache, extract_param_value, \
-    generate_different_value_by_ranges
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from pytest import ExitCode
 from botocore.exceptions import ClientError
 from publisher.src.publish_documents import PublishDocuments
@@ -71,7 +70,7 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper)
+        rm = ResourceManager(cfn_helper, s3_helper, dict())
         rm.init_ddb_tables(boto3_session)
         # In case we do execute tests not in single session, for example in different machines, we don't want
         # to perform resource fix since one session can try to modify resource state which is used by another session.
@@ -98,7 +97,7 @@ def pytest_sessionfinish(session, exitstatus):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper)
+        rm = ResourceManager(cfn_helper, s3_helper, dict())
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
@@ -140,7 +139,8 @@ def resource_manager(request, boto3_session):
     '''
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
-    rm = ResourceManager(cfn_helper, s3_helper)
+    custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
+    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size)
     yield rm
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
@@ -167,7 +167,6 @@ def setup(request, ssm_test_cache, boto3_session):
     :param ssm_test_cache The test cache
     :param boto3_session The boto3 session
     """
-
     def tear_down():
         # Terminating SSM automation execution at the end of each test.
         ssm = boto3_session.client('ssm')
@@ -451,14 +450,12 @@ def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_proper
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
 
 
-@given(parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" '
-             'to "{to_range}" as "{new_property}" "{step_key}" SSM automation execution'
-             '\n{input_parameters}'))
-@when(parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" '
-            'to "{to_range}" as "{new_property}" "{step_key}" SSM automation execution'
-            '\n{input_parameters}'))
-def generate_different_value(resource_manager, ssm_test_cache, target_property, old_property, from_range: str,
-                             to_range: str, new_property, step_key, input_parameters):
-    old_value = extract_param_value(input_parameters, old_property, resource_manager, ssm_test_cache)
-    new_value = generate_different_value_by_ranges(int(from_range), int(to_range), int(old_value))
-    put_to_ssm_test_cache(ssm_test_cache, step_key, new_property, new_value)
+@when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
+def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state, timeout, input_parameters):
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    alarm_name = parameters[0].get('AlarmName')
+    if alarm_name is None:
+        raise Exception('Parameter with name [AlarmName] should be provided')
+    time_to_wait = int(timeout)
+    wait_for_metric_alarm_state(boto3_session, alarm_name, alarm_state, time_to_wait)

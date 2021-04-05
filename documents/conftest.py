@@ -11,6 +11,15 @@ def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actua
            == ssm_test_cache[step_key_for_actual][actual_property]
 
 
+@then(parsers.cfparse('assert the difference between "{expected_property}" at "{step_key_for_expected}" '
+                      'and "{actual_property}" at "{step_key_for_actual}" became "{expected_difference:int}"',
+                      extra_types=dict(int=int)))
+def assert_difference(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual,
+                      expected_difference: int):
+    assert int(ssm_test_cache[step_key_for_expected][expected_property]) \
+           - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
+
+
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became not equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_not_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):

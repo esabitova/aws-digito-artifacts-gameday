@@ -152,9 +152,7 @@ Resources:
     Properties:
       AlarmName: "Throttles"
       AlarmDescription: "lambda:alarm:health-throttles:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "Throttles"
       Namespace: "AWS/Lambda"
       Statistic: "Maximum"
@@ -172,9 +170,7 @@ Resources:
     Properties:
       AlarmName: "Errors"
       AlarmDescription: "lambda:alarm:health-errors:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "Errors"
       Namespace: "AWS/Lambda"
       Statistic: "Maximum"
@@ -192,9 +188,7 @@ Resources:
     Properties:
       AlarmName: "Memory Soft Limit"
       AlarmDescription: "lambda:alarm:health-memory_soft_limit:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "Memory"
       Namespace: "Custom"
       Statistic: "Maximum"
@@ -212,9 +206,7 @@ Resources:
     Properties:
       AlarmName: "Concurrent executions"
       AlarmDescription: "lambda:alarm:health-concurrent_executions:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "ConcurrentExecutions"
       Namespace: "AWS/Lambda"
       Statistic: "Average"
@@ -231,10 +223,8 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: "ExecutionsStarted"
-      ActionsEnabled: true
+      ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-execution_started:2020-04-01"
-      AlarmActions:
-        - !Ref SNSTopic
       EvaluationPeriods: 5
       DatapointsToAlarm: 3
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
@@ -278,10 +268,8 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: "Average Memory Growth"
-      ActionsEnabled: true
+      ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-memory_deviation:2020-04-01"
-      AlarmActions:
-        - !Ref SNSTopic
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
@@ -317,10 +305,8 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: "ExecutionTime"
-      ActionsEnabled: true
+      ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-execution_time:2020-04-01"
-      AlarmActions:
-        - !Ref SNSTopic
       EvaluationPeriods: 5
       DatapointsToAlarm: 3
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
@@ -364,10 +350,8 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: "Duration"
-      ActionsEnabled: true
+      ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-duration:2020-04-01"
-      AlarmActions:
-        - !Ref SNSTopic
       EvaluationPeriods: 5
       DatapointsToAlarm: 3
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
@@ -403,10 +387,8 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: "Invocations"
-      ActionsEnabled: true
+      ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-invocations:2020-04-01"
-      AlarmActions:
-        - !Ref SNSTopic
       EvaluationPeriods: 5
       DatapointsToAlarm: 3
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
@@ -443,9 +425,7 @@ Resources:
     Properties:
       AlarmName: "ExecutionsFailed"
       AlarmDescription: "lambda:alarm:health-execution_failed:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "ExecutionsTimedOut"
       Namespace: "AWS/States"
       Statistic: "Maximum"
@@ -470,9 +450,7 @@ Resources:
     Properties:
       AlarmName: "ExecutionsTimeOut"
       AlarmDescription: "lambda:alarm:health-executions_timeout:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "ExecutionsTimedOut"
       Namespace: "AWS/States"
       Statistic: "Maximum"
@@ -497,9 +475,7 @@ Resources:
     Properties:
       AlarmName: "ExecutionThrottled"
       AlarmDescription: "lambda:alarm:health-execution_throttled:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: "ExecutionThrottled"
       Namespace: "AWS/States"
       Statistic: "Maximum"
@@ -519,34 +495,6 @@ Resources:
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "missing"
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
-    Properties:
-      TopicName: "sns-topic"
-  SNSTopicPolicy:
-    Type: "AWS::SNS::TopicPolicy"
-    Properties:
-      PolicyDocument:
-        Version: '2008-10-17'
-        Id: SNSTopicPolicy
-        Statement:
-          - Sid: SNSTopicPolicyStatement
-            Effect: Allow
-            Principal:
-              AWS: "*"
-            Action:
-              - SNS:GetTopicAttributes
-              - SNS:SetTopicAttributes
-              - SNS:AddPermission
-              - SNS:RemovePermission
-              - SNS:DeleteTopic
-              - SNS:Subscribe
-              - SNS:ListSubscriptionsByTopic
-              - SNS:Publish
-              - SNS:Receive
-            Resource: !Ref SNSTopic
-      Topics:
-        - !Ref SNSTopic
   StateMachine:
     Type: AWS::StepFunctions::StateMachine
     Properties:
