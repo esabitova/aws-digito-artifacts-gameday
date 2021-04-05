@@ -282,7 +282,7 @@ mainSteps:
   - name: SleepUntilQueueHandleTheMessage
     action: aws:sleep
     inputs:
-      Duration: PT30S
+      Duration: PT60S
 
   - name: ReadMessage1
     action: aws:executeAwsApi
