@@ -28,7 +28,7 @@ parameters:
   RecoveryPointDateTime:
     type: String
     description: (Optional) The recovery point in time in format YYYY-MM-DDTHH:MM:SSZ
-    default: ''
+    default: ""
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
@@ -66,22 +66,21 @@ mainSteps:
       Runtime: python3.6
       Handler: parse_recovery_date_time
       InputPayload:
-        RecoveryPointDateTime: '{{RecoveryPointDateTime}}'
+        RecoveryPointDateTime: "{{RecoveryPointDateTime}}"
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._parse_recovery_date_time
         SCRIPT_PLACEHOLDER::dynamo_db_util.parse_recovery_date_time
-  # - name: CheckIfUseLatestRecoveryPoint
-  #   action: aws:branch
-  #   inputs:
-  #     Choices:
-  #       - NextStep: RestoreDynamoDBTableToPointInTime
-  #         Variable: "{{ParseRecoveryPointDateTime.UseLatestRecoveryPoint}}"
-  #         StringEquals: 'true'
-  #     Default:
-  #       Abort
-  - name: RestoreDynamoDBTableToPointInTime
+  - name: CheckIfUseLatestRecoveryPoint
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RestoreDynamoDBTableLatestToPointInTime
+          Variable: "{{ParseRecoveryPointDateTime.UseLatestRecoveryPoint}}"
+          BooleanEquals: true
+      Default: RestoreDynamoDBTableToPointInTime
+  - name: RestoreDynamoDBTableLatestToPointInTime
     action: aws:executeAwsApi
     onFailure: Abort
     inputs:
@@ -94,4 +93,30 @@ mainSteps:
       - Name: TableDescription
         Selector: "$.TableDescription"
         Type: StringMap
+    nextStep: WaitTableToBeActive
+  - name: RestoreDynamoDBTableToPointInTime
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: RestoreTableToPointInTime
+      SourceTableName: "{{ DynamoDBTableSourceName }}"
+      TargetTableName: "{{ DynamoDBTableTargetName }}"
+      RestoreDateTime: "{{ ParseRecoveryPointDateTime.RecoveryPointDateTime }}"
+    outputs:
+      - Name: TableDescription
+        Selector: "$.TableDescription"
+        Type: StringMap
+    nextStep: WaitTableToBeActive
+  - name: WaitTableToBeActive
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{DynamoDBTableTargetName}}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
     isEnd: true

@@ -6,8 +6,13 @@ from pytest_bdd import (
 )
 
 
-@scenario('../features/restore_to_point_in_time.feature',
-          'Create AWS resources using CloudFormation template and execute SSM automation document to restore '
-          'the database to point in time')
-def test_restore_to_point_in_time():
+@scenario('../features/restore_to_latest_point_in_time.feature',
+          'Restores table to the latest available point')
+def test_restore_to_latest_point_in_time():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/restore_to_specific_point_in_time.feature',
+          'Restores table to the specific point')
+def test_restore_to_specific_point_in_time():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""

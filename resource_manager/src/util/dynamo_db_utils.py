@@ -1,5 +1,6 @@
 import logging
 import time
+import datetime
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -7,13 +8,28 @@ from botocore.exceptions import ClientError
 log = logging.getLogger()
 
 
-def _check_if_table_deleted(table_name: str, boto3_session: Session):
+def _describe_table(table_name: str, boto3_session: Session):
     dynamo_db_client = boto3_session.client('dynamodb')
+    description = dynamo_db_client.describe_table(TableName=table_name)
+    if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
+        log.error(description)
+        raise ValueError('Failed to describe table')
+    return description
+
+
+def _describe_continuous_backups(table_name: str, boto3_session: Session):
+    dynamo_db_client = boto3_session.client('dynamodb')
+    continuous_backups = dynamo_db_client.describe_continuous_backups(TableName=table_name)
+    if not continuous_backups['ResponseMetadata']['HTTPStatusCode'] == 200:
+        log.error(continuous_backups)
+        raise ValueError('Failed to get continuous backups info')
+    return continuous_backups
+
+
+def _check_if_table_deleted(table_name: str, boto3_session: Session):
     try:
-        description = dynamo_db_client.describe_table(TableName=table_name)
-        if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
-            log.error(description)
-            raise ValueError('Failed to delete table')
+        description = _describe_table(table_name=table_name,
+                                      boto3_session=boto3_session)
         status = description['Table']['TableStatus']
         log.info(f'The current status of the table `{table_name}` is {status}')
     except ClientError as ce:
@@ -21,6 +37,13 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session):
             log.warning(f"The table `{table_name}` doesn't exist, happy path")
             return True
     return False
+
+
+def get_earliest_recovery_point_in_time(table_name: str, boto3_session: Session) \
+        -> datetime.datetime:
+    continuous_backups = _describe_continuous_backups(table_name=table_name, boto3_session=boto3_session)
+    backups_description = continuous_backups['ContinuousBackupsDescription']
+    return backups_description['PointInTimeRecoveryDescription']['EarliestRestorableDateTime']
 
 
 def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
@@ -46,7 +69,7 @@ def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
             code = ce.response['Error']['Code']
             log.error(f"error when deleting table {table_name}:{code}")
             if code == 'ResourceNotFoundException':
-                log.warn(f"The table {table_name} doesn't exist, happy path")
+                log.warning(f"The table {table_name} doesn't exist, happy path")
                 return
         finally:
             end = time.time()

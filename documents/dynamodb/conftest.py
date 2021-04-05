@@ -1,7 +1,7 @@
 from pytest_bdd import given, parsers, then
 from resource_manager.src.util import param_utils
 from resource_manager.src.util.dynamo_db_utils import \
-    drop_and_wait_dynamo_db_table_if_exists
+    drop_and_wait_dynamo_db_table_if_exists, get_earliest_recovery_point_in_time
 
 DROP_TABLE_DESCRIPTION = "Drop Dynamo DB table with the name {table_name_ref} and wait " \
     "for {wait_sec} seconds with interval {delay_sec} seconds"
@@ -21,3 +21,17 @@ def drop_and_wait_dynamo_db_table(ssm_test_cache,
                                             boto3_session=boto3_session,
                                             wait_sec=int(wait_sec),
                                             delay_sec=int(delay_sec))
+
+
+@given(parsers.parse("valid recovery point in time for {table_name_ref} and cache it as {field_name}"))
+def find_valid_recovery_point_in_time(ssm_test_cache,
+                                      resource_manager,
+                                      boto3_session,
+                                      table_name_ref,
+                                      field_name):
+    cf_output = resource_manager.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    valid_recovery_point = \
+        get_earliest_recovery_point_in_time(table_name=table_name, boto3_session=boto3_session)
+
+    ssm_test_cache[field_name] = str(valid_recovery_point.strftime("%Y-%m-%dT%H:%M:%S%z"))
