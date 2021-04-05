@@ -279,6 +279,11 @@ mainSteps:
       MessageGroupId: '{{global:DATE_TIME}}'
     onFailure: step:RollbackCurrentExecutionQueuePolicy
 
+  - name: SleepUntilQueueHandleTheMessage
+    action: aws:sleep
+    inputs:
+      Duration: PT30S
+
   - name: ReadMessage1
     action: aws:executeAwsApi
     inputs:
