@@ -1,12 +1,14 @@
 {
-  "documentName": "Digito-UpdateProvisionedCapacity_2020-04-01",
-  "documentType": "Automation",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "displayName": "Digito - Update provisioned capacity for DynamoDB Table",
+  "description": "Used to Update provisioned capacity for DynamoDB Table",
+  "attachments": "digito_gameday_primitives.zip",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentName": "Digito-UpdateProvisionedCapacity_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "risk": "LOW",
   "tag": "dynamodb:sop:update_provisioned_capacity:2020-04-01",
-  "failureType": "NONE",
-  "risk": "SMALL",
-  "intent": "Used to Update provisioned capacity for DynamoDB Table",
   "minorVersion": "001"
 }
