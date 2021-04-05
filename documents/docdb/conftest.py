@@ -6,6 +6,7 @@ from pytest_bdd import (
     parsers, when, then
 )
 
+import resource_manager.src.constants as constants
 from resource_manager.src.util import docdb_utils as docdb_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.param_utils import parse_param_values_from_table
@@ -22,7 +23,7 @@ cache_cluster_az_expression = 'cache one of cluster azs in property "{cache_prop
 assert_azs_expression = 'assert instance AZ value "{actual_property}" at "{step_key_for_actual}" is one of ' \
                         'cluster AZs' \
                         '\n{input_parameters}'
-remove_instance_expression = 'delete created instance\n{input_parameters}'
+remove_instance_expression = 'delete created instance and wait for "{time_to_wait}" seconds\n{input_parameters}'
 cache_replica_id_expression = 'cache replica instance identifier as "{cache_property}" at step "{step_key}"' \
                               '\n{input_parameters}'
 assert_primary_instance_expression = 'assert if the cluster member is the primary instance\n{input_parameters}'
@@ -90,12 +91,29 @@ def assert_instance_az_in_cluster_azs(
 
 @then(parsers.parse(remove_instance_expression))
 def delete_instance_after_test(
-        resource_manager, ssm_test_cache, boto3_session, input_parameters
+        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     instance_id = extract_param_value(
         input_parameters, "DBInstanceIdentifier", resource_manager, ssm_test_cache
     )
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+    )
     docdb_utils.delete_instance(boto3_session, instance_id)
+    is_instance_deleted = False
+    start_time = time.time()
+    elapsed_time = time.time() - start_time
+    while is_instance_deleted is False:
+        if elapsed_time > int(time_to_wait):
+            raise Exception(f'Waiting for instance {instance_id} deletion in cluster {cluster_id} timed out')
+        cluster_members = docdb_utils.get_cluster_members(boto3_session, cluster_id)
+        temp_bool = True
+        for cluster_member in cluster_members:
+            temp_bool = temp_bool and cluster_member['DBInstanceIdentifier'] != instance_id
+        time.sleep(constants.sleep_time_secs)
+        elapsed_time = time.time() - start_time
+        is_instance_deleted = temp_bool
+    return True
 
 
 @when(parsers.parse('Assert that DocumentDB instance is in "{expected_status}" status with timeout of '
