@@ -20,12 +20,10 @@ def test_restore_previous_versions():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
-cache_value_statement = 'cache value of "{version_indicator}" version of the "{file_name}" file as "{cache_property}" '
-'at "{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution\n{input_parameters}'
-
-
-@when(parsers.parse(cache_value_statement))
-@given(parsers.parse(cache_value_statement))
+@when(parsers.parse('cache value of "{version_indicator}" version of the "{file_name}" file as "{cache_property}" at '
+                    '"{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution\n{input_parameters}'))
+@given(parsers.parse('cache value of "{version_indicator}" version of the "{file_name}" file as "{cache_property}" at '
+                     '"{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution\n{input_parameters}'))
 def cache_value_of_version(resource_manager, ssm_test_cache, version_indicator, file_name,
                            cache_property, s3_bucket_param_key, step_key,
                            input_parameters):

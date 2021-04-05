@@ -434,7 +434,7 @@ class TestDocDBUtil(unittest.TestCase):
         self.assertRaises(Exception, restore_to_point_in_time, events, None)
 
     # Test restore_db_cluster_instances
-    def test_restore_db_cluster_instances(self):
+    def test_restore_db_cluster_instances_same_cluster_azs(self):
         events = {
             'BackupDbClusterInstancesCountValue': [
                 {
@@ -450,14 +450,22 @@ class TestDocDBUtil(unittest.TestCase):
                 'Instance1': {
                     'DBInstanceClass': DOCDB_INSTANCE_CLASS,
                     'Engine': DOCDB_ENGINE,
-                    'AvailabilityZone': DOCDB_AZ
+                    'AvailabilityZone': 'us-east-1a'
                 },
                 'Instance2': {
                     'DBInstanceClass': DOCDB_INSTANCE_CLASS,
                     'Engine': DOCDB_ENGINE,
-                    'AvailabilityZone': DOCDB_AZ
+                    'AvailabilityZone': 'us-east-1b'
                 }
             }
+        }
+        self.mock_docdb.describe_db_clusters.return_value = {
+            'DBClusters': [
+                {
+                    'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+                    'AvailabilityZones': ['us-east-1a', 'us-east-1b']
+                }
+            ]
         }
         response = restore_db_cluster_instances(events, None)
         calls = [
@@ -466,7 +474,7 @@ class TestDocDBUtil(unittest.TestCase):
                 DBInstanceClass=DOCDB_INSTANCE_CLASS,
                 Engine=DOCDB_ENGINE,
                 DBClusterIdentifier=DOCDB_CLUSTER_ID,
-                AvailabilityZone=DOCDB_AZ,
+                AvailabilityZone='us-east-1a',
                 PromotionTier=1
             ),
             call(
@@ -474,12 +482,83 @@ class TestDocDBUtil(unittest.TestCase):
                 DBInstanceClass=DOCDB_INSTANCE_CLASS,
                 Engine=DOCDB_ENGINE,
                 DBClusterIdentifier=DOCDB_CLUSTER_ID,
-                AvailabilityZone=DOCDB_AZ,
+                AvailabilityZone='us-east-1b',
                 PromotionTier=2
             )
         ]
         self.mock_docdb.create_db_instance.assert_has_calls(calls)
         self.assertEqual(['Instance1-restored', 'Instance2-restored'], response)
+
+    def test_restore_db_cluster_instances_different_cluster_azs(self):
+        events = {
+            'BackupDbClusterInstancesCountValue': [
+                {
+                    'DBInstanceIdentifier': 'Instance1',
+                    'IsClusterWriter': True
+                }, {
+                    'DBInstanceIdentifier': 'Instance2',
+                    'IsClusterWriter': False
+                }, {
+                    'DBInstanceIdentifier': 'Instance3',
+                    'IsClusterWriter': False
+                }
+            ],
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBClusterInstancesMetadata': {
+                'Instance1': {
+                    'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+                    'Engine': DOCDB_ENGINE,
+                    'AvailabilityZone': 'us-east-1a'
+                },
+                'Instance2': {
+                    'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+                    'Engine': DOCDB_ENGINE,
+                    'AvailabilityZone': 'us-east-1b'
+                },
+                'Instance3': {
+                    'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+                    'Engine': DOCDB_ENGINE,
+                    'AvailabilityZone': 'us-east-1c'
+                }
+            }
+        }
+        self.mock_docdb.describe_db_clusters.return_value = {
+            'DBClusters': [
+                {
+                    'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+                    'AvailabilityZones': ['us-east-1a', 'us-east-1d', 'us-east-1f']
+                }
+            ]
+        }
+        response = restore_db_cluster_instances(events, None)
+        calls = [
+            call(
+                DBInstanceIdentifier='Instance1-restored',
+                DBInstanceClass=DOCDB_INSTANCE_CLASS,
+                Engine=DOCDB_ENGINE,
+                DBClusterIdentifier=DOCDB_CLUSTER_ID,
+                AvailabilityZone='us-east-1a',
+                PromotionTier=1
+            ),
+            call(
+                DBInstanceIdentifier='Instance2-restored',
+                DBInstanceClass=DOCDB_INSTANCE_CLASS,
+                Engine=DOCDB_ENGINE,
+                DBClusterIdentifier=DOCDB_CLUSTER_ID,
+                AvailabilityZone='us-east-1d',
+                PromotionTier=2
+            ),
+            call(
+                DBInstanceIdentifier='Instance3-restored',
+                DBInstanceClass=DOCDB_INSTANCE_CLASS,
+                Engine=DOCDB_ENGINE,
+                DBClusterIdentifier=DOCDB_CLUSTER_ID,
+                AvailabilityZone='us-east-1f',
+                PromotionTier=2
+            )
+        ]
+        self.mock_docdb.create_db_instance.assert_has_calls(calls)
+        self.assertEqual(['Instance1-restored', 'Instance2-restored', 'Instance3-restored'], response)
 
     def test_create_db_instance_empty_events(self):
         self.assertRaises(Exception, restore_db_cluster_instances, {}, None)

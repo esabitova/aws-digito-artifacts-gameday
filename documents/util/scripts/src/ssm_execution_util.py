@@ -14,10 +14,20 @@ def get_output_from_ssm_step_execution(events, context):
         if step['StepName'] == events['StepName']:
             response_fields = events['ResponseField'].split(',')
             output = {}
-            for responseField in response_fields:
+            for response_field in response_fields:
                 # TODO DIG-854
-                output[responseField] = step['Outputs'][responseField][0]
-
+                if response_field in step['Outputs']:
+                    output[response_field] = step['Outputs'][response_field][0]
+                else:
+                    """
+                    By default SSM ignores empty values when encodes API outputs to JSON. It may result in
+                    a situation when an empty value is a valid value but step output completely misses it.
+                    Usually happens with SQS queue policies, default policy is returned by API as an empty value
+                    and executeApi step output ignores it. As a result, further steps in rollback execution will fail.
+                    Instead of ignoring this value we should use a default empty value in rollback, i.e. empty string
+                    represents a default sqs policy
+                    """
+                    output[response_field] = ''
             return output
 
     # Could not find step name

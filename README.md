@@ -417,7 +417,7 @@ markers =
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
-> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name
+> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name --pool_size TestTemplateA=5,TestTemplateB=3
 
 * -m pytest - (Required) Use [pytest](https://docs.pytest.org/en/stable/) module for test execution.
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
@@ -425,7 +425,7 @@ Integration test execution command line:
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 * --aws_profile - (Optional) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
-
+* --pool_size - (Optional) Custom pool size for CFN template resources, it overrides configuration given resource_manager/src/config.py. NOTE: Once pool size increased there is no feature to decrease it for now (only manual deletion available.).
 
 # Design.md writing guidelines
 ## High-level users flow
@@ -451,9 +451,9 @@ Coming soon...
 
 
 # TODO List
+* https://issues.amazon.com/issues/Digito-2023 - [SSM Testing Framework] Investigate possibility reduce pool size with deleting stacks
 * https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
 * https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination
-* https://issues.amazon.com/issues/Digito-1546 - [SSM Testing Framework] Implement ability to override pool size over CLI
 * https://issues.amazon.com/issues/Digito-1207 - [SSM Testing Framework] Digito-AuroraFailoverCluster.yml SSM document need to be fixed to wait for failover completed 
 * https://issues.amazon.com/issues/Digito-1208 - [SSM Testing Framework] Investigate possibility to generate tests based on SSM document content
 
