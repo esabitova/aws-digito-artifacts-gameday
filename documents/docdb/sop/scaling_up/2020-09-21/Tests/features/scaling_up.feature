@@ -11,8 +11,8 @@ Feature: SSM automation document for scaling up DocDb instances.
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And SSM automation document "Digito-ScalingUp_2020-09-21" executed
-      | DBClusterIdentifier                                   | DBInstanceReplicaIdentifier | AutomationAssumeRole                                                  |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}}      | new-docdb-replica           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingUpAssumeRole}} |
+      | DBClusterIdentifier                              | DBInstanceReplicaIdentifier | AutomationAssumeRole                                                  |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | new-docdb-replica           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingUpAssumeRole}} |
 
     When SSM automation document "Digito-ScalingUp_2020-09-21" execution in status "Success"
       | ExecutionId                |
@@ -22,3 +22,6 @@ Feature: SSM automation document for scaling up DocDb instances.
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
 
     Then assert "NumberOfInstances" at "before" became not equal to "NumberOfInstances" at "after"
+    And delete created instance and wait for "600" seconds
+      | DBInstanceIdentifier | DBClusterIdentifier                              |
+      | new-docdb-replica    | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
