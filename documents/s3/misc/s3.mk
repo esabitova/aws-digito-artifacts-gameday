@@ -22,7 +22,7 @@ test: linter_and_unit_test publish_ssm_docs
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --count=2 --keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
