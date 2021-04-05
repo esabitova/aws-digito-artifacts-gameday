@@ -66,5 +66,27 @@ def cache_number_of_messages(
 def cache_policy(resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     policy = sqs_utils.get_policy(boto3_session, queue_url)
-    logging.info(f'Queue policy is {policy}')
+    logging.debug(f'Queue policy is {policy}')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, policy)
+
+
+@given(parsers.parse('cache visibility timeout as "{cache_property}" "{step_key}" SSM automation execution'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache visibility timeout as "{cache_property}" "{step_key}" SSM automation execution'
+                    '\n{input_parameters}'))
+def cache_visibility_timeout(
+        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+):
+    queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
+    visibility_timeout = sqs_utils.get_queue_attribute(boto3_session, queue_url, 'VisibilityTimeout')
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, visibility_timeout)
+
+
+@given(parsers.parse('cache redrive policy as "{cache_property}" "{step_key}" SSM automation execution'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache redrive policy as "{cache_property}" "{step_key}" SSM automation execution'
+                    '\n{input_parameters}'))
+def cache_redrive_policy(resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
+    queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
+    redrive_policy = sqs_utils.get_queue_attribute(boto3_session, queue_url, 'RedrivePolicy')
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, redrive_policy)

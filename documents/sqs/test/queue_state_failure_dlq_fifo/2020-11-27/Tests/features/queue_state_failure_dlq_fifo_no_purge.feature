@@ -9,6 +9,12 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    And cache visibility timeout as "VisibilityTimeout" "before" SSM automation execution
+      | QueueUrl                                                 |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    And cache redrive policy as "RedrivePolicy" "before" SSM automation execution
+      | QueueUrl                                                 |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And purge the queue
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
@@ -26,6 +32,12 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And cache policy as "Policy" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    And cache visibility timeout as "VisibilityTimeout" "after" SSM automation execution
+      | QueueUrl                                                 |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    And cache redrive policy as "RedrivePolicy" "after" SSM automation execution
+      | QueueUrl                                                 |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
@@ -36,4 +48,6 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
 
 
     Then assert "Policy" at "before" became equal to "Policy" at "after"
+    Then assert "VisibilityTimeout" at "before" became equal to "VisibilityTimeout" at "after"
+    Then assert "RedrivePolicy" at "before" became equal to "RedrivePolicy" at "after"
     And assert "NumberOfMessages" at "before" became not equal to "NumberOfMessages" at "after"
