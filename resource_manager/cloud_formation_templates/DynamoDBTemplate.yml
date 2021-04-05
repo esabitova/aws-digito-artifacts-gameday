@@ -99,8 +99,6 @@ Resources:
           KeyType: "HASH"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
   ##### Health Alarms #####
   WriteThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -118,8 +116,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   ReadThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -137,8 +135,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   ThrottledRequestsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -156,8 +154,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   ConditionalCheckFailedRequestsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -175,8 +173,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   UserErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -194,8 +192,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   SystemErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -213,8 +211,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   TransactionConflictAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -232,8 +230,8 @@ Resources:
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 1
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
       Unit: Count
   OnlineIndexThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -252,7 +250,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 10
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Count
   SuccessfulRequestLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -271,7 +269,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 100
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Milliseconds
   AccountProvisionedReadCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -290,7 +288,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 85
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Percent
   AccountProvisionedWriteCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -309,7 +307,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 85
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Percent
   MaxProvisionedTableReadCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -328,7 +326,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 85
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Percent
   MaxProvisionedTableWriteCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -347,7 +345,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 85
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Percent
 
   ##### Recovery Alarms #####
@@ -368,7 +366,7 @@ Resources:
       DatapointsToAlarm: 3
       Threshold: 100
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Count
   ReplicationLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -387,5 +385,5 @@ Resources:
       DatapointsToAlarm: 3
       Threshold: 10
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Milliseconds
