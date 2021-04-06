@@ -8,6 +8,7 @@ import sys
 from botocore.exceptions import ClientError
 import publisher.src.document_metadata_attrs as metadata_attrs
 
+
 SCRIPT_DIR = '/documents/util/scripts/src'
 logger = logging.getLogger('PublishDocuments')
 
@@ -26,19 +27,24 @@ class PublishDocuments:
             tag_value = document_metadata['tag']
 
             self.validate_metadata(document_metadata)
-
             document_content = self.get_document_content(document_metadata)
-            if self.document_exists(doc_name):
-                if self.has_document_content_changed(doc_name, doc_format, document_content):
-                    update_document_version = self.update_document(doc_name, document_content, doc_format,
-                                                                   tag_value)
-                    self.update_document_default_version(doc_name, update_document_version)
-                    logger.info('Updated document %s' % doc_name)
+            try:
+                if self.document_exists(doc_name):
+                    if self.has_document_content_changed(doc_name, doc_format, document_content):
+                        update_document_version = self.update_document(doc_name, document_content, doc_format,
+                                                                       tag_value)
+                        self.update_document_default_version(doc_name, update_document_version)
+                        logger.info('Updated document %s' % doc_name)
+                    else:
+                        logger.info('Document content has not changed for document name, %s' % doc_name)
                 else:
-                    logger.info('Document content has not changed for document name, %s' % doc_name)
-            else:
-                self.create_document(doc_name, document_content, doc_type, doc_format, tag_value)
-                logger.info('Created document %s' % doc_name)
+                    self.create_document(doc_name, document_content, doc_type, doc_format, tag_value)
+                    logger.info('Created document %s' % doc_name)
+            except ClientError as error:
+                if error.response['Error']['Code'] == 'DocumentAlreadyExists':
+                    logger.warning(error.response['Error']['Message'])
+                else:
+                    raise error
 
     def get_document_content(self, document_metadata):
         updated_document_content = ""
