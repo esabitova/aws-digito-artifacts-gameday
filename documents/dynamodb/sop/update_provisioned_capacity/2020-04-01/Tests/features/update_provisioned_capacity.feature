@@ -7,10 +7,10 @@ Feature: SSM automation document used to update provisioned capacity for DynamoD
       | resource_manager/cloud_formation_templates/DynamoDBTemplate.yml                                          | ON_DEMAND    |
       | documents/dynamodb/sop/update_provisioned_capacity/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-UpdateProvisionedCapacity_2020-04-01" SSM document
-    And cache value of "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "OldReadCapacityUnits" "before" SSM automation execution
+    And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "OldReadCapacityUnits" "before" SSM automation execution
       | TableName                                         |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTableName}} |
-    And cache value of "$.Table.ProvisionedThroughput.WriteCapacityUnits" as "OldWriteCapacityUnits" "before" SSM automation execution
+    And cache table property "$.Table.ProvisionedThroughput.WriteCapacityUnits" as "OldWriteCapacityUnits" "before" SSM automation execution
       | TableName                                         |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTableName}} |
     And generate different value of "ReadCapacityUnits" than "OldReadCapacityUnits" from "1" to "4" as "ExpectedReadCapacityUnits" "before" SSM automation execution
@@ -26,10 +26,10 @@ Feature: SSM automation document used to update provisioned capacity for DynamoD
     When SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache value of "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ActualReadCapacityUnits" "after" SSM automation execution
+    And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ActualReadCapacityUnits" "after" SSM automation execution
       | TableName                                         |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTableName}} |
-    And cache value of "$.Table.ProvisionedThroughput.WriteCapacityUnits" as "ActualWriteCapacityUnits" "after" SSM automation execution
+    And cache table property "$.Table.ProvisionedThroughput.WriteCapacityUnits" as "ActualWriteCapacityUnits" "after" SSM automation execution
       | TableName                                         |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTableName}} |
 
