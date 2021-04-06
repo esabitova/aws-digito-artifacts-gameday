@@ -76,3 +76,46 @@ def get_cluster_members(boto3_session, db_cluster_identifier: str):
     docdb_client = boto3_session.client('docdb')
     response = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
     return response['DBClusters'][0]['DBClusterMembers']
+
+
+def get_cluster_instances(boto3_session, db_cluster_identifier: str):
+    """
+    Use describe_db_instances aws method to get a list of DocDB instances
+     and return their amount
+    :param boto3_session boto3 client session
+    :param db_cluster_identifier DocDB cluster ID
+    :return DocDB instances in cluster
+    """
+    docdb_client = boto3_session.client('docdb')
+    response = docdb_client.describe_db_instances(Filters=[
+        {
+            'Name': 'db-cluster-id',
+            'Values': [db_cluster_identifier]
+        },
+    ])
+    return response['DBInstances']
+
+
+def delete_cluster(boto3_session, db_cluster_identifier: str):
+    """
+    Use delete_db_cluster aws method to delete DocDB cluster
+    :param boto3_session boto3 client session
+    :param db_cluster_identifier DocDB cluster ID
+    """
+    docdb_client = boto3_session.client('docdb')
+    docdb_client.delete_db_cluster(
+        DBClusterIdentifier=db_cluster_identifier,
+        SkipFinalSnapshot=True
+    )
+
+
+def describe_cluster(boto3_session, db_cluster_identifier: str):
+    """
+    Use describe_db_clusters aws method to get cluster's info
+    :param boto3_session boto3 client session
+    :param db_cluster_identifier DocDB cluster ID
+    :return cluster info
+    """
+    docdb_client = boto3_session.client('docdb')
+    response = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    return response['DBClusters'][0]

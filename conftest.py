@@ -1,7 +1,12 @@
-import pytest
 import logging
-import boto3
 import time
+import uuid
+from datetime import timedelta, datetime
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+from pytest import ExitCode
 from pytest_bdd import (
     when,
     given,
@@ -9,18 +14,18 @@ from pytest_bdd import (
 )
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
-from datetime import timedelta, datetime
-from resource_manager.src.resource_manager import ResourceManager
-from resource_manager.src.ssm_document import SsmDocument
-from resource_manager.src.s3 import S3
-from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
-from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table, parse_pool_size
-from resource_manager.src.cloud_formation import CloudFormationTemplate
-from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
-from pytest import ExitCode
-from botocore.exceptions import ClientError
+
 from publisher.src.publish_documents import PublishDocuments
+from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.resource_manager import ResourceManager
+from resource_manager.src.s3 import S3
+from resource_manager.src.ssm_document import SsmDocument
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
+from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
+from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
+from resource_manager.src.util.param_utils import parse_pool_size
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.sts_utils import assume_role_session
 
 
 def pytest_addoption(parser):
@@ -67,17 +72,17 @@ def pytest_sessionstart(session):
     '''
     # Execute when running integration tests
     if session.config.option.run_integration_tests:
+        # Generating testing session id in order to tie test resources to specific session, so that when
+        # running tests in parallel by multiple machines (sessions) tests will not try to change state of
+        # resources which are still in use by other sessions.
+        test_session_id = str(uuid.uuid4())
+        session.config.option.test_session_id = test_session_id
+
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict())
+        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
         rm.init_ddb_tables(boto3_session)
-        # In case we do execute tests not in single session, for example in different machines, we don't want
-        # to perform resource fix since one session can try to modify resource state which is used by another session.
-        # At this moment this case is used on CodeCommit pipeline actions where we do execute tests in parallel
-        # on different machines in same AWS account.
-        if not session.config.option.skip_resource_fix:
-            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -92,18 +97,21 @@ def pytest_sessionfinish(session, exitstatus):
     # to perform resource fix/destroy since one session can try to modify resource state which is used
     # by another session.At this moment this case is used on CodeCommit pipeline actions where we do
     # execute tests in parallel on different machines in same AWS account.
-    if session.config.option.run_integration_tests \
-            and not session.config.option.skip_resource_fix:
+
+    if session.config.option.run_integration_tests:
+        test_session_id = session.config.option.test_session_id
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict())
+        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
         else:
             logging.info(
                 "Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
+            # NOTE: We don't want to call this when running tests on multiple machines (sessions). Since resources
+            # may still be in use by other machines (sessions).
             rm.destroy_all_resources()
 
 
@@ -131,16 +139,17 @@ def cfn_output_params(resource_manager):
 
 @pytest.fixture(scope='function')
 def resource_manager(request, boto3_session):
-    '''
+    """
     Creates ResourceManager fixture for every test case.
     :param request: The pytest request object
     :param boto3_session The boto3 session
     :return: The resource manager fixture
-    '''
+    """
+    test_session_id = request.session.config.option.test_session_id
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
-    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size)
+    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size, test_session_id)
     yield rm
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
@@ -151,10 +160,9 @@ def resource_manager(request, boto3_session):
 
 @pytest.fixture(scope='function')
 def ssm_document(boto3_session):
-    '''
+    """
     Creates SsmDocument fixture to for every test case.
-    :return:
-    '''
+    """
     return SsmDocument(boto3_session)
 
 
@@ -409,37 +417,47 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
         raise Exception('Operator for [{}] is not supported'.format(operator))
 
 
-@when(parse('Approve SSM automation document\n{input_parameters}'))
-def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+@when(parse('Approve SSM automation document on behalf of the role\n{input_parameters}'))
+def approve_automation(cfn_output_params, ssm_test_cache, boto3_session, input_parameters):
     """
     Common step to approve waiting execution
     :param cfn_output_params The cfn output params from resource manager
     :param ssm_test_cache The custom test cache
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param boto3_session Base boto3 session
     :param input_parameters The input parameters
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
+    role_arn = parameters[0].get('RoleArn')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+    if role_arn is None:
+        raise Exception('Parameter with name [RoleArn] should be provided')
+    assumed_role_session = assume_role_session(role_arn, boto3_session)
+    ssm_document = SsmDocument(assumed_role_session)
     ssm_document.send_step_approval(ssm_execution_id)
 
 
-@when(parse('Reject SSM automation document\n{input_parameters}'))
-def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+@when(parse('Reject SSM automation document on behalf of the role\n{input_parameters}'))
+def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_parameters):
     """
     Common step to reject waiting execution
     :param cfn_output_params The cfn output params from resource manager
     :param ssm_test_cache The custom test cache
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param boto3_session Base boto3 session
     :param input_parameters The input parameters
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
+    role_arn = parameters[0].get('RoleArn')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+    if role_arn is None:
+        raise Exception('Parameter with name [RoleArn] should be provided')
+    assumed_role_session = assume_role_session(role_arn, boto3_session)
+    ssm_document = SsmDocument(assumed_role_session)
     ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
 
 

@@ -31,12 +31,13 @@ class ResourceManager:
                     return rt
             raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
 
-    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict):
+    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict, test_session_id: str):
         self.cfn_helper = cfn_helper
         self.s3_helper = s3_helper
         self.cfn_templates = dict()
         self.cfn_resources = dict()
         self.custom_pool_size = custom_pool_size
+        self.test_session_id = test_session_id
 
     def init_ddb_tables(self, boto3_session):
         """
@@ -159,6 +160,7 @@ class ResourceManager:
                                 resource.status = ResourceModel.Status.LEASED.name
                                 resource.leased_on = datetime.now()
                                 resource.updated_on = datetime.now()
+                                resource.test_session_id = self.test_session_id
                                 resource.save()
                                 return resource
                 except PutError:
@@ -208,15 +210,15 @@ class ResourceManager:
         """
         logging.info("Releasing all stalled resources.")
         for resource in ResourceModel().scan():
-            # If resource was not released because of failure or cancellation
-            if resource.status == ResourceModel.Status.LEASED.name:
-                ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
-
-            # If resource was not fully created/updated because of failure or cancellation
-            elif resource.status != ResourceModel.Status.AVAILABLE.name:
-                logging.info('Deleting resource for stack name [{}] in status [{}].'.format(resource.cf_stack_name,
-                                                                                            resource.status))
-                resource.delete()
+            if not self.test_session_id or resource.test_session_id == self.test_session_id:
+                # If resource was not released because of failure or cancellation
+                if resource.status == ResourceModel.Status.LEASED.name:
+                    ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
+                # If resource was not fully created/updated because of failure or cancellation
+                elif resource.status != ResourceModel.Status.AVAILABLE.name:
+                    logging.info('Deleting resource for stack name [{}] in status [{}].'.format(resource.cf_stack_name,
+                                                                                                resource.status))
+                    resource.delete()
 
     def destroy_all_resources(self):
         """
@@ -292,6 +294,7 @@ class ResourceManager:
 
             # Changing status to UPDATING to block other threads to use it.
             resource.status = ResourceModel.Status.UPDATING.name
+            resource.test_session_id = self.test_session_id
             resource.save()
 
             # Updating cloud formation stack stack
@@ -334,7 +337,8 @@ class ResourceManager:
                 status=ResourceModel.Status.CREATING.name,
                 leased_on=datetime.now(),
                 created_on=datetime.now(),
-                updated_on=datetime.now()
+                updated_on=datetime.now(),
+                test_session_id=self.test_session_id
             )
 
             # Creating cloud formation stack stack
@@ -373,6 +377,7 @@ class ResourceManager:
         resource.leased_times = resource.leased_times + 1
         resource.cf_input_parameters = cfn_input_params
         resource.cf_output_parameters = cf_output_params
+        resource.test_session_id = self.test_session_id
         resource.save()
         return resource
 

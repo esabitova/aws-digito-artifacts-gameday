@@ -66,7 +66,7 @@ def parse_pool_size(custom_pool_size: str) -> dict:
     if custom_pool_size:
         poll_sizes = custom_pool_size.split(",")
         for ps in poll_sizes:
-            poll_size_pattern = re.compile(r'[A-Za-z]+=\d+')
+            poll_size_pattern = re.compile(r'[0-9A-Za-z]+=\d+')
             if poll_size_pattern.match(ps):
                 ps_parts = ps.split('=')
                 pool_size[ps_parts[0]] = int(ps_parts[1])

@@ -14,13 +14,14 @@ class TestResourceManager(unittest.TestCase):
         self.os_path_mock = self.os_path_patcher.start()
         self.test_template_name = 'test_cf_template_name'
         self.test_bucket_name = 'test_bucket_name'
+        self.dummy_test_session_id = 'dummy_test_session_id'
         self.os_path_mock.isfile.return_value = True
         self.s3_helper_mock = MagicMock()
         self.s3_helper_mock.get_bucket_name.return_value = self.test_bucket_name
         self.s3_helper_mock.get_file_content.return_value = None
         self.cfn_helper_mock = MagicMock()
 
-        self.rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, dict())
+        self.rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, dict(), self.dummy_test_session_id)
 
         self.file_data_dummy = '{"AWSTemplateFormatVersion": "2010-09-09",' \
                                '"Description": "Assume Roles for SSM automation execution.",' \
@@ -266,15 +267,47 @@ class TestResourceManager(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.scan')
     def test_fix_stalled_resources_success(self, scan_mock):
         r1 = MagicMock()
-        r1.configure_mock(status=ResourceModel.Status.LEASED.name)
+        r1.configure_mock(status=ResourceModel.Status.LEASED.name,
+                          test_session_id=self.dummy_test_session_id)
         r2 = MagicMock()
-        r2.configure_mock(status=ResourceModel.Status.CREATING.name)
+        r2.configure_mock(status=ResourceModel.Status.CREATING.name,
+                          test_session_id=self.dummy_test_session_id)
         scan_mock.return_value = [r1, r2]
 
         self.rm.fix_stalled_resources()
 
         self.assertEqual(r1.status, ResourceModel.Status.AVAILABLE.name)
         r2.delete.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    def test_fix_stalled_resources_no_session_success(self, scan_mock):
+        r1 = MagicMock()
+        r1.configure_mock(status=ResourceModel.Status.LEASED.name,
+                          test_session_id='dummy_test_session_id_a')
+        r2 = MagicMock()
+        r2.configure_mock(status=ResourceModel.Status.CREATING.name,
+                          test_session_id='dummy_test_session_id_b')
+        scan_mock.return_value = [r1, r2]
+        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, dict(), None)
+        rm.fix_stalled_resources()
+
+        self.assertEqual(r1.status, ResourceModel.Status.AVAILABLE.name)
+        r2.delete.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    def test_fix_stalled_resources_no_deletion_success(self, scan_mock):
+        r1 = MagicMock()
+        r1.configure_mock(status=ResourceModel.Status.LEASED.name,
+                          test_session_id=self.dummy_test_session_id)
+        r2 = MagicMock()
+        r2.configure_mock(status=ResourceModel.Status.CREATING.name,
+                          test_session_id='dummy_bad_test_session_id')
+        scan_mock.return_value = [r1, r2]
+
+        self.rm.fix_stalled_resources()
+
+        self.assertEqual(r1.status, ResourceModel.Status.AVAILABLE.name)
+        r2.delete.assert_not_called()
 
     @patch('resource_manager.src.resource_model.ResourceModel.scan')
     @patch('resource_manager.src.resource_model.ResourceModel.delete_table')
@@ -303,7 +336,7 @@ class TestResourceManager(unittest.TestCase):
     def test_get_resource_pool_size_custom_success(self):
         expected_pool_size = 10
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
-        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size)
+        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -311,7 +344,7 @@ class TestResourceManager(unittest.TestCase):
         expected_pool_size = 10
         config.pool_size['TesTemplateA'] = 5
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
-        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size)
+        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -319,6 +352,6 @@ class TestResourceManager(unittest.TestCase):
         expected_pool_size = 6
         custom_pool_size = dict()
         config.pool_size['TesTemplateA'] = expected_pool_size
-        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size)
+        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
