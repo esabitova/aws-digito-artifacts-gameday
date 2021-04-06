@@ -1,8 +1,7 @@
+import boto3
 import random
 from datetime import datetime
 from operator import itemgetter
-
-import boto3
 
 
 def get_cluster_az(events, context):
@@ -99,28 +98,6 @@ def get_recovery_point_input(events, context):
         raise
 
 
-def backup_cluster_instances_type(events, context):
-    try:
-        docdb = boto3.client('docdb')
-        restorable_instances_metadata = {}
-        instance_type = {}
-        instances = events['DBClusterInstances']
-        for instance in instances:
-            response = docdb.describe_db_instances(DBInstanceIdentifier=instance['DBInstanceIdentifier'])
-            print(response)
-            instance_id = instance['DBInstanceIdentifier']
-            instance_type[instance_id] = {
-                'DBInstanceClass': response['DBInstances'][0]['DBInstanceClass'],
-                'Engine': response['DBInstances'][0]['Engine'],
-                'AvailabilityZone': response['DBInstances'][0]['AvailabilityZone']
-            }
-            restorable_instances_metadata.update(instance_type)
-        return {'DBClusterInstancesMetadata': restorable_instances_metadata}
-    except Exception as e:
-        print(f'Error: {e}')
-        raise
-
-
 def restore_to_point_in_time(events, context):
     try:
         docdb = boto3.client('docdb')
@@ -190,6 +167,90 @@ def restore_db_cluster_instances(events, context):
         raise
 
 
+def rename_restored_db_instances(events, context):
+    try:
+        docdb = boto3.client('docdb')
+        instances = events['RestoredInstancesIdentifiers']
+        restored_instances_identifiers = []
+        for instance in instances:
+            restored_instance_identifier = instance.replace('-restored', '')
+            docdb.modify_db_instance(
+                DBInstanceIdentifier=instance,
+                ApplyImmediately=True,
+                NewDBInstanceIdentifier=restored_instance_identifier
+            )
+            restored_instances_identifiers.append(restored_instance_identifier)
+        return restored_instances_identifiers
+    except Exception as e:
+        print(f'Error: {e}')
+        raise
+
+
+def backup_cluster_instances_type(events, context):
+    try:
+        docdb = boto3.client('docdb')
+        restorable_instances_metadata = {}
+        instance_type = {}
+        instances = events['DBClusterInstances']
+        for instance in instances:
+            response = docdb.describe_db_instances(DBInstanceIdentifier=instance['DBInstanceIdentifier'])
+            print(response)
+            instance_id = instance['DBInstanceIdentifier']
+            instance_type[instance_id] = {
+                'DBInstanceClass': response['DBInstances'][0]['DBInstanceClass'],
+                'Engine': response['DBInstances'][0]['Engine'],
+                'AvailabilityZone': response['DBInstances'][0]['AvailabilityZone']
+            }
+            restorable_instances_metadata.update(instance_type)
+        return {'DBClusterInstancesMetadata': restorable_instances_metadata}
+    except Exception as e:
+        print(f'Error: {e}')
+        raise
+
+
+def get_latest_snapshot_id(events, context):
+    try:
+        docdb = boto3.client('docdb')
+        paginator = docdb.get_paginator('describe_db_cluster_snapshots')
+        page_iterator = paginator.paginate(
+            DBClusterIdentifier=events['DBClusterIdentifier']
+        )
+        filtered_iterator = page_iterator.search("sort_by(DBClusterSnapshots, &to_string(SnapshotCreateTime))[-1]")
+        latest_snapshot = None
+        for snapshot in filtered_iterator:
+            latest_snapshot = snapshot
+        return {
+            'LatestSnapshotIdentifier': latest_snapshot['DBClusterSnapshotIdentifier'],
+            'LatestSnapshotEngine': latest_snapshot['Engine'],
+            'LatestClusterIdentifier': latest_snapshot['DBClusterIdentifier']
+        }
+    except Exception as e:
+        print(f'Error: {e}')
+        raise
+
+
+def restore_db_cluster(events, context):
+    try:
+        docdb = boto3.client('docdb')
+        restored_cluster_identifier = events['DBClusterIdentifier'] + '-restored-from-backup'
+        if events['DBSnapshotIdentifier'] == '' or events['DBSnapshotIdentifier'] == 'latest':
+            docdb.restore_db_cluster_from_snapshot(
+                DBClusterIdentifier=restored_cluster_identifier,
+                SnapshotIdentifier=events['LatestSnapshotIdentifier'],
+                Engine=events['LatestSnapshotEngine']
+            )
+        else:
+            docdb.restore_db_cluster_from_snapshot(
+                DBClusterIdentifier=restored_cluster_identifier,
+                SnapshotIdentifier=events['DBSnapshotIdentifier'],
+                Engine=events['LatestSnapshotEngine']
+            )
+        return {'RestoredClusterIdentifier': restored_cluster_identifier}
+    except Exception as e:
+        print(f'Error: {e}')
+        raise
+
+
 def rename_replaced_db_cluster(events, context):
     try:
         docdb = boto3.client('docdb')
@@ -219,25 +280,6 @@ def rename_replaced_db_instances(events, context):
             )
             replaced_instances_identifiers.append(instance['DBInstanceIdentifier'] + '-replaced')
         return replaced_instances_identifiers
-    except Exception as e:
-        print(f'Error: {e}')
-        raise
-
-
-def rename_restored_db_instances(events, context):
-    try:
-        docdb = boto3.client('docdb')
-        instances = events['RestoredInstancesIdentifiers']
-        restored_instances_identifiers = []
-        for instance in instances:
-            restored_instance_identifier = instance.replace('-restored', '')
-            docdb.modify_db_instance(
-                DBInstanceIdentifier=instance,
-                ApplyImmediately=True,
-                NewDBInstanceIdentifier=restored_instance_identifier
-            )
-            restored_instances_identifiers.append(restored_instance_identifier)
-        return restored_instances_identifiers
     except Exception as e:
         print(f'Error: {e}')
         raise

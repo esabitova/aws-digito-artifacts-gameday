@@ -1,0 +1,274 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: 'SOP - Restore From Backup'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+outputs:
+  - BackupDbClusterMetadata.BackupDbClusterInstancesCountValue
+  - BackupDbClusterInstancesMetadata.DBClusterInstancesMetadata
+  - GetLatestSnapshotIdentifier.LatestSnapshot
+  - GetLatestSnapshotIdentifier.LatestSnapshotEngine
+  - GetLatestSnapshotIdentifier.LatestClusterIdentifier
+  - RestoreDocDbCluster.RestoredClusterIdentifier
+  - RestoreDocDbClusterInstances.RestoredInstancesIdentifiers
+  - RenameReplacedDocDbCluster.ReplacedClusterIdentifier
+  - RenameReplacedDocDbInstances.ReplacedInstancesIdentifiers
+  - RenameRestoredDocDbInstances.RestoredInstancesIdentifiers
+  - OutputRecoveryTime.RecoveryTime
+
+parameters:
+  DBClusterIdentifier:
+    type: String
+    description: (Required) DocDb Cluster Identifier
+  DBSnapshotIdentifier:
+    type: String
+    default: 'latest'
+    description: (Optional) DocDb Snapshot Identifier
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Optional) The ARN of the role that allows Automation to perform
+      the actions on your behalf. If no role is specified, Systems Manager Automation
+      uses your IAM permissions to run this document.
+    default: ''
+
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: BackupDbClusterMetadata
+    action: aws:executeAwsApi
+    description: Backup current DbClusterInstances value
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+    outputs:
+      - Name: BackupDbClusterInstancesCountValue
+        Selector: $.DBClusters[0].DBClusterMembers
+        Type: MapList
+
+  - name: BackupDbClusterInstancesMetadata
+    action: aws:executeScript
+    description: Backup current DbClusterInstances type
+    onFailure: Abort
+    outputs:
+      - Name: DBClusterInstancesMetadata
+        Selector: $.Payload.DBClusterInstancesMetadata
+        Type: StringMap
+    inputs:
+      Runtime: python3.7
+      Handler: backup_cluster_instances_type
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+        DBClusterInstances: '{{ BackupDbClusterMetadata.BackupDbClusterInstancesCountValue }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.backup_cluster_instances_type
+
+  - name: GetLatestSnapshotIdentifier
+    action: aws:executeScript
+    description: Get identifier of the latest snapshot
+    onFailure: Abort
+    outputs:
+      - Name: LatestSnapshot
+        Selector: $.Payload.LatestSnapshotIdentifier
+        Type: String
+      - Name: LatestSnapshotEngine
+        Selector: $.Payload.LatestSnapshotEngine
+        Type: String
+      - Name: LatestClusterIdentifier
+        Selector: $.Payload.LatestClusterIdentifier
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_latest_snapshot_id
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.get_latest_snapshot_id
+
+  - name: RestoreDocDbCluster
+    action: aws:executeScript
+    description: Restore cluster from the snapshot
+    onFailure: Abort
+    outputs:
+      - Name: RestoredClusterIdentifier
+        Selector: $.Payload.RestoredClusterIdentifier
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: restore_db_cluster
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+        DBSnapshotIdentifier: '{{ DBSnapshotIdentifier }}'
+        LatestSnapshotIdentifier: '{{ GetLatestSnapshotIdentifier.LatestSnapshot }}'
+        LatestSnapshotEngine: '{{ GetLatestSnapshotIdentifier.LatestSnapshotEngine }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.restore_db_cluster
+
+  - name: WaitUntilClusterStateAvailable
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      DBClusterIdentifier: '{{ RestoreDocDbCluster.RestoredClusterIdentifier }}'
+      PropertySelector: '$.DBClusters[0].Status'
+      DesiredValues:
+      - 'available'
+
+  - name: RestoreDocDbClusterInstances
+    action: aws:executeScript
+    description: Restore cluster database instances
+    onFailure: Abort
+    outputs:
+      - Name: RestoredInstancesIdentifiers
+        Selector: $.Payload
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: restore_db_cluster_instances
+      InputPayload:
+        BackupDbClusterInstancesCountValue: '{{ BackupDbClusterMetadata.BackupDbClusterInstancesCountValue }}'
+        DBClusterIdentifier: '{{ RestoreDocDbCluster.RestoredClusterIdentifier }}'
+        DBClusterInstancesMetadata: '{{ BackupDbClusterInstancesMetadata.DBClusterInstancesMetadata }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.restore_db_cluster_instances
+
+  - name: RenameReplacedDocDbCluster
+    action: aws:executeScript
+    description: Change replaced DocDb cluster identifier
+    onFailure: Abort
+    outputs:
+      - Name: ReplacedClusterIdentifier
+        Selector: $.Payload.ReplacedClusterIdentifier
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: rename_replaced_db_cluster
+      InputPayload:
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.rename_replaced_db_cluster
+
+  - name: RenameReplacedDocDbInstances
+    action: aws:executeScript
+    description: Change replaced DocDb instances identifier
+    onFailure: Abort
+    outputs:
+      - Name: ReplacedInstancesIdentifiers
+        Selector: $.Payload
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: rename_replaced_db_instances
+      InputPayload:
+        DBClusterIdentifier: '{{ RenameReplacedDocDbCluster.ReplacedClusterIdentifier }}'
+        BackupDbClusterInstancesCountValue: '{{ BackupDbClusterMetadata.BackupDbClusterInstancesCountValue }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.rename_replaced_db_instances
+
+  - name: WaitUntilInstanceStateAvailable
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: docdb
+      Api: DescribeDBInstances
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ RestoreDocDbCluster.RestoredClusterIdentifier }}'
+      PropertySelector: "$.DBInstances..DBInstanceStatus"
+      DesiredValues:
+        - available
+
+  - name: RenameRestoredDocDbInstances
+    action: aws:executeScript
+    description: Change replaced DocDb instances identifier
+    onFailure: Abort
+    outputs:
+      - Name: RestoredInstancesIdentifiers
+        Selector: $.Payload
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: rename_restored_db_instances
+      InputPayload:
+        RestoredInstancesIdentifiers: '{{ RestoreDocDbClusterInstances.RestoredInstancesIdentifiers }}'
+        RestoredClusterIdentifier: '{{ RestoreDocDbCluster.RestoredClusterIdentifier }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.rename_restored_db_instances
+
+  - name: RenameRestoredCluster
+    action: aws:executeAwsApi
+    description: Change replaced DocDb cluster identifier
+    inputs:
+      Service: docdb
+      Api: ModifyDBCluster
+      DBClusterIdentifier: '{{ RestoreDocDbCluster.RestoredClusterIdentifier }}'
+      NewDBClusterIdentifier: '{{ GetLatestSnapshotIdentifier.LatestClusterIdentifier }}'
+      ApplyImmediately: True
+
+  - name: WaitUntilRestoredInstancesAvailable
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: docdb
+      Api: DescribeDBInstances
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+      PropertySelector: '$.DBInstances..DBInstanceStatus'
+      DesiredValues:
+        - available
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

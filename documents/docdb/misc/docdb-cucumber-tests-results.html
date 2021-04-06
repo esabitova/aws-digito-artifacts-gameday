@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>Test Report</title>
+    <style>body {
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  /* do not increase min-width as some may use split screens */
+  min-width: 800px;
+  color: #999;
+}
+
+h1 {
+  font-size: 24px;
+  color: black;
+}
+
+h2 {
+  font-size: 16px;
+  color: black;
+}
+
+p {
+  color: black;
+}
+
+a {
+  color: #999;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/******************************
+ * SUMMARY INFORMATION
+ ******************************/
+#environment td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+}
+#environment tr:nth-child(odd) {
+  background-color: #f6f6f6;
+}
+
+/******************************
+ * TEST RESULT COLORS
+ ******************************/
+span.passed,
+.passed .col-result {
+  color: green;
+}
+
+span.skipped,
+span.xfailed,
+span.rerun,
+.skipped .col-result,
+.xfailed .col-result,
+.rerun .col-result {
+  color: orange;
+}
+
+span.error,
+span.failed,
+span.xpassed,
+.error .col-result,
+.failed .col-result,
+.xpassed .col-result {
+  color: red;
+}
+
+/******************************
+ * RESULTS TABLE
+ *
+ * 1. Table Layout
+ * 2. Extra
+ * 3. Sorting items
+ *
+ ******************************/
+/*------------------
+ * 1. Table Layout
+ *------------------*/
+#results-table {
+  border: 1px solid #e6e6e6;
+  color: #999;
+  font-size: 12px;
+  width: 100%;
+}
+#results-table th,
+#results-table td {
+  padding: 5px;
+  border: 1px solid #E6E6E6;
+  text-align: left;
+}
+#results-table th {
+  font-weight: bold;
+}
+
+/*------------------
+ * 2. Extra
+ *------------------*/
+.log {
+  background-color: #e6e6e6;
+  border: 1px solid #e6e6e6;
+  color: black;
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  height: 230px;
+  overflow-y: scroll;
+  padding: 5px;
+  white-space: pre-wrap;
+}
+.log:only-child {
+  height: inherit;
+}
+
+div.image {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.image img {
+  width: 320px;
+}
+
+div.video {
+  border: 1px solid #e6e6e6;
+  float: right;
+  height: 240px;
+  margin-left: 5px;
+  overflow: hidden;
+  width: 320px;
+}
+div.video video {
+  overflow: hidden;
+  width: 320px;
+  height: 240px;
+}
+
+.collapsed {
+  display: none;
+}
+
+.expander::after {
+  content: " (show details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+.collapser::after {
+  content: " (hide details)";
+  color: #BBB;
+  font-style: italic;
+  cursor: pointer;
+}
+
+/*------------------
+ * 3. Sorting items
+ *------------------*/
+.sortable {
+  cursor: pointer;
+}
+
+.sort-icon {
+  font-size: 0px;
+  float: left;
+  margin-right: 5px;
+  margin-top: 5px;
+  /*triangle*/
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+}
+.inactive .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #E6E6E6;
+}
+.asc.active .sort-icon {
+  /*finish triangle*/
+  border-bottom: 8px solid #999;
+}
+.desc.active .sort-icon {
+  /*finish triangle*/
+  border-top: 8px solid #999;
+}
+</style></head>
+  <body onLoad="init()">
+    <script>/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+function toArray(iter) {
+    if (iter === null) {
+        return null;
+    }
+    return Array.prototype.slice.call(iter);
+}
+
+function find(selector, elem) { // eslint-disable-line no-redeclare
+    if (!elem) {
+        elem = document;
+    }
+    return elem.querySelector(selector);
+}
+
+function findAll(selector, elem) {
+    if (!elem) {
+        elem = document;
+    }
+    return toArray(elem.querySelectorAll(selector));
+}
+
+function sortColumn(elem) {
+    toggleSortStates(elem);
+    const colIndex = toArray(elem.parentNode.childNodes).indexOf(elem);
+    let key;
+    if (elem.classList.contains('result')) {
+        key = keyResult;
+    } else if (elem.classList.contains('links')) {
+        key = keyLink;
+    } else {
+        key = keyAlpha;
+    }
+    sortTable(elem, key(colIndex));
+}
+
+function showAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(showExtras);
+}
+
+function hideAllExtras() { // eslint-disable-line no-unused-vars
+    findAll('.col-result').forEach(hideExtras);
+}
+
+function showExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.remove('collapsed');
+    expandcollapse.classList.remove('expander');
+    expandcollapse.classList.add('collapser');
+}
+
+function hideExtras(colresultElem) {
+    const extras = colresultElem.parentNode.nextElementSibling;
+    const expandcollapse = colresultElem.firstElementChild;
+    extras.classList.add('collapsed');
+    expandcollapse.classList.remove('collapser');
+    expandcollapse.classList.add('expander');
+}
+
+function showFilters() {
+    const filterItems = document.getElementsByClassName('filter');
+    for (let i = 0; i < filterItems.length; i++)
+        filterItems[i].hidden = false;
+}
+
+function addCollapse() {
+    // Add links for show/hide all
+    const resulttable = find('table#results-table');
+    const showhideall = document.createElement('p');
+    showhideall.innerHTML = '<a href="javascript:showAllExtras()">Show all details</a> / ' +
+                            '<a href="javascript:hideAllExtras()">Hide all details</a>';
+    resulttable.parentElement.insertBefore(showhideall, resulttable);
+
+    // Add show/hide link to each result
+    findAll('.col-result').forEach(function(elem) {
+        const collapsed = getQueryParameter('collapsed') || 'Passed';
+        const extras = elem.parentNode.nextElementSibling;
+        const expandcollapse = document.createElement('span');
+        if (extras.classList.contains('collapsed')) {
+            expandcollapse.classList.add('expander');
+        } else if (collapsed.includes(elem.innerHTML)) {
+            extras.classList.add('collapsed');
+            expandcollapse.classList.add('expander');
+        } else {
+            expandcollapse.classList.add('collapser');
+        }
+        elem.appendChild(expandcollapse);
+
+        elem.addEventListener('click', function(event) {
+            if (event.currentTarget.parentNode.nextElementSibling.classList.contains('collapsed')) {
+                showExtras(event.currentTarget);
+            } else {
+                hideExtras(event.currentTarget);
+            }
+        });
+    });
+}
+
+function getQueryParameter(name) {
+    const match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+}
+
+function init () { // eslint-disable-line no-unused-vars
+    resetSortHeaders();
+
+    addCollapse();
+
+    showFilters();
+
+    sortColumn(find('.initial-sort'));
+
+    findAll('.sortable').forEach(function(elem) {
+        elem.addEventListener('click',
+            function() {
+                sortColumn(elem);
+            }, false);
+    });
+}
+
+function sortTable(clicked, keyFunc) {
+    const rows = findAll('.results-table-row');
+    const reversed = !clicked.classList.contains('asc');
+    const sortedRows = sort(rows, keyFunc, reversed);
+    /* Whole table is removed here because browsers acts much slower
+     * when appending existing elements.
+     */
+    const thead = document.getElementById('results-table-head');
+    document.getElementById('results-table').remove();
+    const parent = document.createElement('table');
+    parent.id = 'results-table';
+    parent.appendChild(thead);
+    sortedRows.forEach(function(elem) {
+        parent.appendChild(elem);
+    });
+    document.getElementsByTagName('BODY')[0].appendChild(parent);
+}
+
+function sort(items, keyFunc, reversed) {
+    const sortArray = items.map(function(item, i) {
+        return [keyFunc(item), i];
+    });
+
+    sortArray.sort(function(a, b) {
+        const keyA = a[0];
+        const keyB = b[0];
+
+        if (keyA == keyB) return 0;
+
+        if (reversed) {
+            return keyA < keyB ? 1 : -1;
+        } else {
+            return keyA > keyB ? 1 : -1;
+        }
+    });
+
+    return sortArray.map(function(item) {
+        const index = item[1];
+        return items[index];
+    });
+}
+
+function keyAlpha(colIndex) {
+    return function(elem) {
+        return elem.childNodes[1].childNodes[colIndex].firstChild.data.toLowerCase();
+    };
+}
+
+function keyLink(colIndex) {
+    return function(elem) {
+        const dataCell = elem.childNodes[1].childNodes[colIndex].firstChild;
+        return dataCell == null ? '' : dataCell.innerText.toLowerCase();
+    };
+}
+
+function keyResult(colIndex) {
+    return function(elem) {
+        const strings = ['Error', 'Failed', 'Rerun', 'XFailed', 'XPassed',
+            'Skipped', 'Passed'];
+        return strings.indexOf(elem.childNodes[1].childNodes[colIndex].firstChild.data);
+    };
+}
+
+function resetSortHeaders() {
+    findAll('.sort-icon').forEach(function(elem) {
+        elem.parentNode.removeChild(elem);
+    });
+    findAll('.sortable').forEach(function(elem) {
+        const icon = document.createElement('div');
+        icon.className = 'sort-icon';
+        icon.textContent = 'vvv';
+        elem.insertBefore(icon, elem.firstChild);
+        elem.classList.remove('desc', 'active');
+        elem.classList.add('asc', 'inactive');
+    });
+}
+
+function toggleSortStates(elem) {
+    //if active, toggle between asc and desc
+    if (elem.classList.contains('active')) {
+        elem.classList.toggle('asc');
+        elem.classList.toggle('desc');
+    }
+
+    //if inactive, reset all other functions and add ascending active
+    if (elem.classList.contains('inactive')) {
+        resetSortHeaders();
+        elem.classList.remove('inactive');
+        elem.classList.add('active');
+    }
+}
+
+function isAllRowsHidden(value) {
+    return value.hidden == false;
+}
+
+function filterTable(elem) { // eslint-disable-line no-unused-vars
+    const outcomeAtt = 'data-test-result';
+    const outcome = elem.getAttribute(outcomeAtt);
+    const classOutcome = outcome + ' results-table-row';
+    const outcomeRows = document.getElementsByClassName(classOutcome);
+
+    for(let i = 0; i < outcomeRows.length; i++){
+        outcomeRows[i].hidden = !elem.checked;
+    }
+
+    const rows = findAll('.results-table-row').filter(isAllRowsHidden);
+    const allRowsHidden = rows.length == 0 ? true : false;
+    const notFoundMessage = document.getElementById('not-found-message');
+    notFoundMessage.hidden = !allRowsHidden;
+}
+</script>
+    <h1>docdb-cucumber-tests-results.html</h1>
+    <p>Report generated on 12-Mar-2021 at 20:24:16 by <a href="https://pypi.python.org/pypi/pytest-html">pytest-html</a> v3.1.1</p>
+    <h2>Environment</h2>
+    <table id="environment">
+      <tr>
+        <td>Packages</td>
+        <td>{"pluggy": "0.13.1", "py": "1.10.0", "pytest": "6.2.2"}</td></tr>
+      <tr>
+        <td>Platform</td>
+        <td>macOS-10.15.7-x86_64-i386-64bit</td></tr>
+      <tr>
+        <td>Plugins</td>
+        <td>{"bdd": "4.0.2", "cov": "2.11.1", "html": "3.1.1", "metadata": "1.11.0", "parallel": "0.1.0"}</td></tr>
+      <tr>
+        <td>Python</td>
+        <td>3.8.7</td></tr></table>
+    <h2>Summary</h2>
+    <p>6 tests ran in 3294.37 seconds. </p>
+    <p class="filter" hidden="true">(Un)check the boxes to filter the results.</p><input checked="true" class="filter" data-test-result="passed" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="passed">6 passed</span>, <input checked="true" class="filter" data-test-result="skipped" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="skipped">0 skipped</span>, <input checked="true" class="filter" data-test-result="failed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="failed">0 failed</span>, <input checked="true" class="filter" data-test-result="error" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="error">0 errors</span>, <input checked="true" class="filter" data-test-result="xfailed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xfailed">0 expected failures</span>, <input checked="true" class="filter" data-test-result="xpassed" disabled="true" hidden="true" name="filter_checkbox" onChange="filterTable(this)" type="checkbox"/><span class="xpassed">0 unexpected passes</span>
+    <h2>Results</h2>
+    <table id="results-table">
+      <thead id="results-table-head">
+        <tr>
+          <th class="sortable result initial-sort" col="result">Result</th>
+          <th class="sortable" col="name">Test</th>
+          <th class="sortable" col="duration">Duration</th>
+          <th class="sortable links" col="links">Links</th></tr>
+        <tr hidden="true" id="not-found-message">
+          <th colspan="4">No results found. Try to check the filters</th></tr></thead>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/docdb/sop/create_new_instance/2020-09-21/Tests/step_defs/test_create_new_instance.py::test_create_new_instance</td>
+          <td class="col-duration">995.82</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log setup------------------------------- <br/>INFO     root:conftest.py:189 Creating boto3 session for [ut] profile.<br/> -------------------------------Captured log call-------------------------------- <br/>INFO     botocore.credentials:credentials.py:1222 Found credentials in shared credentials file: ~/.aws/credentials
+INFO     PublishDocuments:publish_documents.py:127 Desired documents list [&#x27;Digito-CreateNewDocDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:137 Desired documents list including required documents : [&#x27;Digito-CreateNewDocDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-CreateNewDocDbInstance_2020-09-21
+WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
+INFO     root:resource_manager.py:335 Creating stack [ON_DEMAND:DocDbTemplate-0] with input params [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/DocDbTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [DocDbTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/create_new_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:335 Creating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] with input params [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [CREATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-CreateNewDocDbInstance_2020-09-21] with parameters: [{&#x27;DBClusterIdentifier&#x27;: [&#x27;docdb&#x27;], &#x27;DBInstanceIdentifier&#x27;: [&#x27;new-docdb-instance&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoCreateNewInstanceA-KZKLO29HPLSN&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;GetClusterAZ] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/1/5df700d3-9242-4339-a2d4-8249d1f3eb79
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;GetClusterAZ] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/1/5df700d3-9242-4339-a2d4-8249d1f3eb79
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;CreateNewInstance] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/2/61c5852c-ab95-4cfc-aa53-a304ce0c5313
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;CreateNewInstance] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/2/61c5852c-ab95-4cfc-aa53-a304ce0c5313
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;CreateNewInstance] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/2/61c5852c-ab95-4cfc-aa53-a304ce0c5313
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-CreateNewDocDbInstance_2020-09-21&gt;WaitUntilCreatedInstanceAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260/step/3/ae72cb30-ded7-4219-aff8-1dc5656b1428<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/398eed9b-e587-4606-aa25-cc4b3175c260<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/docdb/sop/promote_read_replica/2020-09-21/Tests/step_defs/test_promote_read_replica.py::test_promote_read_replica</td>
+          <td class="col-duration">97.83</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     PublishDocuments:publish_documents.py:127 Desired documents list [&#x27;Digito-PromoteReadReplica_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:137 Desired documents list including required documents : [&#x27;Digito-PromoteReadReplica_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-PromoteReadReplica_2020-09-21
+WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/promote_read_replica/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:292 Updating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] input params: [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:49 Stack [AutomationAssumeRoleTemplate-0] already exists, updating...
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-PromoteReadReplica_2020-09-21] with parameters: [{&#x27;DBClusterIdentifier&#x27;: [&#x27;docdb&#x27;], &#x27;DBInstanceReplicaIdentifier&#x27;: [&#x27;dbinstance02&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoPromoteReadReplica-1GI37RX40F8TV&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/bc28ae79-e275-4a88-b0b8-32860d3fb04a
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PromoteReadReplica_2020-09-21&gt;RecordStartTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/bc28ae79-e275-4a88-b0b8-32860d3fb04a/step/1/6b2d08fa-9364-42a3-bfc8-97375cb543ff
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PromoteReadReplica_2020-09-21&gt;RecordStartTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/bc28ae79-e275-4a88-b0b8-32860d3fb04a/step/1/6b2d08fa-9364-42a3-bfc8-97375cb543ff
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PromoteReadReplica_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/bc28ae79-e275-4a88-b0b8-32860d3fb04a/step/4/3915306e-1a18-4f5c-b22c-ac9368f1a172
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-PromoteReadReplica_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/bc28ae79-e275-4a88-b0b8-32860d3fb04a/step/4/3915306e-1a18-4f5c-b22c-ac9368f1a172<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/bc28ae79-e275-4a88-b0b8-32860d3fb04a<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/docdb/sop/reboot_db_instance/2020-09-21/Tests/step_defs/test_reboot_db_instance.py::test_reboot_db_instance</td>
+          <td class="col-duration">72.08</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     PublishDocuments:publish_documents.py:127 Desired documents list [&#x27;Digito-RebootDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:137 Desired documents list including required documents : [&#x27;Digito-RebootDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-RebootDbInstance_2020-09-21
+WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/reboot_db_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:292 Updating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] input params: [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:49 Stack [AutomationAssumeRoleTemplate-0] already exists, updating...
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-RebootDbInstance_2020-09-21] with parameters: [{&#x27;DBInstanceIdentifier&#x27;: [&#x27;dbinstance02&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoRebootDbInstanceAs-OGXAWZMSFI7M&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/7bbcb115-9d5d-4419-810e-1ea9464e60f4<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/7bbcb115-9d5d-4419-810e-1ea9464e60f4<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/docdb/sop/restore_from_backup/2020-09-21/Tests/step_defs/test_docdb_restore_from_backup.py::test_docdb_restore_from_backup</td>
+          <td class="col-duration">1194.36</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     PublishDocuments:publish_documents.py:127 Desired documents list [&#x27;Digito-DocDbRestoreFromBackup_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:137 Desired documents list including required documents : [&#x27;Digito-DocDbRestoreFromBackup_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-DocDbRestoreFromBackup_2020-09-21
+WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/restore_from_backup/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:292 Updating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] input params: [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:49 Stack [AutomationAssumeRoleTemplate-0] already exists, updating...
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-DocDbRestoreFromBackup_2020-09-21] with parameters: [{&#x27;DBClusterIdentifier&#x27;: [&#x27;docdb&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoDocDbRestoreFromBa-1GE4WA39FVU8H&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;BackupDbClusterInstancesMetadata] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/3/2e8710b5-2bfa-43f7-ac8a-fb15e6b56f83
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;BackupDbClusterInstancesMetadata] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/3/2e8710b5-2bfa-43f7-ac8a-fb15e6b56f83
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;GetLatestSnapshotIdentifier] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/4/85a68e4e-1077-4710-896f-7f6a3fc31bb9
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RestoreDocDbCluster] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/5/2124855d-51be-4a8d-a694-c820fa63885e
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RestoreDocDbCluster] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/5/2124855d-51be-4a8d-a694-c820fa63885e
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RestoreDocDbCluster] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/5/2124855d-51be-4a8d-a694-c820fa63885e
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitForRenamedClusterId] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/6/9383b073-9ff0-4eb8-a49b-9c3050a94f29
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitForRenamedClusterId] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/6/9383b073-9ff0-4eb8-a49b-9c3050a94f29
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilClusterStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/7/123d0f9c-f8a8-4ed2-8000-887de3ec97ea
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RestoreDocDbClusterInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/8/9d6d29d1-f929-496a-90b6-f603909ac7a5
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RestoreDocDbClusterInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/8/9d6d29d1-f929-496a-90b6-f603909ac7a5
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RestoreDocDbClusterInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/8/9d6d29d1-f929-496a-90b6-f603909ac7a5
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RenameReplacedDocDbCluster] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/9/40eb82bf-bb24-429b-a600-509d36b7b2e6
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RenameReplacedDocDbInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/10/b324bdf0-1fbd-4d45-9b46-7083b0def47c
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RenameReplacedDocDbInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/10/b324bdf0-1fbd-4d45-9b46-7083b0def47c
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilInstanceStateRunning] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/11/4ae477df-4774-40cb-9d4b-5bc9063537d0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RenameRestoredDocDbInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/12/4668f4a6-fe3c-40d0-a204-f205ad4f17a0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;RenameRestoredDocDbInstances] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/12/4668f4a6-fe3c-40d0-a204-f205ad4f17a0
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;WaitUntilRestoredInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/14/7737441d-c801-411b-9b6f-652edd180e92
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-DocDbRestoreFromBackup_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7/step/15/cffefe64-0b30-49d1-a953-67bfafa238f2<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d215c3c8-d35b-4a99-978f-f3722de856b7<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/docdb/sop/scaling_down/2020-09-21/Tests/step_defs/test_scaling_down.py::test_scaling_down_docdb</td>
+          <td class="col-duration">461.30</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/scaling_down/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:292 Updating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] input params: [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:49 Stack [AutomationAssumeRoleTemplate-0] already exists, updating...
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-ScalingDown_2020-09-21] with parameters: [{&#x27;DBClusterIdentifier&#x27;: [&#x27;docdb&#x27;], &#x27;DBInstanceReplicaIdentifier&#x27;: [&#x27;dbinstance02&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoScalingDownDocDbAs-KMSZ1HN2BX4H&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;WaitUntilInstancesAvailable] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/5/18565702-a574-402a-86c1-b9c46e0a9948
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;VerifyCurrentInstancesCount] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/6/9b179c4f-7d64-4063-9cd1-1dcbbb207850
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingDown_2020-09-21&gt;VerifyCurrentInstancesCount] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42/step/6/9b179c4f-7d64-4063-9cd1-1dcbbb207850<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/d5694850-6ae8-459e-925b-6674c2aead42<br/></div></td></tr></tbody>
+      <tbody class="passed results-table-row">
+        <tr>
+          <td class="col-result">Passed</td>
+          <td class="col-name">documents/docdb/sop/scaling_up/2020-09-21/Tests/step_defs/test_scaling_up.py::test_scaling_up_docdb</td>
+          <td class="col-duration">471.45</td>
+          <td class="col-links"></td></tr>
+        <tr>
+          <td class="extra" colspan="4">
+            <div class="log"> -------------------------------Captured log call-------------------------------- <br/>INFO     PublishDocuments:publish_documents.py:127 Desired documents list [&#x27;Digito-CreateNewDocDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:137 Desired documents list including required documents : [&#x27;Digito-CreateNewDocDbInstance_2020-09-21&#x27;]
+INFO     PublishDocuments:publish_documents.py:35 Document content has not changed for document name, Digito-CreateNewDocDbInstance_2020-09-21
+WARNING  root:resource_manager.py:266 Pool size for [DocDbTemplate] template not found, using default: 1
+INFO     root:resource_manager.py:119 Pulling resources for [resource_manager/cloud_formation_templates/DocDbTemplate.yml] template
+INFO     root:resource_manager.py:269 Pool size for [AutomationAssumeRoleTemplate] template: 1
+INFO     root:resource_manager.py:119 Pulling resources for [documents/docdb/sop/scaling_up/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml] template
+INFO     root:resource_manager.py:292 Updating stack [ASSUME_ROLE:AutomationAssumeRoleTemplate-0] input params: [{}]
+INFO     root:s3.py:25 Uploading CF template [resource_manager/cloud_formation_templates/AutomationAssumeRoleTemplate.yml] to S3 bucket [ssm-test-resources-435978235099-eu-west-1]
+INFO     root:cloud_formation.py:49 Stack [AutomationAssumeRoleTemplate-0] already exists, updating...
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:cloud_formation.py:115 Waiting for stack [AutomationAssumeRoleTemplate-0] event [UPDATE_IN_PROGRESS] to be completed, sleeping [20] seconds.
+INFO     root:ssm_document.py:25 Executing SSM document [Digito-ScalingUp_2020-09-21] with parameters: [{&#x27;DBClusterIdentifier&#x27;: [&#x27;docdb&#x27;], &#x27;DBInstanceReplicaIdentifier&#x27;: [&#x27;new-docdb-replica&#x27;], &#x27;AutomationAssumeRole&#x27;: [&#x27;arn:aws:iam::435978235099:role/AutomationAssumeRoleTempl-DigitoScalingUpDocDbAssu-1N6SUSP0KE5GG&#x27;]}]
+INFO     root:ssm_document.py:32 SSM execution URL: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;BackupDbClusterInstancesCount] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/3/fb43ca14-8095-4eaf-af2b-0f0a8ac05925
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;AddDocDbReadReplica] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/4/adc32044-c6c5-4d6c-8379-e1426865b6fa
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;VerifyCurrentInstancesCount] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/6/55380bbd-9743-4982-af58-e65fccef8f85
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/7/e3b3b813-fd18-444c-97ec-72a3249f144a
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/7/e3b3b813-fd18-444c-97ec-72a3249f144a
+INFO     root:ssm_document.py:138 Waiting SSM document step [Digito-ScalingUp_2020-09-21&gt;OutputRecoveryTime] to be completed: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc/step/7/e3b3b813-fd18-444c-97ec-72a3249f144a<br/> -----------------------------Captured log teardown------------------------------ <br/>INFO     root:resource_manager.py:198 Releasing test resources.
+INFO     root:conftest.py:163 Canceling SSM execution: https://eu-west-1.console.aws.amazon.com/systems-manager/automation/execution/e1ed48c5-96e2-4d98-b85c-0e02b6bf43cc<br/></div></td></tr></tbody></table></body></html>
