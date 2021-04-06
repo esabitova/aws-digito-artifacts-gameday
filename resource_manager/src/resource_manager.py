@@ -116,8 +116,6 @@ class ResourceManager:
         # https://issues.amazon.com/issues/Digito-1203
         # TODO: Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination:
         # https://issues.amazon.com/issues/Digito-1204
-        # TODO: Implement CF template diff detector to update stack if template changed:
-        # https://issues.amazon.com/issues/Digito-1205
         logging.info('Pulling resources for [{}] template'.format(cfn_template_path))
         waited_time_sec = 0
         while waited_time_sec < time_out_sec:

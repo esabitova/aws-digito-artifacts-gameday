@@ -48,11 +48,12 @@ def pytest_addoption(parser):
     parser.addoption("--pool_size",
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
-                          "pool size (Example: template_1=3, template_2=4)")
-    parser.addoption("--skip_resource_fix",
+                          "pool size (Example: template_1=3, template_2=4).")
+    parser.addoption("--distributed_mode",
                      action="store_true",
                      default=False,
-                     help="Flag to skip resource fix/destroy")
+                     help="Flag to run integration tests in distributed mode "
+                          "(multi session/machines targeting same AWS account).")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -81,8 +82,13 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
+        rm = ResourceManager(cfn_helper, s3_helper, dict(), None)
         rm.init_ddb_tables(boto3_session)
+        # Distributed mode is considered mode when we executing integration tests on multiple testing sessions/machines
+        # and targeting same AWS account resources, in this case we should not perform resource fixing, since it
+        # can change resources state which is in use by other session.
+        if not session.config.option.distributed_mode:
+            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
