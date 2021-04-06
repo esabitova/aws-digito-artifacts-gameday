@@ -53,6 +53,7 @@ Resources:
               - "dynamodb:GetItem"
               - "dynamodb:DeleteItem"
               - "dynamodb:BatchWriteItem"
+              - "dynamodb:UpdateTable"
               - "dynamodb:UpdateContinuousBackups"
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

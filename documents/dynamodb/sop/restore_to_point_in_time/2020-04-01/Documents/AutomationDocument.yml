@@ -119,4 +119,63 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-    isEnd: true
+  # Start Stream settings
+  - name: GetSourceDynamoDBTableStream
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableSourceName }}"
+    outputs:
+      - Name: SourceStreamEnabled
+        Selector: "$.Table.StreamSpecification.StreamEnabled"
+        Type: Boolean
+      - Name: SourceStreamViewType
+        Selector: "$.Table.StreamSpecification.StreamViewType"
+        Type: String
+  - name: UpdateTargetDynamoDBTableStream
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: UpdateTable
+      TableName: "{{ DynamoDBTableTargetName }}"
+      StreamSpecification:
+        StreamEnabled: "{{ GetSourceDynamoDBTableStream.SourceStreamEnabled }}"
+        StreamViewType: "{{ GetSourceDynamoDBTableStream.SourceStreamViewType }}"
+    outputs:
+      - Name: TargetStreamEnabled
+        Selector: "$.Table.StreamSpecification.StreamEnabled"
+        Type: String
+      - Name: TargetStreamViewType
+        Selector: "$.Table.StreamSpecification.StreamViewType"
+        Type: String
+  - name: WaitTableToBeActive
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{DynamoDBTableTargetName}}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
+# End Stream settings
+# kinesis destination
+
+  # - name: GetKinesisDestinationSettings
+  #   action: aws:executeAwsApi
+  #   onFailure: Abort
+  #   inputs:
+  #     Service: dynamodb
+  #     Api: DescribeKinesisStreamingDestination
+  #     TableName: "{{ DynamoDBTableSourceName }}"
+  #   outputs:
+  #     - Name: SourceStreamEnabled
+  #       Selector: "$.Table.StreamSpecification.StreamEnabled"
+  #       Type: Boolean
+  #     - Name: SourceStreamViewType
+  #       Selector: "$.Table.StreamSpecification.StreamViewType"
+  #       Type: String
