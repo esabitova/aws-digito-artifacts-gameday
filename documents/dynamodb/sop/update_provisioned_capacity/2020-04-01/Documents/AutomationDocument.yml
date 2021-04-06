@@ -24,11 +24,9 @@ parameters:
     description: (Required) The DynamoDB Table Name.
   DynamoDBTableRCU:
     type: Integer
-    default: 5
     description: (Required) The DynamoDB Table Read Capacity Units.
   DynamoDBTableWCU:
     type: Integer
-    default: 5
     description: (Required) The DynamoDB Table Write Capacity Units.
   AutomationAssumeRole:
     type: String
@@ -49,6 +47,7 @@ mainSteps:
         ReadCapacityUnits: "{{ DynamoDBTableRCU }}"
         WriteCapacityUnits: "{{ DynamoDBTableWCU }}"
     nextStep: VerifyDynamoDBTableUpdateStatus
+
   - name: VerifyDynamoDBTableUpdateStatus
     action: aws:waitForAwsResourceProperty
     onFailure: Abort
@@ -60,6 +59,7 @@ mainSteps:
       DesiredValues:
         - "ACTIVE"
     nextStep: GetUpdatedProvisionedThroughput
+
   - name: GetUpdatedProvisionedThroughput
     action: aws:executeAwsApi
     onFailure: Abort
