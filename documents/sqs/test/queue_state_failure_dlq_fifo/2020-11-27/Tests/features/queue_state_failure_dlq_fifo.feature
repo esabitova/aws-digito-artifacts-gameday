@@ -14,4 +14,3 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     When SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-

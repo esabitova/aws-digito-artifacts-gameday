@@ -2,6 +2,7 @@ import pytest
 import logging
 import boto3
 import time
+import uuid
 from pytest_bdd import (
     when,
     given,
@@ -67,17 +68,17 @@ def pytest_sessionstart(session):
     '''
     # Execute when running integration tests
     if session.config.option.run_integration_tests:
+        # Generating testing session id in order to tie test resources to specific session, so that when
+        # running tests in parallel by multiple machines (sessions) tests will not try to change state of
+        # resources which are still in use by other sessions.
+        test_session_id = str(uuid.uuid4())
+        session.config.option.test_session_id = test_session_id
+
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict())
+        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
         rm.init_ddb_tables(boto3_session)
-        # In case we do execute tests not in single session, for example in different machines, we don't want
-        # to perform resource fix since one session can try to modify resource state which is used by another session.
-        # At this moment this case is used on CodeCommit pipeline actions where we do execute tests in parallel
-        # on different machines in same AWS account.
-        if not session.config.option.skip_resource_fix:
-            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -92,18 +93,21 @@ def pytest_sessionfinish(session, exitstatus):
     # to perform resource fix/destroy since one session can try to modify resource state which is used
     # by another session.At this moment this case is used on CodeCommit pipeline actions where we do
     # execute tests in parallel on different machines in same AWS account.
-    if session.config.option.run_integration_tests \
-            and not session.config.option.skip_resource_fix:
+
+    if session.config.option.run_integration_tests:
+        test_session_id = session.config.option.test_session_id
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict())
+        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
         else:
             logging.info(
                 "Destroying all test resources (use '--keep_test_resources' to keep resources for next execution)")
+            # NOTE: We don't want to call this when running tests on multiple machines (sessions). Since resources
+            # may still be in use by other machines (sessions).
             rm.destroy_all_resources()
 
 
@@ -131,16 +135,17 @@ def cfn_output_params(resource_manager):
 
 @pytest.fixture(scope='function')
 def resource_manager(request, boto3_session):
-    '''
+    """
     Creates ResourceManager fixture for every test case.
     :param request: The pytest request object
     :param boto3_session The boto3 session
     :return: The resource manager fixture
-    '''
+    """
+    test_session_id = request.session.config.option.test_session_id
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
-    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size)
+    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size, test_session_id)
     yield rm
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
@@ -151,10 +156,9 @@ def resource_manager(request, boto3_session):
 
 @pytest.fixture(scope='function')
 def ssm_document(boto3_session):
-    '''
+    """
     Creates SsmDocument fixture to for every test case.
-    :return:
-    '''
+    """
     return SsmDocument(boto3_session)
 
 

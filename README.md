@@ -31,7 +31,7 @@
     6. [Tests Isolation](#tests-isolation)
     7. [Integration Test Execution](#integration-test-execution) 
 5. [Design.md writing guidelines](#design.md-writing-guidelines) 
-5. [TODO List](#todo-list)
+6. [TODO List](#todo-list)
 
 # Digito Failure Injection Documents
 This package provides SSM documents for injecting failures in different aws resources.
@@ -448,6 +448,20 @@ Checkout the template [here](templates/gameday_design_template.md)
 
 ## SOP guidelines
 Coming soon...
+
+## Cucumber Test guidelines
+* Include a test for normal execution path.
+* If document supports isRollback and previousExecutionId, include a test for rollback execution path.
+  * The test for rollback should start the first document execution and wait for a document execution to be in a specific step where failure has been already injected and we are waiting for alarm to be RED.
+  * Terminate first execution at this point and start a new execution with same parameter as first execution and isRollback set to true and passing previous execution id.
+  * The test must validate that rollback execution was successful and the resource returns to original state before document execution.
+* Run test twice with --keep_test_resources flag enabled. This is to ensure test restores resources to their original state and same resource can be used for testing again.
+* [AFTER 15 April] Include a test to verify all branches in execution - for example, verifying onFailure condition for a step where applicable. For example, we expect alarm to go red after injecting failure. If alarm does not go red within time, verify that we rollback current execution by jumping to step defined in onFailure.
+  * Include a test for all aws:branch conditions.
+  * Include a test for all branches in script.
+  * Include a test for validating pagination where applicable.
+  * Add validation for expected steps executed during the ssm execution. For example, in normal execution Step A, B, C were executed. For rollback, Step A, Step D was executed.
+* [AFTER 15 April] Add a negative test for rollback mode to validate that we reject rollback execution when input parameters are not same.
 
 
 # TODO List

@@ -46,6 +46,21 @@ class TestSsmExecutionUtil(unittest.TestCase):
 
         self.assertRaises(Exception, get_output_from_ssm_step_execution, events, None)
 
+    def test_get_output_from_ssm_step_execution_fail_step_has_no_output_field(self):
+        """
+        In some cases step may have no request field,
+        e.g. describe SQS queue request returns empty Policy field for queue with default policy
+        This may cause unhandled exceptions in further SSM steps, so there should be default output
+        """
+        events = {}
+        events['ExecutionId'] = test_data_provider.AUTOMATION_EXECUTION_ID
+        events['StepName'] = test_data_provider.STEP_NAME
+        MISSING_FIELD = 'some-missing-field'
+        events['ResponseField'] = MISSING_FIELD
+
+        ssm_output = get_output_from_ssm_step_execution(events, None)
+        self.assertEqual('', ssm_output[MISSING_FIELD])
+
     def test_get_step_durations(self):
         events = {}
         events['ExecutionId'] = test_data_provider.AUTOMATION_EXECUTION_ID
