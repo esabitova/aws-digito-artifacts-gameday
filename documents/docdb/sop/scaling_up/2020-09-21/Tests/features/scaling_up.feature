@@ -22,6 +22,6 @@ Feature: SSM automation document for scaling up DocDb instances.
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
 
     Then assert "NumberOfInstances" at "before" became not equal to "NumberOfInstances" at "after"
-    And delete created instance and wait for "600" seconds
+    And delete created instance and wait for instance deletion for "600" seconds
       | DBInstanceIdentifier | DBClusterIdentifier                              |
       | new-docdb-replica    | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
