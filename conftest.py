@@ -1,8 +1,12 @@
-import pytest
 import logging
-import boto3
 import time
 import uuid
+from datetime import timedelta, datetime
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+from pytest import ExitCode
 from pytest_bdd import (
     when,
     given,
@@ -10,18 +14,18 @@ from pytest_bdd import (
 )
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
-from datetime import timedelta, datetime
-from resource_manager.src.resource_manager import ResourceManager
-from resource_manager.src.ssm_document import SsmDocument
-from resource_manager.src.s3 import S3
-from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
-from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table, parse_pool_size
-from resource_manager.src.cloud_formation import CloudFormationTemplate
-from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
-from pytest import ExitCode
-from botocore.exceptions import ClientError
+
 from publisher.src.publish_documents import PublishDocuments
+from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.resource_manager import ResourceManager
+from resource_manager.src.s3 import S3
+from resource_manager.src.ssm_document import SsmDocument
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
+from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
+from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
+from resource_manager.src.util.param_utils import parse_pool_size
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.sts_utils import assume_role_session
 
 
 def pytest_addoption(parser):
@@ -413,37 +417,47 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
         raise Exception('Operator for [{}] is not supported'.format(operator))
 
 
-@when(parse('Approve SSM automation document\n{input_parameters}'))
-def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+@when(parse('Approve SSM automation document on behalf of the role\n{input_parameters}'))
+def approve_automation(cfn_output_params, ssm_test_cache, boto3_session, input_parameters):
     """
     Common step to approve waiting execution
     :param cfn_output_params The cfn output params from resource manager
     :param ssm_test_cache The custom test cache
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param boto3_session Base boto3 session
     :param input_parameters The input parameters
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
+    role_arn = parameters[0].get('RoleArn')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+    if role_arn is None:
+        raise Exception('Parameter with name [RoleArn] should be provided')
+    assumed_role_session = assume_role_session(role_arn, boto3_session)
+    ssm_document = SsmDocument(assumed_role_session)
     ssm_document.send_step_approval(ssm_execution_id)
 
 
-@when(parse('Reject SSM automation document\n{input_parameters}'))
-def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+@when(parse('Reject SSM automation document on behalf of the role\n{input_parameters}'))
+def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_parameters):
     """
     Common step to reject waiting execution
     :param cfn_output_params The cfn output params from resource manager
     :param ssm_test_cache The custom test cache
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param boto3_session Base boto3 session
     :param input_parameters The input parameters
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
+    role_arn = parameters[0].get('RoleArn')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+    if role_arn is None:
+        raise Exception('Parameter with name [RoleArn] should be provided')
+    assumed_role_session = assume_role_session(role_arn, boto3_session)
+    ssm_document = SsmDocument(assumed_role_session)
     ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
 
 

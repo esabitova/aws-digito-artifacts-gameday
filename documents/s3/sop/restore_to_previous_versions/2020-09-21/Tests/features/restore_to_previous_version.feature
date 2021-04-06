@@ -6,6 +6,7 @@ Feature: SSM automation document to restore an S3 object into previous version
       | CfnTemplatePath                                                                                     | ResourceType |
       | resource_manager/cloud_formation_templates/S3Template.yml                                           | ON_DEMAND    |
       | documents/s3/sop/restore_to_previous_versions/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+    And published "Digito-RestoringToPreviousVersion_2020-09-21" SSM document
     And put "object-to-restore-version.txt" object "2" times with different content into "S3Bucket" bucket
       | S3Bucket                                        |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |

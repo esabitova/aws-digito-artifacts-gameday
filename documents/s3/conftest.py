@@ -1,11 +1,12 @@
+import logging
+
 from boto3 import Session
 from pytest_bdd import (
     given,
     parsers, when
 )
-import logging
 
-from resource_manager.src.util import s3_utils as s3_utils, iam_utils
+from resource_manager.src.util import s3_utils as s3_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 
 
@@ -45,12 +46,6 @@ def cache_property_of_version(
         resource_manager, ssm_test_cache, s3_property_name, object_key, version_id_param_key,
         cache_property, s3_bucket_param_key, step_key, input_parameters
     )
-
-
-@given(parsers.parse('cache current user ARN as "{cache_property}" "{step_key}" SSM automation execution'))
-def cache_user_arn(resource_manager, ssm_test_cache, cache_property, step_key):
-    user_arn = iam_utils.get_current_user_arn()
-    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, user_arn)
 
 
 @when(parsers.parse('get the "{object_key}" object from bucket "{tries_number}" times with error\n{input_parameters}'))
