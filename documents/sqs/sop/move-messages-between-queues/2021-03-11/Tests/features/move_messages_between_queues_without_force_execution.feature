@@ -31,7 +31,7 @@ Feature: SSM automation document to move messages from one queue to another
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
     And SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" executed
       | SourceQueueUrl                             | TargetQueueUrl                                            | AutomationAssumeRole                                                                  | MessagesTransferBatchSize | NumberOfMessagesToTransfer | ForceExecution |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:SqsTemplate>SqsDestinationStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                        | 40                         | false           |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoMoveMessagesBetweenQueuesAssumeRole}} | 10                        | 40                         | false           |
 
 
     When SSM automation document "Digito-MoveMessagesBetweenQueues_2021-03-11" execution in status "Failed"

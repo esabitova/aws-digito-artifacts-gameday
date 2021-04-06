@@ -17,7 +17,7 @@ Feature: SSM automation document to promote read replica.
     Then SSM automation document "Digito-PromoteReadReplica_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And sleep for "60" seconds
+    And sleep for "120" seconds
     And assert if the cluster member is the primary instance
       | DBClusterIdentifier                              | DBInstanceIdentifier                         |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} |
