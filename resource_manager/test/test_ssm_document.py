@@ -28,7 +28,8 @@ class TestSsmDocument(unittest.TestCase):
         self.client_side_effect_map = {
             'ssm': self.mock_ssm
         }
-        self.mock_session.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.mock_session.client.side_effect = lambda service_name, config=None: \
+            self.client_side_effect_map.get(service_name)
         self.ssm_document = SsmDocument(self.mock_session)
 
     def tearDown(self):
