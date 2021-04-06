@@ -42,7 +42,6 @@ mainSteps:
       Service: dynamodb
       Api: UpdateTable
       TableName: "{{ DynamoDBTableName }}"
-      BillingMode: "PROVISIONED"
       ProvisionedThroughput:
         ReadCapacityUnits: "{{ DynamoDBTableRCU }}"
         WriteCapacityUnits: "{{ DynamoDBTableWCU }}"
