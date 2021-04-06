@@ -18,7 +18,7 @@ publish_ssm_docs:
 	deactivate
 
 # Execute Cucumber tests
-test: linter_and_unit_test publish_ssm_docs
+test: linter_and_unit_test
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
@@ -26,7 +26,7 @@ test: linter_and_unit_test publish_ssm_docs
 	deactivate
 
 # Execute only one specified Cucumber test
-test_one: test_linter publish_ssm_docs
+test_one: test_linter
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
