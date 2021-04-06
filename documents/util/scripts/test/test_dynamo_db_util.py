@@ -5,15 +5,32 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from documents.util.scripts.src.dynamo_db_util import (_parse_recovery_date_time,
-                                                       parse_recovery_date_time)
+                                                       parse_recovery_date_time,
+                                                       update_table_stream,
+                                                       _update_table)
+
+UPDATE_TABLE_STREAM_RESPONSE = {
+    "ResponseMetadata": {
+        "HTTPStatusCode": 200
+    },
+    "StreamSpecification": {
+        "StreamEnabled": True,
+        "StreamViewType": 'NEW_IMAGE'
+    }
+}
 
 
 @pytest.mark.unit_test
 class TestS3Util(unittest.TestCase):
     def setUp(self):
-        self.patcher = patch('documents.util.scripts.src.s3_util.s3_client')
+        self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
-        self.client.side_effect = MagicMock()
+        self.dynamodb_client_mock = MagicMock()
+        self.side_effect_map = {
+            'dynamodb': self.dynamodb_client_mock
+        }
+        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
 
     def tearDown(self):
         self.patcher.stop()
@@ -69,3 +86,39 @@ class TestS3Util(unittest.TestCase):
         self.assertEqual(result['UseLatestRecoveryPoint'], True)
         parse_mock.assert_called_with(restore_date_time_str='not_valid_date',
                                       format='%Y-%m-%dT%H:%M:%S%z')
+
+    @patch('documents.util.scripts.src.dynamo_db_util._update_table',
+           return_value={
+               "StreamSpecification": {
+                   "StreamEnabled": True,
+                   "StreamViewType": 'NEW_IMAGE'
+               }
+           })
+    def test_update_table_stream(self, update_mock):
+
+        result = update_table_stream(events={
+            "StreamEnabled": True,
+            "StreamViewType": 'NEW_IMAGE',
+            "TableName": "my_table"
+        }, context={})
+
+        self.assertEqual(result['StreamEnabled'], True)
+        self.assertEqual(result['StreamViewType'], 'NEW_IMAGE')
+        expected_input = {
+            "StreamSpecification": {
+                "StreamEnabled": True,
+                "StreamViewType": 'NEW_IMAGE'
+            }
+        }
+        update_mock.assert_called_with(table_name='my_table', **expected_input)
+
+    def test__update_table(self):
+
+        result = _update_table(table_name="my_table",
+                               StreamSpecification={"StreamEnabled": True,
+                                                    "StreamViewType": 'NEW_IMAGE'
+                                                    }
+                               )
+
+        self.assertEqual(result['StreamSpecification']['StreamEnabled'], True)
+        self.assertEqual(result['StreamSpecification']['StreamViewType'], 'NEW_IMAGE')
