@@ -274,15 +274,11 @@ mainSteps:
       Service: sqs
       Api: SendMessage
       QueueUrl: '{{ QueueUrl }}'
+      DelaySeconds: 0
       MessageBody: "Test message"
       MessageDeduplicationId: '{{global:DATE_TIME}}'
       MessageGroupId: '{{global:DATE_TIME}}'
     onFailure: step:RollbackCurrentExecutionQueuePolicy
-
-  - name: SleepUntilQueueHandleTheMessage
-    action: aws:sleep
-    inputs:
-      Duration: PT60S
 
   - name: ReadMessage1
     action: aws:executeAwsApi
@@ -290,6 +286,8 @@ mainSteps:
       Service: sqs
       Api: ReceiveMessage
       QueueUrl: '{{ QueueUrl }}'
+      VisibilityTimeout: 0
+      WaitTimeSeconds: 5
       AttributeNames:
         - All
     onFailure: step:RollbackCurrentExecutionQueuePolicy
@@ -300,6 +298,8 @@ mainSteps:
       Service: sqs
       Api: ReceiveMessage
       QueueUrl: '{{ QueueUrl }}'
+      VisibilityTimeout: 0
+      WaitTimeSeconds: 5
       AttributeNames:
         - All
     onFailure: step:RollbackCurrentExecutionQueuePolicy
