@@ -118,7 +118,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: MessageId
-        Selector: $.Payload.Policy
+        Selector: $.Payload.MessageId
         Type: String
     inputs:
       Runtime: python3.7
@@ -176,7 +176,7 @@ mainSteps:
     outputs:
       - Name: ApproximateNumberOfMessages
         Selector: '$.Attributes.ApproximateNumberOfMessages'
-        Type: Integer
+        Type: String
     inputs:
       Service: sqs
       Api: GetQueueAttributes
