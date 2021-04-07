@@ -195,6 +195,7 @@ mainSteps:
        SourceQueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
        TargetQueueUrl: '{{ GetQueueUrlFromPreviousExecution.QueueUrl }}'
        NumberOfMessagesToTransfer: '{{ GetNumberOfMessagesToMoveForPreviousExecution.ApproximateNumberOfMessages }}'
+       AutomationAssumeRole: '{{ AutomationAssumeRole }}'
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
