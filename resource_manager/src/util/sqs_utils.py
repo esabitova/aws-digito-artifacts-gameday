@@ -82,3 +82,21 @@ def get_policy(boto3_session, queue_url: str):
         return json.loads(response['Attributes']['Policy'])
     # Return empty policy if queue has no policy
     return {}
+
+
+def get_queue_attribute(boto3_session, queue_url: str, attribute_name: str):
+    """
+    Use get_queue_attributes aws method to get any attribute by name
+    :param boto3_session boto3 client session
+    :param queue_url The URL of the queue
+    :param attribute_name Attribute name
+    :return Attribute value
+    """
+    sqs_client = boto3_session.client('sqs')
+    response = sqs_client.get_queue_attributes(
+        QueueUrl=queue_url,
+        AttributeNames=[attribute_name]
+    )
+    if 'Attributes' in response and attribute_name in response['Attributes']:
+        return response['Attributes'][attribute_name]
+    raise Exception('Queue not found')

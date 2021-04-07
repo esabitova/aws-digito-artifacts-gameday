@@ -1,7 +1,7 @@
 @sqs
 Feature: SSM automation document to test behavior of FIFO queue after receiving a message maximum allowed times
 
-  Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to test behavior of FIFO queue after receiving a message maximum allowed times and purge DLQ afterwards
+  Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to test behavior of FIFO queue after receiving a message maximum allowed times
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                            | ON_DEMAND    |
@@ -24,8 +24,8 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
-      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | PurgeDeadLetterQueue |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True                 |
+      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} |
 
     When SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution in status "Success"
       | ExecutionId                |
@@ -42,9 +42,13 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
+    And purge the queue
+      | QueueUrl                                         |
+      | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
+    And sleep for "60" seconds
 
 
     Then assert "Policy" at "before" became equal to "Policy" at "after"
     Then assert "VisibilityTimeout" at "before" became equal to "VisibilityTimeout" at "after"
     Then assert "RedrivePolicy" at "before" became equal to "RedrivePolicy" at "after"
-    And assert "NumberOfMessages" at "before" became equal to "NumberOfMessages" at "after"
+    And assert "NumberOfMessages" at "before" became not equal to "NumberOfMessages" at "after"

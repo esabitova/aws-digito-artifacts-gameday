@@ -6,9 +6,9 @@ from unittest.mock import patch, MagicMock, call
 import pytest
 from botocore.exceptions import ClientError
 
-from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy
-from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages
+from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy, get_message_receipt_handle
 from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url, update_max_receive_count
+from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_STANDARD_DEST_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyDestQueue"
@@ -319,6 +319,16 @@ class TestSqsUtil(unittest.TestCase):
     def test_add_deny_in_sqs_policy_empty_events(self):
         events = {}
         self.assertRaises(KeyError, add_deny_in_sqs_policy, events, None)
+
+    def test_get_message_receipt_handle_exception(self):
+        self.sqs_client_mock.receive_message.return_value = {"Messages": []}
+        self.assertRaises(Exception, get_message_receipt_handle, SQS_STANDARD_QUEUE_URL, SUCCESSFUL_ID_1, 1)
+
+    def test_get_message_receipt_handle_valid_use_case(self):
+        self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD
+        response = get_message_receipt_handle(SQS_STANDARD_QUEUE_URL, SUCCESSFUL_ID_1, 1)
+        self.assertIsNotNone(response)
+        self.assertEqual(response, SUCCESSFUL_RECEIPT_HANDLE_1)
 
     def test_revert_sqs_policy_empty_events(self):
         events = {}
