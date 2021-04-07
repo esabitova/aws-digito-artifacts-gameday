@@ -61,6 +61,11 @@ class TestDocDBUtil(unittest.TestCase):
         self.mock_docdb_service.describe_db_instances.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
         self.assertEqual('available', result.get('DBInstanceStatus'))
 
+    def test_get_instance_status_instance_not_found(self):
+        self.mock_docdb_service.describe_db_instances.return_value = get_docdb_instances_with_status_side_effect(0)
+        self.assertRaises(AssertionError, docdb_utils.get_instance_status, self.session_mock, DOCDB_INSTANCE_ID)
+        self.mock_docdb_service.describe_db_instances.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
+
     def test_get_instance_az(self):
         az = 'us-east-1b'
         self.mock_docdb_service.describe_db_instances.return_value = get_docdb_instances_side_effect(az)
@@ -85,3 +90,56 @@ class TestDocDBUtil(unittest.TestCase):
         result = docdb_utils.get_cluster_members(self.session_mock, DOCDB_CLUSTER_ID)
         self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
         self.assertListEqual(result, cluster_members)
+
+    def test_delete_instance(self):
+        self.mock_docdb_service.delete_db_instance.return_value = {
+            'DBInstance': {
+                'DBInstanceIdentifier': DOCDB_INSTANCE_ID
+            }
+        }
+        result = docdb_utils.delete_instance(self.session_mock, DOCDB_INSTANCE_ID)
+        self.mock_docdb_service.delete_db_instance.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
+        self.assertEqual(DOCDB_INSTANCE_ID, result)
+
+    def test_get_cluster_instances(self):
+        api_value_mock = {
+            'DBInstances': [
+                {
+                    'DBInstanceIdentifier': 'Id1'
+                },
+                {
+                    'DBInstanceIdentifier': 'Id2'
+                }
+            ]
+        }
+        self.mock_docdb_service.describe_db_instances.return_value = api_value_mock
+        result = docdb_utils.get_cluster_instances(self.session_mock, DOCDB_CLUSTER_ID)
+        self.mock_docdb_service.describe_db_instances.assert_called_once_with(Filters=[
+            {
+                'Name': 'db-cluster-id',
+                'Values': [DOCDB_CLUSTER_ID]
+            },
+        ])
+        self.assertEqual(result, api_value_mock['DBInstances'])
+
+    def test_delete_cluster(self):
+        result = docdb_utils.delete_cluster(self.session_mock, DOCDB_CLUSTER_ID)
+        self.mock_docdb_service.delete_db_cluster.assert_called_once_with(
+            DBClusterIdentifier=DOCDB_CLUSTER_ID,
+            SkipFinalSnapshot=True
+        )
+        self.assertEqual(None, result)
+
+    def test_describe_cluster(self):
+        cluster = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'Status': 'available',
+        }
+        self.mock_docdb_service.describe_db_clusters.return_value = {
+            'DBClusters': [
+                cluster
+            ]
+        }
+        result = docdb_utils.describe_cluster(self.session_mock, DOCDB_CLUSTER_ID)
+        self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+        self.assertEqual(result, cluster)
