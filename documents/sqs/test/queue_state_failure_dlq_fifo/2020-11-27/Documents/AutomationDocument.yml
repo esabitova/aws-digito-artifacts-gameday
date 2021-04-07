@@ -286,7 +286,6 @@ mainSteps:
       Service: sqs
       Api: ReceiveMessage
       QueueUrl: '{{ QueueUrl }}'
-      VisibilityTimeout: 0
       WaitTimeSeconds: 5
       AttributeNames:
         - All
@@ -298,7 +297,6 @@ mainSteps:
       Service: sqs
       Api: ReceiveMessage
       QueueUrl: '{{ QueueUrl }}'
-      VisibilityTimeout: 0
       WaitTimeSeconds: 5
       AttributeNames:
         - All
