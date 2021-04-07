@@ -34,7 +34,7 @@ parameters:
   SNSTopicARNForManualApproval:
     type: String
     description: (Required) The ARN of the SNS Topic where a user will receive the notification about the manual approval of bucket clean-up if some files exist there.
-  UserWhoWillApproveCleanRestoreBucket:
+  IAMPrincipalForManualApproval:
     type: String
     description: (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of bucket if there are some files. Can be either an AWS Identity and Access
       Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
@@ -106,7 +106,7 @@ mainSteps:
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
-        UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
+        IAMPrincipalForManualApproval: '{{IAMPrincipalForManualApproval}}'
         S3BackupBucketName: '{{GetS3BucketToRestoreWhereObjectWasCopiedTo.S3BucketToRestoreWhereObjectWasCopiedTo}}'
         S3BucketToRestoreName: '{{GetS3BucketWhereObjectCouldBeDeletedFrom.S3BucketWhereObjectCouldBeDeletedFrom}}'
     isEnd: true
@@ -118,7 +118,7 @@ mainSteps:
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
-        UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
+        IAMPrincipalForManualApproval: '{{IAMPrincipalForManualApproval}}'
         S3BackupBucketName: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'
         S3BucketToRestoreName: '{{S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
         ApproveCleanRestoreBucketAutomatically: '{{ForceCleanBucketToRestoreWhereObjectWillBeCopiedTo}}'
@@ -148,7 +148,7 @@ mainSteps:
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
-        UserWhoWillApproveCleanRestoreBucket: '{{UserWhoWillApproveCleanRestoreBucket}}'
+        IAMPrincipalForManualApproval: '{{IAMPrincipalForManualApproval}}'
         S3BackupBucketName: '{{S3BucketToRestoreWhereObjectWillBeCopiedTo}}'
         S3BucketToRestoreName: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'
   - name: AssertAlarmToBeGreen

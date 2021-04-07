@@ -16,14 +16,14 @@ publish_ssm_docs:
 	deactivate
 
 # Execute Cucumber tests
-test: linter_and_unit_test publish_ssm_docs
+test: linter_and_unit_test
     # Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests -m docdb --aws_profile ut && \
 	deactivate
 
-test_one: test_linter publish_ssm_docs
+test_one: test_linter
     # Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \

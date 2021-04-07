@@ -33,7 +33,7 @@ parameters:
     description: |-
       (Required) The ARN of the SNS Topic where a user will receive the notification
       about the manual approval of restore bucket clean-up if some files exist there.
-  UserWhoWillApproveCleanRestoreBucket:
+  IAMPrincipalForManualApproval:
     type: String
     description: |-
       (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of restore bucket if there are some files.
@@ -93,7 +93,7 @@ mainSteps:
       Message: Do you agree to clean up the {{S3BucketToRestoreName}} bucket before the restore process? There {{CheckExistenceOfObjectsInRestoreBucket.NumberOfObjectsExistInRestoreBucket}} file(-s) exist.
       MinRequiredApprovals: 1
       Approvers:
-        - "{{UserWhoWillApproveCleanRestoreBucket}}"
+        - "{{IAMPrincipalForManualApproval}}"
   - name: CleanRestoreBucket
     action: aws:executeAutomation
     inputs:
