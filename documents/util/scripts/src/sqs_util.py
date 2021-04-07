@@ -160,11 +160,10 @@ def receive_message_by_id(events: dict, context: dict) -> dict:
             MessageAttributeNames=['All'],
             AttributeNames=['All']
         )
-
         if 'Messages' in response and len(response['Messages']):
             for message in response['Messages']:
                 if message['MessageId'] == message_id:
-                    return {"Message": message}
+                    return {"MessageBody": message['Body']}
 
         if (datetime.now() - start).total_seconds() > timeout:
             raise Exception(f'Message {message_id} not found before timeout')
