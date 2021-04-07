@@ -1,0 +1,17 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-SimulateInternetUnavailable_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "AZ",
+  "displayName": "Tests systems behavior when internet connection becomes unavailable due to misconfigured routes",
+  "description":"Tests systems behavior when internet connection becomes unavailable due to misconfigured routes",
+  "intent": "Test behavior of resources that require internet access",
+  "risk": "HIGH",
+  "tag": "nat-gw:test:simulate_internet_unavailable:2020-09-21",
+  "recommendedAlarms": {
+    "BytesOutToSourceAlarm": "nat-gw:alarm:bytes_out_to_source:2020-09-21"
+  },
+  "minorVersion": "001"
+}

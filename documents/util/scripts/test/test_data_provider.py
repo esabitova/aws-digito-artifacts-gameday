@@ -138,8 +138,43 @@ def get_sample_route_table_response():
 
     route_table_response = {}
     route_table_response['RouteTables'] = [route_table_1, route_table_2]
+    route_table_response['ResponseMetadata'] = {'HTTPStatusCode': 200}
 
     return route_table_response
+
+
+def get_sample_route_table_response_filtered_by_nat():
+    route_1 = {}
+    route_1['DestinationCidrBlock'] = '10.0.0.0/16'
+    route_1['GatewayId'] = 'local'
+    route_1['Origin'] = 'CreateRouteTable'
+    route_1['State'] = 'active'
+
+    route_natgw = {}
+    route_natgw['DestinationCidrBlock'] = INTERNET_DESTINATION
+    route_natgw['NatGatewayId'] = NAT_GATEWAY_ID
+    route_natgw['Origin'] = 'CreateRoute'
+    route_natgw['State'] = 'active'
+
+    route_table_1 = {}
+    route_table_1['RouteTableId'] = ROUTE_TABLE_ID
+    route_table_1['Routes'] = [route_1, route_natgw]
+
+    association = {}
+    association['SubnetId'] = PUBLIC_SUBNET_ID
+
+    route_table_response = {}
+    route_table_response['RouteTables'] = [route_table_1]
+    route_table_response['ResponseMetadata'] = {'HTTPStatusCode': 200}
+
+    return route_table_response
+
+
+def get_sample_delete_route_response():
+    response = {}
+    response['ResponseMetadata'] = {'HTTPStatusCode': 200}
+
+    return response
 
 
 def get_sample_describe_db_instances_response():
