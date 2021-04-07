@@ -91,7 +91,7 @@ mainSteps:
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         StepName: 'BackupCurrentExecution'
-        ResponseField: 'Policy, VisibilityTimeout, RedrivePolicy'
+        ResponseField: 'Policy,VisibilityTimeout,RedrivePolicy'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
