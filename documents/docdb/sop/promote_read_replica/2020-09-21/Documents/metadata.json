@@ -1,4 +1,6 @@
 {
+  "displayName": "Promote Read Replica",
+  "description": "Used to switch database to a read replica.",
   "documentName": "Digito-PromoteReadReplica_2020-09-21",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",

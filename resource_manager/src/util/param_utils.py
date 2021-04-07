@@ -30,7 +30,7 @@ def parse_param_value(param_value, param_containers):
     param_val_ref_pattern = re.compile('{{2}.*}{2}')
     ref_match = param_val_ref_pattern.match(param_value)
     if ref_match:
-        param_ref = re.search('[^{](.+):(\w+>?)+[^}]', param_value)
+        param_ref = re.search(r'[^{](.+):(\w+>?)+[^}]', param_value)
         if param_ref is not None and len(param_ref.group().split(':')) == 2:
             container_key = param_ref.group().split(':')[0]
             param_val_ref = param_ref.group().split(':')[1]
@@ -54,3 +54,24 @@ def _get_param_value(param_container, param_val_ref):
         if value is None:
             raise Exception("Parameter reference with name [{}] does not exist.".format(param_val_ref))
     return value
+
+
+def parse_pool_size(custom_pool_size: str) -> dict:
+    """
+    Util to parse testing resource pool size from command line:
+    --pool_size TestTemplateA=1,TestTemplateB=2
+    :param custom_pool_size The custom integration test pool size
+    """
+    pool_size = dict()
+    if custom_pool_size:
+        poll_sizes = custom_pool_size.split(",")
+        for ps in poll_sizes:
+            poll_size_pattern = re.compile(r'[0-9A-Za-z]+=\d+')
+            if poll_size_pattern.match(ps):
+                ps_parts = ps.split('=')
+                pool_size[ps_parts[0]] = int(ps_parts[1])
+            else:
+                raise Exception('Pool size parameter format [{}] is not supported. '
+                                'Expected format <cfn_template_name>=<size>, example:'
+                                ' --pool_size TestTemplateA=1,TestTemplateB=1'.format(ps))
+    return pool_size

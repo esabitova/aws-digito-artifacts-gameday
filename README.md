@@ -31,7 +31,7 @@
     6. [Tests Isolation](#tests-isolation)
     7. [Integration Test Execution](#integration-test-execution) 
 5. [Design.md writing guidelines](#design.md-writing-guidelines) 
-5. [TODO List](#todo-list)
+6. [TODO List](#todo-list)
 
 # Digito Failure Injection Documents
 This package provides SSM documents for injecting failures in different aws resources.
@@ -417,7 +417,7 @@ markers =
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
-> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name
+> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name --pool_size TestTemplateA=5,TestTemplateB=3
 
 * -m pytest - (Required) Use [pytest](https://docs.pytest.org/en/stable/) module for test execution.
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
@@ -425,7 +425,7 @@ Integration test execution command line:
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 * --aws_profile - (Optional) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
-
+* --pool_size - (Optional) Custom pool size for CFN template resources, it overrides configuration given resource_manager/src/config.py. NOTE: Once pool size increased there is no feature to decrease it for now (only manual deletion available.).
 
 # Design.md writing guidelines
 ## High-level users flow
@@ -449,11 +449,25 @@ Checkout the template [here](templates/gameday_design_template.md)
 ## SOP guidelines
 Coming soon...
 
+## Cucumber Test guidelines
+* Include a test for normal execution path.
+* If document supports isRollback and previousExecutionId, include a test for rollback execution path.
+  * The test for rollback should start the first document execution and wait for a document execution to be in a specific step where failure has been already injected and we are waiting for alarm to be RED.
+  * Terminate first execution at this point and start a new execution with same parameter as first execution and isRollback set to true and passing previous execution id.
+  * The test must validate that rollback execution was successful and the resource returns to original state before document execution.
+* Run test twice with --keep_test_resources flag enabled. This is to ensure test restores resources to their original state and same resource can be used for testing again.
+* [AFTER 15 April] Include a test to verify all branches in execution - for example, verifying onFailure condition for a step where applicable. For example, we expect alarm to go red after injecting failure. If alarm does not go red within time, verify that we rollback current execution by jumping to step defined in onFailure.
+  * Include a test for all aws:branch conditions.
+  * Include a test for all branches in script.
+  * Include a test for validating pagination where applicable.
+  * Add validation for expected steps executed during the ssm execution. For example, in normal execution Step A, B, C were executed. For rollback, Step A, Step D was executed.
+* [AFTER 15 April] Add a negative test for rollback mode to validate that we reject rollback execution when input parameters are not same.
+
 
 # TODO List
+* https://issues.amazon.com/issues/Digito-2023 - [SSM Testing Framework] Investigate possibility reduce pool size with deleting stacks
 * https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
 * https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination
-* https://issues.amazon.com/issues/Digito-1546 - [SSM Testing Framework] Implement ability to override pool size over CLI
 * https://issues.amazon.com/issues/Digito-1207 - [SSM Testing Framework] Digito-AuroraFailoverCluster.yml SSM document need to be fixed to wait for failover completed 
 * https://issues.amazon.com/issues/Digito-1208 - [SSM Testing Framework] Investigate possibility to generate tests based on SSM document content
 

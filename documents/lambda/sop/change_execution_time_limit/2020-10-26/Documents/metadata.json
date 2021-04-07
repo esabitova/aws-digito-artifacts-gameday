@@ -1,9 +1,12 @@
 {
+  "displayName": "Change Execution Time Limit",
+  "description": "Change execution time limit",
   "documentName": "Digito-ChangeExecutionTimeLimit_2020-10-26",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "failureType": "SOFTWARE",
   "risk": "MEDIUM",
   "tag": "lambda:sop:change_execution_time_limit:2020-10-26",
   "intent": "Change execution time limit",

@@ -68,7 +68,7 @@ back changes from the previous run
 * Description: (Required) The ARN of the SNS Topic where a user will receive the notification about the manual approval of restore bucket clean-up if some files exist there.
 * Type: String
 
-### `UserWhoWillApproveCleanRestoreBucket`:
+### `IAMPrincipalForManualApproval`:
 
 * Description: (Required) ARN of AWS authenticated principal who are able to either approve or reject the clean-up of restore bucket if there are some files. Can be either an AWS Identity and Access
   Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
@@ -114,7 +114,7 @@ back changes from the previous run
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `SNSTopicARNForManualApproval`: {{SNSTopicARNForManualApproval}}
-            * `UserWhoWillApproveCleanRestoreBucket`: {{UserWhoWillApproveCleanRestoreBucket}}
+            * `IAMPrincipalForManualApproval`: {{IAMPrincipalForManualApproval}}
             * `S3BucketToRestoreName`: {{PrepareRollbackOfPreviousExecution.S3BucketToRestoreWhereObjectWillBeCopiedTo}}
             * `S3BackupBucketName` {{PrepareRollbackOfPreviousExecution.S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:
@@ -126,7 +126,7 @@ back changes from the previous run
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `SNSTopicARNForManualApproval`: {{SNSTopicARNForManualApproval}}
-            * `UserWhoWillApproveCleanRestoreBucket`: {{UserWhoWillApproveCleanRestoreBucket}}
+            * `IAMPrincipalForManualApproval`: {{IAMPrincipalForManualApproval}}
             * `S3BucketToRestoreName`: {{S3BucketWhereObjectsWillBeDeletedFrom}}
             * `S3BackupBucketName` {{S3BucketToRestoreWhereObjectWillBeCopiedTo}}
     * Explanation:
@@ -156,7 +156,7 @@ back changes from the previous run
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `SNSTopicARNForManualApproval`: {{SNSTopicARNForManualApproval}}
-            * `UserWhoWillApproveCleanRestoreBucket`: {{UserWhoWillApproveCleanRestoreBucket}}
+            * `IAMPrincipalForManualApproval`: {{IAMPrincipalForManualApproval}}
             * `S3BucketToRestoreName`: {{S3BucketToRestoreWhereObjectWillBeCopiedTo}}
             * `S3BackupBucketName` {{S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:

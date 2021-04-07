@@ -18,18 +18,18 @@ publish_ssm_docs:
 	deactivate
 
 # Execute Cucumber tests
-test: linter_and_unit_test publish_ssm_docs
+test: linter_and_unit_test
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m s3 --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m s3 --count=2 --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 # Execute only one specified Cucumber test
-test_one: test_linter publish_ssm_docs
+test_one: linter_and_unit_test
 	# Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/s3/test/accidental_delete/2020-04-01/Tests/step_defs/test_accidental_delete_rollback_usual_case.py -m s3  --aws_profile ${AWS_PROFILE} && \
+		documents/s3/sop/restore_from_backup/2020-09-21/Tests/step_defs/test_restore_from_backup.py -m s3 --count=2  --aws_profile ${AWS_PROFILE} && \
 	deactivate

@@ -8,27 +8,27 @@ export $(shell sed 's/=.*//' ../../../private.env)
 
 # Upload local SSM Documents to AWS SSM Documents service by specifying them in the manifest file
 publish_ssm_docs:
-	# Move to parent working directory
+    # Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
-		--file-name documents/docdb/misc/docdb-manifest --log-level INFO && \
+        --file-name documents/docdb/misc/docdb-manifest --log-level INFO && \
 	deactivate
 
 # Execute Cucumber tests
-test: linter_and_unit_test publish_ssm_docs
-	# Move to parent directory
+test: linter_and_unit_test
+    # Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --keep_test_resources --run_integration_tests -m docdb --aws_profile ut && \
 	deactivate
 
-test_one: test_linter publish_ssm_docs
-	# Move to parent directory
+test_one: test_linter
+    # Move to parent directory
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/docdb/sop/create_new_instance/2020-09-21/Tests/step_defs/test_create_new_instance.py -m docdb --aws_profile ${AWS_PROFILE} && \
+        documents/docdb/sop/create_new_instance/2020-09-21/Tests/step_defs/test_create_new_instance.py -m docdb --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 test_linter:

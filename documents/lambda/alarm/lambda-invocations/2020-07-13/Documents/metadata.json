@@ -1,10 +1,11 @@
 {
   "displayName": "Anomalous invocation count",
+  "description": "Reports when invocations count is anomalous",
   "alarmName": "Digito-AnomalousInvocationCount_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "compute:alarm:lambda-invocations:2020-07-13",
-  "description": "Reports when invocations count is anomalous",
+  "failureType": "SOFTWARE",
   "minorVersion": "001"
 }

@@ -125,12 +125,11 @@ Yes. The script will perform rollback of main queue attributes: Policy, Visibili
    * Explanation:
      * Purge dead-letter queue by shared SSM Document `Digito-PurgeQueue_2021-03-11`
 1. `AssertAlarmToBeGreenBeforeStart`
-   * Type: aws:assertAwsResourceProperty
+   * Type: aws:waitForAwsResourceProperty
    * Inputs:
        * `DlqAlarmName`
-       * `timeoutSeconds=10`
    * Explanation:
-       * Ensure that `DlqAlarmName` alarm is `OK`
+       * Ensure that `DlqAlarmName` alarm is `OK` for 600 seconds
 1. `BackupCurrentExecution`
     * Type: aws:executeScript
     * Inputs:

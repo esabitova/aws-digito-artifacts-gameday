@@ -27,12 +27,6 @@ Outputs:
   SqsFifoQueueUrl:
     Description: Fifo queue URL
     Value: !Ref SqsFifoQueue
-  SqsDeadLetterQueueArn:
-    Description: Dead letter queue ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
-  SqsDeadLetterQueueUrl:
-    Description: Dead letter queue URL
-    Value: !Ref SqsDeadLetterQueue
   SqsFifoQueueEnabledDlqArn:
     Description: ARN of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.Arn
@@ -42,21 +36,21 @@ Outputs:
   SqsFifoQueueEnabledDlqName:
     Description: Name of Fifo queue with enabled DLQ
     Value: !GetAtt SqsFifoQueueEnabledDlq.QueueName
-  SqsDeadLetterQueueEnabledDlqArn:
-    Description: Dead letter queue ARN
-    Value: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
-  SqsDeadLetterQueueEnabledDlqUrl:
-    Description: Dead letter queue URL
-    Value: !Ref SqsDeadLetterQueueEnabledDlq
+  SqsDlqForFifoQueueArn:
+    Description: ARN of DLQ for Fifo queue
+    Value: !GetAtt SqsDlqForFifoQueue.Arn
+  SqsDlqForFifoQueueUrl:
+    Description: URL of DLQ for Fifo queue
+    Value: !Ref SqsDlqForFifoQueue
   SqsStandardQueueArn:
     Description: Standard queue ARN
     Value: !GetAtt SqsStandardQueue.Arn
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
-  SNSTopicARN:
-    Description: SNS Topic ARN
-    Value: !GetAtt SqsDeadLetterQueue.Arn
+  SqsDlqForStandardQueueUrl:
+    Description: Dead letter queue URL
+    Value: !Ref SqsDlqForStandardQueue
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -69,15 +63,18 @@ Outputs:
   SentMessageSizeFifoQueueAlarm:
     Description: Alarm
     Value: !Ref  SQSSentMessageSizeFifoQueueAlarm
-  DLQMessageAlarm:
+  DlqMessageFifoQueueAlarm:
     Description: Alarm
-    Value: !Ref  SQSDlqMessageAlarm
-  DLQMessageAlarmForEnabledDlq:
+    Value: !Ref  SqsDlqMessageFifoQueueAlarm
+  DlqMessageStandardQueueAlarm:
     Description: Alarm
-    Value: !Ref  SQSDlqMessageAlarmForEnabledDlq
+    Value: !Ref SqsDlqMessageStandardQueueAlarm
   ApproximateAgeOfOldestMessageMaximumAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageMaximumAlarm
+  ApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Description: Alarm
+    Value: !Ref SQSApproximateAgeOfOldestMessageMaximumFifoAlarm
   ThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
     Description: Alarm
     Value: !Ref SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm
@@ -87,9 +84,12 @@ Outputs:
   ApproximateAgeOfOldestMessageDLQAlarm:
     Description: Alarm
     Value: !Ref SQSApproximateAgeOfOldestMessageDLQAlarm
+  AlwaysOKAlarm:
+    Description: Alarm
+    Value: !Ref SQSAlwaysOKAlarm
 
 Parameters:
-  SqsFifoQueueRedrivePolicyMaxReceiveCount:
+  SqsQueueRedrivePolicyMaxReceiveCount:
     Type: Number
     Default: 5
   SentMessageSizeMaximumMinus30Percents:
@@ -144,22 +144,16 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
-              AWS: "*"
+              AWS:
+                - !Ref "AWS::AccountId"
             Resource: !GetAtt SqsFifoQueue.Arn
-            Condition:
-              StringEquals:
-                AWS:SourceAccount: !Ref "AWS::AccountId"
-  SqsDeadLetterQueue:
-    Type: "AWS::SQS::Queue"
-    Properties:
-      FifoQueue: true
   SqsFifoQueueEnabledDlq:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
       RedrivePolicy:
-        deadLetterTargetArn: !GetAtt SqsDeadLetterQueueEnabledDlq.Arn
-        maxReceiveCount: !Ref SqsFifoQueueRedrivePolicyMaxReceiveCount
+        deadLetterTargetArn: !GetAtt SqsDlqForFifoQueue.Arn
+        maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
   SqsFifoQueueEnabledDlqPolicy:
     Type: "AWS::SQS::QueuePolicy"
     Properties:
@@ -178,16 +172,21 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
-              AWS: "*"
+              AWS:
+                - !Ref "AWS::AccountId"
             Resource: !GetAtt SqsFifoQueueEnabledDlq.Arn
-  SqsDeadLetterQueueEnabledDlq:
+  SqsDlqForFifoQueue:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
   SqsStandardQueue:
     Type: "AWS::SQS::Queue"
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt SqsDlqForStandardQueue.Arn
+        maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
+  SqsDlqForStandardQueue:
+    Type: "AWS::SQS::Queue"
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -209,6 +208,7 @@ Resources:
   SQSNumberOfMessagesSentBandAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
+      AlarmName: "SqsNumberOfMessagesSentBandAlarm"
       ActionsEnabled: false
       AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       EvaluationPeriods: 1
@@ -276,10 +276,10 @@ Resources:
       Threshold: !Ref SentMessageSizeMaximumMinus30Percents
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "notBreaching"
-  SQSDlqMessageAlarm:
+  SqsDlqMessageFifoQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsDlqMessageAlarm"
+      AlarmName: "SqsDlqMessageFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesVisible"
@@ -287,17 +287,17 @@ Resources:
       Statistic: "Sum"
       Dimensions:
         - Name: "QueueName"
-          Value: !GetAtt SqsDeadLetterQueue.QueueName
+          Value: !GetAtt SqsDlqForFifoQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
-  SQSDlqMessageAlarmForEnabledDlq:
+      TreatMissingData: "notBreaching"
+  SqsDlqMessageStandardQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsDlqMessageForEnabledDlqAlarm"
+      AlarmName: "SqsDlqMessageStandardQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesVisible"
@@ -305,13 +305,13 @@ Resources:
       Statistic: "Sum"
       Dimensions:
         - Name: "QueueName"
-          Value: !GetAtt SqsDeadLetterQueueEnabledDlq.QueueName
+          Value: !GetAtt SqsDlqForStandardQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SQSApproximateAgeOfOldestMessageMaximumAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -324,6 +324,24 @@ Resources:
       Dimensions:
         - Name: "QueueName"
           Value: !GetAtt SqsStandardQueue.QueueName
+      Period: 60
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: !Ref AverageDurationToProcessSentMessagePlus10Percents
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "missing"
+  SQSApproximateAgeOfOldestMessageMaximumFifoAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumFifoAlarm"
+      AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
+      ActionsEnabled: false
+      MetricName: "ApproximateAgeOfOldestMessage"
+      Namespace: "AWS/SQS"
+      Statistic: "Maximum"
+      Dimensions:
+        - Name: "QueueName"
+          Value: !GetAtt SqsFifoQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -377,10 +395,24 @@ Resources:
       Statistic: "Maximum"
       Dimensions:
         - Name: "QueueName"
-          Value: !GetAtt SqsDeadLetterQueue.QueueName
+          Value: !GetAtt SqsDlqForStandardQueue.QueueName
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
       Threshold: !Ref ApproximateAgeOfOldestMessageDLQThreshold
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "missing"
+  SQSAlwaysOKAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: "SqsSQSAlwaysOKAlarm"
+      AlarmDescription: "sqs:alarm:always_ok:2021-03-24"
+      ActionsEnabled: false
+      ComparisonOperator: "GreaterThanOrEqualToThreshold"
+      EvaluationPeriods: 1
+      MetricName: "AlwaysOK"
+      Namespace: "AWS/SQS"
+      Period: 60
+      Statistic: "Minimum"
+      TreatMissingData: "notBreaching"
+      Threshold: 100

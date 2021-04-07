@@ -10,7 +10,7 @@ check_branch_name() {
 Start the branch name with mention of the corresponding JIRA issue, e.g. DIG-519_scale_up_design.
 And make sure you have created necessary JIRA issue for your current work."
 
-  if [[ "$local_branch" =~ $valid_branch_regex ]]; then
+  if [[ "$local_branch" == "before_master" ]] || [[ "$local_branch" =~ $valid_branch_regex ]]; then
     echo "Branch name is valid"
     exit 0
   fi

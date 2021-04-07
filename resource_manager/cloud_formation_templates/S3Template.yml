@@ -39,6 +39,9 @@ Outputs:
   SNSTopicName:
     Description: SNS Topic Name
     Value: !Ref SNSTopic
+  RoleApproveCleanBucketArn:
+    Description: ARN of RoleApproveCleanBucket
+    Value: !GetAtt RoleApproveCleanBucket.Arn
 Resources:
   S3BackupBucket:
     Type: AWS::S3::Bucket
@@ -113,14 +116,36 @@ Resources:
                 AWS:SourceAccount: !Ref "AWS::AccountId"
       Topics:
         - !Ref SNSTopic
+  RoleApproveCleanBucket:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref "AWS::AccountId"
+            Action:
+              - sts:AssumeRole
+  PolicyApproveCleanBucket:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DigitoRestoreFromBackupAssumePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              - ssm:SendAutomationSignal
+      Roles:
+        - Ref: RoleApproveCleanBucket
   S3Health4xxErrorsCountAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: S3Health4xxErrorsCountAlarm
       AlarmDescription: "s3:alarm:health-4xxErrors_count:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: 4xxErrors
       Namespace: AWS/S3
       Statistic: Sum
@@ -141,9 +166,7 @@ Resources:
     Properties:
       AlarmName: S3Health5xxErrorsCountAlarm
       AlarmDescription: "s3:alarm:health-5xxErrors_count:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: 5xxErrors
       Namespace: AWS/S3
       Statistic: Sum
@@ -162,9 +185,7 @@ Resources:
     Properties:
       AlarmName: S3TotalRequestLatencyAlarm
       AlarmDescription: "s3:alarm:health-total_tequest_latency:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: TotalRequestLatency
       Namespace: AWS/S3
       Statistic: Sum
@@ -183,9 +204,7 @@ Resources:
     Properties:
       AlarmName: S3ReplicationLatencyAlarm
       AlarmDescription: "s3:alarm:recovery-replication_latency:2020-04-01"
-      ActionsEnabled: true
-      AlarmActions:
-        - !Ref SNSTopic
+      ActionsEnabled: false
       MetricName: ReplicationLatency
       Namespace: AWS/S3
       Statistic: Maximum
