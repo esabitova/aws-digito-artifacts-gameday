@@ -11,10 +11,10 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And cache visibility timeout as "VisibilityTimeout" "before" SSM automation execution
-      | QueueUrl                                                 |
+      | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And cache redrive policy as "RedrivePolicy" "before" SSM automation execution
-      | QueueUrl                                                 |
+      | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And purge the queue
       | QueueUrl                                         |
@@ -34,10 +34,10 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And cache visibility timeout as "VisibilityTimeout" "after" SSM automation execution
-      | QueueUrl                                                 |
+      | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And cache redrive policy as "RedrivePolicy" "after" SSM automation execution
-      | QueueUrl                                                 |
+      | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                         |
