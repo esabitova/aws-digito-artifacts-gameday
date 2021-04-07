@@ -302,27 +302,19 @@ mainSteps:
       DelaySeconds: 0
       MessageBody: "Test message"
 
-  - name: ReadMessage1
-    action: aws:executeAwsApi
+  - name: ReadMessage
+    action: aws:executeScript
     onFailure: step:GetDeadLetterQueueUrl
     inputs:
-      Service: sqs
-      Api: ReceiveMessage
-      QueueUrl: '{{ QueueUrl }}'
-      WaitTimeSeconds: 5
-      AttributeNames:
-        - All
-
-  - name: ReadMessage2
-    action: aws:executeAwsApi
-    onFailure: step:GetDeadLetterQueueUrl
-    inputs:
-      Service: sqs
-      Api: ReceiveMessage
-      QueueUrl: '{{ QueueUrl }}'
-      WaitTimeSeconds: 5
-      AttributeNames:
-        - All
+      Runtime: python3.7
+      Handler: receive_message_by_id
+      InputPayload:
+        QueueUrl: '{{ QueueUrl }}'
+        MessageId: '{{ SendMessage.MessageId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+        SCRIPT_PLACEHOLDER::sqs_util.receive_message_by_id
+        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
