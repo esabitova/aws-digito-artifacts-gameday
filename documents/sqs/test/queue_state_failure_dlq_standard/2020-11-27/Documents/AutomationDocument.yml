@@ -383,6 +383,11 @@ mainSteps:
         VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
 
+  - name: SleepBeforeGetNumberOfMessagesToMove
+    action: "aws:sleep"
+    inputs:
+      Duration: "PT30S"
+
   - name: GetNumberOfMessagesToMove
     action: aws:executeAwsApi
     outputs:
@@ -394,7 +399,7 @@ mainSteps:
       Api: GetQueueAttributes
       AttributeNames:
         - ApproximateNumberOfMessages
-      QueueUrl: '{{ QueueUrl }}'
+      QueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
 
   - name: MoveMessages
     action: aws:executeAutomation
