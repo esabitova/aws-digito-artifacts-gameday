@@ -315,7 +315,6 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
         SCRIPT_PLACEHOLDER::sqs_util.receive_message_by_id
-        SCRIPT_PLACEHOLDER::sqs_util.get_message_receipt_handle
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
