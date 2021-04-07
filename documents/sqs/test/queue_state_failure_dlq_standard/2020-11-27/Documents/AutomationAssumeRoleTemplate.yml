@@ -16,10 +16,10 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM QueueStateFailureDlqStandard
+Description: Role for SSM DigitoQueueStateFailureDlqStandard
 Outputs:
-  SqsDlqMessageStandardQueueAlarmAssumeRole:
-    Description: SqsDlqMessageStandardQueueAlarm Automation Assume Role ARN
+  DigitoQueueStateFailureDlqStandardAssumeRole:
+    Description: DigitoQueueStateFailureDlqStandard Automation Assume Role ARN
     Value: !GetAtt SqsDlqMessageStandardQueueAlarmAssumeRole.Arn
 Resources:
   SqsDlqMessageStandardQueueAlarmAssumeRole:
