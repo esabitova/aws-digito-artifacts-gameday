@@ -53,7 +53,8 @@ def pytest_addoption(parser):
                      action="store_true",
                      default=False,
                      help="Flag to run integration tests in distributed mode "
-                          "(multi session/machines targeting same AWS account).")
+                          "(multi session/machines targeting same AWS account). "
+                          "NOTE: Flag should be used only for CI/CD pipeline, not for personal usage.")
 
 
 @pytest.hookimpl(tryfirst=True)

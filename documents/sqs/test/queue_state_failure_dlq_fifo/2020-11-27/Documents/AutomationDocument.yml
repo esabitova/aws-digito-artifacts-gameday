@@ -91,14 +91,14 @@ mainSteps:
         Type: String
       - Name: VisibilityTimeout
         Selector: $.Payload.VisibilityTimeout
-        Type: Integer
+        Type: String
     inputs:
       Runtime: python3.7
       Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         StepName: 'BackupCurrentExecution'
-        ResponseField: 'Policy, VisibilityTimeout, RedrivePolicy'
+        ResponseField: 'Policy,VisibilityTimeout,RedrivePolicy'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
