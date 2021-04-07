@@ -137,6 +137,17 @@ def delete_message_by_id(event, context):
     return response
 
 
+def receive_message_by_id(event, context):
+    """
+    Receive message by its ID
+    """
+    queue_url = event['QueueUrl']
+    message_id = event['MessageId']
+    timeout = int(event.get('TimeOut', 100))
+    receipt_handle = get_message_receipt_handle(queue_url, message_id, timeout)
+    return receipt_handle
+
+
 def transform_message_and_attributes(message: dict) -> dict:
     """
     General method to transform one message
