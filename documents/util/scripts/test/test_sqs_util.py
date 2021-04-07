@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy, get_message_receipt_handle
 from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url, update_max_receive_count
-from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages
+from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages, receive_message_by_id
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_STANDARD_DEST_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyDestQueue"
@@ -796,3 +796,23 @@ class TestSqsUtil(unittest.TestCase):
             "SourceRedrivePolicy": ""
         }
         self.assertRaises(KeyError, get_dead_letter_queue_url, events, None)
+
+    def test_receive_message_by_id_empty_events(self):
+        events = {}
+        self.assertRaises(KeyError, receive_message_by_id, events, None)
+
+    def test_receive_message_by_id_max_number_of_messages_lower_than_range(self):
+        events = {
+            'QueueUrl': SQS_STANDARD_QUEUE_URL,
+            'MessageId': SUCCESSFUL_ID_1,
+            'MaxNumberOfMessages': 0
+        }
+        self.assertRaises(KeyError, receive_message_by_id, events, None)
+
+    def test_receive_message_by_id_max_number_of_messages_upper_than_range(self):
+        events = {
+            'QueueUrl': SQS_STANDARD_QUEUE_URL,
+            'MessageId': SUCCESSFUL_ID_1,
+            'MaxNumberOfMessages': 11
+        }
+        self.assertRaises(KeyError, receive_message_by_id, events, None)

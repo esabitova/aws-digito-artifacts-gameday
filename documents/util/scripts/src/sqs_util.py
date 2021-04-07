@@ -137,38 +137,6 @@ def delete_message_by_id(event, context):
     return response
 
 
-def receive_message_by_id(events: dict, context: dict) -> dict:
-    """
-    Receive message by its ID
-    """
-    if "QueueUrl" not in events or "MessageId" not in events:
-        raise KeyError("Requires QueueUrl and MessageId in events")
-
-    start = datetime.now()
-    sqs_client = boto3.client("sqs")
-    queue_url = events['QueueUrl']
-    message_id = events['MessageId']
-    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
-    max_number_of_messages = int(events.get('MaxNumberOfMessages', 10))
-    timeout = int(events.get('TimeOut', 100))
-
-    while True:
-        response = sqs_client.receive_message(
-            QueueUrl=queue_url,
-            MaxNumberOfMessages=max_number_of_messages,
-            WaitTimeSeconds=wait_timeout_seconds,
-            MessageAttributeNames=['All'],
-            AttributeNames=['All']
-        )
-        if 'Messages' in response and len(response['Messages']):
-            for message in response['Messages']:
-                if message['MessageId'] == message_id:
-                    return {"MessageBody": message['Body']}
-
-        if (datetime.now() - start).total_seconds() > timeout:
-            raise Exception(f'Message {message_id} not found before timeout')
-
-
 def transform_message_and_attributes(message: dict) -> dict:
     """
     General method to transform one message
@@ -441,3 +409,38 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
 
     return {"QueueUrl": dead_letter_queue_url}
+
+
+def receive_message_by_id(events: dict, context: dict) -> dict:
+    """
+    Receive message by its ID
+    """
+    if "QueueUrl" not in events or "MessageId" not in events:
+        raise KeyError("Requires QueueUrl and MessageId in events")
+
+    if "MaxNumberOfMessages" in events and not 1 <= int(events['MaxNumberOfMessages']) <= 10:
+        raise KeyError("Requires MaxNumberOfMessages to be in a range 1..10")
+
+    start = datetime.now()
+    sqs_client = boto3.client("sqs")
+    queue_url = events['QueueUrl']
+    message_id = events['MessageId']
+    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
+    max_number_of_messages = int(events.get('MaxNumberOfMessages', 10))
+    timeout = int(events.get('TimeOut', 100))
+
+    while True:
+        response = sqs_client.receive_message(
+            QueueUrl=queue_url,
+            MaxNumberOfMessages=max_number_of_messages,
+            WaitTimeSeconds=wait_timeout_seconds,
+            MessageAttributeNames=['All'],
+            AttributeNames=['All']
+        )
+        if 'Messages' in response and len(response['Messages']):
+            for message in response['Messages']:
+                if message['MessageId'] == message_id:
+                    return {"Message": message}
+
+        if (datetime.now() - start).total_seconds() > timeout:
+            raise Exception(f'Message {message_id} not found before timeout')
