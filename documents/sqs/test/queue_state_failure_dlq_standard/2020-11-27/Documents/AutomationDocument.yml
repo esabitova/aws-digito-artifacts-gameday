@@ -386,7 +386,7 @@ mainSteps:
   - name: SleepBeforeGetNumberOfMessagesToMove
     action: "aws:sleep"
     inputs:
-      Duration: "PT30S"
+      Duration: "PT60S"
 
   - name: GetNumberOfMessagesToMove
     action: aws:executeAwsApi
