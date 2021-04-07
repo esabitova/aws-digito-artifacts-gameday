@@ -797,6 +797,16 @@ class TestSqsUtil(unittest.TestCase):
         }
         self.assertRaises(KeyError, get_dead_letter_queue_url, events, None)
 
+    def test_receive_message_by_id(self):
+        events = {
+            'QueueUrl': SQS_STANDARD_QUEUE_URL,
+            'MessageId': SUCCESSFUL_ID_1
+        }
+        self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD
+        response = receive_message_by_id(events, None)
+        self.assertIsNotNone(response)
+        self.assertEqual(SUCCESSFUL_ID_1, response['Message']['MessageId'])
+
     def test_receive_message_by_id_empty_events(self):
         events = {}
         self.assertRaises(KeyError, receive_message_by_id, events, None)
