@@ -1,13 +1,18 @@
 
+import json
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-from documents.util.scripts.src.dynamo_db_util import (_parse_recovery_date_time,
+from documents.util.scripts.src.dynamo_db_util import (_describe_kinesis_destinations,
+                                                       _parse_recovery_date_time,
+                                                       get_active_kinesis_destinations,
                                                        parse_recovery_date_time,
                                                        update_table_stream,
-                                                       _update_table)
+                                                       _update_table,
+                                                       _enable_kinesis_destinations,
+                                                       add_kinesis_destinations)
 
 UPDATE_TABLE_STREAM_RESPONSE = {
     "ResponseMetadata": {
@@ -17,6 +22,30 @@ UPDATE_TABLE_STREAM_RESPONSE = {
         "StreamEnabled": True,
         "StreamViewType": 'NEW_IMAGE'
     }
+}
+DESCRIBE_KINESIS_DESTINATIONS_RESPONSE = {
+    "ResponseMetadata": {
+        "HTTPStatusCode": 200
+    },
+    "KinesisDataStreamDestinations": [{
+        "StreamArn": "TestStreamArn1",
+        "DestinationStatus": 'ENABLING',
+        "DestinationStatusDescription": 'Description'
+    },
+        {
+        "StreamArn": "TestStreamArn2",
+        "DestinationStatus": 'ENABLE_FAILED',
+        "DestinationStatusDescription": 'Description'
+    }]
+}
+
+ENABLE_KINESIS_DESTINATIONS_RESPONSE = {
+    "ResponseMetadata": {
+        "HTTPStatusCode": 200
+    },
+    "StreamArn": "TestStreamArn1",
+    "DestinationStatus": 'ENABLING',
+    "DestinationStatusDescription": 'Description'
 }
 
 
@@ -31,6 +60,14 @@ class TestS3Util(unittest.TestCase):
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
+
+        self.dynamodb_client_mock\
+            .describe_kinesis_streaming_destination\
+            .return_value = DESCRIBE_KINESIS_DESTINATIONS_RESPONSE
+
+        self.dynamodb_client_mock\
+            .enable_kinesis_streaming_destination\
+            .return_value = ENABLE_KINESIS_DESTINATIONS_RESPONSE
 
     def tearDown(self):
         self.patcher.stop()
@@ -122,3 +159,57 @@ class TestS3Util(unittest.TestCase):
 
         self.assertEqual(result['StreamSpecification']['StreamEnabled'], True)
         self.assertEqual(result['StreamSpecification']['StreamViewType'], 'NEW_IMAGE')
+
+    def test__describe_kinesis_destinations(self):
+
+        result = _describe_kinesis_destinations(table_name="my_table")
+
+        self.assertEqual(result, DESCRIBE_KINESIS_DESTINATIONS_RESPONSE)
+
+    @patch('documents.util.scripts.src.dynamo_db_util._describe_kinesis_destinations',
+           return_value=DESCRIBE_KINESIS_DESTINATIONS_RESPONSE)
+    def test_get_active_kinesis_destinations(self, get_destination_mock):
+        result = get_active_kinesis_destinations(events={
+            "TableName": "my_table"
+        }, context={})
+
+        expected_output = {
+            "KinesisDestinations": json.dumps([{
+                "StreamArn": "TestStreamArn1",
+                "DestinationStatus": 'ENABLING',
+                "DestinationStatusDescription": 'Description'
+            }])
+        }
+        self.assertEqual(result, expected_output)
+        get_destination_mock.assert_called_with(table_name='my_table')
+
+    def test__enable_kinesis_destinations(self):
+
+        result = _enable_kinesis_destinations(table_name="my_table", kds_arn='arn')
+
+        self.assertEqual(result, ENABLE_KINESIS_DESTINATIONS_RESPONSE)
+
+    @patch('documents.util.scripts.src.dynamo_db_util._enable_kinesis_destinations',
+           return_value=DESCRIBE_KINESIS_DESTINATIONS_RESPONSE)
+    def test_add_kinesis_destinations(self, enable_mock):
+        active_destinations = [{
+            "StreamArn": "TestStreamArn1",
+            "DestinationStatus": 'ENABLING',
+            "DestinationStatusDescription": 'Description'
+        }]
+
+        result = add_kinesis_destinations(events={
+            "TableName": "my_table",
+            "Destinations": json.dumps(active_destinations)
+        }, context={})
+
+        expected_output = {
+            "KinesisDestinations": json.dumps([{
+                "StreamArn": "TestStreamArn1",
+                "DestinationStatus": 'ENABLING',
+                "DestinationStatusDescription": 'Description'
+            }])
+        }
+
+        self.assertEqual(result, expected_output)
+        enable_mock.assert_called_with(table_name='my_table', kds_arn='TestStreamArn1')

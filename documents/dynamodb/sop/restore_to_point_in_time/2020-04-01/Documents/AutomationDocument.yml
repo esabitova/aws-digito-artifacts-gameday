@@ -153,9 +153,10 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_table_stream
-        
+
   - name: WaitTableToBeActiveAfterSteamSet
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
@@ -167,20 +168,44 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-# End Stream settings
-# kinesis destination
+  # End Stream settings
+  # Start kinesis destinations
+  - name: GetSourceDynamoDBTableKinesisDestination
+    action: aws:executeScript
+    outputs:
+      - Name: SourceKinesisDestinations
+        Selector: $.Payload.KinesisDestinations
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_active_kinesis_destinations
+      InputPayload:
+        TableName: "{{ DynamoDBTableSourceName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
-  # - name: GetKinesisDestinationSettings
-  #   action: aws:executeAwsApi
-  #   onFailure: Abort
-  #   inputs:
-  #     Service: dynamodb
-  #     Api: DescribeKinesisStreamingDestination
-  #     TableName: "{{ DynamoDBTableSourceName }}"
-  #   outputs:
-  #     - Name: SourceStreamEnabled
-  #       Selector: "$.Table.StreamSpecification.StreamEnabled"
-  #       Type: Boolean
-  #     - Name: SourceStreamViewType
-  #       Selector: "$.Table.StreamSpecification.StreamViewType"
-  #       Type: String
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
+  - name: AddTargetDynamoDBTableKinesisDestination
+    action: aws:executeScript
+    outputs:
+      - Name: TargetKinesisDestinations
+        Selector: $.Payload.KinesisDestinations
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: add_kinesis_destinations
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        Destinations: "{{ GetSourceDynamoDBTableKinesisDestination.SourceKinesisDestinations }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util._enable_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
+
+# End kinesis destinations

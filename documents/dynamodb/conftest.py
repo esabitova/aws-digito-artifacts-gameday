@@ -1,7 +1,9 @@
 from pytest_bdd import given, parsers, then
 from resource_manager.src.util import param_utils
 from resource_manager.src.util.dynamo_db_utils import \
-    drop_and_wait_dynamo_db_table_if_exists, get_earliest_recovery_point_in_time
+    add_kinesis_destinations, \
+    drop_and_wait_dynamo_db_table_if_exists, \
+    get_earliest_recovery_point_in_time
 
 DROP_TABLE_DESCRIPTION = "Drop Dynamo DB table with the name {table_name_ref} and wait " \
     "for {wait_sec} seconds with interval {delay_sec} seconds"
@@ -35,3 +37,15 @@ def find_valid_recovery_point_in_time(ssm_test_cache,
         get_earliest_recovery_point_in_time(table_name=table_name, boto3_session=boto3_session)
 
     ssm_test_cache[field_name] = str(valid_recovery_point.strftime("%Y-%m-%dT%H:%M:%S%z"))
+
+
+@given(parsers.parse("enabled kinesis stream {kds_arn_ref} on dynamodb table {table_name_ref}"))
+def enable_kinesis_streaming_destination(ssm_test_cache,
+                                         resource_manager,
+                                         boto3_session,
+                                         table_name_ref,
+                                         kds_arn_ref):
+    cf_output = resource_manager.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    kds_arn = param_utils.parse_param_value(kds_arn_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    add_kinesis_destinations(table_name=table_name, kds_arn=kds_arn, boto3_session=boto3_session)

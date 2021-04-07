@@ -26,55 +26,64 @@ Outputs:
   DynamoDBTable:
     Description: The DynamoDB Table Name
     Value: !Ref DynamoDBTable
+  KinesisStreamArn:
+    Description: The Kinesis Data Stream
+    Value: !GetAtt KinesisDataStream.Arn
   DynamoDBTableARN:
     Description: The DynamoDB Table ARN
     Value: !GetAtt DynamoDBTable.Arn
   WriteThrottleEventsAlarmName:
     Description: Alarm
-    Value: !Ref  WriteThrottleEventsAlarm
+    Value: !Ref WriteThrottleEventsAlarm
   ReadThrottleEventsAlarmName:
     Description: Alarm
-    Value: !Ref  ReadThrottleEventsAlarm
+    Value: !Ref ReadThrottleEventsAlarm
   ThrottledRequestsAlarmName:
     Description: Alarm
-    Value: !Ref  ThrottledRequestsAlarm
+    Value: !Ref ThrottledRequestsAlarm
   ConditionalCheckFailedRequestsAlarmmName:
     Description: Alarm
-    Value: !Ref  ConditionalCheckFailedRequestsAlarm
+    Value: !Ref ConditionalCheckFailedRequestsAlarm
   UserErrorsAlarmName:
     Description: Alarm
-    Value: !Ref  UserErrorsAlarm
+    Value: !Ref UserErrorsAlarm
   SystemErrorsAlarmName:
     Description: Alarm
-    Value: !Ref  SystemErrorsAlarm
+    Value: !Ref SystemErrorsAlarm
   TransactionConflictAlarmName:
     Description: Alarm
-    Value: !Ref  TransactionConflictAlarm
+    Value: !Ref TransactionConflictAlarm
   OnlineIndexThrottleEventsAlarmName:
     Description: Alarm
-    Value: !Ref  OnlineIndexThrottleEventsAlarm
+    Value: !Ref OnlineIndexThrottleEventsAlarm
   SuccessfulRequestLatencyAlarmName:
     Description: Alarm
-    Value: !Ref  SuccessfulRequestLatencyAlarm
+    Value: !Ref SuccessfulRequestLatencyAlarm
   AccountProvisionedReadCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  AccountProvisionedReadCapacityUtilizationAlarm
+    Value: !Ref AccountProvisionedReadCapacityUtilizationAlarm
   AccountProvisionedWriteCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  AccountProvisionedWriteCapacityUtilizationAlarm
+    Value: !Ref AccountProvisionedWriteCapacityUtilizationAlarm
   MaxProvisionedTableReadCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  MaxProvisionedTableReadCapacityUtilizationAlarm
+    Value: !Ref MaxProvisionedTableReadCapacityUtilizationAlarm
   MaxProvisionedTableWriteCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  MaxProvisionedTableWriteCapacityUtilizationAlarm
+    Value: !Ref MaxProvisionedTableWriteCapacityUtilizationAlarm
   PendingReplicationCountAlarmName:
     Description: Alarm
-    Value: !Ref  PendingReplicationCountAlarm
+    Value: !Ref PendingReplicationCountAlarm
   ReplicationLatencyAlarmName:
     Description: Alarm
-    Value: !Ref  ReplicationLatencyAlarm
+    Value: !Ref ReplicationLatencyAlarm
 Resources:
+  KinesisDataStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name: DigitoKinesisDataStream
+      RetentionPeriodHours: 168
+      ShardCount: 2
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:

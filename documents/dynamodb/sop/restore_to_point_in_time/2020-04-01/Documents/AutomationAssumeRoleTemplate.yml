@@ -55,5 +55,7 @@ Resources:
               - "dynamodb:BatchWriteItem"
               - "dynamodb:UpdateTable"
               - "dynamodb:UpdateContinuousBackups"
+              - "dynamodb:DescribeKinesisStreamingDestination"
+              - "dynamodb:EnableKinesisStreamingDestination"
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

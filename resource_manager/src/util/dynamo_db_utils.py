@@ -39,8 +39,13 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session):
     return False
 
 
-def get_earliest_recovery_point_in_time(table_name: str, boto3_session: Session) \
-        -> datetime.datetime:
+def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Session):
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.enable_kinesis_streaming_destination(TableName=table_name,
+                                                          StreamArn=kds_arn)
+
+
+def get_earliest_recovery_point_in_time(table_name: str, boto3_session: Session) -> datetime.datetime:
     continuous_backups = _describe_continuous_backups(table_name=table_name, boto3_session=boto3_session)
     backups_description = continuous_backups['ContinuousBackupsDescription']
     return backups_description['PointInTimeRecoveryDescription']['EarliestRestorableDateTime']

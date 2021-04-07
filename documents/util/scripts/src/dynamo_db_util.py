@@ -1,7 +1,8 @@
 import logging
 import boto3
+import json
 from datetime import datetime
-from typing import Union
+from typing import List, Union
 
 
 logger = logging.getLogger()
@@ -17,13 +18,58 @@ def _parse_recovery_date_time(restore_date_time_str: str, format: str) -> Union[
     return None
 
 
-def _update_table(table_name: str, **kwargs):
+def _execute_boto3_dynamodb(delegate):
     dynamo_db_client = boto3.client('dynamodb')
-    description = dynamo_db_client.update_table(TableName=table_name, **kwargs)
+    description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
         logging.error(description)
-        raise ValueError('Failed to update table')
+        raise ValueError('Failed to execute request')
     return description
+
+
+def _describe_kinesis_destinations(table_name: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
+
+
+def _enable_kinesis_destinations(table_name: str, kds_arn: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
+                                                                  StreamArn=kds_arn))
+
+
+def _update_table(table_name: str, **kwargs):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
+
+
+def add_kinesis_destinations(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Destinations' not in events:
+        raise KeyError('Requires Destinations')
+    table_name = events['TableName']
+    destinations = json.loads(events['Destinations'])
+    logging.info(f'table:{table_name};kinesis destinations: {destinations}')
+    for d in destinations:
+        _enable_kinesis_destinations(table_name=table_name, kds_arn=d['StreamArn'])
+
+    return get_active_kinesis_destinations(events=events,
+                                           context=context)
+
+
+def get_active_kinesis_destinations(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    ACTIVE_STATUSES = ['ACTIVE', 'ENABLING']
+    table_name = events['TableName']
+    kinesis_destinations = _describe_kinesis_destinations(table_name=table_name)
+
+    return {
+        "KinesisDestinations":
+        json.dumps([d for d in kinesis_destinations['KinesisDataStreamDestinations']
+                   if d['DestinationStatus'] in ACTIVE_STATUSES])
+    }
 
 
 def update_table_stream(events: dict, context: dict):
