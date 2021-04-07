@@ -141,7 +141,6 @@ Resources:
   HighVolumeReadIOPSAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighVolumeReadIOPS
       AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
       ActionsEnabled: true
       Metrics:
@@ -165,7 +164,6 @@ Resources:
   HighVolumeWriteIOPSAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighVolumeWriteIOPS
       AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
       ActionsEnabled: true
       Metrics:
@@ -189,7 +187,6 @@ Resources:
   HighVolumeSizeAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighVolumeSize
       AlarmDescription: "docdb:alarm:usage-volume_bytes_used:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -207,7 +204,6 @@ Resources:
   LowMemoryDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: LowMemoryDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -225,7 +221,6 @@ Resources:
   LowMemoryDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: LowMemoryDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -243,7 +238,6 @@ Resources:
   LowStorageAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: LowStorage
       AlarmDescription: "docdb:alarm:health-storage:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -261,7 +255,6 @@ Resources:
   OverUtilizedCPUDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: CPUUtilizationDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -279,7 +272,6 @@ Resources:
   OverUtilizedCPUDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: CPUUtilizationDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -297,7 +289,6 @@ Resources:
   ConnectionSpikeDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ConnectionSpikeDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
       ActionsEnabled: true
       Metrics:
@@ -321,7 +312,6 @@ Resources:
   ConnectionSpikeDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ConnectionSpikeDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
       ActionsEnabled: true
       Metrics:
@@ -345,7 +335,6 @@ Resources:
   SwapUsedDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: SwapUsedDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -363,7 +352,6 @@ Resources:
   SwapUsedDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: SwapUsedDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -381,7 +369,6 @@ Resources:
   HighReadLatencyDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighReadLatencyDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -399,7 +386,6 @@ Resources:
   HighReadLatencyDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighReadLatencyDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -417,7 +403,6 @@ Resources:
   HighWriteLatencyDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighWriteLatencyDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -435,7 +420,6 @@ Resources:
   HighWriteLatencyDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighWriteLatencyDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -453,7 +437,6 @@ Resources:
   HighDiskQueueDepthDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighDiskQueueDepthDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -471,7 +454,6 @@ Resources:
   HighDiskQueueDepthDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighDiskQueueDepthDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
       Dimensions:
         - Name: DBInstanceIdentifier
@@ -488,7 +470,6 @@ Resources:
   LowCPUCreditBalanceDBInstancePrimaryAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: LowCPUCreditBalanceDBInstancePrimary
       AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -506,7 +487,6 @@ Resources:
   LowCPUCreditBalanceDBInstanceReplicaAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: LowCPUCreditBalanceDBInstanceReplica
       AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -524,7 +504,6 @@ Resources:
   HighReplicaLagAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighReplicaLag
       AlarmDescription: "docdb:alarm:recovery-replica_lag:2020-04-01"
       ActionsEnabled: true
       Dimensions:
@@ -542,7 +521,6 @@ Resources:
   HighReplicaLagMaximumAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: HighReplicaLagMaximum
       AlarmDescription: "docdb:alarm:recovery-cluster_replica_lag:2020-04-01"
       ActionsEnabled: true
       Dimensions:

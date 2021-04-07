@@ -143,7 +143,6 @@ Resources:
   S3Health4xxErrorsCountAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: S3Health4xxErrorsCountAlarm
       AlarmDescription: "s3:alarm:health-4xxErrors_count:2020-04-01"
       ActionsEnabled: false
       MetricName: 4xxErrors
@@ -164,7 +163,6 @@ Resources:
   S3Health5xxErrorsCountAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: S3Health5xxErrorsCountAlarm
       AlarmDescription: "s3:alarm:health-5xxErrors_count:2020-04-01"
       ActionsEnabled: false
       MetricName: 5xxErrors
@@ -183,7 +181,6 @@ Resources:
   S3TotalRequestLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: S3TotalRequestLatencyAlarm
       AlarmDescription: "s3:alarm:health-total_tequest_latency:2020-04-01"
       ActionsEnabled: false
       MetricName: TotalRequestLatency
@@ -202,7 +199,6 @@ Resources:
   S3ReplicationLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: S3ReplicationLatencyAlarm
       AlarmDescription: "s3:alarm:recovery-replication_latency:2020-04-01"
       ActionsEnabled: false
       MetricName: ReplicationLatency
