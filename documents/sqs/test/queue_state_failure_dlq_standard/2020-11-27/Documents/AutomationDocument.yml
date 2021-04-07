@@ -84,7 +84,7 @@ mainSteps:
         Type: String
       - Name: VisibilityTimeout
         Selector: $.Payload.VisibilityTimeout
-        Type: Integer
+        Type: String
     inputs:
       Runtime: python3.7
       Handler: get_output_from_ssm_step_execution
