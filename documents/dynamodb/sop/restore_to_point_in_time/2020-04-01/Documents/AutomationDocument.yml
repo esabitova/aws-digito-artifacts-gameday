@@ -1,0 +1,252 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Restore To Point In Time SOP"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  DynamoDBTableSourceName:
+    type: String
+    description: (Required) The DynamoDB Table Source Name.
+  DynamoDBTableTargetName:
+    type: String
+    description: (Required) The DynamoDB Table Target Name.
+  RecoveryPointDateTime:
+    type: String
+    description: (Optional) The recovery point in time in format YYYY-MM-DDTHH:MM:SSZ
+    default: ""
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: verifyDynamoDBTableTargetStatus
+    action: aws:waitForAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableSourceName }}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
+    nextStep: enableDynamoDBTargetTablePointInTimeRecovery
+  - name: enableDynamoDBTargetTablePointInTimeRecovery
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: UpdateContinuousBackups
+      TableName: "{{ DynamoDBTableSourceName }}"
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+  - name: ParseRecoveryPointDateTime
+    action: aws:executeScript
+    outputs:
+      - Name: RecoveryPointDateTime
+        Selector: $.Payload.RecoveryPointDateTime
+        Type: String
+      - Name: UseLatestRecoveryPoint
+        Selector: $.Payload.UseLatestRecoveryPoint
+        Type: Boolean
+    inputs:
+      Runtime: python3.6
+      Handler: parse_recovery_date_time
+      InputPayload:
+        RecoveryPointDateTime: "{{RecoveryPointDateTime}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._parse_recovery_date_time
+        SCRIPT_PLACEHOLDER::dynamo_db_util.parse_recovery_date_time
+  - name: CheckIfUseLatestRecoveryPoint
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RestoreDynamoDBTableLatestToPointInTime
+          Variable: "{{ParseRecoveryPointDateTime.UseLatestRecoveryPoint}}"
+          BooleanEquals: true
+      Default: RestoreDynamoDBTableToPointInTime
+  - name: RestoreDynamoDBTableLatestToPointInTime
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: RestoreTableToPointInTime
+      SourceTableName: "{{ DynamoDBTableSourceName }}"
+      TargetTableName: "{{ DynamoDBTableTargetName }}"
+      UseLatestRestorableTime: True # Restore the table to the latest possible time. LatestRestorableDateTime is typically 5 minutes before the current time.
+    outputs:
+      - Name: TableDescription
+        Selector: "$.TableDescription"
+        Type: StringMap
+    nextStep: WaitTableToBeActive
+  - name: RestoreDynamoDBTableToPointInTime
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: RestoreTableToPointInTime
+      SourceTableName: "{{ DynamoDBTableSourceName }}"
+      TargetTableName: "{{ DynamoDBTableTargetName }}"
+      RestoreDateTime: "{{ ParseRecoveryPointDateTime.RecoveryPointDateTime }}"
+    outputs:
+      - Name: TableDescription
+        Selector: "$.TableDescription"
+        Type: StringMap
+    nextStep: WaitTableToBeActive
+  - name: WaitTableToBeActive
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{DynamoDBTableTargetName}}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
+  # Start Stream settings
+  - name: GetSourceDynamoDBTableStream
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableSourceName }}"
+    outputs:
+      - Name: SourceStreamEnabled
+        Selector: "$.Payload.StreamSpecification.StreamEnabled"
+        Type: Boolean
+      - Name: SourceStreamViewType
+        Selector: "$.Payload.StreamSpecification.StreamViewType"
+        Type: String
+  - name: UpdateTargetDynamoDBTableStream
+    action: aws:executeScript
+    outputs:
+      - Name: RecoveryPointDateTime
+        Selector: $.Payload.StreamEnabled
+        Type: Boolean
+      - Name: UseLatestRecoveryPoint
+        Selector: $.Payload.StreamViewType
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: update_table_stream
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        StreamEnabled: "{{ GetSourceDynamoDBTableStream.SourceStreamEnabled }}"
+        StreamViewType: "{{ GetSourceDynamoDBTableStream.SourceStreamViewType }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util.update_table_stream
+
+  - name: WaitTableToBeActiveAfterSteamSet
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{DynamoDBTableTargetName}}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
+  # End Stream settings
+  # Start kinesis destinations
+  - name: GetSourceDynamoDBTableKinesisDestination
+    action: aws:executeScript
+    outputs:
+      - Name: SourceKinesisDestinations
+        Selector: $.Payload.KinesisDestinations
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_active_kinesis_destinations
+      InputPayload:
+        TableName: "{{ DynamoDBTableSourceName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
+  - name: AddTargetDynamoDBTableKinesisDestination
+    action: aws:executeScript
+    outputs:
+      - Name: TargetKinesisDestinations
+        Selector: $.Payload.KinesisDestinations
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: add_kinesis_destinations
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        Destinations: "{{ GetSourceDynamoDBTableKinesisDestination.SourceKinesisDestinations }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util._enable_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
+
+  # End kinesis destinations
+
+  # Start TTL
+
+  - name: GetSourceDynamoDBTableTimeToLive
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTimeToLive
+      TableName: "{{ DynamoDBTableSourceName }}"
+    outputs:
+      - Name: SourceTableTimeToLiveStatus
+        Selector: "$.Payload.TimeToLiveDescription.TimeToLiveStatus"
+        Type: String
+      - Name: SourceTableAttributeName
+        Selector: "$.Payload.TimeToLiveDescription.AttributeName"
+        Type: String
+  - name: UpdateTargetDynamoDBTableTimeToLive
+    action: aws:executeScript
+    outputs:
+      - Name: TargetTimeToLiveEnabled
+        Selector: $.Payload.Enabled
+        Type: Boolean
+      - Name: TargetTimeToLiveAttributeName
+        Selector: $.Payload.AttributeName
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: update_time_to_live
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        Status: "{{ GetSourceDynamoDBTableTimeToLive.SourceTableTimeToLiveStatus }}"
+        AttributeName: "{{ GetSourceDynamoDBTableTimeToLive.SourceTableAttributeName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
+        SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
+
+  # End TTL
