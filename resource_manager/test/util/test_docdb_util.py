@@ -61,6 +61,13 @@ class TestDocDBUtil(unittest.TestCase):
         self.mock_docdb_service.describe_db_instances.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
         self.assertEqual('available', result.get('DBInstanceStatus'))
 
+    def test_get_instance_status_instance_not_found(self):
+        self.mock_docdb_service.describe_db_instances.return_value = {
+            'DBInstances': []
+        }
+        self.assertRaises(Exception, docdb_utils.get_instance_status, self.session_mock, DOCDB_INSTANCE_ID)
+        self.mock_docdb_service.describe_db_instances.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
+
     def test_get_instance_az(self):
         az = 'us-east-1b'
         self.mock_docdb_service.describe_db_instances.return_value = get_docdb_instances_side_effect(az)

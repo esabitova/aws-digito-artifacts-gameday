@@ -19,11 +19,11 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for DocumentDb
 Outputs:
   DBClusterIdentifier:
-    Value: !Ref DBClusterIdentifier
+    Value: !Ref DBCluster
   DBInstancePrimaryIdentifier:
-    Value: !Ref DBInstancePrimaryIdentifier
+    Value: !Ref DBInstancePrimary
   DBInstanceReplicaIdentifier:
-    Value: !Ref DBInstanceReplicaIdentifier
+    Value: !Ref DBInstanceReplica
   ClusterEndpoint:
     Value: !GetAtt DBCluster.Endpoint
   ClusterPort:
@@ -33,30 +33,6 @@ Outputs:
   EngineVersion:
     Value: "4.0.0"
 Parameters:
-  DBClusterIdentifier:
-    Default: "docdb"
-    Description: "Cluster Identifier"
-    Type: "String"
-    MinLength: "1"
-    MaxLength: "64"
-    AllowedPattern: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
-    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
-  DBInstancePrimaryIdentifier:
-    Default: "dbinstance01"
-    Description: "Instance name"
-    Type: "String"
-    MinLength: "1"
-    MaxLength: "64"
-    AllowedPattern: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
-    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
-  DBInstanceReplicaIdentifier:
-    Default: "dbinstance02"
-    Description: "Instance name"
-    Type: "String"
-    MinLength: "1"
-    MaxLength: "64"
-    AllowedPattern: "[a-z][a-z0-9]*(-[a-z0-9]+)*"
-    ConstraintDescription: "Must begin with a letter and contain only alphanumeric characters in lowercase."
   DBInstanceClass:
     Description: "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
     Type: "String"
@@ -84,7 +60,20 @@ Resources:
     Type: "AWS::DocDB::DBCluster"
     DeletionPolicy: Delete
     Properties:
-      DBClusterIdentifier: !Ref DBClusterIdentifier
+      DBClusterIdentifier: !Join
+        - "-"
+        - - "dbcluster"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       MasterUsername: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
       MasterUserPassword: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::password}}'
       EngineVersion: 4.0.0
@@ -92,14 +81,40 @@ Resources:
     Type: "AWS::DocDB::DBInstance"
     Properties:
       DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Ref DBInstancePrimaryIdentifier
+      DBInstanceIdentifier: !Join
+        - "-"
+        - - "dbinstance01"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBCluster
   DBInstanceReplica:
     Type: "AWS::DocDB::DBInstance"
     Properties:
       DBClusterIdentifier: !Ref DBCluster
-      DBInstanceIdentifier: !Ref DBInstanceReplicaIdentifier
+      DBInstanceIdentifier: !Join
+        - "-"
+        - - "dbinstance02"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBInstancePrimary
   HighVolumeReadIOPSAnomalyDetector:
@@ -110,7 +125,7 @@ Resources:
       Stat: Maximum
       Dimensions:
         - Name: DBClusterIdentifier
-          Value: !Ref DBClusterIdentifier
+          Value: !Ref DBCluster
   HighVolumeWriteIOPSAnomalyDetector:
     Type: AWS::CloudWatch::AnomalyDetector
     Properties:
@@ -119,7 +134,7 @@ Resources:
       Stat: Maximum
       Dimensions:
         - Name: DBClusterIdentifier
-          Value: !Ref DBClusterIdentifier
+          Value: !Ref DBCluster
   ConnectionSpikeDBInstancePrimaryAnomalyDetector:
     Type: AWS::CloudWatch::AnomalyDetector
     Properties:
@@ -152,7 +167,7 @@ Resources:
               Namespace: AWS/DocDB
               Dimensions:
                 - Name: DBClusterIdentifier
-                  Value: !Ref DBClusterIdentifier
+                  Value: !Ref DBCluster
             Period: 300
             Stat: Average
           Id: m1
@@ -175,7 +190,7 @@ Resources:
               Namespace: AWS/DocDB
               Dimensions:
                 - Name: DBClusterIdentifier
-                  Value: !Ref DBClusterIdentifier
+                  Value: !Ref DBCluster
             Period: 300
             Stat: Average
           Id: m1
@@ -191,7 +206,7 @@ Resources:
       ActionsEnabled: true
       Dimensions:
         - Name: DBClusterIdentifier
-          Value: !Ref DBClusterIdentifier
+          Value: !Ref DBCluster
       MetricName: VolumeBytesUsed
       Namespace: AWS/DocDB
       Period: 300
@@ -242,7 +257,7 @@ Resources:
       ActionsEnabled: true
       Dimensions:
         - Name: DBClusterIdentifier
-          Value: !Ref DBClusterIdentifier
+          Value: !Ref DBCluster
       MetricName: FreeLocalStorage
       Namespace: AWS/DocDB
       Period: 60
@@ -525,7 +540,7 @@ Resources:
       ActionsEnabled: true
       Dimensions:
         - Name: DBClusterIdentifier
-          Value: !Ref DBClusterIdentifier
+          Value: !Ref DBCluster
       MetricName: DBClusterReplicaLagMaximum
       Namespace: AWS/DocDB
       Period: 60
