@@ -804,7 +804,7 @@ class TestSqsUtil(unittest.TestCase):
         }
         self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD
         response = receive_message_by_id(events, None)
-        self.assertIsNotNone(response)
+        self.assertIsNotNone(response['Message'])
         self.assertEqual(SUCCESSFUL_ID_1, response['Message']['MessageId'])
 
     def test_receive_message_by_id_empty_events(self):
