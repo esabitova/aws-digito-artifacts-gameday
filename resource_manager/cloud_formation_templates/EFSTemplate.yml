@@ -1,0 +1,505 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for EFS and related resources. Contains all alarms
+Parameters:
+  VPCCidr:
+    Type: String
+    Description: VPC cidr block
+    Default: 10.0.0.0/16
+  AlarmIOThreshold:
+    Type: Number
+    Description: Alarm threshold for PercentIOLimitAlarm
+    Default: 90
+  AlarmClientConnectionsThreshold:
+    Type: Number
+    Description: Alarm threshold for ClientConnectionsAlarm
+    Default: 1
+  MountPoint:
+    Description: The Linux mount point for the EFS volume
+    Type: String
+    MinLength: '1'
+    Default: '/mnt/myEFSvolume'
+  InstanceType:
+    Description: The AWS instance type
+    Type: String
+    MinLength: '1'
+    Default: 't3.micro'
+Outputs:
+  EFSID:
+    Description: EFS ID
+    Value: !GetAtt FileSystem.FileSystemId
+  JobIAMRoleArn:
+    Description: JobIAMRole ARN
+    Value: !GetAtt JobIAMRole.Arn
+  BackupVaultSourceName:
+    Description: Backup Source Vault Name
+    Value: !Ref  BackupVaultSource
+  BackupVaultDestinationName:
+    Description: Backup Dest Vault Name
+    Value: !Ref  BackupVaultDestination
+  EFSMountTargetSecurityGroupId:
+    Description: Security Group Id
+    Value: !GetAtt EFSMountTargetSecurityGroup.GroupId
+  ClientConnectionsAlarmName:
+    Description: Client Connections Alarm Name
+    Value: !Ref  ClientConnectionsAlarm
+  PercentIOLimitAlarmName:
+    Description: Percent IO Limit Alarm Name
+    Value: !Ref  PercentIOLimitAlarm
+  MountFailureAlarmName:
+    Description: Mount Failure Alarm Name
+    Value: !Ref  MountFailureAlarm
+Mappings:
+  AWSInstanceType2Arch:
+    t1.micro:
+      Arch: HVM64
+    t2.nano:
+      Arch: HVM64
+    t2.micro:
+      Arch: HVM64
+    t2.small:
+      Arch: HVM64
+    t2.medium:
+      Arch: HVM64
+    t2.large:
+      Arch: HVM64
+    t3.micro:
+      Arch: HVM64
+    m1.small:
+      Arch: HVM64
+    m1.medium:
+      Arch: HVM64
+    m1.large:
+      Arch: HVM64
+    m1.xlarge:
+      Arch: HVM64
+    m2.xlarge:
+      Arch: HVM64
+    m2.2xlarge:
+      Arch: HVM64
+    m2.4xlarge:
+      Arch: HVM64
+    m3.medium:
+      Arch: HVM64
+    m3.large:
+      Arch: HVM64
+    m3.xlarge:
+      Arch: HVM64
+    m3.2xlarge:
+      Arch: HVM64
+    m4.large:
+      Arch: HVM64
+    m4.xlarge:
+      Arch: HVM64
+    m4.2xlarge:
+      Arch: HVM64
+    m4.4xlarge:
+      Arch: HVM64
+    m4.10xlarge:
+      Arch: HVM64
+    c1.medium:
+      Arch: HVM64
+    c1.xlarge:
+      Arch: HVM64
+    c3.large:
+      Arch: HVM64
+    c3.xlarge:
+      Arch: HVM64
+    c3.2xlarge:
+      Arch: HVM64
+    c3.4xlarge:
+      Arch: HVM64
+    c3.8xlarge:
+      Arch: HVM64
+    c4.large:
+      Arch: HVM64
+    c4.xlarge:
+      Arch: HVM64
+    c4.2xlarge:
+      Arch: HVM64
+    c4.4xlarge:
+      Arch: HVM64
+    c4.8xlarge:
+      Arch: HVM64
+    g2.2xlarge:
+      Arch: HVMG2
+    g2.8xlarge:
+      Arch: HVMG2
+    r3.large:
+      Arch: HVM64
+    r3.xlarge:
+      Arch: HVM64
+    r3.2xlarge:
+      Arch: HVM64
+    r3.4xlarge:
+      Arch: HVM64
+    r3.8xlarge:
+      Arch: HVM64
+    i2.xlarge:
+      Arch: HVM64
+    i2.2xlarge:
+      Arch: HVM64
+    i2.4xlarge:
+      Arch: HVM64
+    i2.8xlarge:
+      Arch: HVM64
+    d2.xlarge:
+      Arch: HVM64
+    d2.2xlarge:
+      Arch: HVM64
+    d2.4xlarge:
+      Arch: HVM64
+    d2.8xlarge:
+      Arch: HVM64
+    hi1.4xlarge:
+      Arch: HVM64
+    hs1.8xlarge:
+      Arch: HVM64
+    cr1.8xlarge:
+      Arch: HVM64
+    cc2.8xlarge:
+      Arch: HVM64
+  AWSRegionArch2AMI:
+    us-east-1:
+      HVM64: ami-0ff8a91507f77f867
+      HVMG2: ami-0a584ac55a7631c0c
+    us-west-2:
+      HVM64: ami-a0cfeed8
+      HVMG2: ami-0e09505bc235aa82d
+    us-west-1:
+      HVM64: ami-0bdb828fd58c52235
+      HVMG2: ami-066ee5fd4a9ef77f1
+    eu-west-1:
+      HVM64: ami-047bb4163c506cd98
+      HVMG2: ami-0a7c483d527806435
+    eu-west-2:
+      HVM64: ami-f976839e
+      HVMG2: NOT_SUPPORTED
+    eu-west-3:
+      HVM64: ami-00dd995cb6f0a5219
+      HVMG2: NOT_SUPPORTED
+    eu-central-1:
+      HVM64: ami-0233214e13e500f77
+      HVMG2: ami-06223d46a6d0661c7
+    eu-south-1:
+      HVM64: ami-081e7f992eee19465
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-1:
+      HVM64: ami-06cd52961ce9f0d85
+      HVMG2: ami-053cdd503598e4a9d
+    ap-northeast-2:
+      HVM64: ami-0a10b2721688ce9d2
+      HVMG2: NOT_SUPPORTED
+    ap-northeast-3:
+      HVM64: ami-0d98120a9fb693f07
+      HVMG2: NOT_SUPPORTED
+    ap-southeast-1:
+      HVM64: ami-08569b978cc4dfa10
+      HVMG2: ami-0be9df32ae9f92309
+    ap-southeast-2:
+      HVM64: ami-09b42976632b27e9b
+      HVMG2: ami-0a9ce9fecc3d1daf8
+    ap-south-1:
+      HVM64: ami-0912f71e06545ad88
+      HVMG2: ami-097b15e89dbdcfcf4
+    us-east-2:
+      HVM64: ami-0b59bfac6be064b78
+      HVMG2: NOT_SUPPORTED
+    ca-central-1:
+      HVM64: ami-0b18956f
+      HVMG2: NOT_SUPPORTED
+    sa-east-1:
+      HVM64: ami-07b14488da8ea02a0
+      HVMG2: NOT_SUPPORTED
+    cn-north-1:
+      HVM64: ami-0a4eaf6c4454eda75
+      HVMG2: NOT_SUPPORTED
+    cn-northwest-1:
+      HVM64: ami-6b6a7d09
+      HVMG2: NOT_SUPPORTED
+Resources:
+  EFSMountTargetVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCidr
+      Tags:
+        - Key: Name
+          Value: EFSMountTargetVPC
+  EFSMountTargetSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EFSMountTargetVPC
+      CidrBlock: !Select
+        - 0
+        - !Cidr
+          - !Ref VPCCidr
+          - 6
+          - 5
+      Tags:
+        - Key: Name
+          Value: EFSMountTargetSubnet
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow all outbound traffic including the mount target Security group on the NFS port.
+      VpcId: !Ref EFSMountTargetVPC
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: InstanceSecurityGroup
+  CloudWatchPutMetricsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+  CloudWatchPutMetricsRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: CloudWatch_PutMetricData
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: CloudWatchPutMetricData
+            Effect: Allow
+            Action:
+              - cloudwatch:PutMetricData
+            Resource:
+              - "*"
+      Roles:
+        - Ref: CloudWatchPutMetricsRole
+  CloudWatchPutMetricsInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+        - Ref: CloudWatchPutMetricsRole
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [AWSRegionArch2AMI, !Ref 'AWS::Region', !FindInMap [AWSInstanceType2Arch, !Ref InstanceType, Arch]]
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile:
+        Ref: CloudWatchPutMetricsInstanceProfile
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet:
+            - Ref: "InstanceSecurityGroup"
+          SubnetId:
+            Ref: "EFSMountTargetSubnet"
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          sudo wget  https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
+          /usr/bin/python3.7 /tmp/get-pip.py
+          /usr/local/bin/pip3 install botocore
+          /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource Ec2Instance --region  ${AWS::Region} --configsets default
+          /opt/aws/bin/cfn-signal -e 0 --stack ${AWS::StackId} --resource Ec2Instance --region ${AWS::Region}
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          default:
+            - setup
+            - mount
+        setup:
+          packages:
+            yum:
+              nfs-utils: []
+              amazon-efs-utils: []
+          commands:
+            01_createdir:
+              command: !Sub "mkdir -p ${MountPoint}"
+            02_enable_cludwatch:
+              command: |
+                perl -0777 -i -pe 's/\[cloudwatch-log\]\n# enabled = true/\[cloudwatch-log\]\nenabled = true/igs' /etc/amazon/efs/efs-utils.conf
+        mount:
+          commands:
+            01_mount:
+              command: !Sub
+                - 'mount -t efs ${FileSystemId}:/ ${MountPoint}'
+                - {MountPoint: !Ref MountPoint, FileSystemId: !Ref FileSystem, MountTargetIp: !GetAtt EFSMountTarget.IpAddress}
+            02_permissions:
+              command: !Sub "chown ec2-user:ec2-user ${MountPoint}"
+  EFSMountTargetSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound access for the TCP protocol on the NFS port from all EC2 instances on which you want to mount the file system.
+      VpcId: !Ref EFSMountTargetVPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref InstanceSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: EFSMountTargetSecurityGroup
+  FileSystem:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      PerformanceMode: generalPurpose
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Ref AWS::StackName
+  EFSMountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SubnetId: !Ref EFSMountTargetSubnet
+      SecurityGroups:
+        - !Ref EFSMountTargetSecurityGroup
+  JobIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - backup.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores
+  PercentIOLimitAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription: "efs:alarm:percent_io_limit:2020-04-01"
+      ActionsEnabled: false
+      MetricName: PercentIOLimit
+      Namespace: AWS/EFS
+      Period: 60
+      Statistic: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      Threshold: !Ref AlarmIOThreshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref FileSystem
+      TreatMissingData: missing
+  EFSLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/efs/utils"
+  MountFailureMetric:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      FilterPattern: "Mount failed"
+      LogGroupName: !Ref EFSLogGroup
+      MetricTransformations:
+        -
+          MetricValue: "1"
+          DefaultValue: "0"
+          MetricNamespace: "EFSMounts"
+          MetricName: !Sub
+            - 'MountFailures-${FileSystemId}-${EC2ID}'
+            - {EC2ID: !Ref Ec2Instance, FileSystemId: !Ref FileSystem, MountTargetIp: !GetAtt EFSMountTarget.IpAddress}
+  MountFailureAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
+      ActionsEnabled: false
+      MetricName: !Sub
+        - 'MountFailures-${FileSystemId}-${EC2ID}'
+        - {EC2ID: !Ref Ec2Instance, FileSystemId: !Ref FileSystem, MountTargetIp: !GetAtt EFSMountTarget.IpAddress}
+      Namespace: EFSMounts
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      Unit: None
+  ClientConnectionsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription: "efs:alarm:client_connections:2020-04-01"
+      ActionsEnabled: false
+      MetricName: ClientConnections
+      Namespace: AWS/EFS
+      Period: 60
+      Statistic: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ComparisonOperator: LessThanThreshold
+      Threshold: !Ref AlarmClientConnectionsThreshold
+      Dimensions:
+        - Name: FileSystemId
+          Value: !Ref FileSystem
+      TreatMissingData: missing
+  BackupVaultSource:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Join
+        - "-"
+        - - "backup-vault-source"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+  BackupVaultDestination:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Join
+        - "-"
+        - - "backup-vault-destination"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
