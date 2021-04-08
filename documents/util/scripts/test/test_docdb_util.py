@@ -1,6 +1,7 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, call
+from botocore.paginate import PageIterator
 
 import pytest
 
@@ -63,18 +64,52 @@ def get_create_db_instance_side_effect(az):
     return result
 
 
-def get_describe_snapshots_side_effect(number_of_snapshots):
+def get_describe_snapshots_side_effect_with_pages(pages, number_of_snapshots):
     result = []
     snapshot_id = 0
-    for i in range(0, number_of_snapshots):
-        snapshot_id += 1
-        snapshot = {
-            'DBClusterSnapshotIdentifier': 'Snapshot' + str(snapshot_id),
-            'Engine': DOCDB_ENGINE,
-            'DBClusterIdentifier': DOCDB_CLUSTER_ID
-        }
-        result.append(snapshot)
+    for i in range(0, pages):
+        page_result = {'DBClusterSnapshots': []}
+        for j in range(0, number_of_snapshots):
+            snapshot_id += 1
+            snapshot = {
+                'DBClusterSnapshotIdentifier': 'Snapshot' + str(snapshot_id),
+                'Engine': DOCDB_ENGINE,
+                'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+                'SnapshotCreateTime': datetime(2000, 1, 1) + timedelta(days=snapshot_id)
+            }
+            page_result['DBClusterSnapshots'].append(snapshot)
+        result.append(page_result)
     return result
+
+
+def get_paginate_side_effect(number_of_pages, number_of_snapshots):
+    class PageIteratorMock(PageIterator):
+        def __init__(self):
+            super(PageIteratorMock, self).__init__(
+                self,
+                input_token='input_token',
+                output_token='output_token',
+                more_results='more_results',
+                result_keys='result_keys',
+                non_aggregate_keys='non_aggregate_keys',
+                limit_key='limit_key',
+                max_items='max_items',
+                starting_token='starting_token',
+                page_size='page_size',
+                op_kwargs='op_kwargs'
+            )
+
+        def __iter__(self):
+            snapshots = get_describe_snapshots_side_effect_with_pages(number_of_pages, number_of_snapshots)
+            for snapshot in snapshots:
+                yield snapshot
+
+    class PaginateMock(MagicMock):
+        def paginate(self, DBClusterIdentifier):
+            paginator = PageIteratorMock()
+            return paginator
+
+    return PaginateMock
 
 
 def get_docdb_instances_side_effect(az):
@@ -650,26 +685,32 @@ class TestDocDBUtil(unittest.TestCase):
         self.assertRaises(Exception, rename_restored_db_instances, {}, None)
 
     # Test get_latest_snapshot_id
-    def test_get_latest_snapshot_id_three_snapshots(self):
+    def test_get_latest_snapshot_id_one_page_three_snapshots(self):
         events = {
             'DBClusterIdentifier': DOCDB_CLUSTER_ID
         }
+        number_of_pages = 1
         number_of_snapshots = 3
-
-        class PageIteratorMock():
-            def search(self, **kwargs):
-                return get_describe_snapshots_side_effect(number_of_snapshots)
-
-        class PaginatorMock(MagicMock):
-            def paginate(self, DBClusterIdentifier):
-                return PageIteratorMock
-
-        def get_paginate_side_effect():
-            return PaginatorMock
-
-        latest_snapshot_id = 'Snapshot' + str(number_of_snapshots)
+        latest_snapshot_id = 'Snapshot' + str(number_of_pages * number_of_snapshots)
         self.mock_docdb.get_paginator.side_effect = \
-            get_paginate_side_effect()
+            get_paginate_side_effect(number_of_pages, number_of_snapshots)
+        response = get_latest_snapshot_id(events, None)
+        self.assertEqual({
+            'LatestSnapshotIdentifier': latest_snapshot_id,
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'LatestClusterIdentifier': DOCDB_CLUSTER_ID
+        }, response)
+        self.mock_docdb.get_paginator.assert_called_once_with('describe_db_cluster_snapshots')
+
+    def test_get_latest_snapshot_id_two_pages(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        number_of_pages = 2
+        number_of_snapshots = 4
+        latest_snapshot_id = 'Snapshot' + str(number_of_pages * number_of_snapshots)
+        self.mock_docdb.get_paginator.side_effect = \
+            get_paginate_side_effect(number_of_pages, number_of_snapshots)
         response = get_latest_snapshot_id(events, None)
         self.assertEqual({
             'LatestSnapshotIdentifier': latest_snapshot_id,
@@ -682,21 +723,11 @@ class TestDocDBUtil(unittest.TestCase):
         events = {
             'DBClusterIdentifier': DOCDB_CLUSTER_ID
         }
+        number_of_pages = 0
         number_of_snapshots = 0
 
-        class PageIteratorMock():
-            def search(self, **kwargs):
-                return get_describe_snapshots_side_effect(number_of_snapshots)
-
-        class PaginatorMock(MagicMock):
-            def paginate(self, DBClusterIdentifier):
-                return PageIteratorMock
-
-        def get_paginate_side_effect():
-            return PaginatorMock
-
         self.mock_docdb.get_paginator.side_effect = \
-            get_paginate_side_effect()
+            get_paginate_side_effect(number_of_pages, number_of_snapshots)
         self.assertRaises(Exception, get_latest_snapshot_id, events, None)
         self.mock_docdb.get_paginator.assert_called_once_with('describe_db_cluster_snapshots')
 
