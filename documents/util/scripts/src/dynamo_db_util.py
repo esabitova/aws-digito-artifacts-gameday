@@ -38,9 +38,40 @@ def _enable_kinesis_destinations(table_name: str, kds_arn: str):
                                                                   StreamArn=kds_arn))
 
 
+def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.update_time_to_live(TableName=table_name,
+                                                 TimeToLiveSpecification={
+                                                     "Enabled": is_enabled,
+                                                     "AttributeName": attribute_name
+                                                 }))
+
+
 def _update_table(table_name: str, **kwargs):
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
+
+
+def update_time_to_live(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Status' not in events:
+        raise KeyError('Requires Status')
+    is_enabled = events['AttributeName'] == 'ENABLED'
+    if not is_enabled:
+        return{
+            "Enabled": False,
+        }
+
+    if is_enabled and 'AttributeName' not in events:
+        raise KeyError('Requires AttributeName when status is ENABLED')
+
+    table_name = events['TableName']
+    attribute_name = events.get('AttributeName', '')
+    logging.info(f'table:{table_name};kinesis is_enabled: {is_enabled};')
+    result = _update_time_to_live(table_name=table_name, is_enabled=is_enabled, attribute_name=attribute_name)
+
+    return {**result}
 
 
 def add_kinesis_destinations(events: dict, context: dict) -> List:

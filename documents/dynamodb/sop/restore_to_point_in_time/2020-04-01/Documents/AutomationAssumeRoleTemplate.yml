@@ -57,5 +57,7 @@ Resources:
               - "dynamodb:UpdateContinuousBackups"
               - "dynamodb:DescribeKinesisStreamingDestination"
               - "dynamodb:EnableKinesisStreamingDestination"
+              - "dynamodb:DescribeTimeToLive"
+              - "dynamodb:UpdateTimeToLive"
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

@@ -13,8 +13,14 @@ def test_restore_to_latest_point_in_time():
 
 
 @scenario('../features/restore_to_latest_point_in_time.feature',
+          'Restores table to the latest available point with TTL enabled')
+def test_restore_to_latest_point_in_time_kinesis_enabled():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/restore_to_latest_point_in_time.feature',
           'Restores table to the latest available point with enabled kinesis streaming destination')
-def test_restore_to_specific_point_in_time_kinesis_enabled():
+def test_restore_to_latest_point_in_time_ttl_enabled():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 

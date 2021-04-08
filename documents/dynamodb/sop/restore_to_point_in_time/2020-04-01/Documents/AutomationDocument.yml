@@ -208,4 +208,45 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
 
-# End kinesis destinations
+  # End kinesis destinations
+
+  # Start TTL
+
+  - name: GetSourceDynamoDBTableTimeToLive
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTimeToLive
+      TableName: "{{ DynamoDBTableSourceName }}"
+    outputs:
+      - Name: SourceTableTimeToLiveStatus
+        Selector: "$.Payload.TimeToLiveDescription.TimeToLiveStatus"
+        Type: String
+      - Name: SourceTableAttributeName
+        Selector: "$.Payload.TimeToLiveDescription.AttributeName"
+        Type: String
+  - name: UpdateTargetDynamoDBTableTimeToLive
+    action: aws:executeScript
+    outputs:
+      - Name: TargetTimeToLiveEnabled
+        Selector: $.Payload.Enabled
+        Type: Boolean
+      - Name: TargetTimeToLiveAttributeName
+        Selector: $.Payload.AttributeName
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: update_time_to_live
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        Status: "{{ GetSourceDynamoDBTableTimeToLive.SourceTableTimeToLiveStatus }}"
+        AttributeName: "{{ GetSourceDynamoDBTableTimeToLive.SourceTableAttributeName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
+        SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
+
+  # End TTL

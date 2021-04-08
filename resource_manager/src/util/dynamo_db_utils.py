@@ -39,6 +39,15 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session):
     return False
 
 
+def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, boto3_session: Session):
+    dynamo_db_client = boto3_session.client('dynamodb')
+    return dynamo_db_client.update_time_to_live(TableName=table_name,
+                                                TimeToLiveSpecification={
+                                                    "Enabled": is_enabled,
+                                                    "AttributeName": attribute_name
+                                                })
+
+
 def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Session):
     dynamo_db_client = boto3_session.client('dynamodb')
     dynamo_db_client.enable_kinesis_streaming_destination(TableName=table_name,
