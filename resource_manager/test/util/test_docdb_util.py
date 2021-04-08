@@ -17,7 +17,8 @@ class TestDocDBUtil(unittest.TestCase):
         self.client_side_effect_map = {
             'docdb': self.mock_docdb_service
         }
-        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name, config=None:\
+            self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
         pass

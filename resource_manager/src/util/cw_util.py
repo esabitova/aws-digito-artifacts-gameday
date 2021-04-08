@@ -1,8 +1,8 @@
 import boto3
 import logging
 import time
-
 from resource_manager.src import constants
+from .boto3_client_factory import client
 
 
 def get_ec2_metric_max_datapoint(session: boto3.Session, start_time_utc, end_time_utc, metric_namespace: str,
@@ -23,7 +23,7 @@ def get_ec2_metric_max_datapoint(session: boto3.Session, start_time_utc, end_tim
     for key, value in metric_dimensions.items():
         dimensions.append({"Name": key, "Value": value})
 
-    cw = session.client('cloudwatch')
+    cw = client('cloudwatch', session)
     response = cw.get_metric_statistics(
         Namespace=metric_namespace,
         MetricName=metric_name,
@@ -52,7 +52,7 @@ def get_metric_alarm_state(session: boto3.Session, alarm_name: str):
     :param alarm_name: The metric alarm name
     :return: The metric alarm state
     """
-    cw = session.client('cloudwatch')
+    cw = client('cloudwatch', session)
     logging.info(f"Fetching status for alarm {alarm_name}")
     response = cw.describe_alarms(AlarmNames=[alarm_name])
     if not response or 'MetricAlarms' not in response or len(response['MetricAlarms']) == 0:

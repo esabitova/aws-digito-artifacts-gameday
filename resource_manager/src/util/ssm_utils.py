@@ -1,5 +1,6 @@
 from boto3 import Session
 from datetime import datetime
+from .boto3_client_factory import client, resource
 
 
 def get_ssm_step_interval(session: Session, execution_id, step_name):
@@ -10,7 +11,7 @@ def get_ssm_step_interval(session: Session, execution_id, step_name):
     :param execution_id The SSM automation execution id
     :param step_name The SSM automation step name
     """
-    ssm = session.client('ssm')
+    ssm = client('ssm', session)
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=execution_id)
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == step_name:

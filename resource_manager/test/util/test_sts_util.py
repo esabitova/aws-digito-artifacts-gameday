@@ -20,7 +20,8 @@ class TestStsUtil(unittest.TestCase):
         self.side_effect_map = {
             'sts': self.sts_client_mock
         }
-        self.base_session_mock.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.base_session_mock.client.side_effect = lambda service_name, config=None:\
+            self.side_effect_map.get(service_name)
         self.sts_client_mock.assume_role.return_value = test_data_provider.ASSUME_ROLE_RESPONSE
 
     def test_assume_role_session(self):
