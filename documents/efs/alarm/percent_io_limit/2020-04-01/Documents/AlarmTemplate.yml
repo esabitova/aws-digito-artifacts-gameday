@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
+Resources:
+  PercentIOLimitAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: ${AlarmName}
+      AlarmDescription: :
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O is over ', ${Threshold}, '%' ] ]
+      ActionsEnabled: false
+      AlarmActions:
+        - Ref: SNSTopicARN
+      Metrics:
+        - Expression:
+          Fn::Join: [ '',["ANOMALY_DETECTION_BAND(m1,",${Threshold}, ")"]]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: PercentIOLimit
+              Namespace: AWS/EFS
+            Period: 60
+            Stat: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
