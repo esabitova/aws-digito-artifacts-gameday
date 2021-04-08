@@ -1,7 +1,7 @@
 from boto3 import Session
 from botocore.config import Config
 
-config = Config(retries={'max_attempts': 15, 'mode': 'standard'})
+config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 clients = {}
 resources = {}
 
