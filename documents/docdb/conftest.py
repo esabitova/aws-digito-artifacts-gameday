@@ -26,7 +26,8 @@ cache_cluster_params_expression = 'cache cluster params in object "{cache_proper
 assert_azs_expression = 'assert instance AZ value "{actual_property}" at "{step_key_for_actual}" is one of ' \
                         'cluster AZs' \
                         '\n{input_parameters}'
-remove_instance_expression = 'delete created instance and wait for "{time_to_wait}" seconds\n{input_parameters}'
+remove_instance_expression = 'delete created instance and wait for instance deletion for "{time_to_wait}" seconds' \
+                             '\n{input_parameters}'
 cache_replica_id_expression = 'cache replica instance identifier as "{cache_property}" at step "{step_key}"' \
                               '\n{input_parameters}'
 assert_primary_instance_expression = 'assert if the cluster member is the primary instance\n{input_parameters}'

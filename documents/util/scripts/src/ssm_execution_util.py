@@ -54,6 +54,19 @@ def get_inputs_from_ssm_step_execution(events, context):
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
 
 
+def get_inputs_from_input_payload_ssm_step_execution(events, context):
+
+    if 'ExecutionId' not in events or 'StepName' not in events or 'InputPayloadField' not in events:
+        raise KeyError('Requires ExecutionId, StepName and InputPayloadField in events')
+    events['ResponseField'] = 'InputPayload'
+    payload = get_inputs_from_ssm_step_execution(events=events,
+                                                 context=context)
+    field = events['InputPayloadField']
+    return {
+        field: payload['InputPayload'][field]
+    }
+
+
 def get_step_durations(events, context):
     ssm = boto3.client('ssm')
 

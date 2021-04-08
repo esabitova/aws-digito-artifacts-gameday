@@ -1,6 +1,6 @@
 from boto3 import Session
 from datetime import datetime
-from .boto3_client_factory import client, resource
+from .boto3_client_factory import client
 
 
 def get_ssm_step_interval(session: Session, execution_id, step_name):

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import resource_manager.src.util.sqs_utils as sqs_utils
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 SQS_QUEUE_URL = "https://this.is.some.url"
 SQS_FIFO_QUEUE_URL = "https://this.is.some.url.fifo"
@@ -41,7 +42,9 @@ class TestSQSUtil(unittest.TestCase):
             self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_send_message_to_queue(self):
         sqs_utils.send_message_to_standard_queue(self.session_mock, SQS_QUEUE_URL, SQS_MESSAGE_BODY)

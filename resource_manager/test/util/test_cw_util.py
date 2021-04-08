@@ -1,17 +1,22 @@
+from resource_manager.src.util.enums.alarm_state import AlarmState
 import unittest
 import pytest
 from unittest.mock import MagicMock, call
 import resource_manager.src.util.cw_util as cw_utils
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 
 CW_ALARM_NAME = 'alarm_name'
-CW_OK_STATE = 'OK'
-CW_ALARM_STATE = 'ALARM'
+CW_OK_STATE = AlarmState.OK.name
+CW_ALARM_STATE = AlarmState.ALARM.name
 
 
 def describe_alarms_side_effect(state):
     return {
-        'MetricAlarms': [{'StateValue': state}]
+        'MetricAlarms': [{'StateValue': state}],
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200
+        }
     }
 
 
@@ -29,13 +34,15 @@ class TestCWUtil(unittest.TestCase):
             self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_get_metric_alarm_state(self):
         self.mock_cw_service.describe_alarms.return_value = describe_alarms_side_effect(CW_OK_STATE)
         response = cw_utils.get_metric_alarm_state(self.session_mock, CW_ALARM_NAME)
         self.mock_cw_service.describe_alarms.assert_called_once_with(AlarmNames=[CW_ALARM_NAME])
-        self.assertEqual(CW_OK_STATE, response)
+        self.assertEqual(AlarmState.OK, response)
 
     def test_get_metric_alarm_state_missing_alarm(self):
         self.mock_cw_service.describe_alarms.return_value = {'MetricAlarms': []}

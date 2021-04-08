@@ -1,11 +1,12 @@
 import unittest
 import pytest
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, call
 from resource_manager.src.util.s3_utils import put_object, get_object, __list_objects as list_objects, \
     get_number_of_files, get_versions, clean_bucket
 from documents.util.scripts.test.test_s3_util import list_objects_v2_paginated_side_effect, S3_BUCKET, \
     S3_EMPTY_BUCKET, list_object_versions_paginated_side_effect, S3_OBJECT_WITH_VERSIONS, S3_OBJECT_KEY_NO_VERSIONS, \
     S3_FILE_VERSION_ID
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 S3_OBJECT_KEY = 's3-object-key'
 S3_OBJECT_BODY = 'some content'
@@ -38,15 +39,19 @@ class TestS3Util(unittest.TestCase):
         self.mock_s3_service.get_paginator.side_effect = lambda action_name: side_effect_map.get(action_name)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_put_object(self):
         put_object(self.session_mock, S3_BUCKET, S3_OBJECT_KEY, S3_OBJECT_BODY)
-        self.mock_s3_service.put_object.assert_called_once_with(Bucket=S3_BUCKET, Key=S3_OBJECT_KEY, Body=S3_OBJECT_BODY)
+        self.mock_s3_service.put_object.assert_called_once_with(Bucket=S3_BUCKET,
+                                                                Key=S3_OBJECT_KEY, Body=S3_OBJECT_BODY)
 
     def test_get_object(self):
         get_object(self.session_mock, S3_BUCKET, S3_OBJECT_KEY, S3_VERSION_ID)
-        self.mock_s3_service.get_object.assert_called_once_with(Bucket=S3_BUCKET, Key=S3_OBJECT_KEY, VersionId=S3_VERSION_ID)
+        self.mock_s3_service.get_object.assert_called_once_with(Bucket=S3_BUCKET,
+                                                                Key=S3_OBJECT_KEY, VersionId=S3_VERSION_ID)
 
     def test__list_objects(self):
         list_objects(self.session_mock, S3_BUCKET)

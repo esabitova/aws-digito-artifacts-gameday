@@ -1,0 +1,239 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Simulates the internet unavailable from private subnet"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  NatGatewayId:
+    type: String
+    description: (Required) The NAT Gateway ID
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  BytesOutToSourceAlarm:
+    type: String
+    description: (Required)  Alarm which should be green after test.
+  PrivateSubnetId:
+    type: String
+    description: (Optional) The Private Subnet ID.
+    default: ""
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`)
+    default: "false"
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ""
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionInputsNatGw
+          Variable: "{{IsRollback}}"
+          StringEquals: "true"
+      Default: Backup
+
+  - name: GetPreviousExecutionInputsNatGw
+    action: aws:executeScript
+    outputs:
+      - Name: NatGatewayId
+        Selector: $.Payload.NatGatewayId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_input_payload_ssm_step_execution
+      InputPayload:
+        ExecutionId: "{{ PreviousExecutionId }}"
+        StepName: "Backup"
+        InputPayloadField: "NatGatewayId"
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_input_payload_ssm_step_execution
+
+  - name: AssertNatGatewayId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionInputsSubnet
+          Variable: "{{ GetPreviousExecutionInputsNatGw.NatGatewayId }}"
+          StringEquals: "{{ NatGatewayId }}"
+    isEnd: true
+
+  - name: GetPreviousExecutionInputsSubnet
+    action: aws:executeScript
+    outputs:
+      - Name: PrivateSubnetId
+        Selector: $.Payload.PrivateSubnetId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_input_payload_ssm_step_execution
+      InputPayload:
+        ExecutionId: "{{ PreviousExecutionId }}"
+        StepName: "Backup"
+        InputPayloadField: "PrivateSubnetId"
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_input_payload_ssm_step_execution
+
+  - name: AssertPrivateSubnetId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionBackupOutputs
+          Variable: "{{ GetPreviousExecutionInputsSubnet.PrivateSubnetId }}"
+          StringEquals: "{{ PrivateSubnetId }}"
+    isEnd: true
+
+  - name: GetPreviousExecutionBackupOutputs
+    action: aws:executeScript
+    outputs:
+      - Name: RoutesOriginalValue
+        Selector: $.Payload.RoutesOriginalValue
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: "{{PreviousExecutionId}}"
+        StepName: "Backup"
+        ResponseField: "RoutesOriginalValue"
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: RestoredValue
+        Selector: $.Payload.Response
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: create_nat_gw_routes
+      InputPayload:
+        OriginalValue: "{{GetPreviousExecutionBackupOutputs.RoutesOriginalValue}}"
+        NatGatewayId: "{{NatGatewayId}}"
+        PrivateSubnetId: "{{PrivateSubnetId}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::route_through_appliance.imports
+
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_nat_routes_filter
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
+        SCRIPT_PLACEHOLDER::route_through_appliance._check_if_route_already_exists
+        SCRIPT_PLACEHOLDER::route_through_appliance._create_route
+        SCRIPT_PLACEHOLDER::route_through_appliance.create_nat_gw_routes
+    isEnd: true
+
+  - name: Backup
+    action: aws:executeScript
+    outputs:
+      - Name: RoutesOriginalValue
+        Selector: $.Payload.Response
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_nat_gw_routes
+      InputPayload:
+        NatGatewayId: "{{NatGatewayId}}"
+        PrivateSubnetId: "{{PrivateSubnetId}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::route_through_appliance.imports
+
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_nat_routes_filter
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
+        SCRIPT_PLACEHOLDER::route_through_appliance.get_nat_gw_routes
+
+  - name: DeleteRoute
+    action: aws:executeScript
+    onFailure: step:RollbackCurrent
+    outputs:
+      - Name: UpdatedValue
+        Selector: $.Payload.Response
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: delete_nat_gw_routes
+      InputPayload:
+        OriginalValue: "{{Backup.RoutesOriginalValue}}"
+        NatGatewayId: "{{NatGatewayId}}"
+        PrivateSubnetId: "{{PrivateSubnetId}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::route_through_appliance.imports
+
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_nat_routes_filter
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
+        SCRIPT_PLACEHOLDER::route_through_appliance._delete_route
+        SCRIPT_PLACEHOLDER::route_through_appliance.delete_nat_gw_routes
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    onFailure: step:RollbackCurrent
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{BytesOutToSourceAlarm}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["ALARM"]
+
+  - name: RollbackCurrent
+    action: aws:executeScript
+    outputs:
+      - Name: RestoredValue
+        Selector: $.Payload.Response
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: create_nat_gw_routes
+      InputPayload:
+        OriginalValue: "{{Backup.RoutesOriginalValue}}"
+        NatGatewayId: "{{NatGatewayId}}"
+        PrivateSubnetId: "{{PrivateSubnetId}}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::route_through_appliance.imports
+
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_nat_routes_filter
+        SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
+        SCRIPT_PLACEHOLDER::route_through_appliance._check_if_route_already_exists
+        SCRIPT_PLACEHOLDER::route_through_appliance._create_route
+        SCRIPT_PLACEHOLDER::route_through_appliance.create_nat_gw_routes
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{BytesOutToSourceAlarm}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+    isEnd: true

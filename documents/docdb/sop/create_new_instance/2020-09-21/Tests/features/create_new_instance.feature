@@ -34,7 +34,7 @@ Feature: SSM automation document to recover the database into a known good state
       | {{cache:DBInstanceIdentifier}} |
     Then assert "NumberOfInstances" at "before" less than "ActualNumberOfInstances" at "after"
     Then assert "ExpectedAvailabilityZone" at "before" became equal to "ActualAvailabilityZone" at "after"
-    Then delete created instance and wait for "600" seconds
+    Then delete created instance and wait for instance deletion for "600" seconds
       | DBInstanceIdentifier           | DBClusterIdentifier                              |
       | {{cache:DBInstanceIdentifier}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
 
@@ -68,6 +68,6 @@ Feature: SSM automation document to recover the database into a known good state
     Then assert instance AZ value "ActualAvailabilityZone" at "after" is one of cluster AZs
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    Then delete created instance and wait for "600" seconds
+    Then delete created instance and wait for instance deletion for "600" seconds
       | DBInstanceIdentifier           | DBClusterIdentifier                              |
       | {{cache:DBInstanceIdentifier}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |

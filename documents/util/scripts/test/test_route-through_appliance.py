@@ -1,10 +1,12 @@
+import json
 import unittest
-import pytest
 from test import test_data_provider
-from unittest.mock import call
-from unittest.mock import patch
-from unittest.mock import MagicMock
-from src import route_through_appliance
+from unittest.mock import MagicMock, call, patch
+
+import pytest
+from documents.util.scripts.src import route_through_appliance
+from documents.util.scripts.test.test_data_provider \
+    import ROUTE_TABLE_ID, NAT_GATEWAY_ID, INTERNET_DESTINATION
 
 
 @pytest.mark.unit_test
@@ -18,6 +20,7 @@ class TestSsmExecutionUtil(unittest.TestCase):
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
         self.mock_ec2.describe_route_tables.return_value = test_data_provider.get_sample_route_table_response()
+        self.mock_ec2.delete_route.return_value = test_data_provider.get_sample_delete_route_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -63,3 +66,168 @@ class TestSsmExecutionUtil(unittest.TestCase):
                           call(DestinationCidrBlock=test_data_provider.INTERNET_DESTINATION,
                                GatewayId=test_data_provider.IGW_ID, RouteTableId=test_data_provider.ROUTE_TABLE_ID)]
         self.assertEqual(expected_calls, self.mock_ec2.replace_route.call_args_list)
+
+    def test___get_nat_routes_filter_private_subnet_none(self):
+        nat_id = 'abc'
+        private_subnet_id = None
+
+        result = route_through_appliance._get_nat_routes_filter(nat_id, private_subnet_id)
+
+        self.assertTrue(len(result) == 1)
+        self.assertDictEqual(result[0], {'Name': 'route.nat-gateway-id', 'Values': [nat_id]})
+
+    def test___get_nat_routes_filter_private_subnet_not_none(self):
+        nat_id = NAT_GATEWAY_ID
+        private_subnet_id = 'subnet-id'
+
+        result = route_through_appliance._get_nat_routes_filter(nat_id, private_subnet_id)
+
+        self.assertTrue(len(result) == 2)
+        self.assertDictEqual(result[0], {'Name': 'route.nat-gateway-id', 'Values': [nat_id]})
+        self.assertDictEqual(result[1], {'Name': 'association.subnet-id', 'Values': [private_subnet_id]})
+
+    def test__get_ipv4_routes_to_nat(self):
+        self.mock_ec2.describe_route_tables.return_value = \
+            test_data_provider.get_sample_route_table_response_filtered_by_nat()
+
+        nat_id = NAT_GATEWAY_ID
+        private_subnet_id = 'subnet-id'
+
+        result = route_through_appliance._get_ipv4_routes_to_nat(self.mock_ec2,
+                                                                 nat_id,
+                                                                 private_subnet_id)
+        self.assertTrue(len(result) == 1)
+        self.assertEqual(result[0]['RouteTableId'], ROUTE_TABLE_ID)
+        self.assertTrue(len(result[0]['Routes']) == 1)
+        self.assertEqual(result[0]['Routes'][0]['DestinationCidrBlock'],
+                         route_through_appliance.INTERNET_DESTINATION)
+
+    @patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
+           return_value=[{"RouteTableId": ROUTE_TABLE_ID}])
+    def test_get_nat_gw_routes(self, mock_get_routes):
+
+        result = json.loads(route_through_appliance.get_nat_gw_routes(events={
+            'NatGatewayId': NAT_GATEWAY_ID,
+            'PrivateSubnetId': ''
+        }, context={})['Response'])
+        print(result)
+        self.assertTrue(len(result) == 1)
+        self.assertEqual(result[0]['RouteTableId'], ROUTE_TABLE_ID)
+        mock_get_routes.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                           nat_gw_id=NAT_GATEWAY_ID,
+                                           private_subnet_id='')
+
+    def test_get_nat_gw_routes_nat_not_provided(self):
+        with self.assertRaises(KeyError) as context:
+            route_through_appliance.get_nat_gw_routes(events={
+                'PrivateSubnetId': ''
+            }, context={})
+
+        self.assertTrue('Requires NatGatewayId' in context.exception.args)
+
+    def test__delete_route(self):
+        route_through_appliance._delete_route(boto3_ec2_client=self.mock_ec2,
+                                              route_table_id=ROUTE_TABLE_ID,
+                                              destination_ipv4_cidr_block=INTERNET_DESTINATION)
+
+        self.mock_ec2.delete_route.assert_called_with(RouteTableId=ROUTE_TABLE_ID,
+                                                      DestinationCidrBlock=INTERNET_DESTINATION)
+
+    @patch('documents.util.scripts.src.route_through_appliance._delete_route')
+    @patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
+           return_value=[])
+    def test_delete_nat_gw_routes(self, mock_get_routes, mock_delete_route):
+
+        result = json.loads(route_through_appliance.delete_nat_gw_routes(events={
+            'OriginalValue':
+            f"[{{\"RouteTableId\": \"{ROUTE_TABLE_ID}\", "
+            f"\"Routes\": [{{\"DestinationCidrBlock\": \"{INTERNET_DESTINATION}\"}}]}}]",
+            'NatGatewayId': NAT_GATEWAY_ID,
+        }, context={})['Response'])
+        print(result)
+        self.assertTrue(len(result) == 0)
+        mock_delete_route.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                             route_table_id=ROUTE_TABLE_ID,
+                                             destination_ipv4_cidr_block=INTERNET_DESTINATION)
+        mock_get_routes.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                           nat_gw_id=NAT_GATEWAY_ID,
+                                           private_subnet_id=None)
+
+    def test_delete_nat_gw_routes_nat_not_provided(self):
+        with self.assertRaises(KeyError) as context:
+            route_through_appliance.delete_nat_gw_routes(events={
+                'PrivateSubnetId': '',
+                'OriginalValue': '[]'
+            }, context={})
+
+        self.assertTrue('Requires NatGatewayId' in context.exception.args)
+
+    def test_delete_nat_gw_routes_original_value_not_provided(self):
+        with self.assertRaises(KeyError) as context:
+            route_through_appliance.delete_nat_gw_routes(events={
+                'NatGatewayId': NAT_GATEWAY_ID,
+            }, context={})
+
+        self.assertTrue('Requires OriginalValue' in context.exception.args)
+
+    @patch('documents.util.scripts.src.route_through_appliance._create_route')
+    @patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
+           return_value=[{"RouteTableId": ROUTE_TABLE_ID}])
+    def test_create_nat_gw_routes(self, mock_get_routes, mock_create_route):
+
+        result = json.loads(route_through_appliance.create_nat_gw_routes(events={
+            'OriginalValue':
+            f"[{{\"RouteTableId\": \"{ROUTE_TABLE_ID}\", "
+            f"\"Routes\": [{{\"DestinationCidrBlock\": \"{INTERNET_DESTINATION}\"}}]}}]",
+            'NatGatewayId': NAT_GATEWAY_ID,
+        }, context={})['Response'])
+        print(result)
+        self.assertTrue(len(result) == 1)
+        self.assertEqual(result[0]['RouteTableId'], ROUTE_TABLE_ID)
+        mock_create_route.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                             route_table_id=ROUTE_TABLE_ID,
+                                             destination_ipv4_cidr_block=INTERNET_DESTINATION,
+                                             nat_gw_id=NAT_GATEWAY_ID)
+        mock_get_routes.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                           nat_gw_id=NAT_GATEWAY_ID,
+                                           private_subnet_id=None)
+
+    def test__check_if_route_already_exists_true(self):
+        existing_routes = [
+            {
+                "RouteTableId": ROUTE_TABLE_ID,
+                "Routes": [{"DestinationCidrBlock": INTERNET_DESTINATION}]
+            }
+        ]
+        exists = route_through_appliance._check_if_route_already_exists(route_table_id=ROUTE_TABLE_ID,
+                                                                        cidr_ipv4=INTERNET_DESTINATION,
+                                                                        current_routes=existing_routes)
+        self.assertTrue(exists)
+
+    def test__check_if_route_already_exists_false(self):
+        existing_routes = [
+            {
+                "RouteTableId": ROUTE_TABLE_ID,
+            }
+        ]
+        exists = route_through_appliance._check_if_route_already_exists(route_table_id=ROUTE_TABLE_ID,
+                                                                        cidr_ipv4=INTERNET_DESTINATION,
+                                                                        current_routes=existing_routes)
+        self.assertFalse(exists)
+
+    def test_create_nat_gw_routes_nat_not_provided(self):
+        with self.assertRaises(KeyError) as context:
+            route_through_appliance.create_nat_gw_routes(events={
+                'PrivateSubnetId': '',
+                'OriginalValue': '[]'
+            }, context={})
+
+        self.assertTrue('Requires NatGatewayId' in context.exception.args)
+
+    def test_create_nat_gw_routes_original_value_not_provided(self):
+        with self.assertRaises(KeyError) as context:
+            route_through_appliance.create_nat_gw_routes(events={
+                'NatGatewayId': NAT_GATEWAY_ID,
+            }, context={})
+
+        self.assertTrue('Requires OriginalValue' in context.exception.args)

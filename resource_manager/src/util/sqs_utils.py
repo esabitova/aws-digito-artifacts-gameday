@@ -4,7 +4,8 @@ from boto3 import Session
 from .boto3_client_factory import client
 
 
-def send_message_to_standard_queue(session: Session, queue_url: str, body: str, message_attributes: dict = None) -> dict:
+def send_message_to_standard_queue(session: Session, queue_url: str, body: str,
+                                   message_attributes: dict = None) -> dict:
     """
     Use send_message aws method to send message to queue
     :param session boto3 client session

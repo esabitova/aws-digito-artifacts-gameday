@@ -23,4 +23,3 @@ def get_reader_writer(db_cluster_id: str, session: Session):
         else:
             db_reader = db_instance['DBInstanceIdentifier']
     return (db_reader, db_writer)
-
