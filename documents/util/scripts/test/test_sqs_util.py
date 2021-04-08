@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 
 from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy, get_message_receipt_handle
 from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url, update_max_receive_count
-from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages, receive_message_by_id
+from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages, receive_messages_by_events
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_STANDARD_DEST_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyDestQueue"
@@ -507,7 +507,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=self.messages_transfer_batch_size,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=0)
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_TO_STANDARD)
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -536,7 +537,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=self.messages_transfer_batch_size,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=0)
         actual_send_message_batch_args = self.sqs_client_mock.send_message_batch.call_args[1]
         self.assertEqual(SQS_STANDARD_DEST_QUEUE_URL, actual_send_message_batch_args['QueueUrl'])
         actual_send_message_batch_entries = actual_send_message_batch_args['Entries']
@@ -575,7 +577,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=self.messages_transfer_batch_size,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=0)
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_TO_STANDARD)
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -604,7 +607,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=self.messages_transfer_batch_size,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=0)
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO)
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -643,7 +647,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=number_of_messages_to_transfer,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=0)
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_TO_STANDARD[:2])
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -729,7 +734,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=messages_transfer_batch_size,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=0)
         self.sqs_client_mock.send_message_batch.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[0]]),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[1]])
@@ -797,32 +803,29 @@ class TestSqsUtil(unittest.TestCase):
         }
         self.assertRaises(KeyError, get_dead_letter_queue_url, events, None)
 
-    def test_receive_message_by_id(self):
+    def test_receive_messages_by_events(self):
         events = {
             'QueueUrl': SQS_STANDARD_QUEUE_URL,
-            'MessageId': SUCCESSFUL_ID_1
         }
         self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD
-        response = receive_message_by_id(events, None)
-        self.assertIsNotNone(response['Message'])
-        self.assertEqual(SUCCESSFUL_ID_1, response['Message']['MessageId'])
+        response = receive_messages_by_events(events, None)
+        self.assertIsNotNone(response['Messages'])
+        self.assertEqual(RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'], response['Messages'])
 
-    def test_receive_message_by_id_empty_events(self):
+    def test_receive_receive_messages_by_events_empty_events(self):
         events = {}
-        self.assertRaises(KeyError, receive_message_by_id, events, None)
+        self.assertRaises(KeyError, receive_messages_by_events, events, None)
 
-    def test_receive_message_by_id_max_number_of_messages_lower_than_range(self):
+    def test_receive_messages_by_events_max_number_of_messages_lower_than_range(self):
         events = {
             'QueueUrl': SQS_STANDARD_QUEUE_URL,
-            'MessageId': SUCCESSFUL_ID_1,
             'MaxNumberOfMessages': 0
         }
-        self.assertRaises(KeyError, receive_message_by_id, events, None)
+        self.assertRaises(KeyError, receive_messages_by_events, events, None)
 
-    def test_receive_message_by_id_max_number_of_messages_upper_than_range(self):
+    def test_receive_messages_by_events_max_number_of_messages_upper_than_range(self):
         events = {
             'QueueUrl': SQS_STANDARD_QUEUE_URL,
-            'MessageId': SUCCESSFUL_ID_1,
             'MaxNumberOfMessages': 11
         }
-        self.assertRaises(KeyError, receive_message_by_id, events, None)
+        self.assertRaises(KeyError, receive_messages_by_events, events, None)
