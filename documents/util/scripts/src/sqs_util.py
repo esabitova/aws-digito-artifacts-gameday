@@ -211,9 +211,11 @@ def send_messages(messages_to_send: List[dict], target_queue_url: str) -> dict:
     return send_message_batch_response
 
 
-def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -> Optional[List[dict]]:
+def receive_messages(source_queue_url: str, messages_transfer_batch_size: int, wait_timeout: int = 0) -> \
+        Optional[List[dict]]:
     """
     Receive messages
+    :param wait_timeout: The duration i seconds for which the call waits for a message to arrive in the queue
     :param messages_transfer_batch_size: how many messages to receive
     :param source_queue_url:  URL of the queue where from messages are received
     :return: response of receive_message method
@@ -222,9 +224,42 @@ def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -
     receive_message_response: dict = \
         sqs_client.receive_message(QueueUrl=source_queue_url,
                                    MaxNumberOfMessages=messages_transfer_batch_size,
+                                   WaitTimeSeconds=wait_timeout,
                                    MessageAttributeNames=['All'],
                                    AttributeNames=['All'])
     return receive_message_response.get('Messages')
+
+
+def receive_messages_by_events(events: dict, context: dict) -> dict:
+    """
+    Receive messages using events as an input and invoke method receive_messages
+    :param context:
+    :param events:
+        'QueueUrl': URL of the queue where from messages are received
+        'MaxNumberOfMessages': how many messages to receive
+        'WaitTimeSeconds': duration in seconds for which the call waits for a message to arrive in the queue
+        'ScriptTimeout': script timeout in seconds
+    :return: response of receive_message method
+    """
+    if "QueueUrl" not in events:
+        raise KeyError("Requires QueueUrl in events")
+
+    if "MaxNumberOfMessages" in events and not 1 <= int(events['MaxNumberOfMessages']) <= 10:
+        raise KeyError("Requires MaxNumberOfMessages to be in a range 1..10")
+
+    start = datetime.now()
+    queue_url = events['QueueUrl']
+    script_timeout = int(events.get('ScriptTimeout', 100))
+    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
+    max_number_of_messages = int(events.get('MaxNumberOfMessages', 10))
+
+    while True:
+        received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
+        if received_messages is not None and len(received_messages) != 0:
+            return {"Messages": received_messages}
+
+        if (datetime.now() - start).total_seconds() > script_timeout:
+            raise Exception('Could not read messages before timeout')
 
 
 def transfer_messages(events: dict, context: dict) -> dict:
@@ -409,38 +444,3 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
 
     return {"QueueUrl": dead_letter_queue_url}
-
-
-def receive_message_by_id(events: dict, context: dict) -> dict:
-    """
-    Receive message by its ID
-    """
-    if "QueueUrl" not in events or "MessageId" not in events:
-        raise KeyError("Requires QueueUrl and MessageId in events")
-
-    if "MaxNumberOfMessages" in events and not 1 <= int(events['MaxNumberOfMessages']) <= 10:
-        raise KeyError("Requires MaxNumberOfMessages to be in a range 1..10")
-
-    start = datetime.now()
-    sqs_client = boto3.client("sqs")
-    queue_url = events['QueueUrl']
-    message_id = events['MessageId']
-    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
-    max_number_of_messages = int(events.get('MaxNumberOfMessages', 10))
-    timeout = int(events.get('TimeOut', 100))
-
-    while True:
-        response = sqs_client.receive_message(
-            QueueUrl=queue_url,
-            MaxNumberOfMessages=max_number_of_messages,
-            WaitTimeSeconds=wait_timeout_seconds,
-            MessageAttributeNames=['All'],
-            AttributeNames=['All']
-        )
-        if 'Messages' in response and len(response['Messages']):
-            for message in response['Messages']:
-                if message['MessageId'] == message_id:
-                    return {"Message": message}
-
-        if (datetime.now() - start).total_seconds() > timeout:
-            raise Exception(f'Message {message_id} not found before timeout')
