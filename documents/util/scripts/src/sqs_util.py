@@ -259,7 +259,7 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
             return {"Messages": received_messages}
 
         if (datetime.now() - start).total_seconds() > script_timeout:
-            raise Exception('Could not read messages before timeout')
+            raise KeyError("Could not read messages before timeout")
 
 
 def transfer_messages(events: dict, context: dict) -> dict:
