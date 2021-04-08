@@ -150,7 +150,6 @@ Resources:
   ThrottlesAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Throttles"
       AlarmDescription: "lambda:alarm:health-throttles:2020-04-01"
       ActionsEnabled: false
       MetricName: "Throttles"
@@ -168,7 +167,6 @@ Resources:
   ErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Errors"
       AlarmDescription: "lambda:alarm:health-errors:2020-04-01"
       ActionsEnabled: false
       MetricName: "Errors"
@@ -186,7 +184,6 @@ Resources:
   MemorySoftLimitAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Memory Soft Limit"
       AlarmDescription: "lambda:alarm:health-memory_soft_limit:2020-04-01"
       ActionsEnabled: false
       MetricName: "Memory"
@@ -204,7 +201,6 @@ Resources:
   ConcurrentExecutionsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Concurrent executions"
       AlarmDescription: "lambda:alarm:health-concurrent_executions:2020-04-01"
       ActionsEnabled: false
       MetricName: "ConcurrentExecutions"
@@ -222,7 +218,6 @@ Resources:
   ExecutionsStartedAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "ExecutionsStarted"
       ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-execution_started:2020-04-01"
       EvaluationPeriods: 5
@@ -267,7 +262,6 @@ Resources:
   AverageMemoryGrowthAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Average Memory Growth"
       ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-memory_deviation:2020-04-01"
       EvaluationPeriods: 1
@@ -304,7 +298,6 @@ Resources:
   ExecutionTimeAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "ExecutionTime"
       ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-execution_time:2020-04-01"
       EvaluationPeriods: 5
@@ -349,7 +342,6 @@ Resources:
   DurationAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Duration"
       ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-duration:2020-04-01"
       EvaluationPeriods: 5
@@ -386,7 +378,6 @@ Resources:
   InvocationsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "Invocations"
       ActionsEnabled: false
       AlarmDescription: "lambda:alarm:health-invocations:2020-04-01"
       EvaluationPeriods: 5
@@ -423,7 +414,6 @@ Resources:
   ExecutionsFailedAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "ExecutionsFailed"
       AlarmDescription: "lambda:alarm:health-execution_failed:2020-04-01"
       ActionsEnabled: false
       MetricName: "ExecutionsTimedOut"
@@ -448,7 +438,6 @@ Resources:
   ExecutionsTimeOutAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "ExecutionsTimeOut"
       AlarmDescription: "lambda:alarm:health-executions_timeout:2020-04-01"
       ActionsEnabled: false
       MetricName: "ExecutionsTimedOut"
@@ -473,7 +462,6 @@ Resources:
   ExecutionThrottledAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "ExecutionThrottled"
       AlarmDescription: "lambda:alarm:health-execution_throttled:2020-04-01"
       ActionsEnabled: false
       MetricName: "ExecutionThrottled"
