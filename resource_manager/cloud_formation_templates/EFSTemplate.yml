@@ -1,0 +1,250 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for EFS and related resources. Contains all alarms
+Parameters:
+  FileSystemName:
+    Type: String
+    Description: The EFS Name
+    Default: 'Digito EFS'
+Outputs:
+  EFSID:
+    Description: EFS ID
+    Value: !GetAtt FileSystem.FileSystemId
+  JobIAMRoleArn:
+    Description: JobIAMRole ARN
+    Value: !GetAtt JobIAMRole.Arn
+  ClientConnectionsAlarmName:
+    Description: Alarm
+    Value: !Ref  ClientConnectionsAlarm
+  PercentIOLimitAlarmName:
+    Description: Alarm
+    Value: !Ref  PercentIOLimitAlarm
+  MountFailureAlarmName:
+    Description: Alarm
+    Value: !Ref  MountFailureAlarm
+  BackupVaultSourceName:
+    Description: Alarm
+    Value: !Ref  BackupVaultSource
+  BackupVaultDestinationName:
+    Description: Alarm
+    Value: !Ref  BackupVaultDestination
+  EFSMountTargetSecurityGroupId:
+    Description: Security Group Id
+    Value: !GetAtt EFSMountTargetSecurityGroup.GroupId
+Resources:
+  EFSMountTargerVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      Tags:
+        - Key: Name
+          Value: EFSMountTargerVPC
+  EFSMountTargerSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref EFSMountTargerVPC
+      CidrBlock: 10.0.0.0/24
+      Tags:
+        - Key: Name
+          Value: EFSMountTargerSubnet
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow all outbound traffic including the mount target Security group on the NFS port.
+      VpcId: !Ref EFSMountTargerVPC
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: InstanceSecurityGroup
+  EFSMountTargetSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound access for the TCP protocol on the NFS port from all EC2 instances on which you want to mount the file system.
+      VpcId: !Ref EFSMountTargerVPC
+      SecurityGroupIngress:
+        - IpProtocol: "tcp"
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref InstanceSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: EFSMountTargetSecurityGroup
+  FileSystem:
+    Type: 'AWS::EFS::FileSystem'
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      PerformanceMode: generalPurpose
+      Encrypted: true
+      FileSystemTags:
+        - Key: Name
+          Value: !Ref FileSystemName
+  EFSMountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SubnetId: !Ref EFSMountTargerSubnet
+      SecurityGroups:
+        - !Ref EFSMountTargetSecurityGroup
+  SNSTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      TopicName: "sns-topic-for-efs-alarms"
+  SNSTopicPolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Version: '2008-10-17'
+        Id: SNSTopicPolicy
+        Statement:
+          - Sid: SNSTopicPolicyStatement
+            Effect: Allow
+            Principal:
+              AWS: "*"
+            Action:
+              - SNS:GetTopicAttributes
+              - SNS:SetTopicAttributes
+              - SNS:AddPermission
+              - SNS:RemovePermission
+              - SNS:DeleteTopic
+              - SNS:Subscribe
+              - SNS:ListSubscriptionsByTopic
+              - SNS:Publish
+              - SNS:Receive
+            Resource: !Ref SNSTopic
+      Topics:
+        - !Ref SNSTopic
+  ClientConnectionsAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: ClientConnections
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+  PercentIOLimitAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: PercentIOLimit
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+  ClientConnectionsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: ClientConnections
+      AlarmDescription: "efs:alarm:client_connections:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Metrics:
+        - Expression: "ANOMALY_DETECTION_BAND(m1, 0.05)"
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: ClientConnections
+              Namespace: AWS/EFS
+            Period: 60
+            Stat: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
+  PercentIOLimitAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: PercentIOLimit
+      AlarmDescription: "efs:alarm:percent_io_limit:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      Metrics:
+        - Expression: "ANOMALY_DETECTION_BAND(m1, 0.05)"
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: PercentIOLimit
+              Namespace: AWS/EFS
+            Period: 60
+            Stat: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
+  MountFailureAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: MountFailure
+      AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
+      ActionsEnabled: true
+      AlarmActions:
+        - !Ref SNSTopic
+      MetricName: MountFailure
+      Namespace: AWS/EFS
+      Statistic: Maximum
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 1
+      Threshold: 60
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      Unit: Count
+  JobIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - backup.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores
+  BackupVaultSource:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: backup-vault-source
+  BackupVaultDestination:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: backup-vault-destination
