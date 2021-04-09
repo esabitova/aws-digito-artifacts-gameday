@@ -1,7 +1,7 @@
 {
-  "displayName": "Backup in Another Region",
+  "displayName": "Restore Backup in Another Region",
   "description": "Restore backup in case of software failure or if it's region failure and backup replicated to another region, restore it there",
-  "documentName": "Digito-RestoreBackup",
+  "documentName": "Digito-RestoreBackup_2020-10-26",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
