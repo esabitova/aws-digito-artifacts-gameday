@@ -1,18 +1,17 @@
 import uuid
-
-import boto3
 import botocore
-from botocore.session import Session
+from boto3 import Session
+from .boto3_client_factory import client
 
 
-def assume_role_session(role_arn: str, base_session: Session) -> Session:
+def assume_role_session(role_arn: str, session: Session) -> Session:
     """
     Assume role
     :param role_arn: ARN to other role for assuming
-    :param base_session: Base boto3 session
+    :param session: Base boto3 session
     :return: new assumed role
     """
-    sts_client = base_session.client('sts')
+    sts_client = client('sts', session)
     assume_role_response = sts_client.assume_role(RoleArn=role_arn, RoleSessionName=str(uuid.uuid4()))
     credentials = assume_role_response['Credentials']
     access_key = credentials['AccessKeyId']
@@ -23,4 +22,4 @@ def assume_role_session(role_arn: str, base_session: Session) -> Session:
     botocore_session._credentials = botocore.credentials.Credentials(access_key,
                                                                      secret_key,
                                                                      token)
-    return boto3.Session(botocore_session=botocore_session)
+    return Session(botocore_session=botocore_session)

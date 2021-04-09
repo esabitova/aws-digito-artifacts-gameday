@@ -6,7 +6,8 @@ Feature: SSM automation document to simulate internet unavalability through chan
             | CfnTemplatePath                                                                                           | ResourceType |
             | resource_manager/cloud_formation_templates/NatCfnTemplate.yml                                             | ON_DEMAND    |
             | documents/nat-gw/test/simulate_internet_unavailable/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-        And trigger lambda {{cfn-output:NatCfnTemplate>LambdaArn}} asynchronously
+        And published "Digito-SimulateInternetUnavailable_2020-09-21" SSM document
+        And trigger lambda "{{cfn-output:NatCfnTemplate>LambdaArn}}" asynchronously
         # And Wait until alarm {{cfn-output:NatCfnTemplate>BytesOutToSourceAlarm}} becomes OK within 300 seconds, check every 15 seconds
         When SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" executed
             | NatGatewayId                               | SyntheticAlarmName                                  | AutomationAssumeRole                                                                    |

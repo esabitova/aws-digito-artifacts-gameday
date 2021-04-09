@@ -10,7 +10,7 @@ from resource_manager.src.util.lambda_utils import trigger_lambda
 from resource_manager.src.util.param_utils import parse_param_value
 
 
-@given(parse('trigger lambda {lambda_arn_ref} asynchronously'))
+@given(parse('trigger lambda "{lambda_arn_ref}" asynchronously'))
 def trigger_lambda_async(resource_manager,
                          boto3_session: boto3.Session,
                          lambda_arn_ref: str):
@@ -22,5 +22,5 @@ def trigger_lambda_async(resource_manager,
     result = trigger_lambda(lambda_arn=lambda_arn,
                             payload=payload,
                             invocation_type=LambdaInvocationType.Event,
-                            boto3_session=boto3_session)
+                            session=boto3_session)
     logging.info(result)

@@ -1,0 +1,12 @@
+{
+  "displayName": "Memory utilization",
+  "description": "Alerts when memory utilization is anomalous",
+  "alarmName": "Digito_EC2MemoryUtilization_2021-04-05",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "compute:alarm:ec2-cloudwatch-mem-util:2021-04-05",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001",
+  "prerequisite": "Make sure the CloudWatch Agent is installed on the instance (see the [docs](https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Install-CloudWatch-Agent.html)).  \nMake sure to include the metric `mem_used_percent` and aggregate per instance  \n(minimial configuration) : \n```\n{\n  \"metrics\":\n  {\n    \"metrics_collected\": {\n       \"mem\": {\n\t\t \"measurement\": [\"mem_used_percent\"]\n       }\n     },\n    \"append_dimensions\": {\n      \"InstanceId\": \"${aws:InstanceId}\"\n    },\n\t\"aggregation_dimensions\": [\n            [\"InstanceId\"]\n\t]\t\n  }\n}\n```"
+}
