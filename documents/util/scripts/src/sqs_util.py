@@ -251,7 +251,7 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
     queue_url = events['QueueUrl']
     script_timeout = int(events.get('ScriptTimeout', 100))
     wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
-    max_number_of_messages = int(events.get('MaxNumberOfMessages', 10))
+    max_number_of_messages = int(events.get('MaxNumberOfMessages', 1))
 
     while True:
         received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
