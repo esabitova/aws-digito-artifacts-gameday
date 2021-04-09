@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
+Resources:
+  MountFailureAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: MountFailure
+      AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
+      ActionsEnabled: false
+      AlarmActions:
+        - Ref: SNSTopicARN
+      MetricName: MountFailure
+      Namespace: AWS/EFS
+      Statistic: Maximum
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+      Period: 60
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 1
+      Threshold: 60
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      Unit: Count

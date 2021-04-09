@@ -3,12 +3,12 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  PercentIOLimitAlarm:
+  ClientConnectionsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ${AlarmName}
-      AlarmDescription: :
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', ${Threshold} ] ]
+      AlarmName: ClientConnections
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when client connections deviation is over ', ${Threshold}] ]
       ActionsEnabled: false
       AlarmActions:
         - Ref: SNSTopicARN
@@ -19,7 +19,7 @@ Resources:
         - Id: m1
           MetricStat:
             Metric:
-              MetricName: PercentIOLimit
+              MetricName: ClientConnections
               Namespace: AWS/EFS
             Period: 60
             Stat: Average
