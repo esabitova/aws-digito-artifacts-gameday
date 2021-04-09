@@ -1,13 +1,13 @@
-from resource_manager.src.util.enums.alarm_type import AlarmType
-from resource_manager.src.util.enums.alarm_state import AlarmState
-import boto3
 import logging
 import time
-
+from resource_manager.src.util.enums.alarm_type import AlarmType
+from resource_manager.src.util.enums.alarm_state import AlarmState
+from boto3 import Session
+from .boto3_client_factory import client
 from resource_manager.src import constants
 
 
-def __get_alarms_state(session: boto3.Session, alarm_name: str, alarm_type: AlarmType) -> AlarmState:
+def __get_alarms_state(session: Session, alarm_name: str, alarm_type: AlarmType) -> AlarmState:
     """
     Returns the current state of the given alarm by calling
     https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudwatch.html#CloudWatch.Client.describe_alarms
@@ -16,7 +16,7 @@ def __get_alarms_state(session: boto3.Session, alarm_name: str, alarm_type: Alar
     :param alarm_type: The type of alarm (COMPOSITE or METRIC)
     :return: The one of the following values 'OK'|'ALARM'|'INSUFFICIENT_DATA'
     """
-    cw = session.client('cloudwatch')
+    cw = client('cloudwatch', session)
 
     alarm_type_switcher = {
         AlarmType.COMPOSITE: "CompositeAlarms",
@@ -36,7 +36,7 @@ def __get_alarms_state(session: boto3.Session, alarm_name: str, alarm_type: Alar
         raise ValueError(f'Given alarm ({alarm_name}) was not found')
 
 
-def get_ec2_metric_max_datapoint(session: boto3.Session, start_time_utc, end_time_utc, metric_namespace: str,
+def get_ec2_metric_max_datapoint(session: Session, start_time_utc, end_time_utc, metric_namespace: str,
                                  metric_name: str, metric_dimensions: {}, period: int):
     """
     Returns metric data point witch represents highest data point value for given metric name and EC2 instance id:
@@ -54,7 +54,7 @@ def get_ec2_metric_max_datapoint(session: boto3.Session, start_time_utc, end_tim
     for key, value in metric_dimensions.items():
         dimensions.append({"Name": key, "Value": value})
 
-    cw = session.client('cloudwatch')
+    cw = client('cloudwatch', session)
     response = cw.get_metric_statistics(
         Namespace=metric_namespace,
         MetricName=metric_name,
@@ -76,7 +76,7 @@ def get_ec2_metric_max_datapoint(session: boto3.Session, start_time_utc, end_tim
     return max_dp
 
 
-def wait_for_metric_alarm_state(session: boto3.Session, alarm_name: str, expected_alarm_state: str, time_to_wait: int):
+def wait_for_metric_alarm_state(session: Session, alarm_name: str, expected_alarm_state: str, time_to_wait: int):
     """
     Waits for alarm to be in expected step for time_to_wait seconds and returns
     :param session The boto3 session
@@ -99,7 +99,7 @@ def wait_for_metric_alarm_state(session: boto3.Session, alarm_name: str, expecte
     return True
 
 
-def get_metric_alarm_state(session: boto3.Session, alarm_name: str) -> AlarmState:
+def get_metric_alarm_state(session: Session, alarm_name: str) -> AlarmState:
     """
     Returns the current state of the given alarm by calling
     https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudwatch.html#CloudWatch.Client.describe_alarms

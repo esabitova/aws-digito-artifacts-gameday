@@ -1,7 +1,7 @@
 import logging
 from botocore.exceptions import ClientError
 from cfn_tools import dump_yaml
-from botocore.config import Config
+from .util.boto3_client_factory import client, resource
 
 
 class S3:
@@ -9,10 +9,9 @@ class S3:
     Class to manipulate with S3 ResourceManager created buckets/files.
     """
     def __init__(self, boto3_session):
-        config = Config(retries={'max_attempts': 15, 'mode': 'standard'})
         self.session = boto3_session
-        self.client = self.session.client('s3', config=config)
-        self.resource = self.session.resource('s3', config=config)
+        self.client = client('s3', boto3_session)
+        self.resource = resource('s3', boto3_session)
 
     def upload_file(self, file_name: str, content: dict):
         """

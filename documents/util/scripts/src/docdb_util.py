@@ -219,11 +219,15 @@ def get_latest_snapshot_id(events, context):
         latest_snapshot = None
         for snapshot in filtered_iterator:
             latest_snapshot = snapshot
-        return {
-            'LatestSnapshotIdentifier': latest_snapshot['DBClusterSnapshotIdentifier'],
-            'LatestSnapshotEngine': latest_snapshot['Engine'],
-            'LatestClusterIdentifier': latest_snapshot['DBClusterIdentifier']
-        }
+        if latest_snapshot:
+            return {
+                'LatestSnapshotIdentifier': latest_snapshot['DBClusterSnapshotIdentifier'],
+                'LatestSnapshotEngine': latest_snapshot['Engine'],
+                'LatestClusterIdentifier': latest_snapshot['DBClusterIdentifier']
+            }
+        else:
+            raise Exception(
+                f"No snapshots found for cluster {events['DBClusterIdentifier']}")
     except Exception as e:
         print(f'Error: {e}')
         raise

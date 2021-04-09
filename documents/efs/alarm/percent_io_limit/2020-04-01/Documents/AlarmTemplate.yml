@@ -8,7 +8,7 @@ Resources:
     Properties:
       AlarmName: ${AlarmName}
       AlarmDescription: :
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O is over ', ${Threshold}, '%' ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', ${Threshold} ] ]
       ActionsEnabled: false
       AlarmActions:
         - Ref: SNSTopicARN

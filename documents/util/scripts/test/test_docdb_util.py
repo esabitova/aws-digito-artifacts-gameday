@@ -1,13 +1,14 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, call
+from botocore.paginate import PageIterator
 
 import pytest
 
 from documents.util.scripts.src.docdb_util import count_cluster_instances, verify_db_instance_exist, \
     verify_cluster_instances, get_cluster_az, create_new_instance, get_recovery_point_input, \
     backup_cluster_instances_type, restore_to_point_in_time, restore_db_cluster_instances, rename_replaced_db_cluster, \
-    rename_replaced_db_instances, rename_restored_db_instances
+    rename_replaced_db_instances, rename_restored_db_instances, get_latest_snapshot_id, restore_db_cluster
 
 DOCDB_AZ = 'docdb-az'
 DOCDB_CLUSTER_ID = 'docdb-cluster-id'
@@ -61,6 +62,54 @@ def get_create_db_instance_side_effect(az):
         }
     }
     return result
+
+
+def get_describe_snapshots_side_effect_with_pages(pages, number_of_snapshots):
+    result = []
+    snapshot_id = 0
+    for i in range(0, pages):
+        page_result = {'DBClusterSnapshots': []}
+        for j in range(0, number_of_snapshots):
+            snapshot_id += 1
+            snapshot = {
+                'DBClusterSnapshotIdentifier': 'Snapshot' + str(snapshot_id),
+                'Engine': DOCDB_ENGINE,
+                'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+                'SnapshotCreateTime': datetime(2000, 1, 1) + timedelta(days=snapshot_id)
+            }
+            page_result['DBClusterSnapshots'].append(snapshot)
+        result.append(page_result)
+    return result
+
+
+def get_paginate_side_effect(number_of_pages, number_of_snapshots):
+    class PageIteratorMock(PageIterator):
+        def __init__(self):
+            super(PageIteratorMock, self).__init__(
+                self,
+                input_token='input_token',
+                output_token='output_token',
+                more_results='more_results',
+                result_keys='result_keys',
+                non_aggregate_keys='non_aggregate_keys',
+                limit_key='limit_key',
+                max_items='max_items',
+                starting_token='starting_token',
+                page_size='page_size',
+                op_kwargs='op_kwargs'
+            )
+
+        def __iter__(self):
+            snapshots = get_describe_snapshots_side_effect_with_pages(number_of_pages, number_of_snapshots)
+            for snapshot in snapshots:
+                yield snapshot
+
+    class PaginateMock(MagicMock):
+        def paginate(self, DBClusterIdentifier):
+            paginator = PageIteratorMock()
+            return paginator
+
+    return PaginateMock
 
 
 def get_docdb_instances_side_effect(az):
@@ -634,3 +683,105 @@ class TestDocDBUtil(unittest.TestCase):
 
     def test_rename_restored_db_instances_empty_events(self):
         self.assertRaises(Exception, rename_restored_db_instances, {}, None)
+
+    # Test get_latest_snapshot_id
+    def test_get_latest_snapshot_id_one_page_three_snapshots(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        number_of_pages = 1
+        number_of_snapshots = 3
+        latest_snapshot_id = 'Snapshot' + str(number_of_pages * number_of_snapshots)
+        self.mock_docdb.get_paginator.side_effect = \
+            get_paginate_side_effect(number_of_pages, number_of_snapshots)
+        response = get_latest_snapshot_id(events, None)
+        self.assertEqual({
+            'LatestSnapshotIdentifier': latest_snapshot_id,
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'LatestClusterIdentifier': DOCDB_CLUSTER_ID
+        }, response)
+        self.mock_docdb.get_paginator.assert_called_once_with('describe_db_cluster_snapshots')
+
+    def test_get_latest_snapshot_id_two_pages(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        number_of_pages = 2
+        number_of_snapshots = 4
+        latest_snapshot_id = 'Snapshot' + str(number_of_pages * number_of_snapshots)
+        self.mock_docdb.get_paginator.side_effect = \
+            get_paginate_side_effect(number_of_pages, number_of_snapshots)
+        response = get_latest_snapshot_id(events, None)
+        self.assertEqual({
+            'LatestSnapshotIdentifier': latest_snapshot_id,
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'LatestClusterIdentifier': DOCDB_CLUSTER_ID
+        }, response)
+        self.mock_docdb.get_paginator.assert_called_once_with('describe_db_cluster_snapshots')
+
+    def test_get_latest_snapshot_id_no_snapshots_available(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        number_of_pages = 0
+        number_of_snapshots = 0
+
+        self.mock_docdb.get_paginator.side_effect = \
+            get_paginate_side_effect(number_of_pages, number_of_snapshots)
+        self.assertRaises(Exception, get_latest_snapshot_id, events, None)
+        self.mock_docdb.get_paginator.assert_called_once_with('describe_db_cluster_snapshots')
+
+    def test_get_latest_snapshot_id_empty_events(self):
+        self.assertRaises(Exception, get_latest_snapshot_id, {}, None)
+
+    # Test restore_db_cluster
+    def test_restore_db_cluster_no_snapshot_identifier(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBSnapshotIdentifier': '',
+            'LatestSnapshotIdentifier': 'Snapshot3',
+            'LatestSnapshotEngine': DOCDB_ENGINE
+        }
+        response = restore_db_cluster(events, None)
+        cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
+        self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
+            DBClusterIdentifier=cluster_id,
+            SnapshotIdentifier='Snapshot3',
+            Engine=DOCDB_ENGINE
+        )
+        self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
+
+    def test_restore_db_cluster_snapshot_identifier_latest(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBSnapshotIdentifier': 'latest',
+            'LatestSnapshotIdentifier': 'Snapshot3',
+            'LatestSnapshotEngine': DOCDB_ENGINE
+        }
+        response = restore_db_cluster(events, None)
+        cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
+        self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
+            DBClusterIdentifier=cluster_id,
+            SnapshotIdentifier='Snapshot3',
+            Engine=DOCDB_ENGINE
+        )
+        self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
+
+    def test_restore_db_cluster_actual_snapshot_identifier(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBSnapshotIdentifier': 'Snapshot2',
+            'LatestSnapshotIdentifier': 'Snapshot3',
+            'LatestSnapshotEngine': DOCDB_ENGINE
+        }
+        response = restore_db_cluster(events, None)
+        cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
+        self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
+            DBClusterIdentifier=cluster_id,
+            SnapshotIdentifier='Snapshot2',
+            Engine=DOCDB_ENGINE
+        )
+        self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
+
+    def test_restore_db_cluster_empty_events(self):
+        self.assertRaises(Exception, restore_db_cluster, {}, None)

@@ -1,26 +1,27 @@
 from typing import List
-
-import boto3
-
-s3_client = boto3.client('s3')
+from boto3 import Session
+from .boto3_client_factory import client
 
 
-def put_object(bucket_name: str, key: str, body: bytes):
+def put_object(session: Session, bucket_name: str, key: str, body: bytes):
     """
     Put object to S3 bucket
+    :param session The boto3 session
     :param bucket_name: bucket name
     :param key: object key
     :param body: content of the object
     """
+    s3_client = client('s3', session)
     s3_client.put_object(Bucket=bucket_name, Key=key, Body=body)
 
 
-def clean_bucket(bucket_name: str):
+def clean_bucket(session: Session, bucket_name: str):
     """
     Clean the bucket
+    :param session The boto3 session
     :param bucket_name: the bucket name
     """
-
+    s3_client = client('s3', session)
     paginator = s3_client.get_paginator('list_object_versions')
     pages = paginator.paginate(Bucket=bucket_name)
 
@@ -50,14 +51,14 @@ def clean_bucket(bucket_name: str):
                       f' Key={key}, VersionId={version_id} was deleted')
 
 
-def get_number_of_files(bucket_name) -> int:
+def get_number_of_files(session: Session, bucket_name: str) -> int:
     """
     Get number of files in the bucket
+    :param session The boto3 session
     :param bucket_name: bucket name
     :return: number of files in the bucket
     """
-    pages = __list_objects(bucket_name)
-
+    pages = __list_objects(session, bucket_name)
     contents_counter = 0
     for page in pages:
         contents = page.get('Contents')
@@ -66,25 +67,28 @@ def get_number_of_files(bucket_name) -> int:
     return contents_counter
 
 
-def __list_objects(bucket_name) -> List[dict]:
+def __list_objects(session: Session, bucket_name: str) -> List[dict]:
     """
     Get the paginated list of the objects in the bucket without version checking and delete markers
+    :param session The boto3 session
     :param bucket_name: bucket name
     :return: list of the objects in the bucket
     """
+    s3_client = client('s3', session)
     paginator = s3_client.get_paginator('list_objects_v2')
     return paginator.paginate(Bucket=bucket_name)
 
 
-def get_versions(bucket_name: str, object_key: str, max_keys=1000) -> List:
+def get_versions(session: Session, bucket_name: str, object_key: str, max_keys=1000) -> List:
     """
     Get versions of the object from the bucket
+    :param session The boto3 session
     :param max_keys: maximum number of keys returned in the response
     :param bucket_name: the bucket name
     :param object_key:  the name of the object
     :return: versions of the object from the bucket
     """
-
+    s3_client = client('s3', session)
     paginator = s3_client.get_paginator('list_object_versions')
     pages = paginator.paginate(Bucket=bucket_name, Prefix=object_key, MaxKeys=max_keys)
     versions: List = []
@@ -95,12 +99,14 @@ def get_versions(bucket_name: str, object_key: str, max_keys=1000) -> List:
     return versions
 
 
-def get_object(s3_bucket_name, object_key, version_id) -> dict:
+def get_object(session: Session, s3_bucket_name: str, object_key, version_id) -> dict:
     """
     Get the object
+    :param session The boto3 session
     :param s3_bucket_name: bucket name
     :param object_key: object key
     :param version_id: version id
     :return: the object
     """
+    s3_client = client('s3', session)
     return s3_client.get_object(Bucket=s3_bucket_name, Key=object_key, VersionId=version_id)
