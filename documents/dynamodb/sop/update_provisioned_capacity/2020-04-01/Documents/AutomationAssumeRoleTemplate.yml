@@ -44,7 +44,8 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              - "dynamodb:UpdateTable"
-              - "dynamodb:DescribeTable"
+              - dynamodb:UpdateTable
+              - dynamodb:DescribeTable
+              - ssm:GetAutomationExecution
       Roles:
         - Ref: DigitoUpdateProvisionedCapacityAssumeRole

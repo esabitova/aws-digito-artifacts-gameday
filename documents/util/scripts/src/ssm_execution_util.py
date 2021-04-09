@@ -55,7 +55,6 @@ def get_inputs_from_ssm_step_execution(events, context):
 
 
 def get_inputs_from_input_payload_ssm_step_execution(events, context):
-
     if 'ExecutionId' not in events or 'StepName' not in events or 'InputPayloadField' not in events:
         raise KeyError('Requires ExecutionId, StepName and InputPayloadField in events')
     events['ResponseField'] = 'InputPayload'
@@ -86,6 +85,34 @@ def get_step_durations(events, context):
         return output
 
     raise Exception('Can not find step name % in ssm execution response', events['StepName'])
+
+
+def get_duration_between_two_steps(events, context):
+    ssm = boto3.client('ssm')
+
+    if 'ExecutionId' not in events or 'StepNames' not in events:
+        raise KeyError('Requires ExecutionId and StepNames in events')
+
+    step_names = events['StepNames'].split(',')
+    if not len(step_names) == 2:
+        raise KeyError('Requires two value in list StepNames')
+
+    step_start_time = {}
+    ssm_response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+    for step in ssm_response['AutomationExecution']['StepExecutions']:
+        if step['StepName'] in step_names:
+            step_start_time[step['StepName']] = step['ExecutionStartTime']
+
+    duration = (step_start_time[step_names[1]] - step_start_time[step_names[0]]).seconds
+    if duration is not None and duration > 0:
+        output = {
+            'duration': str(round(duration)),
+            'FirstStepStartTime': str(step_start_time[step_names[0]]),
+            'SecondStepStartTime': str(step_start_time[step_names[1]])
+        }
+        return output
+
+    raise KeyError(f'Can not find step name {events["StepNames"]} in ssm execution response')
 
 
 def cancel_command_execution(events, context):
