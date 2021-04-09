@@ -8,7 +8,7 @@ def assume_role_session(role_arn: str, session: Session) -> Session:
     """
     Assume role
     :param role_arn: ARN to other role for assuming
-    :param base_session: Base boto3 session
+    :param session: Base boto3 session
     :return: new assumed role
     """
     sts_client = client('sts', session)
