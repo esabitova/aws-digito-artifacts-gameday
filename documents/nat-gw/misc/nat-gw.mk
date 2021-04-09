@@ -2,9 +2,11 @@
 
 SHELL := /bin/bash
 
-# Include the file with private configuration properties to avoid collisions between teammates. See private.env.sample as the example
+# Include the file with private configuration properties to avoid collisions between teammates. See private.env.sample and exec-vars.env.sample as the examples
 include ../../../private.env
 export $(shell sed 's/=.*//' ../../../private.env)
+include exec-vars.env
+export $(shell sed 's/=.*//' exec-vars.env)
 
 include ../../../common.mk
 
@@ -14,22 +16,21 @@ publish_ssm_docs:
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; export PYTHONPATH=`pwd`; python3 publisher/src/publish_documents.py --region ${AWS_REGION} \
-		--file-name documents/nat-gw/misc/nat-gw-manifest --log-level INFO && \
+		--file-name documents/${SERVICE}/misc/${SERVICE}-manifest --log-level INFO && \
 	deactivate
 
-# Execute Cucumber tests
-test: linter_and_unit_test publish_ssm_docs
-	# Move to parent directory
+# Execute Cucumber test(-s)
+test: test_linter
+	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests -m nat-gw --aws_profile ${AWS_PROFILE} && \
+	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --count=${TEST_COUNT} --workers ${TEST_WORKERS} --pool_size ${TEST_POOL_SIZE} \
+		${TEST_TARGETS} --keep_test_resources --run_integration_tests -m ${SERVICE} --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
-# Execute only one specified Cucumber test
-test_one: test_linter publish_ssm_docs
-	# Move to parent directory
+
+service_unit_test:
 	cd ../../../ && \
 	source venv/bin/activate && \
-	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest  --keep_test_resources --run_integration_tests \
-		documents/nat-gw/test/accidental_delete/2020-04-01/Tests/step_defs/test_accidental_delete_rollback_usual_case.py -m nat-gw  --aws_profile ${AWS_PROFILE} && \
+	python3 -m pytest -m unit_test --no-cov documents/util/scripts/test/test_${SERVICE}_util.py && \
 	deactivate

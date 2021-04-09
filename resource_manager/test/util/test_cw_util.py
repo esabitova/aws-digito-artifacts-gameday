@@ -3,6 +3,7 @@ import unittest
 import pytest
 from unittest.mock import MagicMock, call
 import resource_manager.src.util.cw_util as cw_utils
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 
 CW_ALARM_NAME = 'alarm_name'
@@ -29,10 +30,13 @@ class TestCWUtil(unittest.TestCase):
             'cloudwatch': self.mock_cw_service,
 
         }
-        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name, config=None:\
+            self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_get_metric_alarm_state(self):
         self.mock_cw_service.describe_alarms.return_value = describe_alarms_side_effect(CW_OK_STATE)

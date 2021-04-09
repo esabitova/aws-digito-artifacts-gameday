@@ -185,7 +185,7 @@ def wait_for_documentdb_with_params(cfn_output_params, time_to_wait, boto3_sessi
     timeout_timestamp = time.time() + int(time_to_wait)
     while time.time() < timeout_timestamp:
         actual_status = docdb_utils.get_instance_status(
-            boto3_session=boto3_session,
+            session=boto3_session,
             db_instance_identifier=db_instance_identifier).get('DBInstanceStatus')
         if actual_status == expected_status:
             break
