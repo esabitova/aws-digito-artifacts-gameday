@@ -27,13 +27,13 @@ class TestPublishDocuments(unittest.TestCase):
                         document_metadata = json.load(metadata_file)
                         file_path = os.path.join(root, f)
                         violations = []
-                        if 'alarm' in file_path:
+                        if '/alarm/' in file_path:
                             violations = pd.get_metadata_violations(document_metadata, file_path,
                                                                     meta_attrs_map.get('alarm'))
-                        elif 'test' in file_path:
+                        elif '/test/' in file_path:
                             violations = pd.get_metadata_violations(document_metadata, file_path,
                                                                     meta_attrs_map.get('test'))
-                        elif 'sop' in file_path:
+                        elif '/sop/' in file_path:
                             violations = pd.get_metadata_violations(document_metadata, file_path,
                                                                     meta_attrs_map.get('sop'))
                         fail_messages.extend(violations)
