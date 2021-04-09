@@ -99,11 +99,10 @@ Resources:
           KeyType: "HASH"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-  ##### Health Alarms #####
+
   WriteThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: WriteThrottleEvents
       AlarmDescription: "dynamodb:alarm:health-write_throttle_events:2020-04-01"
       ActionsEnabled: false
       MetricName: WriteThrottleEvents
@@ -119,10 +118,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   ReadThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ReadThrottleEvents
       AlarmDescription: "dynamodb:alarm:health-read_throttle_events:2020-04-01"
       ActionsEnabled: false
       MetricName: ReadThrottleEvents
@@ -138,10 +137,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   ThrottledRequestsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ThrottledRequests
       AlarmDescription: "dynamodb:alarm:health-throttled_requests:2020-04-01"
       ActionsEnabled: false
       MetricName: ThrottledRequests
@@ -157,10 +156,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   ConditionalCheckFailedRequestsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ConditionalCheckFailedRequests
       AlarmDescription: "dynamodb:alarm:health-conditional_check_failed_requests:2020-04-01"
       ActionsEnabled: false
       MetricName: ConditionalCheckFailedRequests
@@ -176,10 +175,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   UserErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: UserErrors
       AlarmDescription: "dynamodb:alarm:health-user_errors:2020-04-01"
       ActionsEnabled: false
       MetricName: UserErrors
@@ -195,10 +194,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   SystemErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: SystemErrors
       AlarmDescription: "dynamodb:alarm:health-system_errors:2020-04-01"
       ActionsEnabled: false
       MetricName: SystemErrors
@@ -214,10 +213,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   TransactionConflictAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: TransactionConflict
       AlarmDescription: "dynamodb:alarm:health-transaction_conflict:2020-04-01"
       ActionsEnabled: false
       MetricName: TransactionConflict
@@ -233,10 +232,10 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   OnlineIndexThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: OnlineIndexThrottleEvents
       AlarmDescription: "dynamodb:alarm:health-online_index_throttle_events:2020-04-01"
       ActionsEnabled: false
       MetricName: OnlineIndexThrottleEvents
@@ -252,10 +251,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   SuccessfulRequestLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: SuccessfulRequestLatency
       AlarmDescription: "dynamodb:alarm:health-successful_request_latency:2020-04-01"
       ActionsEnabled: false
       MetricName: SuccessfulRequestLatency
@@ -271,10 +270,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       Unit: Milliseconds
+
   AccountProvisionedReadCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: AccountProvisionedReadCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-account_read_capacity_utilization:2020-04-01"
       ActionsEnabled: false
       MetricName: AccountProvisionedReadCapacityUtilization
@@ -290,10 +289,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       Unit: Percent
+
   AccountProvisionedWriteCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: AccountProvisionedWriteCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-account_write_capacity_utilization:2020-04-01"
       ActionsEnabled: false
       MetricName: AccountProvisionedWriteCapacityUtilization
@@ -309,10 +308,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       Unit: Percent
+
   MaxProvisionedTableReadCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: MaxProvisionedTableReadCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-table_read_utilization:2020-04-01"
       ActionsEnabled: false
       MetricName: MaxProvisionedTableReadCapacityUtilization
@@ -328,10 +327,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       Unit: Percent
+
   MaxProvisionedTableWriteCapacityUtilizationAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: MaxProvisionedTableWriteCapacityUtilization
       AlarmDescription: "dynamodb:alarm:health-table_write_utilization:2020-04-01"
       ActionsEnabled: false
       MetricName: MaxProvisionedTableWriteCapacityUtilization
@@ -348,11 +347,9 @@ Resources:
       TreatMissingData: notBreaching
       Unit: Percent
 
-  ##### Recovery Alarms #####
   PendingReplicationCountAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: PendingReplicationCount
       AlarmDescription: "dynamodb:alarm:recovery-pending_replication_count:2020-04-01"
       ActionsEnabled: false
       MetricName: PendingReplicationCount
@@ -368,10 +365,10 @@ Resources:
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
       Unit: Count
+
   ReplicationLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ReplicationLatency
       AlarmDescription: "dynamodb:alarm:recovery-replication_latency:2020-04-01"
       ActionsEnabled: false
       MetricName: ReplicationLatency
