@@ -28,6 +28,7 @@ from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_s
 from resource_manager.src.util.sts_utils import assume_role_session
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.cw_util import get_metric_alarm_state
+from resource_manager.src.util.ssm_utils import send_step_approval
 
 
 def pytest_addoption(parser):
@@ -449,8 +450,7 @@ def approve_automation(cfn_output_params, ssm_test_cache, boto3_session, input_p
     if role_arn is None:
         raise Exception('Parameter with name [RoleArn] should be provided')
     assumed_role_session = assume_role_session(role_arn, boto3_session)
-    ssm_document = SsmDocument(assumed_role_session)
-    ssm_document.send_step_approval(ssm_execution_id)
+    send_step_approval(assumed_role_session, ssm_execution_id)
 
 
 @when(parse('Reject SSM automation document on behalf of the role\n{input_parameters}'))
@@ -471,8 +471,7 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
     if role_arn is None:
         raise Exception('Parameter with name [RoleArn] should be provided')
     assumed_role_session = assume_role_session(role_arn, boto3_session)
-    ssm_document = SsmDocument(assumed_role_session)
-    ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
+    send_step_approval(assumed_role_session, ssm_execution_id, is_approved=False)
 
 
 @given(parse('cache constant value {value} as "{cache_property}" '

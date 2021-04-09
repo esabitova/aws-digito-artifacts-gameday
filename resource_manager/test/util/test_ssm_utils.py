@@ -100,3 +100,15 @@ class TestSSMUtils(unittest.TestCase):
         }}
         self.assertRaises(Exception, ssm_utils.get_ssm_step_status, self.session_mock, execution_id, step_name)
         self.mock_ssm_service.get_automation_execution.assert_called_once_with(AutomationExecutionId=execution_id)
+
+    def test_send_step_approval_approve_success(self):
+        execution_id = 'test_ssm_execution_id'
+        ssm_utils.send_step_approval(self.session_mock, execution_id)
+        self.mock_ssm_service.send_automation_signal.assert_called_once_with(AutomationExecutionId=execution_id,
+                                                                             SignalType='Approve')
+
+    def test_send_step_approval_reject_success(self):
+        execution_id = 'test_ssm_execution_id'
+        ssm_utils.send_step_approval(self.session_mock, execution_id, is_approved=False)
+        self.mock_ssm_service.send_automation_signal.assert_called_once_with(AutomationExecutionId=execution_id,
+                                                                             SignalType='Reject')
