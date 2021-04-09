@@ -190,7 +190,6 @@ Resources:
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsNumberOfMessagesSentAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       ActionsEnabled: false
       MetricName: "NumberOfMessagesSent"
@@ -208,7 +207,6 @@ Resources:
   SQSNumberOfMessagesSentBandAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsNumberOfMessagesSentBandAlarm"
       ActionsEnabled: false
       AlarmDescription: "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
       EvaluationPeriods: 1
@@ -243,7 +241,6 @@ Resources:
   SQSSentMessageSizeStandardQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsSentMessageSizeStandardQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_sent_message_size:2020-11-26"
       ActionsEnabled: false
       MetricName: "SentMessageSize"
@@ -261,7 +258,6 @@ Resources:
   SQSSentMessageSizeFifoQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsSentMessageSizeFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_sent_message_size:2020-11-26"
       ActionsEnabled: false
       MetricName: "SentMessageSize"
@@ -279,7 +275,6 @@ Resources:
   SqsDlqMessageFifoQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsDlqMessageFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesVisible"
@@ -293,11 +288,10 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SqsDlqMessageStandardQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsDlqMessageStandardQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_dlq_message:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesVisible"
@@ -311,11 +305,10 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   SQSApproximateAgeOfOldestMessageMaximumAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateAgeOfOldestMessage"
@@ -333,7 +326,6 @@ Resources:
   SQSApproximateAgeOfOldestMessageMaximumFifoAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsApproximateAgeOfOldestMessageMaximumFifoAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateAgeOfOldestMessage"
@@ -351,7 +343,6 @@ Resources:
   SQSThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsThresholdApproximateNumberOfMessagesNotVisibleStandardQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_standard_queue:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesNotVisible"
@@ -369,7 +360,6 @@ Resources:
   SQSThresholdApproximateNumberOfMessagesNotVisibleFifoAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsThresholdApproximateNumberOfMessagesNotVisibleFifoQueueAlarm"
       AlarmDescription: "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateNumberOfMessagesNotVisible"
@@ -387,7 +377,6 @@ Resources:
   SQSApproximateAgeOfOldestMessageDLQAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsApproximateAgeOfOldestMessageDlq"
       AlarmDescription: "sqs:alarm:recovery_alarm_approximate_age_of_oldest_message_dlq:2020-11-26"
       ActionsEnabled: false
       MetricName: "ApproximateAgeOfOldestMessage"
@@ -405,7 +394,6 @@ Resources:
   SQSAlwaysOKAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: "SqsSQSAlwaysOKAlarm"
       AlarmDescription: "sqs:alarm:always_ok:2021-03-24"
       ActionsEnabled: false
       ComparisonOperator: "GreaterThanOrEqualToThreshold"

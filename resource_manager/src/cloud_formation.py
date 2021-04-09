@@ -1,7 +1,8 @@
 import logging
 import time
-from botocore.exceptions import ClientError
 import resource_manager.src.constants as constants
+from botocore.exceptions import ClientError
+from .util.boto3_client_factory import client, resource
 
 
 class CloudFormationTemplate:
@@ -10,8 +11,8 @@ class CloudFormationTemplate:
     """
 
     def __init__(self, boto3_session):
-        self.client = boto3_session.client('cloudformation')
-        self.resource = boto3_session.resource('cloudformation')
+        self.client = client('cloudformation', boto3_session)
+        self.resource = resource('cloudformation', boto3_session)
 
     def deploy_cf_stack(self, cfn_template_s3_url, stack_name, **kwargs):
         """

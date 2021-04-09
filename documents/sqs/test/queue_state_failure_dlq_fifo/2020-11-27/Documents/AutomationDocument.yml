@@ -91,14 +91,14 @@ mainSteps:
         Type: String
       - Name: VisibilityTimeout
         Selector: $.Payload.VisibilityTimeout
-        Type: Integer
+        Type: String
     inputs:
       Runtime: python3.7
       Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         StepName: 'BackupCurrentExecution'
-        ResponseField: 'Policy, VisibilityTimeout, RedrivePolicy'
+        ResponseField: 'Policy,VisibilityTimeout,RedrivePolicy'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
@@ -274,6 +274,7 @@ mainSteps:
       Service: sqs
       Api: SendMessage
       QueueUrl: '{{ QueueUrl }}'
+      DelaySeconds: 0
       MessageBody: "Test message"
       MessageDeduplicationId: '{{global:DATE_TIME}}'
       MessageGroupId: '{{global:DATE_TIME}}'
@@ -285,6 +286,7 @@ mainSteps:
       Service: sqs
       Api: ReceiveMessage
       QueueUrl: '{{ QueueUrl }}'
+      WaitTimeSeconds: 5
       AttributeNames:
         - All
     onFailure: step:RollbackCurrentExecutionQueuePolicy
@@ -295,6 +297,7 @@ mainSteps:
       Service: sqs
       Api: ReceiveMessage
       QueueUrl: '{{ QueueUrl }}'
+      WaitTimeSeconds: 5
       AttributeNames:
         - All
     onFailure: step:RollbackCurrentExecutionQueuePolicy

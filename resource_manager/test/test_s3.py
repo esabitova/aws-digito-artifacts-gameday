@@ -1,5 +1,6 @@
 import unittest
 import pytest
+import resource_manager.src.util.boto3_client_factory as client_factory
 from unittest.mock import MagicMock
 from resource_manager.src.s3 import S3
 
@@ -27,19 +28,23 @@ class TestS3(unittest.TestCase):
             'sts': self.mock_sts_service,
             's3': self.mock_s3_service
         }
-        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name, config=None: \
+            self.client_side_effect_map.get(service_name)
         self.mock_sts_service.get_caller_identity.return_value = dict(Account=self.mock_aws_account)
 
         self.mock_s3_resource = MagicMock()
         self.resource_side_effect_map = {
             's3': self.mock_s3_resource
         }
-        self.session_mock.resource.side_effect = lambda service_name: self.resource_side_effect_map.get(service_name)
+        self.session_mock.resource.side_effect = lambda service_name, config=None: \
+            self.resource_side_effect_map.get(service_name)
 
         self.s3_helper = S3(self.session_mock)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_get_bucket_name_success(self):
         self.assertEqual(self.mock_s3_bucket_name, self.s3_helper.get_bucket_name())

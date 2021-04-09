@@ -1,8 +1,12 @@
-import pytest
 import logging
-import boto3
 import time
 import uuid
+from datetime import timedelta, datetime
+
+import boto3
+import pytest
+from botocore.exceptions import ClientError
+from pytest import ExitCode
 from pytest_bdd import (
     when,
     given,
@@ -10,18 +14,20 @@ from pytest_bdd import (
 )
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
-from datetime import timedelta, datetime
-from resource_manager.src.resource_manager import ResourceManager
-from resource_manager.src.ssm_document import SsmDocument
-from resource_manager.src.s3 import S3
-from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
-from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table, parse_pool_size
-from resource_manager.src.cloud_formation import CloudFormationTemplate
-from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
-from pytest import ExitCode
-from botocore.exceptions import ClientError
+
 from publisher.src.publish_documents import PublishDocuments
+from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.resource_manager import ResourceManager
+from resource_manager.src.s3 import S3
+from resource_manager.src.ssm_document import SsmDocument
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
+from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
+from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
+from resource_manager.src.util.param_utils import parse_pool_size
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.sts_utils import assume_role_session
+from resource_manager.src.util.enums.alarm_state import AlarmState
+from resource_manager.src.util.cw_util import get_metric_alarm_state
 
 
 def pytest_addoption(parser):
@@ -44,11 +50,13 @@ def pytest_addoption(parser):
     parser.addoption("--pool_size",
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
-                          "pool size (Example: template_1=3, template_2=4)")
-    parser.addoption("--skip_resource_fix",
+                          "pool size (Example: template_1=3, template_2=4).")
+    parser.addoption("--distributed_mode",
                      action="store_true",
                      default=False,
-                     help="Flag to skip resource fix/destroy")
+                     help="Flag to run integration tests in distributed mode "
+                          "(multi session/machines targeting same AWS account). "
+                          "NOTE: Flag should be used only for CI/CD pipeline, not for personal usage.")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -77,8 +85,13 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
+        rm = ResourceManager(cfn_helper, s3_helper, dict(), None)
         rm.init_ddb_tables(boto3_session)
+        # Distributed mode is considered mode when we executing integration tests on multiple testing sessions/machines
+        # and targeting same AWS account resources, in this case we should not perform resource fixing, since it
+        # can change resources state which is in use by other session.
+        if not session.config.option.distributed_mode:
+            rm.fix_stalled_resources()
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -303,8 +316,13 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     assert expected_status == actual_status
 
 
-@when(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
-            'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'))
+wait_for_execution_step_with_params_description = \
+    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '\
+    'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'
+
+
+@when(parse(wait_for_execution_step_with_params_description))
+@then(parse(wait_for_execution_step_with_params_description))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
                                         expected_status, ssm_document, input_parameters, ssm_test_cache):
     """
@@ -413,37 +431,47 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
         raise Exception('Operator for [{}] is not supported'.format(operator))
 
 
-@when(parse('Approve SSM automation document\n{input_parameters}'))
-def approve_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+@when(parse('Approve SSM automation document on behalf of the role\n{input_parameters}'))
+def approve_automation(cfn_output_params, ssm_test_cache, boto3_session, input_parameters):
     """
     Common step to approve waiting execution
     :param cfn_output_params The cfn output params from resource manager
     :param ssm_test_cache The custom test cache
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param boto3_session Base boto3 session
     :param input_parameters The input parameters
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
+    role_arn = parameters[0].get('RoleArn')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+    if role_arn is None:
+        raise Exception('Parameter with name [RoleArn] should be provided')
+    assumed_role_session = assume_role_session(role_arn, boto3_session)
+    ssm_document = SsmDocument(assumed_role_session)
     ssm_document.send_step_approval(ssm_execution_id)
 
 
-@when(parse('Reject SSM automation document\n{input_parameters}'))
-def reject_automation(cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+@when(parse('Reject SSM automation document on behalf of the role\n{input_parameters}'))
+def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_parameters):
     """
     Common step to reject waiting execution
     :param cfn_output_params The cfn output params from resource manager
     :param ssm_test_cache The custom test cache
-    :param ssm_document The SSM document object for SSM manipulation (mainly execution)
+    :param boto3_session Base boto3 session
     :param input_parameters The input parameters
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
+    role_arn = parameters[0].get('RoleArn')
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+    if role_arn is None:
+        raise Exception('Parameter with name [RoleArn] should be provided')
+    assumed_role_session = assume_role_session(role_arn, boto3_session)
+    ssm_document = SsmDocument(assumed_role_session)
     ssm_document.send_step_approval(ssm_execution_id, is_approved=False)
 
 
@@ -455,6 +483,7 @@ def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_proper
 
 
 @when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
+@then(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
 def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state, timeout, input_parameters):
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
@@ -463,3 +492,41 @@ def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state
         raise Exception('Parameter with name [AlarmName] should be provided')
     time_to_wait = int(timeout)
     wait_for_metric_alarm_state(boto3_session, alarm_name, alarm_state, time_to_wait)
+
+
+@given(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+             'check every {delay_sec} seconds'))
+def wait_until_alarm_green(resource_manager,
+                           boto3_session: boto3.Session,
+                           alarm_name_ref: str,
+                           wait_sec: str,
+                           delay_sec: str):
+    cf_output = resource_manager.get_cfn_output_params()
+    alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cf_output})
+    alarm_state = AlarmState.INSUFFICIENT_DATA
+    wait_sec = int(wait_sec)
+    delay_sec = int(delay_sec)
+    logging.info('Inputs:'
+                 f'alarm_name:{alarm_name};'
+                 f'alarm_state:{alarm_state};'
+                 f'wait_sec:{wait_sec};'
+                 f'delay_sec:{delay_sec};')
+
+    elapsed = 0
+    iteration = 1
+    while elapsed < wait_sec:
+        start = time.time()
+        alarm_state = get_metric_alarm_state(session=boto3_session,
+                                             alarm_name=alarm_name)
+        logging.info(f'#{iteration}; Alarm:{alarm_name}; State: {alarm_state};'
+                     f'Elapsed: {elapsed} sec;')
+        if alarm_state == AlarmState.OK:
+            return
+        time.sleep(delay_sec)
+        end = time.time()
+        elapsed += (end - start)
+        iteration += 1
+
+    raise TimeoutError(f'After {wait_sec} alarm {alarm_name} is in {alarm_state} state;'
+                       f'Elapsed: {elapsed} sec;'
+                       f'{iteration} iterations;')

@@ -1,7 +1,9 @@
 import unittest
 import pytest
+import resource_manager.src.util.boto3_client_factory as client_factory
 from unittest.mock import MagicMock, call
 from resource_manager.src.ssm_document import SsmDocument
+
 
 SSM_EXECUTION_ID = '123456'
 SSM_DOCUMENT_NAME = 'document-name'
@@ -28,11 +30,14 @@ class TestSsmDocument(unittest.TestCase):
         self.client_side_effect_map = {
             'ssm': self.mock_ssm
         }
-        self.mock_session.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.mock_session.client.side_effect = lambda service_name, config=None: \
+            self.client_side_effect_map.get(service_name)
         self.ssm_document = SsmDocument(self.mock_session)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_execute_not_existing_document_fail(self):
         self.assertRaises(Exception, self.ssm_document.execute, 'test_document_name',

@@ -3,6 +3,7 @@ import time
 import resource_manager.src.constants as constants
 import resource_manager.src.util.param_utils as param_utils
 from sttable import parse_str_table
+from .util.boto3_client_factory import client
 
 
 class SsmDocument:
@@ -11,7 +12,7 @@ class SsmDocument:
     """
 
     def __init__(self, boto3_session):
-        self.ssm_client = boto3_session.client('ssm')
+        self.ssm_client = client('ssm', boto3_session)
         self.region = boto3_session.region_name
 
     def execute(self, document_name, input_params):

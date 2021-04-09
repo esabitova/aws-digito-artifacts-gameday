@@ -1,14 +1,22 @@
 import unittest
-import pytest
-from unittest.mock import MagicMock
 from datetime import datetime
+from unittest.mock import MagicMock
+
+import pytest
+
 import resource_manager.src.util.sqs_utils as sqs_utils
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 SQS_QUEUE_URL = "https://this.is.some.url"
 SQS_FIFO_QUEUE_URL = "https://this.is.some.url.fifo"
 SQS_MESSAGE_BODY = "some message body"
 SQS_FIFO_MESSAGE_GROUP = "message-group-id"
 SQS_POLICY = '{"some-field": "some-value", "some-other-field": "some-other-value"}'
+ATTRIBUTES = {
+    'Attributes': {
+        'ApproximateNumberOfMessages': "10",
+        'Policy': SQS_POLICY}
+}
 
 
 def get_queue_attributes_side_effect(number_of_messages):
@@ -30,14 +38,23 @@ class TestSQSUtil(unittest.TestCase):
             'sqs': self.mock_sqs_service,
 
         }
-        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name, config=None:\
+            self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_send_message_to_queue(self):
         sqs_utils.send_message_to_standard_queue(self.session_mock, SQS_QUEUE_URL, SQS_MESSAGE_BODY)
         self.mock_sqs_service.send_message.assert_called_once_with(QueueUrl=SQS_QUEUE_URL, MessageBody=SQS_MESSAGE_BODY)
+
+    def test_send_message_to_queue_with_attributes(self):
+        sqs_utils.send_message_to_standard_queue(self.session_mock, SQS_QUEUE_URL, SQS_MESSAGE_BODY, ATTRIBUTES)
+        self.mock_sqs_service.send_message.assert_called_once_with(QueueUrl=SQS_QUEUE_URL,
+                                                                   MessageBody=SQS_MESSAGE_BODY,
+                                                                   MessageAttributes=ATTRIBUTES)
 
     def test_send_message_to_fifo_queue(self):
         now = datetime.now().isoformat()

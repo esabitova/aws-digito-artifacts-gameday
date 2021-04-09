@@ -24,3 +24,4 @@ venv/
 deps.json
 .pytest-incremental
 .vscode
+exec-vars.env

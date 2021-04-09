@@ -1,6 +1,7 @@
 import logging
 from botocore.exceptions import ClientError
 from cfn_tools import dump_yaml
+from .util.boto3_client_factory import client, resource
 
 
 class S3:
@@ -9,8 +10,8 @@ class S3:
     """
     def __init__(self, boto3_session):
         self.session = boto3_session
-        self.client = self.session.client('s3')
-        self.resource = self.session.resource('s3')
+        self.client = client('s3', boto3_session)
+        self.resource = resource('s3', boto3_session)
 
     def upload_file(self, file_name: str, content: dict):
         """

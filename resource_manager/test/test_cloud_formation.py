@@ -3,6 +3,7 @@ import pytest
 from unittest.mock import MagicMock, call
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from botocore.exceptions import ClientError
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 
 @pytest.mark.unit_test
@@ -14,18 +15,22 @@ class TestCloudFormation(unittest.TestCase):
         self.client_side_effect_map = {
             'cloudformation': self.cf_service_mock,
         }
-        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name, config=None: \
+            self.client_side_effect_map.get(service_name)
 
         self.cf_resource = MagicMock()
         self.resource_side_effect_map = {
             'cloudformation': self.cf_resource
         }
-        self.session_mock.resource.side_effect = lambda service_name: self.resource_side_effect_map.get(service_name)
+        self.session_mock.resource.side_effect = lambda service_name, config=None: \
+            self.resource_side_effect_map.get(service_name)
 
         self.cfn_helper = CloudFormationTemplate(self.session_mock)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def test_deploy_cf_stack_new_success(self):
         self.cf_service_mock.describe_stacks.side_effect = [

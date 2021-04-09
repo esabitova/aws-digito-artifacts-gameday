@@ -24,18 +24,18 @@ def test_restore_previous_versions():
                     '"{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution\n{input_parameters}'))
 @given(parsers.parse('cache value of "{version_indicator}" version of the "{file_name}" file as "{cache_property}" at '
                      '"{s3_bucket_param_key}" bucket "{step_key}" SSM automation execution\n{input_parameters}'))
-def cache_value_of_version(resource_manager, ssm_test_cache, version_indicator, file_name,
+def cache_value_of_version(boto3_session, resource_manager, ssm_test_cache, version_indicator, file_name,
                            cache_property, s3_bucket_param_key, step_key,
                            input_parameters):
-    populate_cache_value_of_version(cache_property, file_name, input_parameters, resource_manager, s3_bucket_param_key,
-                                    ssm_test_cache, step_key, version_indicator)
+    populate_cache_value_of_version(boto3_session, cache_property, file_name, input_parameters, resource_manager,
+                                    s3_bucket_param_key, ssm_test_cache, step_key, version_indicator)
 
 
-def populate_cache_value_of_version(cache_property, file_name, input_parameters, resource_manager, s3_bucket_param_key,
-                                    ssm_test_cache, step_key, version_indicator):
+def populate_cache_value_of_version(boto3_session, cache_property, file_name, input_parameters, resource_manager,
+                                    s3_bucket_param_key, ssm_test_cache, step_key, version_indicator):
     s3_bucket_name: str = extract_param_value(input_parameters, s3_bucket_param_key,
                                               resource_manager, ssm_test_cache)
-    versions: List = s3_utils.get_versions(s3_bucket_name, object_key=file_name, max_keys=2)
+    versions: List = s3_utils.get_versions(boto3_session, s3_bucket_name, object_key=file_name, max_keys=2)
     if version_indicator == 'previous':
         if len(versions) < 2:
             raise KeyError(f'Can not get previous version because the number of versions is {len(versions)}')

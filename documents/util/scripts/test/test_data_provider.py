@@ -2,7 +2,9 @@ import json
 from datetime import datetime, timezone, timedelta
 from io import BytesIO
 
+import boto3
 import urllib3
+from dateutil.tz import tzutc
 
 AUTOMATION_EXECUTION_ID = '123e4567-e89b-12d3-a456-426614174000'
 STEP_NAME = 'StepName'
@@ -50,6 +52,31 @@ SSM_EXECUTION_PARAMETER_2_VALUE = \
 SSM_EXECUTION_PARAMETER_3 = 'SentMessageSizeAlarmName'
 SSM_EXECUTION_PARAMETER_3_VALUE = \
     ['SqsSQSAlwaysOKAlarm']
+ROLE = f'arn:aws:iam::{ACCOUNT_ID}:role/S3Template-0-RoleApproveCleanBucket-ON41KTFFSIPD'
+SESSION = boto3.Session()
+ACCESS_KEY_ID = 'asdadlkj'
+SECRET_ACCESS_KEY = '12l3k1j3'
+SESSION_TOKEN = '1lk23j1kj'
+ASSUME_ROLE_RESPONSE = {
+    'Credentials':
+        {'AccessKeyId': ACCESS_KEY_ID,
+         'SecretAccessKey': SECRET_ACCESS_KEY,
+         'SessionToken': SESSION_TOKEN,
+         'Expiration': datetime(2021, 4, 5, 17, 27, 27, tzinfo=tzutc())
+         },
+    'AssumedRoleUser':
+        {
+            'AssumedRoleId': '123AWLAST5TN232VAQSRH:72069623-cfd8-4ad3-9239-45ec9b58a123',
+            'Arn': f'arn:aws:sts::{ACCOUNT_ID}:assumed-role/S3Template-0-RoleApproveCleanBucket-ON41KTFFSIPD/72069623'
+                   f'-cfd8-4ad3-9239-45ec9b58a34c'
+        },
+    'ResponseMetadata': {
+        'RequestId': 'e1ba494f-74cc-4515-b6e0-188969e08d8b', 'HTTPStatusCode': 200,
+        'HTTPHeaders': {'x-amzn-requestid': 'e1ba494f-74cc-4515-b6e0-188969e08d8b',
+                        'content-type': 'text/xml', 'content-length': '1175',
+                        'date': 'Mon, 05 Apr 2021 16:27:27 GMT'},
+        'RetryAttempts': 0}
+}
 
 
 def get_sample_ssm_execution_response():
@@ -111,8 +138,43 @@ def get_sample_route_table_response():
 
     route_table_response = {}
     route_table_response['RouteTables'] = [route_table_1, route_table_2]
+    route_table_response['ResponseMetadata'] = {'HTTPStatusCode': 200}
 
     return route_table_response
+
+
+def get_sample_route_table_response_filtered_by_nat():
+    route_1 = {}
+    route_1['DestinationCidrBlock'] = '10.0.0.0/16'
+    route_1['GatewayId'] = 'local'
+    route_1['Origin'] = 'CreateRouteTable'
+    route_1['State'] = 'active'
+
+    route_natgw = {}
+    route_natgw['DestinationCidrBlock'] = INTERNET_DESTINATION
+    route_natgw['NatGatewayId'] = NAT_GATEWAY_ID
+    route_natgw['Origin'] = 'CreateRoute'
+    route_natgw['State'] = 'active'
+
+    route_table_1 = {}
+    route_table_1['RouteTableId'] = ROUTE_TABLE_ID
+    route_table_1['Routes'] = [route_1, route_natgw]
+
+    association = {}
+    association['SubnetId'] = PUBLIC_SUBNET_ID
+
+    route_table_response = {}
+    route_table_response['RouteTables'] = [route_table_1]
+    route_table_response['ResponseMetadata'] = {'HTTPStatusCode': 200}
+
+    return route_table_response
+
+
+def get_sample_delete_route_response():
+    response = {}
+    response['ResponseMetadata'] = {'HTTPStatusCode': 200}
+
+    return response
 
 
 def get_sample_describe_db_instances_response():
