@@ -261,7 +261,7 @@ Resources:
       Namespace: AWS/DynamoDB
       Statistic: Maximum
       Dimensions:
-        - Name: TableName
+        - Name: Operation
           Value: !Ref DynamoDBTable
       Period: 60
       EvaluationPeriods: 1
