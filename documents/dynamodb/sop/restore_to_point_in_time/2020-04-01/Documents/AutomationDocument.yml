@@ -250,3 +250,45 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
 
   # End TTL
+  # Start tags
+  - name: GetSourceDynamoDBTableTags
+    action: aws:executeScript
+    outputs:
+      - Name: SourceTags
+        Selector: $.Payload.Tags
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: list_resource_tags
+      InputPayload:
+        TableName: "{{ DynamoDBTableSourceName }}"
+        Region: "{{ global:REGION }}"
+        Account: "{{ global:ACCOUNT_ID }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
+        SCRIPT_PLACEHOLDER::dynamo_db_util.list_resource_tags
+  - name: UpdateTargetDynamoDBTableTags
+    action: aws:executeScript
+    outputs:
+      - Name: TargetTags
+        Selector: $.Payload.Tags
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: update_resource_tags
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        Region: "{{ global:REGION }}"
+        Account: "{{ global:ACCOUNT_ID }}"
+        Tags: "{{ GetSourceDynamoDBTableTags.SourceTags }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_tags
+        SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
+        SCRIPT_PLACEHOLDER::dynamo_db_util.list_resource_tags
+        SCRIPT_PLACEHOLDER::dynamo_db_util.update_resource_tags

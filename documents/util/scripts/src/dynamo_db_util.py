@@ -32,6 +32,16 @@ def _describe_kinesis_destinations(table_name: str):
         delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
 
 
+def _list_tags(resource_arn: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.list_tags_of_resource(ResourceArn=resource_arn))
+
+
+def _update_tags(resource_arn: str, tags: List):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.tag_resource(ResourceArn=resource_arn, Tags=tags))
+
+
 def _enable_kinesis_destinations(table_name: str, kds_arn: str):
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
@@ -50,6 +60,50 @@ def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str)
 def _update_table(table_name: str, **kwargs):
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
+
+
+def update_resource_tags(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Region' not in events:
+        raise KeyError('Requires Region')
+    if 'Account' not in events:
+        raise KeyError('Requires Account')
+    if 'Tags' not in events:
+        raise KeyError('Requires Tags')
+
+    table_name = events['TableName']
+    region = events['Region']
+    account = events['Account']
+    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{table_name}'
+    tags = json.loads(events['Tags'])
+    _update_tags(resource_arn=resource_arn, tags=tags)
+
+    result = list_resource_tags(events=events,
+                                context=context)
+
+    return {
+        "Tags": json.dumps(result['Tags'])
+    }
+
+
+def list_resource_tags(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Region' not in events:
+        raise KeyError('Requires Region')
+    if 'Account' not in events:
+        raise KeyError('Requires Account')
+
+    table_name = events['TableName']
+    region = events['Region']
+    account = events['Account']
+    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{table_name}'
+    result = _list_tags(resource_arn=resource_arn)
+
+    return {
+        "Tags": json.dumps(result['Tags'])
+    }
 
 
 def update_time_to_live(events: dict, context: dict) -> List:

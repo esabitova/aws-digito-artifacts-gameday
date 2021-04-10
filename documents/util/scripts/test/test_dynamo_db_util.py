@@ -12,7 +12,11 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_kinesis_destina
                                                        update_table_stream,
                                                        _update_table,
                                                        _enable_kinesis_destinations,
-                                                       add_kinesis_destinations)
+                                                       add_kinesis_destinations,
+                                                       _update_tags,
+                                                       _list_tags,
+                                                       list_resource_tags,
+                                                       update_resource_tags)
 
 UPDATE_TABLE_STREAM_RESPONSE = {
     "ResponseMetadata": {
@@ -48,6 +52,24 @@ ENABLE_KINESIS_DESTINATIONS_RESPONSE = {
     "DestinationStatusDescription": 'Description'
 }
 
+LIST_TAG_RESPONCE = {
+    "ResponseMetadata": {
+        "HTTPStatusCode": 200
+    },
+    "Tags": [
+        {
+            "Key": "Key",
+            "Value": "Value"
+        }
+    ]
+}
+
+TAG_RESOURCE_RESPONCE = {
+    "ResponseMetadata": {
+        "HTTPStatusCode": 200
+    }
+}
+
 
 @pytest.mark.unit_test
 class TestS3Util(unittest.TestCase):
@@ -60,6 +82,8 @@ class TestS3Util(unittest.TestCase):
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
+        self.dynamodb_client_mock.list_tags_of_resource.return_value = LIST_TAG_RESPONCE
+        self.dynamodb_client_mock.tag_resource.return_value = TAG_RESOURCE_RESPONCE
 
         self.dynamodb_client_mock\
             .describe_kinesis_streaming_destination\
@@ -213,3 +237,45 @@ class TestS3Util(unittest.TestCase):
 
         self.assertEqual(result, expected_output)
         enable_mock.assert_called_with(table_name='my_table', kds_arn='TestStreamArn1')
+
+    def test__list_tags(self):
+
+        result = _list_tags(resource_arn="my_table")
+
+        self.assertEqual(result, LIST_TAG_RESPONCE)
+
+    @patch('documents.util.scripts.src.dynamo_db_util._list_tags',
+           return_value=LIST_TAG_RESPONCE)
+    def test_list_resource_tags(self, mock_list_tags):
+        result = list_resource_tags(events={
+            "TableName": "my_table",
+            "Region": "us-west-1",
+            "Account": "1234567890"
+        }, context={})
+
+        self.assertEqual(result, {"Tags": json.dumps(LIST_TAG_RESPONCE["Tags"])})
+        mock_list_tags.assert_called_with(resource_arn='arn:aws:dynamodb:us-west-1:1234567890:table/my_table')
+
+    def test__update_tags(self):
+
+        result = _update_tags(resource_arn="my_table", tags=[])
+
+        self.assertEqual(result, TAG_RESOURCE_RESPONCE)
+
+    @patch('documents.util.scripts.src.dynamo_db_util._update_tags',
+           return_value=TAG_RESOURCE_RESPONCE)
+    @patch('documents.util.scripts.src.dynamo_db_util.list_resource_tags',
+           return_value=LIST_TAG_RESPONCE)
+    def test_update_resource_tags(self, list_mock, update_mock):
+        events = {
+            "TableName": "my_table",
+            "Region": "us-west-1",
+            "Account": "1234567890",
+            "Tags": json.dumps(LIST_TAG_RESPONCE['Tags'])
+        }
+        result = update_resource_tags(events=events, context={})
+
+        self.assertEqual(result, {"Tags": json.dumps(LIST_TAG_RESPONCE["Tags"])})
+        update_mock.assert_called_with(resource_arn='arn:aws:dynamodb:us-west-1:1234567890:table/my_table',
+                                       tags=LIST_TAG_RESPONCE['Tags'])
+        list_mock.assert_called_with(events=events, context={})
