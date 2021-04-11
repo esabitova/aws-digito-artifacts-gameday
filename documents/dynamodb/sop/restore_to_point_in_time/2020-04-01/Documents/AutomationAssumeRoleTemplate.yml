@@ -61,5 +61,7 @@ Resources:
               - "dynamodb:UpdateTimeToLive"
               - "dynamodb:ListTagsOfResource"
               - "dynamodb:TagResource"
+              - "dynamodb:DescribeContributorInsights"
+              - "dynamodb:UpdateContributorInsights"
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

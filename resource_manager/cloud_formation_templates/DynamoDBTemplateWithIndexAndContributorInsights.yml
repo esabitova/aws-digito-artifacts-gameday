@@ -95,6 +95,8 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "USER_ID"
           AttributeType: "S"
+        - AttributeName: "Name"
+          AttributeType: "S"
       KeySchema:
         - AttributeName: "USER_ID"
           KeyType: "HASH"
@@ -103,6 +105,29 @@ Resources:
       Tags:
         - Key: Key
           Value: Value
+      ContributorInsightsSpecification:
+        Enabled: true
+      GlobalSecondaryIndexes:
+        - IndexName: digito-index-1
+          KeySchema:
+            - AttributeName: USER_ID
+              KeyType: HASH
+          Projection: 
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+        - IndexName: digito-index-2
+          KeySchema:
+            - AttributeName: Name
+              KeyType: HASH
+          Projection: 
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+          ContributorInsightsSpecification:
+            Enabled: true
 
   ##### Health Alarms #####
   WriteThrottleEventsAlarm:

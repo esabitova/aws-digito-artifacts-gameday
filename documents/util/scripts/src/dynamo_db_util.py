@@ -1,12 +1,14 @@
-import logging
-import boto3
 import json
+import logging
 from datetime import datetime
 from typing import List, Union
 
+import boto3
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+
+ENABLED_INSIGHTS_STATUSES = ['ENABLING', 'ENABLED']
 
 
 def _parse_recovery_date_time(restore_date_time_str: str, format: str) -> Union[datetime, None]:
@@ -60,6 +62,93 @@ def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str)
 def _update_table(table_name: str, **kwargs):
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
+
+
+def _describe_table(table_name: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.describe_table(TableName=table_name))
+
+
+def _describe_contributor_insights(table_name: str, index_name: str = None):
+    if index_name:
+        return _execute_boto3_dynamodb(
+            delegate=lambda x: x.describe_contributor_insights(TableName=table_name, IndexName=index_name))
+
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.describe_contributor_insights(TableName=table_name))
+
+
+def _update_contributor_insights(table_name: str, status: str, index_name: str = None):
+    if index_name:
+        return _execute_boto3_dynamodb(
+            delegate=lambda x: x.update_contributor_insights(TableName=table_name,
+                                                             IndexName=index_name,
+                                                             ContributorInsightsAction=status))
+
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.update_contributor_insights(TableName=table_name,
+                                                         ContributorInsightsAction=status))
+
+
+def update_contributor_insights_settings(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'TableContributorInsightsStatus' not in events:
+        raise KeyError('Requires TableContributorInsightsStatus')
+    if 'IndexesContributorInsightsStatus' not in events:
+        raise KeyError('Requires IndexesContributorInsightsStatus')
+
+    table_name: str = events['TableName']
+    table_status: str = events['TableContributorInsightsStatus']
+    indexes_statuses: List = json.loads(events['IndexesContributorInsightsStatus']
+                                        ) if events['IndexesContributorInsightsStatus'] else []
+    if table_status in ENABLED_INSIGHTS_STATUSES:
+        _update_contributor_insights(table_name=table_name,
+                                     status='ENABLE')
+
+    for index_status in indexes_statuses:
+        if index_status['ContributorInsightsStatus'] in ENABLED_INSIGHTS_STATUSES:
+            _update_contributor_insights(table_name=table_name,
+                                         status='ENABLE',
+                                         index_name=index_status['IndexName'])
+    events['Indexes'] = [x['IndexName'] for x in indexes_statuses]
+    return get_contributor_insights_settings(events=events, context=context)
+
+
+def get_contributor_insights_settings(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Indexes' not in events:
+        raise KeyError('Requires Indexes')
+
+    table_name: str = events['TableName']
+    indexes: List = events['Indexes']
+    table_result = _describe_contributor_insights(table_name=table_name)
+
+    indexes_results = [_describe_contributor_insights(
+        table_name=table_name, index_name=index_name) for index_name in indexes]
+    index_statuses = [{
+        'IndexName': r['IndexName'],
+        'ContributorInsightsStatus': r['ContributorInsightsStatus']
+    } for r in indexes_results]
+
+    return {
+        "TableContributorInsightsStatus": table_result['ContributorInsightsStatus'],
+        "IndexesContributorInsightsStatus": json.dumps(index_statuses)
+    }
+
+
+def get_global_secondary_indexes(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+
+    table_name = events['TableName']
+    result = _describe_table(table_name=table_name)
+    logger.info(result)
+
+    return {
+        "Indexes": [gsi['IndexName'] for gsi in result['Table'].get('GlobalSecondaryIndexes', [])]
+    }
 
 
 def update_resource_tags(events: dict, context: dict) -> List:

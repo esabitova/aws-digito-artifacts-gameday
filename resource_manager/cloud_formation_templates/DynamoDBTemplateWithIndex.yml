@@ -103,6 +103,16 @@ Resources:
       Tags:
         - Key: Key
           Value: Value
+      GlobalSecondaryIndexes:
+        - IndexName: digito-index-1
+          KeySchema:
+            - AttributeName: USER_ID
+              KeyType: HASH
+          Projection: 
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
 
   ##### Health Alarms #####
   WriteThrottleEventsAlarm:
