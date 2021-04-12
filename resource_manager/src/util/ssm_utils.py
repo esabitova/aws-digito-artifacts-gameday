@@ -1,6 +1,7 @@
 from boto3 import Session
 from datetime import datetime
 from .boto3_client_factory import client
+from botocore.config import Config
 
 
 def get_ssm_execution_output_value(session: Session, execution_id, key):
@@ -47,9 +48,28 @@ def get_ssm_step_status(session: Session, execution_id, step_name):
     :param execution_id The SSM automation execution id
     :param step_name The SSM automation step name
     """
-    ssm = session.client('ssm')
+    ssm = client('ssm', session)
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=execution_id)
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == step_name:
             return step['StepStatus']
     raise Exception('Step with name [{}:{}] was not found.'.format(execution_id, step_name))
+
+
+def send_step_approval(session: Session, execution_id, is_approved=True):
+    """
+    Sends approve or reject to SSM execution
+    :param execution_id The SSM document execution id
+    :param is_approved True if approve, False if reject
+    :param session The boto3 session
+    """
+    signal_type = 'Approve' if is_approved else 'Reject'
+
+    # We do want to create client with custom session, not created in boto3_client_factory.py
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm_client = session.client('ssm', config=config)
+
+    ssm_client.send_automation_signal(
+        AutomationExecutionId=execution_id,
+        SignalType=signal_type
+    )

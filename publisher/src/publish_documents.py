@@ -209,9 +209,9 @@ class PublishDocuments:
         metadata_file_path = document_metadata['location'] + '/metadata.json'
         meta_attrs_map = metadata_attrs.metadata_attrs_map
         required_attributes = []
-        if 'test' in metadata_file_path:
+        if '/test/' in metadata_file_path:
             required_attributes = meta_attrs_map.get('test')
-        elif 'sop' in metadata_file_path:
+        elif '/sop/' in metadata_file_path:
             required_attributes = meta_attrs_map.get('sop')
         violations = self.get_metadata_violations(document_metadata, metadata_file_path, required_attributes)
 

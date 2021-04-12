@@ -210,15 +210,3 @@ class SsmDocument:
             if step_name == step_execution['StepName']:
                 return index
             index += 1
-
-    def send_step_approval(self, execution_id, is_approved=True):
-        """
-        Sends approve or reject to SSM execution
-        :param execution_id The SSM document execution id
-        :param is_approved True if approve, False if reject
-        """
-        signal_type = 'Approve' if is_approved else 'Reject'
-        self.ssm_client.send_automation_signal(
-            AutomationExecutionId=execution_id,
-            SignalType=signal_type
-        )
