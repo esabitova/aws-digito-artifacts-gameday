@@ -1,5 +1,4 @@
 
-import json
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -107,7 +106,7 @@ class TestAutoScalingUtil(unittest.TestCase):
 
         self.assertEqual(result, {'ScalingTargets': '[{"Dimension": "dimension", "Min": 5, "Max": 1}]'})
         register_mock.assert_called_with(table_name='my_table',
-                                           dimension='dimension',
-                                           max_cap=5,
-                                           min_cap=1)
+                                         dimension='dimension',
+                                         max_cap=5,
+                                         min_cap=1)
         describe_mock.assert_called_with(events=events, context={})
