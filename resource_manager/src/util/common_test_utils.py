@@ -47,3 +47,22 @@ def generate_different_value_by_ranges(from_range: int, to_range: int, old_value
     while new_value == old_value:
         new_value = random.randint(from_range, to_range)
     return new_value
+
+
+def generate_and_cache_different_value_by_property_name(resource_manager, ssm_test_cache, old_property, from_range,
+                                                        to_range, cache_property, cache_key, input_parameters):
+    """
+    Extract value of property, generate different value that extracted by ranges and put result in cache
+    with the key cache_property which should be placed under other key - cache_key
+    :param resource_manager: AWS resource manager
+    :param ssm_test_cache: cache
+    :param old_property: CloudFormation output parameter to extract value
+    :param from_range: from range
+    :param to_range: to range inclusively
+    :param cache_key: 1-level cache key
+    :param cache_property: 2-level cache key
+    :param input_parameters: the table with input parameters
+    """
+    old_value = extract_param_value(input_parameters, old_property, resource_manager, ssm_test_cache)
+    cache_value = generate_different_value_by_ranges(int(from_range), int(to_range), int(old_value))
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, cache_value)
