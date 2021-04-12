@@ -57,6 +57,24 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
+    nextStep: CalculateUpdateDuration
+
+  - name: CalculateUpdateDuration
+    action: aws:executeScript
+    outputs:
+      - Name: UpdateDuration
+        Selector: $.Payload.duration
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_step_durations
+      InputPayload:
+        ExecutionId: '{{ automation:EXECUTION_ID }}'
+        StepName: 'UpdateDynamoDBTableProvisionedCapacity,VerifyDynamoDBTableUpdateStatus'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_step_durations
     nextStep: GetUpdatedProvisionedThroughput
 
   - name: GetUpdatedProvisionedThroughput
@@ -73,27 +91,5 @@ mainSteps:
       - Name: WriteCapacityUnits
         Selector: "$.Table.ProvisionedThroughput.WriteCapacityUnits"
         Type: Integer
-
-  - name: CalculateUpdateDuration
-    action: aws:executeScript
-    outputs:
-      - Name: Duration
-        Selector: $.Payload.duration
-        Type: String
-      - Name: UpdateDynamoDBTableProvisionedCapacityStartTime
-        Selector: $.Payload.FirstStepStartTime
-        Type: String
-      - Name: GetUpdatedProvisionedThroughputStartTime
-        Selector: $.Payload.SecondStepStartTime
-        Type: String
-    inputs:
-      Runtime: python3.7
-      Handler: get_duration_between_two_steps
-      InputPayload:
-        ExecutionId: '{{ automation:EXECUTION_ID }}'
-        StepNames: 'UpdateDynamoDBTableProvisionedCapacity,GetUpdatedProvisionedThroughput'
-      Script: |-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_duration_between_two_steps
     isEnd: true
+
