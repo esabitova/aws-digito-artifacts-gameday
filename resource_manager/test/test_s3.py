@@ -16,7 +16,7 @@ class TestS3(unittest.TestCase):
                                                                      self.mock_region_name)
 
         self.mock_file_name = 'test-file-name'
-        self.mock_file_url = 'https://{}.s3-{}.amazonaws.com/{}'.format(self.mock_s3_bucket_name,
+        self.mock_file_url = 'https://{}.s3.{}.amazonaws.com/{}'.format(self.mock_s3_bucket_name,
                                                                         self.mock_region_name,
                                                                         self.mock_file_name)
         self.session_mock = MagicMock()
