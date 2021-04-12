@@ -1,23 +1,27 @@
 from typing import List
 
 import boto3
+import logging
 
 backup_client = boto3.client('backup')
+LOG = logging.getLogger(__name__)
 
 
-def run_backup(resource_arn: str, backup_vault_name: str):
+def run_backup(resource_arn: str, iam_role_arn: str, backup_vault_name: str):
     """
     Issues a backup job
     :param resource_arn ARN of resource to be backed up
     :param backup_vault_name Backup Vault Name
+    :param iam_role_arn ARN of IAM role used to create the target recovery point
     """
 
-    backup_client.start_backup_job(
+    LOG.info(f'Starting to back up {resource_arn} into {backup_vault_name}')
+    response = backup_client.start_backup_job(
         BackupVaultName=backup_vault_name,
+        IamRoleArn=iam_role_arn,
         ResourceArn=resource_arn
     )
-
-    pass
+    return response['RecoveryPointArn']
 
 
 def get_recovery_point(backup_vault_name: str, resource_type: str):
@@ -33,7 +37,7 @@ def get_recovery_point(backup_vault_name: str, resource_type: str):
         for recovery_point in response['RecoveryPoints']:
             if recovery_point['Status'] == 'COMPLETED':
                 return recovery_point['RecoveryPointArn']
-    print(f'No recovery points found for {resource_type} in {backup_vault_name}')
+    LOG.info(f'No recovery points found for {resource_type} in {backup_vault_name}')
     raise Exception(f'No recovery points found for {resource_type} in {backup_vault_name}')
 
 

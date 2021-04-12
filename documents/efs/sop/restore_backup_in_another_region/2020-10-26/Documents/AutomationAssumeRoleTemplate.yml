@@ -46,6 +46,9 @@ Resources:
             Action:
               - "backup:StartRestoreJob"
               - "backup:DescribeRestoreJob"
+              - "elasticfilesystem:DescribeFileSystems"
+              - "backup:StartBackupJob"
+              - "backup:DescribeBackupJob"
               - "iam:PassRole"
       Roles:
         - Ref: DigitoRestoreBackupAssumeRole

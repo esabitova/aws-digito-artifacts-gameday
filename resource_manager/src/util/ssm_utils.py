@@ -3,6 +3,21 @@ from datetime import datetime
 from .boto3_client_factory import client
 
 
+def get_ssm_execution_output_value(session: Session, execution_id, key):
+    """
+    Returns SSM automation output value by key.
+    :param session The AWS session
+    :param execution_id The SSM automation execution id
+    :param key Key in Output dict for target value
+    """
+    ssm = session.client('ssm')
+    ssm_response = ssm.get_automation_execution(AutomationExecutionId=execution_id)
+    if ssm_response['AutomationExecution']['Outputs'][key]:
+        return ssm_response['AutomationExecution']['Outputs'][key][0]
+    print('Value {} not found in output for execution {}.'.format(execution_id, key))
+    raise Exception('Value {} not found in output for execution {}.'.format(execution_id, key))
+
+
 def get_ssm_step_interval(session: Session, execution_id, step_name):
     """
     Returns SSM automation step execution time interval in GMT/UTC. If Step is not
