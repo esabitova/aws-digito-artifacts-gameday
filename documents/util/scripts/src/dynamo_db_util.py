@@ -16,7 +16,7 @@ def _parse_recovery_date_time(restore_date_time_str: str, format: str) -> Union[
         try:
             return datetime.strptime(restore_date_time_str, format)
         except ValueError as ve:
-            print(ve)
+            logger.error(ve)
     return None
 
 
@@ -200,7 +200,7 @@ def update_time_to_live(events: dict, context: dict) -> List:
         raise KeyError('Requires TableName')
     if 'Status' not in events:
         raise KeyError('Requires Status')
-    is_enabled = events['AttributeName'] == 'ENABLED'
+    is_enabled = events['Status'] == 'ENABLED'
     if not is_enabled:
         return{
             "Enabled": False,
@@ -212,7 +212,9 @@ def update_time_to_live(events: dict, context: dict) -> List:
     table_name = events['TableName']
     attribute_name = events.get('AttributeName', '')
     logging.info(f'table:{table_name};kinesis is_enabled: {is_enabled};')
-    result = _update_time_to_live(table_name=table_name, is_enabled=is_enabled, attribute_name=attribute_name)
+    result = _update_time_to_live(table_name=table_name,
+                                  is_enabled=is_enabled,
+                                  attribute_name=attribute_name)
 
     return {**result}
 

@@ -21,7 +21,9 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_contributor_ins
                                                        update_resource_tags,
                                                        get_contributor_insights_settings,
                                                        _update_contributor_insights,
-                                                       update_contributor_insights_settings)
+                                                       update_contributor_insights_settings,
+                                                       _update_time_to_live,
+                                                       update_time_to_live)
 
 
 GENERIC_SUCCESS_RESULT = {
@@ -192,20 +194,30 @@ UPDATE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_AND_INDEX_RESPONCE = {
     "IndexName": "Partition_key-index",
     "ContributorInsightsStatus": "ENABLING",
 }
+UPDATE_TTL_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    'TimeToLiveSpecification': {
+        'Enabled': True,
+        'AttributeName': 'End_Date'
+    }
+}
 
 
 @pytest.mark.unit_test
-class TestS3Util(unittest.TestCase):
+class TestDynamoDbUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
         self.dynamodb_client_mock = MagicMock()
+        self.application_autoscalingclient_mock = MagicMock()
         self.side_effect_map = {
-            'dynamodb': self.dynamodb_client_mock
+            'dynamodb': self.dynamodb_client_mock,
+            'application-autoscaling': self.application_autoscalingclient_mock
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
         self.dynamodb_client_mock.list_tags_of_resource.return_value = LIST_TAG_RESPONCE
+        self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
         self.dynamodb_client_mock.tag_resource.return_value = TAG_RESOURCE_RESPONCE
         self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONCE
         self.dynamodb_client_mock.describe_contributor_insights.return_value = \
@@ -365,6 +377,45 @@ class TestS3Util(unittest.TestCase):
 
         self.assertEqual(result, expected_output)
         enable_mock.assert_called_with(table_name='my_table', kds_arn='TestStreamArn1')
+
+    def test__update_time_to_live(self):
+
+        result = _update_time_to_live(table_name="my_table", is_enabled=True, attribute_name="End_Date")
+
+        self.assertEqual(result, UPDATE_TTL_RESPONSE)
+        self.dynamodb_client_mock\
+            .update_time_to_live\
+            .assert_called_with(TableName="my_table",
+                                TimeToLiveSpecification={
+                                    "Enabled": True,
+                                    "AttributeName": 'End_Date'
+                                })
+
+    @patch('documents.util.scripts.src.dynamo_db_util._update_time_to_live',
+           return_value=UPDATE_TTL_RESPONSE)
+    def test_update_time_to_live_enable(self, ttl_mock):
+
+        result = update_time_to_live(events={
+            "TableName": "my_table",
+            "Status": "ENABLED",
+            "AttributeName": "End_Date"
+        }, context={})
+
+        self.assertEqual(result, UPDATE_TTL_RESPONSE)
+        ttl_mock.assert_called_with(table_name='my_table', is_enabled=True, attribute_name='End_Date')
+
+    @patch('documents.util.scripts.src.dynamo_db_util._update_time_to_live',
+           return_value=UPDATE_TTL_RESPONSE)
+    def test_update_time_to_live_not_called(self, ttl_mock):
+
+        result = update_time_to_live(events={
+            "TableName": "my_table",
+            "Status": "ENABLED",
+            "AttributeName": "End_Date"
+        }, context={})
+
+        self.assertEqual(result, UPDATE_TTL_RESPONSE)
+        ttl_mock.is_not_called()
 
     def test__list_tags(self):
 

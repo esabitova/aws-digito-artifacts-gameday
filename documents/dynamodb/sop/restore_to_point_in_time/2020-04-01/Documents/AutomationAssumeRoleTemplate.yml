@@ -63,5 +63,7 @@ Resources:
               - "dynamodb:TagResource"
               - "dynamodb:DescribeContributorInsights"
               - "dynamodb:UpdateContributorInsights"
+              - "application-autoscaling:DescribeScalableTargets"
+              - "application-autoscaling:RegisterScalableTarget"
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole
