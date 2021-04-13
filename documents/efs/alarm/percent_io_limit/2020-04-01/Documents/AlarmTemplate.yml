@@ -24,8 +24,6 @@ Resources:
       AlarmDescription: :
         Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', ${Threshold} ] ]
       ActionsEnabled: false
-      AlarmActions:
-        - Ref: SNSTopicARN
       Metrics:
         - Expression:
           Fn::Join: [ '',["ANOMALY_DETECTION_BAND(m1,",${Threshold}, ")"]]

@@ -14,8 +14,6 @@ Resources:
       AlarmName: MountFailure
       AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
       ActionsEnabled: false
-      AlarmActions:
-        - Ref: SNSTopicARN
       MetricName: MountFailure
       Namespace: AWS/EFS
       Statistic: Maximum
