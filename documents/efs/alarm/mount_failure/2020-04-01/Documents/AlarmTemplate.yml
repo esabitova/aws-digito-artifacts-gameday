@@ -11,7 +11,7 @@ Resources:
   MountFailureAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: MountFailure
+      AlarmName: ${AlarmName}
       AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
       ActionsEnabled: false
       MetricName: MountFailure

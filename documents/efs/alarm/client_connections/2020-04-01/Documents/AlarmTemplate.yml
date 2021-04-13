@@ -20,7 +20,7 @@ Resources:
   ClientConnectionsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ClientConnections
+      AlarmName: ${AlarmName}
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when client connections deviation is over ', ${Threshold}] ]
       ActionsEnabled: false
