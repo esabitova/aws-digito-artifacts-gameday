@@ -5,7 +5,6 @@ from math import ceil
 from botocore.config import Config
 
 
-
 def get_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')

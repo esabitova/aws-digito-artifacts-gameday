@@ -740,14 +740,16 @@ class TestDocDBUtil(unittest.TestCase):
             'DBClusterIdentifier': DOCDB_CLUSTER_ID,
             'DBSnapshotIdentifier': '',
             'LatestSnapshotIdentifier': 'Snapshot3',
-            'LatestSnapshotEngine': DOCDB_ENGINE
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'AvailabilityZones': [DOCDB_AZ]
         }
         response = restore_db_cluster(events, None)
         cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
         self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
             DBClusterIdentifier=cluster_id,
             SnapshotIdentifier='Snapshot3',
-            Engine=DOCDB_ENGINE
+            Engine=DOCDB_ENGINE,
+            AvailabilityZones=[DOCDB_AZ]
         )
         self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
 
@@ -756,14 +758,16 @@ class TestDocDBUtil(unittest.TestCase):
             'DBClusterIdentifier': DOCDB_CLUSTER_ID,
             'DBSnapshotIdentifier': 'latest',
             'LatestSnapshotIdentifier': 'Snapshot3',
-            'LatestSnapshotEngine': DOCDB_ENGINE
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'AvailabilityZones': [DOCDB_AZ]
         }
         response = restore_db_cluster(events, None)
         cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
         self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
             DBClusterIdentifier=cluster_id,
             SnapshotIdentifier='Snapshot3',
-            Engine=DOCDB_ENGINE
+            Engine=DOCDB_ENGINE,
+            AvailabilityZones=[DOCDB_AZ]
         )
         self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
 
@@ -772,14 +776,16 @@ class TestDocDBUtil(unittest.TestCase):
             'DBClusterIdentifier': DOCDB_CLUSTER_ID,
             'DBSnapshotIdentifier': 'Snapshot2',
             'LatestSnapshotIdentifier': 'Snapshot3',
-            'LatestSnapshotEngine': DOCDB_ENGINE
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'AvailabilityZones': [DOCDB_AZ]
         }
         response = restore_db_cluster(events, None)
         cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
         self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
             DBClusterIdentifier=cluster_id,
             SnapshotIdentifier='Snapshot2',
-            Engine=DOCDB_ENGINE
+            Engine=DOCDB_ENGINE,
+            AvailabilityZones=[DOCDB_AZ]
         )
         self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
 

@@ -253,13 +253,15 @@ def restore_db_cluster(events, context):
             docdb.restore_db_cluster_from_snapshot(
                 DBClusterIdentifier=restored_cluster_identifier,
                 SnapshotIdentifier=events['LatestSnapshotIdentifier'],
-                Engine=events['LatestSnapshotEngine']
+                Engine=events['LatestSnapshotEngine'],
+                AvailabilityZones=events['AvailabilityZones']
             )
         else:
             docdb.restore_db_cluster_from_snapshot(
                 DBClusterIdentifier=restored_cluster_identifier,
                 SnapshotIdentifier=events['DBSnapshotIdentifier'],
-                Engine=events['LatestSnapshotEngine']
+                Engine=events['LatestSnapshotEngine'],
+                AvailabilityZones=events['AvailabilityZones']
             )
         return {'RestoredClusterIdentifier': restored_cluster_identifier}
     except Exception as e:

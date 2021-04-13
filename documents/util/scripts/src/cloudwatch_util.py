@@ -15,7 +15,7 @@ def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_t
     :return: The highest data point value.
     """
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    cw = boto3.client('cloudwatch')
+    cw = boto3.client('cloudwatch', config=config)
     response = cw.get_metric_statistics(
         Namespace="AWS/EC2",
         MetricName=metric_name,

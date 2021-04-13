@@ -4,7 +4,6 @@ from time import sleep
 from botocore.config import Config
 
 
-
 def restore_to_pit(events, context):
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     rds = boto3.client('rds', config=config)
