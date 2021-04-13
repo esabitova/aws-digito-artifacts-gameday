@@ -75,20 +75,7 @@ class TestSsmDocument(unittest.TestCase):
         self.assertEqual('123456', execution_id)
         self.mock_ssm.start_automation_execution.assert_called_once()
 
-    # Test send_step_approval
-
-    def test_send_step_approval_approve(self):
-        self.ssm_document.send_step_approval(SSM_EXECUTION_ID)
-        self.mock_ssm.send_automation_signal.assert_called_once_with(AutomationExecutionId=SSM_EXECUTION_ID,
-                                                                     SignalType='Approve')
-
-    def test_send_step_approval_reject(self):
-        self.ssm_document.send_step_approval(SSM_EXECUTION_ID, is_approved=False)
-        self.mock_ssm.send_automation_signal.assert_called_once_with(AutomationExecutionId=SSM_EXECUTION_ID,
-                                                                     SignalType='Reject')
-
     # Test wait_for_execution_step_status_is_terminal_or_waiting
-
     def test_wait_for_execution_step_status_is_terminal_or_waiting_success(self):
         execution_1 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
         execution_2 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
