@@ -56,5 +56,8 @@ Resources:
               - ssm:StartAutomationExecution
               - ssm:GetAutomationExecution
               - iam:PassRole
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
       Roles:
         - Ref: SqsDlqMessageStandardQueueAlarmAssumeRole
