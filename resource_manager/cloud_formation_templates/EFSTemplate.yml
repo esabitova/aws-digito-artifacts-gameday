@@ -23,12 +23,12 @@ Parameters:
     Description: VPC cidr block
     Default: 10.0.0.0/16
   AlarmIOThreshold:
-    type: Number
-    Descrition: Alarm threshold for PercentIOLimitAlarm
+    Type: Number
+    Description: Alarm threshold for PercentIOLimitAlarm
     Default: 0.05
   AlarmClientConnectionsTrheshold:
-    type: Number
-    Descrition: Alarm threshold for ClientConnectionsAlarm
+    Type: Number
+    Description: Alarm threshold for ClientConnectionsAlarm
     Default: 0.05
 Outputs:
   EFSID:
@@ -153,11 +153,11 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', !Ref AlarmIOThreshold ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', !Ref AlarmClientConnectionsTrheshold ] ]
       ActionsEnabled: false
       Metrics:
         - Expression:
-          Fn::Join: [ '',[ "ANOMALY_DETECTION_BAND(m1,",!Ref AlarmIOThreshold, ")" ] ]
+            Fn::Join: [ '',[ "ANOMALY_DETECTION_BAND(m1,",!Ref AlarmClientConnectionsTrheshold, ")" ] ]
           Id: ad1
         - Id: m1
           MetricStat:
@@ -207,7 +207,7 @@ Resources:
       ActionsEnabled: false
       Metrics:
         - Expression:
-          Fn::Join: [ '',[ "ANOMALY_DETECTION_BAND(m1,",!Ref AlarmClientConnectionsTrheshold, ")" ] ]
+            Fn::Join: [ '',[ "ANOMALY_DETECTION_BAND(m1,",!Ref AlarmClientConnectionsTrheshold, ")" ] ]
           Id: ad1
         - Id: m1
           MetricStat:
