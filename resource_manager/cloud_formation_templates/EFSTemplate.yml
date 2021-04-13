@@ -22,6 +22,14 @@ Parameters:
     Type: String
     Description: VPC cidr block
     Default: 10.0.0.0/16
+  AlarmIOThreshold:
+    type: Number
+    Descrition: Alarm threshold for PercentIOLimitAlarm
+    Default: 0.05
+  AlarmClientConnectionsTrheshold:
+    type: Number
+    Descrition: Alarm threshold for ClientConnectionsAlarm
+    Default: 0.05
 Outputs:
   EFSID:
     Description: EFS ID
@@ -38,6 +46,15 @@ Outputs:
   EFSMountTargetSecurityGroupId:
     Description: Security Group Id
     Value: !GetAtt EFSMountTargetSecurityGroup.GroupId
+  ClientConnectionsAlarmName:
+    Description: Alarm
+    Value: !Ref  ClientConnectionsAlarm
+  PercentIOLimitAlarmName:
+    Description: Alarm
+    Value: !Ref  PercentIOLimitAlarm
+  MountFailureAlarmName:
+    Description: Alarm
+    Value: !Ref  MountFailureAlarm
 Resources:
   EFSMountTargerVPC:
     Type: AWS::EC2::VPC
@@ -107,39 +124,6 @@ Resources:
       SubnetId: !Ref EFSMountTargerSubnet
       SecurityGroups:
         - !Ref EFSMountTargetSecurityGroup
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
-    Properties:
-      TopicName: !Join
-        - "-"
-        - - "efs-alarms"
-          - !Select
-            - 0
-            - !Split
-              - "-"
-              - !Select
-                - 2
-                - !Split
-                  - "/"
-                  - !Ref "AWS::StackId"
-  ClientConnectionsAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: ClientConnections
-      Namespace: AWS/EFS
-      Stat: Average
-      Dimensions:
-        - Name: EFS
-          Value: !Ref FileSystem
-  PercentIOLimitAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: PercentIOLimit
-      Namespace: AWS/EFS
-      Stat: Average
-      Dimensions:
-        - Name: EFS
-          Value: !Ref FileSystem
   JobIAMRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -156,6 +140,87 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
         - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores
+  PercentIOLimitAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: PercentIOLimit
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+  PercentIOLimitAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', !Ref AlarmIOThreshold ] ]
+      ActionsEnabled: false
+      Metrics:
+        - Expression:
+          Fn::Join: [ '',[ "ANOMALY_DETECTION_BAND(m1,",!Ref AlarmIOThreshold, ")" ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: PercentIOLimit
+              Namespace: AWS/EFS
+            Period: 60
+            Stat: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
+  MountFailureAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: MountFailure
+      AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
+      ActionsEnabled: false
+      MetricName: MountFailure
+      Namespace: AWS/EFS
+      Statistic: Maximum
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+      Period: 30
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing
+      Unit: Count
+  ClientConnectionsAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: ClientConnections
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: !Ref FileSystem
+  ClientConnectionsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription:
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when client connections deviation is over ', !Ref AlarmClientConnectionsTrheshold ] ]
+      ActionsEnabled: false
+      Metrics:
+        - Expression:
+          Fn::Join: [ '',[ "ANOMALY_DETECTION_BAND(m1,",!Ref AlarmClientConnectionsTrheshold, ")" ] ]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: ClientConnections
+              Namespace: AWS/EFS
+            Period: 60
+            Stat: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing
   BackupVaultSource:
     Type: AWS::Backup::BackupVault
     Properties:

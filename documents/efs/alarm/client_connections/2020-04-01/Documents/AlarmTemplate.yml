@@ -2,16 +2,28 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
     Type: String
+Outputs:
+  AlarmName:
+    Type: String
+    Description: Client Connections Alarm Name
+    Default: !Ref ClientConnectionsAlarm
 Resources:
+  ClientConnectionsAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: ClientConnections
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: ${FileSystem}
   ClientConnectionsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmName: ClientConnections
+      AlarmName: ${AlarmName}
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when client connections deviation is over ', ${Threshold}] ]
       ActionsEnabled: false
-      AlarmActions:
-        - Ref: SNSTopicARN
       Metrics:
         - Expression:
           Fn::Join: [ '',["ANOMALY_DETECTION_BAND(m1,",${Threshold}, ")"]]

@@ -2,7 +2,21 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
     Type: String
+Outputs:
+  AlarmName:
+    Type: String
+    Description: Percent IO Limit Alarm Name
+    Default: !Ref PercentIOLimitAlarm
 Resources:
+  PercentIOLimitAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: PercentIOLimit
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: ${FileSystem}
   PercentIOLimitAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -10,8 +24,6 @@ Resources:
       AlarmDescription: :
         Fn::Join: [ '', [ 'Alarm by Digito that reports when EFS I/O deviation is over ', ${Threshold} ] ]
       ActionsEnabled: false
-      AlarmActions:
-        - Ref: SNSTopicARN
       Metrics:
         - Expression:
           Fn::Join: [ '',["ANOMALY_DETECTION_BAND(m1,",${Threshold}, ")"]]
