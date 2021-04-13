@@ -1,12 +1,59 @@
-import unittest
-import time
-import pytest
-from documents.util.scripts.src.cloudwatch_util import describe_metric_alarm_state, get_ec2_metric_max_datapoint,\
-    verify_ec2_stress, verify_alarm_triggered, get_metric_alarm_threshold_values
-from unittest.mock import patch
-from unittest.mock import MagicMock
-from documents.util.scripts.test.test_data_provider import get_instance_ids_by_count
 import datetime
+import time
+import unittest
+from unittest.mock import MagicMock, patch
+
+import pytest
+from documents.util.scripts.src.cloudwatch_util import (
+    _describe_metric_alarms, describe_metric_alarm_state,
+    get_ec2_metric_max_datapoint, get_metric_alarm_threshold_values,
+    verify_alarm_triggered, verify_ec2_stress,
+    copy_put_alarms_for_dynamo_db_table)
+from documents.util.scripts.test.test_data_provider import \
+    get_instance_ids_by_count
+
+GENERIC_SUCCESS_RESULT = {
+    "ResponseMetadata": {
+        "HTTPStatusCode": 200
+    }
+}
+DESCRIBE_ALARMS_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "MetricAlarms": [
+        {
+            "AlarmName": "TargetTracking-table/myable-AlarmHigh-2b8fb5f6-8477-4904-9ffb-cb4112e71b3c",
+            "AlarmArn": "arn:aws:cloudwatch:us-east-2:435978235099:alarm:'\
+            'TargetTracking-table/myable-AlarmHigh-2b8fb5f6-8477-4904-9ffb-cb4112e71b3c",
+            "AlarmDescription": "descr",
+            "AlarmConfigurationUpdatedTimestamp": "2021-04-08T14:25:05.077000+00:00",
+            "ActionsEnabled": True,
+            "OKActions": [],
+            "AlarmActions": [
+                "arn:aws:autoscaling:us-east-2:435978235099:scalingPolicy:61dedb74-0a54-422a-8a67-2b84c1adec92:'\
+                    'resource/dynamodb/table/myable:policyName/DynamoDBWriteCapacityUtilization:'\
+                        'table/myable:createdBy/9f25e21a-8186-4832-8f16-51777da24a1a"
+            ],
+            "InsufficientDataActions": [],
+            "StateValue": "OK",
+            "StateReason": "Some Reason",
+            "StateReasonData": "Some data",
+            "StateUpdatedTimestamp": "2021-04-08T14:29:26.001000+00:00",
+            "MetricName": "ConsumedWriteCapacityUnits",
+            "Namespace": "AWS/DynamoDB",
+            "Statistic": "Sum",
+            "Dimensions": [
+                {
+                    "Name": "TableName",
+                    "Value": "source_table"
+                }
+            ],
+            "Period": 60,
+            "EvaluationPeriods": 2,
+            "Threshold": 210.0,
+            "ComparisonOperator": "GreaterThanThreshold"
+        }
+    ]
+}
 
 
 @pytest.mark.unit_test
@@ -20,9 +67,32 @@ class TestCloudWatchUtil(unittest.TestCase):
             'cloudwatch': self.cw_mock
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.cw_mock.describe_alarms.return_value = \
+            DESCRIBE_ALARMS_RESPONSE
 
     def tearDown(self):
         self.patcher.stop()
+
+    def test__describe_metric_alarms(self):
+
+        result = _describe_metric_alarms()
+
+        self.assertEqual(result, DESCRIBE_ALARMS_RESPONSE)
+
+    @patch('documents.util.scripts.src.cloudwatch_util._describe_metric_alarms',
+           return_value=DESCRIBE_ALARMS_RESPONSE)
+    @patch('documents.util.scripts.src.cloudwatch_util._put_metric_alarm',
+           return_value=DESCRIBE_ALARMS_RESPONSE)
+    def test_copy_put_alarms_for_dynamo_db_table(self, describe_mock, put_mock):
+
+        result = copy_put_alarms_for_dynamo_db_table(events={
+            'SourceTableName': 'source_table',
+            'TargetTableName': 'target_table'
+        }, context={})
+
+        self.assertEqual(result['AlarmsChanged'], 1)
+        describe_mock.assert_called()
+        put_mock.assert_called()
 
     def test_verify_ec2_stress_low_cpu_failed(self):
         expected_cpu_load = 95
