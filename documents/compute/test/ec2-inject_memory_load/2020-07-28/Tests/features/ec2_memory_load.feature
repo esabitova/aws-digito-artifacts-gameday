@@ -33,6 +33,7 @@ Feature: SSM automation document EC2 memory stress testing
       |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                         |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
       |documents/compute/test/ec2-inject_cpu_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |                                            |
     And published "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" SSM document
+    And published "Digito-KillStressCommand_2020-07-28" SSM document
 
     When SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" executed
       |InstanceId                                         |AutomationAssumeRole                                                                   |MemoryUtilizationAlarmName                             |MemoryLoadPercentage          |Duration                |
