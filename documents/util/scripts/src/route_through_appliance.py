@@ -1,12 +1,14 @@
-from typing import List
-import boto3
 import json
+import boto3
+from typing import List
+from botocore.config import Config
 
 INTERNET_DESTINATION = '0.0.0.0/0'
 
 
 def get_existing_routes(events, context):
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     route_table_response = ec2.describe_route_tables(
         Filters=[{
@@ -17,7 +19,8 @@ def get_existing_routes(events, context):
 
 
 def route_through_appliance(events, context):
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     route_table_response = json.loads(events['ExistingRouteTableResponse'])
 
@@ -36,7 +39,8 @@ def route_through_appliance(events, context):
 
 
 def cleanup_to_previous_route(events, context):
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
     route_table_response = json.loads(events['ExistingRouteTableResponse'])
 
     for route_table in route_table_response['RouteTables']:
@@ -126,7 +130,8 @@ def _check_if_route_already_exists(route_table_id: str, cidr_ipv4: str, current_
 def get_nat_gw_routes(events, context):
     print('Creating ec2 client')
     print(events)
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     if 'NatGatewayId' not in events:
         raise KeyError('Requires NatGatewayId')
@@ -148,7 +153,8 @@ def get_nat_gw_routes(events, context):
 def delete_nat_gw_routes(events, context):
     print('Creating ec2 client')
     print(events)
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     if 'NatGatewayId' not in events:
         raise KeyError('Requires NatGatewayId')
@@ -178,7 +184,8 @@ def delete_nat_gw_routes(events, context):
 def create_nat_gw_routes(events, context):
     print('Creating ec2 client')
     print(events)
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     if 'NatGatewayId' not in events:
         raise KeyError('Requires NatGatewayId')

@@ -1,7 +1,8 @@
-import boto3
-import time
-from datetime import datetime, timedelta
 import logging
+import time
+import boto3
+from datetime import datetime, timedelta
+from botocore.config import Config
 
 
 def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_time_utc):
@@ -13,6 +14,7 @@ def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_t
     :param end_time_utc: The metric interval end time in UTC
     :return: The highest data point value.
     """
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     cw = boto3.client('cloudwatch')
     response = cw.get_metric_statistics(
         Namespace="AWS/EC2",
@@ -46,7 +48,8 @@ def describe_metric_alarm_state(alarm_name):
     :param alarm_name: The alarm name
     :return: The alarm state.
     """
-    cw = boto3.client('cloudwatch')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    cw = boto3.client('cloudwatch', config=config)
     response = cw.describe_alarms(
         AlarmNames=[alarm_name],
         AlarmTypes=[
@@ -100,8 +103,8 @@ def verify_alarm_triggered(events, context):
     """
     if 'AlarmName' not in events or 'DurationInMinutes' not in events:
         raise KeyError('Requires AlarmName, DurationInMinutes in events')
-
-    cw = boto3.client('cloudwatch')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    cw = boto3.client('cloudwatch', config=config)
     response = cw.describe_alarm_history(
         AlarmName=events['AlarmName'],
         HistoryItemType='StateUpdate',
@@ -154,7 +157,8 @@ def get_metric_alarm_threshold_values(event, context):
     Get alarm threshold and return values above and below
     """
     alarm_name = event['AlarmName']
-    cw = boto3.client('cloudwatch')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    cw = boto3.client('cloudwatch', config=config)
     response = cw.describe_alarms(
         AlarmNames=[alarm_name],
         AlarmTypes=['MetricAlarm']

@@ -138,7 +138,7 @@ class TestDocDBUtil(unittest.TestCase):
         self.side_effect_map = {
             'docdb': self.mock_docdb
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
 
         self.mock_docdb.describe_db_instances.return_value = DOCDB_INSTANCES
 

@@ -1,10 +1,12 @@
 import boto3
+from botocore.config import Config
 
 INTERNET_DESTINATION = '0.0.0.0/0'
 
 
 def get_public_subnet_in_private_subnet_vpc(events, context):
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     subnet = ec2.describe_subnets(SubnetIds=[events['SubnetIds'][0]])
     subnet_vpc_id = subnet['Subnets'][0]['VpcId']

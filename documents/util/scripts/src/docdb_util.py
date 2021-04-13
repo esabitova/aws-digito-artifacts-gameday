@@ -1,12 +1,14 @@
-import boto3
 import random
+import boto3
 from datetime import datetime
 from operator import itemgetter
+from botocore.config import Config
 
 
 def get_cluster_az(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         response = docdb.describe_db_clusters(DBClusterIdentifier=events['DBClusterIdentifier'])
         cluster_azs = response['DBClusters'][0]['AvailabilityZones']
         return {'cluster_azs': cluster_azs}
@@ -17,7 +19,8 @@ def get_cluster_az(events, context):
 
 def create_new_instance(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         az = events.get('AvailabilityZone')
         instance_az = az if az else random.choice(events['DBClusterAZs'])
         response = docdb.create_db_instance(
@@ -44,7 +47,8 @@ def count_cluster_instances(events, context):
 
 def verify_db_instance_exist(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         response = docdb.describe_db_instances(
             DBInstanceIdentifier=events['DBInstanceIdentifier'],
             Filters=[
@@ -69,7 +73,8 @@ def verify_db_instance_exist(events, context):
 
 def verify_cluster_instances(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         response = docdb.describe_db_clusters(DBClusterIdentifier=events['DBClusterIdentifier'])
         current_instances_number = len(response['DBClusters'][0]['DBClusterMembers'])
         before_instances_number = events['BeforeDbClusterInstancesNumber']
@@ -87,7 +92,8 @@ def get_recovery_point_input(events, context):
         date = events['RestoreToDate']
         restorable_cluster_identifier = events['DBClusterIdentifier']
         if date == 'latest':
-            docdb = boto3.client('docdb')
+            config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+            docdb = boto3.client('docdb', config=config)
             response = docdb.describe_db_clusters(DBClusterIdentifier=restorable_cluster_identifier)
             print(response['DBClusters'][0]['LatestRestorableTime'].strftime("%Y-%m-%dT%H:%M:%S%Z"))
             return {'RecoveryPoint': response['DBClusters'][0]['LatestRestorableTime'].strftime("%Y-%d-%mT%H:%M:%S%Z")}
@@ -100,7 +106,8 @@ def get_recovery_point_input(events, context):
 
 def restore_to_point_in_time(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         restorable_cluster_identifier = events['DBClusterIdentifier']
         new_cluster_identifier = restorable_cluster_identifier + '-restored'
         date = events['RestoreToDate']
@@ -129,7 +136,8 @@ def restore_to_point_in_time(events, context):
 
 def restore_db_cluster_instances(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         print(events['BackupDbClusterInstancesCountValue'])
         instances = events['BackupDbClusterInstancesCountValue']
         instances_sorted = sorted(instances, key=itemgetter('IsClusterWriter'), reverse=True)
@@ -169,7 +177,8 @@ def restore_db_cluster_instances(events, context):
 
 def rename_restored_db_instances(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         instances = events['RestoredInstancesIdentifiers']
         restored_instances_identifiers = []
         for instance in instances:
@@ -188,7 +197,8 @@ def rename_restored_db_instances(events, context):
 
 def backup_cluster_instances_type(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         restorable_instances_metadata = {}
         instance_type = {}
         instances = events['DBClusterInstances']
@@ -210,7 +220,8 @@ def backup_cluster_instances_type(events, context):
 
 def get_latest_snapshot_id(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         paginator = docdb.get_paginator('describe_db_cluster_snapshots')
         page_iterator = paginator.paginate(
             DBClusterIdentifier=events['DBClusterIdentifier']
@@ -235,7 +246,8 @@ def get_latest_snapshot_id(events, context):
 
 def restore_db_cluster(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         restored_cluster_identifier = events['DBClusterIdentifier'] + '-restored-from-backup'
         if events['DBSnapshotIdentifier'] == '' or events['DBSnapshotIdentifier'] == 'latest':
             docdb.restore_db_cluster_from_snapshot(
@@ -257,7 +269,8 @@ def restore_db_cluster(events, context):
 
 def rename_replaced_db_cluster(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         db_cluster_identifier = events['DBClusterIdentifier']
         new_db_cluster_identifier = db_cluster_identifier + '-replaced'
         docdb.modify_db_cluster(
@@ -273,7 +286,8 @@ def rename_replaced_db_cluster(events, context):
 
 def rename_replaced_db_instances(events, context):
     try:
-        docdb = boto3.client('docdb')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        docdb = boto3.client('docdb', config=config)
         instances = events['BackupDbClusterInstancesCountValue']
         replaced_instances_identifiers = []
         for instance in instances:

@@ -1,10 +1,13 @@
 import boto3
 from datetime import datetime, timezone
 from time import sleep
+from botocore.config import Config
+
 
 
 def restore_to_pit(events, context):
-    rds = boto3.client('rds')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    rds = boto3.client('rds', config=config)
 
     if 'DbInstanceIdentifier' not in events or 'TargetDbInstanceIdentifier' not in events:
         raise KeyError('Requires DbInstanceIdentifier, TargetDbInstanceIdentifier in events')
@@ -34,7 +37,8 @@ def restore_to_pit(events, context):
 def get_cluster_writer_id(events, context):
     if 'ClusterId' not in events:
         raise KeyError('Requires ClusterId in events')
-    rds = boto3.client('rds')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    rds = boto3.client('rds', config=config)
     clusters = rds.describe_db_clusters(DBClusterIdentifier=events['ClusterId'])
     return {'WriterId': _parse_writer_id(clusters)}
 
@@ -47,7 +51,8 @@ def wait_cluster_failover_completed(events, context):
     '''
     if 'ClusterId' not in events or 'WriterId' not in events:
         raise KeyError('Requires ClusterId, WriterId in events')
-    rds = boto3.client('rds')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    rds = boto3.client('rds', config=config)
     clusters = rds.describe_db_clusters(DBClusterIdentifier=events['ClusterId'])
     current_writer_id = _parse_writer_id(clusters)
     status = clusters['DBClusters'][0]['Status']

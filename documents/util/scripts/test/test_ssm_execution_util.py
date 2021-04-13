@@ -18,7 +18,7 @@ class TestSsmExecutionUtil(unittest.TestCase):
         self.side_effect_map = {
             'ssm': self.mock_ssm
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ssm.get_automation_execution.return_value = test_data_provider.get_sample_ssm_execution_response()
 
     def tearDown(self):

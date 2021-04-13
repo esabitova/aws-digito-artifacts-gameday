@@ -1,7 +1,6 @@
 import boto3
 from datetime import datetime
-
-s3_client = boto3.client('s3')
+from botocore.config import Config
 
 
 def check_existence_of_objects_in_bucket(events, context):
@@ -15,7 +14,8 @@ def check_existence_of_objects_in_bucket(events, context):
     s3_bucket_to_restore_name = events['S3BucketToRestoreName']
 
     print(f'Sending the list_object_versions request fore the {s3_bucket_to_restore_name} bucket...')
-    response: dict = s3_client.list_object_versions(Bucket=s3_bucket_to_restore_name)
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    response: dict = boto3.client('s3', config=config).list_object_versions(Bucket=s3_bucket_to_restore_name)
     print(f'The response from the list_object_versions: {response}')
 
     versions: dict = response.get('Versions')
@@ -44,7 +44,8 @@ def clean_bucket(events, context):
     s3_bucket_name_to_clean = events['S3BucketNameToClean']
 
     print(f'Sending the list_object_versions request fore the {s3_bucket_name_to_clean} bucket...')
-
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    s3_client = boto3.client('s3', config=config)
     paginator = s3_client.get_paginator('list_object_versions')
     pages = paginator.paginate(Bucket=s3_bucket_name_to_clean)
 
@@ -58,7 +59,6 @@ def clean_bucket(events, context):
             for version in versions:
                 key = version.get('Key')
                 version_id = version.get('VersionId')
-
                 s3_client.delete_object(Bucket=s3_bucket_name_to_clean, Key=key, VersionId=version_id)
 
                 print(f'The versioned object with Bucket={s3_bucket_name_to_clean}, '
@@ -71,7 +71,6 @@ def clean_bucket(events, context):
             for delete_marker in delete_markers:
                 key = delete_marker.get('Key')
                 version_id = delete_marker.get('VersionId')
-
                 s3_client.delete_object(Bucket=s3_bucket_name_to_clean, Key=key, VersionId=version_id)
 
                 print(f'The delete marker with Bucket={s3_bucket_name_to_clean},'
@@ -97,7 +96,8 @@ def restore_from_backup(events, context):
 
     s3_backup_bucket_name = events['S3BackupBucketName']
     s3_bucket_to_restore_name = events['S3BucketToRestoreName']
-
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    s3_client = boto3.client('s3', config=config)
     paginator = s3_client.get_paginator('list_objects_v2')
     pages = paginator.paginate(Bucket=s3_backup_bucket_name)
 
@@ -138,7 +138,8 @@ def restore_to_the_previous_version(events, context):
 
     s3_bucket_name = events['S3BucketName']
     s3_bucket_object_key = events['S3BucketObjectKey']
-
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    s3_client = boto3.client('s3', config=config)
     list_object_versions_response = s3_client.list_object_versions(Bucket=s3_bucket_name,
                                                                    Prefix=s3_bucket_object_key,
                                                                    MaxKeys=2)
