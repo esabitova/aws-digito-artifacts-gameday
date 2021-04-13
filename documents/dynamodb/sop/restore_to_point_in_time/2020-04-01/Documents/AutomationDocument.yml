@@ -396,3 +396,23 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.register_scaling_targets
+
+  - name: SwitchAlarmsToTargetTable
+    action: aws:executeScript
+    outputs:
+      - Name: AlarmsChanged
+        Selector: $.Payload.AlarmsChanged
+        Type: Integer
+    inputs:
+      Runtime: python3.6
+      Handler: copy_put_alarms_for_dynamo_db_table
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util._execute_boto3_cloudwatch
+        SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
+        SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
+        SCRIPT_PLACEHOLDER::cloudwatch_util.copy_put_alarms_for_dynamo_db_table

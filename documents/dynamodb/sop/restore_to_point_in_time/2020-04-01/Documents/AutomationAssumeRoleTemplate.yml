@@ -65,5 +65,7 @@ Resources:
               - "dynamodb:UpdateContributorInsights"
               - "application-autoscaling:DescribeScalableTargets"
               - "application-autoscaling:RegisterScalableTarget"
+              - "cloudwatch:DescribeAlarms"
+              - "cloudwatch:PutMetricAlarm"
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole
