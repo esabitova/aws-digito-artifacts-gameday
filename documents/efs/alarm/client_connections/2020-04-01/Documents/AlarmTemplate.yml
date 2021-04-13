@@ -2,7 +2,21 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
     Type: String
+Outputs:
+  AlarmName:
+    Type: String
+    Description: Client Connections Alarm Name
+    Default: !Ref ClientConnectionsAlarm
 Resources:
+  ClientConnectionsAnomalyDetector:
+    Type: AWS::CloudWatch::AnomalyDetector
+    Properties:
+      MetricName: ClientConnections
+      Namespace: AWS/EFS
+      Stat: Average
+      Dimensions:
+        - Name: EFS
+          Value: ${FileSystem}
   ClientConnectionsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:

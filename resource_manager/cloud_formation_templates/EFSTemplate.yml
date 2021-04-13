@@ -107,39 +107,6 @@ Resources:
       SubnetId: !Ref EFSMountTargerSubnet
       SecurityGroups:
         - !Ref EFSMountTargetSecurityGroup
-  SNSTopic:
-    Type: "AWS::SNS::Topic"
-    Properties:
-      TopicName: !Join
-        - "-"
-        - - "efs-alarms"
-          - !Select
-            - 0
-            - !Split
-              - "-"
-              - !Select
-                - 2
-                - !Split
-                  - "/"
-                  - !Ref "AWS::StackId"
-  ClientConnectionsAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: ClientConnections
-      Namespace: AWS/EFS
-      Stat: Average
-      Dimensions:
-        - Name: EFS
-          Value: !Ref FileSystem
-  PercentIOLimitAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: PercentIOLimit
-      Namespace: AWS/EFS
-      Stat: Average
-      Dimensions:
-        - Name: EFS
-          Value: !Ref FileSystem
   JobIAMRole:
     Type: "AWS::IAM::Role"
     Properties:

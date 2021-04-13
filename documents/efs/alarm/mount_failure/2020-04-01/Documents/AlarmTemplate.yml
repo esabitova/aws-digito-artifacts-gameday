@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
     Type: String
+Outputs:
+  AlarmName:
+    Type: String
+    Description: Mount Failure Alarm Name
+    Default: !Ref MountFailureAlarm
 Resources:
   MountFailureAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -16,11 +21,11 @@ Resources:
       Statistic: Maximum
       Dimensions:
         - Name: EFS
-          Value: !Ref FileSystem
-      Period: 60
+          Value: ${FileSystem}
+      Period: 30
       EvaluationPeriods: 5
       DatapointsToAlarm: 1
-      Threshold: 60
+      Threshold: 1
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: missing
       Unit: Count
