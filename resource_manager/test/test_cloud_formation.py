@@ -108,6 +108,7 @@ class TestCloudFormation(unittest.TestCase):
             {'Stacks': [{'StackStatus': 'COMPLETED'}]}
         ]
         err_response = {'Error': {'Type': 'Sender', 'Code': 'UnexpectedError', 'Message': 'Unexpected failure.'}}
+
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response,
                                                                     operation_name='CreateStack')
 
@@ -121,3 +122,36 @@ class TestCloudFormation(unittest.TestCase):
             StackName='test_stack_name', EnableTerminationProtection=False)
         self.cf_service_mock.delete_stack.assert_called_once()
         self.cf_service_mock.get_waiter.assert_called_once()
+
+    def test_describe_cf_stack_success(self):
+        stack_name = "test_stack_name"
+        self.cfn_helper.describe_cf_stack(stack_name)
+
+        self.cf_service_mock.describe_stacks.assert_called_once_with(StackName=stack_name)
+
+    def test_describe_cf_stack_events(self):
+        stack_name = "test_stack_name"
+        event1 = { 'StackId': 'dummy', 'LogicalResourceId':'res1', 'ResourceStatus':'UPDATE_COMPLETE'}
+        self.cf_service_mock.describe_stack_events.return_value = {'StackEvents':[event1]}
+        res = self.cfn_helper.describe_cf_stack_events(stack_name)
+
+        self.cf_service_mock.describe_stack_events.assert_called_once_with(StackName=stack_name)
+        assert res == [event1]
+
+    def test_describe_cf_stack_events_with_more(self):
+        stack_name = "test_stack_name"
+        event1 = { 'StackId': 'dummy', 'LogicalResourceId':'res1', 'ResourceStatus':'UPDATE_COMPLETE'},
+        event2 = { 'StackId': 'dummy', 'LogicalResourceId':'res2', 'ResourceStatus':'UPDATE_COMPLETE'},
+        event3 = { 'StackId': 'dummy', 'LogicalResourceId':'res3', 'ResourceStatus':'UPDATE_COMPLETE'},
+        self.cf_service_mock.describe_stack_events.side_effect = [
+            {'StackEvents':[event1, event2], 'NextToken':'next'},
+            {'StackEvents':[event3], }
+        ]
+        res = self.cfn_helper.describe_cf_stack_events(stack_name)
+
+        assert self.cf_service_mock.describe_stack_events.call_count == 2
+        self.cf_service_mock.describe_stack_events.assert_has_calls([
+            call(StackName=stack_name),
+            call(StackName=stack_name, NextToken='next')
+        ])
+        assert res == [event1, event2, event3]

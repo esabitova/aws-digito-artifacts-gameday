@@ -144,3 +144,15 @@ class CloudFormationTemplate:
         self.client.delete_stack(StackName=stack_name)
         waiter = self.client.get_waiter('stack_delete_complete')
         waiter.wait(StackName=stack_name)
+
+    def describe_cf_stack(self, stack_name):
+        return self.client.describe_stacks(StackName=stack_name)['Stacks'][0]
+
+    def describe_cf_stack_events(self, stack_name):
+        res = self.client.describe_stack_events(StackName=stack_name)
+        resources = res['StackEvents']
+
+        while 'NextToken' in res:
+            res = self.client.describe_stack_events(StackName=stack_name, NextToken=res['NextToken'])
+            resources.extend(res['StackEvents'])
+        return resources
