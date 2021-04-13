@@ -7,7 +7,7 @@ Feature: SSM automation document to recover the database into a known good state
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                         | ON_DEMAND    |
       | documents/docdb/sop/restore_from_point_in_time/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreFromPointInTime_2020-09-21" SSM document
-    And cache current number of clusters as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache cluster params in object "ClusterInfo" in step "before"
@@ -22,7 +22,7 @@ Feature: SSM automation document to recover the database into a known good state
     And wait for instances to be available for "120" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of clusters as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache cluster params in object "ClusterInfo" in step "after"
@@ -45,7 +45,7 @@ Feature: SSM automation document to recover the database into a known good state
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                         | ON_DEMAND    |
       | documents/docdb/sop/restore_from_point_in_time/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreFromPointInTime_2020-09-21" SSM document
-    And cache current number of clusters as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache cluster params in object "ClusterInfo" in step "before"
@@ -63,7 +63,7 @@ Feature: SSM automation document to recover the database into a known good state
     And wait for instances to be available for "120" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of clusters as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache cluster params in object "ClusterInfo" in step "after"

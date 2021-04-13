@@ -123,3 +123,47 @@ def describe_cluster(session: Session, db_cluster_identifier: str):
     docdb_client = client('docdb', session)
     response = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
     return response['DBClusters'][0]
+
+
+def create_snapshot(session: Session, db_cluster_identifier: str, snapshot_identifier: str):
+    """
+    Use create_db_cluster_snapshot aws method to create a cluster snapshot
+    :param session boto3 client session
+    :param db_cluster_identifier DocDB cluster ID
+    :param snapshot_identifier new snapshot ID
+    :return snapshotID
+    """
+    docdb_client = client('docdb', session)
+    response = docdb_client.create_db_cluster_snapshot(
+        DBClusterIdentifier=db_cluster_identifier,
+        DBClusterSnapshotIdentifier=snapshot_identifier
+    )
+    return response['DBClusterSnapshot']['DBClusterSnapshotIdentifier']
+
+
+def delete_snapshot(session: Session, snapshot_identifier: str):
+    """
+    Use delete_db_cluster_snapshot aws method to delete cluster snapshot
+    :param session boto3 client session
+    :param snapshot_identifier new snapshot ID
+    :return snapshotID
+    """
+    docdb_client = client('docdb', session)
+    response = docdb_client.delete_db_cluster_snapshot(
+        DBClusterSnapshotIdentifier=snapshot_identifier
+    )
+    return response['DBClusterSnapshot']['DBClusterSnapshotIdentifier']
+
+
+def is_snapshot_available(session: Session, snapshot_identifier: str):
+    """
+    Use describe_db_cluster_snapshots aws method to check is cluster snapshot available
+    :param session boto3 client session
+    :param snapshot_identifier snapshot ID
+    :return Boolean, is snapshot status is available
+    """
+    docdb_client = client('docdb', session)
+    response = docdb_client.describe_db_cluster_snapshots(
+        DBClusterSnapshotIdentifier=snapshot_identifier
+    )
+    return response['DBClusterSnapshots'][0]['Status'] == 'available'

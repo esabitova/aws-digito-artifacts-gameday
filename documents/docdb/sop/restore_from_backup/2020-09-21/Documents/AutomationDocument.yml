@@ -20,6 +20,7 @@ schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
 outputs:
   - BackupDbClusterMetadata.BackupDbClusterInstancesCountValue
+  - BackupDbClusterMetadata.AvailabilityZones
   - BackupDbClusterInstancesMetadata.DBClusterInstancesMetadata
   - GetLatestSnapshotIdentifier.LatestSnapshot
   - GetLatestSnapshotIdentifier.LatestSnapshotEngine
@@ -75,6 +76,9 @@ mainSteps:
       - Name: BackupDbClusterInstancesCountValue
         Selector: $.DBClusters[0].DBClusterMembers
         Type: MapList
+      - Name: AvailabilityZones
+        Selector: $.DBClusters[0].AvailabilityZones
+        Type: StringList
 
   - name: BackupDbClusterInstancesMetadata
     action: aws:executeScript
@@ -133,6 +137,7 @@ mainSteps:
         DBSnapshotIdentifier: '{{ DBSnapshotIdentifier }}'
         LatestSnapshotIdentifier: '{{ GetLatestSnapshotIdentifier.LatestSnapshot }}'
         LatestSnapshotEngine: '{{ GetLatestSnapshotIdentifier.LatestSnapshotEngine }}'
+        AvailabilityZones: '{{ BackupDbClusterMetadata.AvailabilityZones }}'
       Script: |-
         SCRIPT_PLACEHOLDER::docdb_util.imports
         SCRIPT_PLACEHOLDER::docdb_util.restore_db_cluster
