@@ -73,13 +73,13 @@ No.
         * Describe the dynamodb table to get the information about the current status of the
           table. [describe_table](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_DescribeTable.html) method
 1. `CalculateUpdateDuration`
-   * Type: aws:executeScript
-   * Inputs:
-      * `UpdateDynamoDBTableProvisionedCapacity.UpdateStartTime`
-   * Outputs:
-      * `UpdateDuration`: the duration of the provisioned capacity update
-   * Explanation:
-      * Get the difference between now and UpdateDynamoDBTableProvisionedCapacity.UpdateStartTime
+    * Type: aws:executeScript
+    * Inputs:
+        * `UpdateDynamoDBTableProvisionedCapacity.UpdateStartTime`
+    * Outputs:
+        * `UpdateDuration`: the duration of the provisioned capacity update
+    * Explanation:
+        * Get the difference between now and UpdateDynamoDBTableProvisionedCapacity.UpdateStartTime
 1. `GetUpdatedProvisionedThroughput`
     * Type: aws:executeAwsApi
     * Inputs:
