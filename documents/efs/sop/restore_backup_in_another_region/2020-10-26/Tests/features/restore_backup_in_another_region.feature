@@ -17,7 +17,7 @@ Feature: SSM automation document to restore backup in another region
     When SSM automation document "Digito-RestoreBackup_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache execution output value of "restoreBackupJob.RestoreJobId" as "RestoreJobId" after SSM automation execution
+    And cache execution output value of "RestoreBackupJob.RestoreJobId" as "RestoreJobId" after SSM automation execution
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache restore job property of "Status" as "RestoreJobStatus" "after" SSM automation execution

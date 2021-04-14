@@ -32,6 +32,18 @@ parameters:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
   - name: GetFileSystemMetadata
     action: aws:executeAwsApi
     onFailure: Abort
@@ -49,19 +61,7 @@ mainSteps:
       - Name: PerformanceMode
         Selector: "$.FileSystems[0].PerformanceMode"
         Type: String
-  - name: RecordStartTime
-    action: 'aws:executeScript'
-    inputs:
-      Runtime: python3.7
-      Handler: start_time
-      Script: |-
-        SCRIPT_PLACEHOLDER::common_util.imports
-        SCRIPT_PLACEHOLDER::common_util.start_time
-    outputs:
-      - Name: StartTime
-        Selector: $.Payload
-        Type: String
-  - name: restoreBackupJob
+  - name: RestoreBackupJob
     action: aws:executeAwsApi
     onFailure: Abort
     inputs:
@@ -80,13 +80,12 @@ mainSteps:
       - Name: RestoreJobId
         Selector: "$.RestoreJobId"
         Type: String
-    nextStep: verifyRestoreJobStatus
-  - name: verifyRestoreJobStatus
+  - name: VerifyRestoreJobStatus
     action: aws:waitForAwsResourceProperty
     inputs:
       Service: backup
       Api: DescribeRestoreJob
-      RestoreJobId: "{{ restoreBackupJob.RestoreJobId }}"
+      RestoreJobId: "{{ RestoreBackupJob.RestoreJobId }}"
       PropertySelector: "$.Status"
       DesiredValues:
         - "COMPLETED"
@@ -95,7 +94,7 @@ mainSteps:
         Selector: "$.RecoveryPointArn"
         Type: String
     isEnd: true
-  - name: outputRecoveryTime
+  - name: OutputRecoveryTime
     action: 'aws:executeScript'
     outputs:
       - Name: RecoveryTime
@@ -110,6 +109,6 @@ mainSteps:
       InputPayload:
         StartTime: '{{ RecordStartTime.StartTime }}'
 outputs:
-  - restoreBackupJob.RestoreJobId
-  - outputRecoveryTime.RecoveryTime
-  - verifyRestoreJobStatus.RecoveryPointArn
+  - RestoreBackupJob.RestoreJobId
+  - OutputRecoveryTime.RecoveryTime
+  - VerifyRestoreJobStatus.RecoveryPointArn
