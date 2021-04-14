@@ -34,7 +34,22 @@ parameters:
 outputs:
   - GetUpdatedProvisionedThroughput.ReadCapacityUnits
   - GetUpdatedProvisionedThroughput.WriteCapacityUnits
+  - OutputRecoveryTime.RecoveryTime
+
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: UpdateDynamoDBTableProvisionedCapacity
     action: aws:executeAwsApi
     onFailure: Abort
@@ -45,7 +60,6 @@ mainSteps:
       ProvisionedThroughput:
         ReadCapacityUnits: "{{ DynamoDBTableRCU }}"
         WriteCapacityUnits: "{{ DynamoDBTableWCU }}"
-    nextStep: VerifyDynamoDBTableUpdateStatus
 
   - name: VerifyDynamoDBTableUpdateStatus
     action: aws:waitForAwsResourceProperty
@@ -57,25 +71,6 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-    nextStep: CalculateUpdateDuration
-
-  - name: CalculateUpdateDuration
-    action: aws:executeScript
-    outputs:
-      - Name: UpdateDuration
-        Selector: $.Payload.duration
-        Type: String
-    inputs:
-      Runtime: python3.7
-      Handler: get_step_durations
-      InputPayload:
-        ExecutionId: '{{ automation:EXECUTION_ID }}'
-        StepName: 'UpdateDynamoDBTableProvisionedCapacity,VerifyDynamoDBTableUpdateStatus'
-      Script: |-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
-
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_step_durations
-    nextStep: GetUpdatedProvisionedThroughput
 
   - name: GetUpdatedProvisionedThroughput
     action: aws:executeAwsApi
@@ -91,5 +86,20 @@ mainSteps:
       - Name: WriteCapacityUnits
         Selector: "$.Table.ProvisionedThroughput.WriteCapacityUnits"
         Type: Integer
-    isEnd: true
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
+
 
