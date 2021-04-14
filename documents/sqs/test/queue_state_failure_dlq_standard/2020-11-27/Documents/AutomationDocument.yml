@@ -192,7 +192,7 @@ mainSteps:
       Handler: update_max_receive_count
       InputPayload:
         SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
-        MaxReceiveCount: 1
+        MaxReceiveCount: 2
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
@@ -200,30 +200,52 @@ mainSteps:
 
   - name: SetQueueAttributes
     action: aws:executeAwsApi
-    onFailure: step:GetDeadLetterQueueUrl
+    onFailure: step:RollbackCurrentExecution
     inputs:
       Service: sqs
       Api: SetQueueAttributes
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
-        VisibilityTimeout: "0"
         RedrivePolicy: '{{ GetUpdatedRedrivePolicy.RedrivePolicy }}'
 
-  - name: ReadMessage
+  - name: SleepBeforeSendMessage
+    action: "aws:sleep"
+    inputs:
+      Duration: "PT60S"
+
+  - name: SendMessage
+    action: aws:executeAwsApi
+    onFailure: step:GetDeadLetterQueueUrl
+    onCancel: step:GetDeadLetterQueueUrl
+    outputs:
+      - Name: MessageId
+        Selector: '$.MessageId'
+        Type: String
+    inputs:
+      Service: sqs
+      Api: SendMessage
+      QueueUrl: '{{ QueueUrl }}'
+      DelaySeconds: 0
+      MessageBody: "Test message"
+
+  - name: ReadMessageById
     action: aws:executeScript
     onFailure: step:GetDeadLetterQueueUrl
+    onCancel: step:GetDeadLetterQueueUrl
     inputs:
       Runtime: python3.7
-      Handler: receive_messages_by_events
+      Handler: receive_message_by_id
       InputPayload:
         QueueUrl: '{{ QueueUrl }}'
-        MaxNumberOfMessages: 2
-        WaitTimeSeconds: 5
+        MessageId: '{{ SendMessage.MessageId }}'
+        VisibilityTimeout: 30
+        MaxNumberOfMessages: 1
+        WaitTimeSeconds: 1
+        Count: 3
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
-        SCRIPT_PLACEHOLDER::sqs_util.receive_messages
-        SCRIPT_PLACEHOLDER::sqs_util.receive_messages_by_events
+        SCRIPT_PLACEHOLDER::sqs_util.receive_message_by_id
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
@@ -262,7 +284,6 @@ mainSteps:
       Api: SetQueueAttributes
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
-        VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
 
   - name: SleepBeforeGetNumberOfMessagesToMove
