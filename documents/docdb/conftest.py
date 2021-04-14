@@ -12,9 +12,9 @@ from resource_manager.src.util import docdb_utils as docdb_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.param_utils import parse_param_values_from_table
 
-cache_number_of_clusters_expression = 'cache current number of clusters as "{cache_property}" "{step_key}" SSM ' \
-                                      'automation execution' \
-                                      '\n{input_parameters}'
+cache_number_of_instances_expression = 'cache current number of instances as "{cache_property}" "{step_key}" SSM ' \
+                                       'automation execution' \
+                                       '\n{input_parameters}'
 cache_value_expression = 'cache property "{cache_property}" in step "{step_key}" SSM automation execution' \
                          '\n{input_parameters}'
 cache_az_expression = 'cache az in property "{cache_property}" in step "{step_key}" SSM automation execution' \
@@ -39,11 +39,13 @@ wait_for_instances_availability_expression = 'wait for instances to be available
 cache_earliest_restorable_time_expression = 'cache earliest restorable time as "{cache_property}" ' \
                                             'in "{step_key}" step' \
                                             '\n{input_parameters}'
+create_snapshot_expression = 'wait for cluster snapshot creation for "{time_to_wait}" seconds\n{input_parameters}'
+delete_snapshot_expression = 'delete cluster snapshot'
 
 
-@given(parsers.parse(cache_number_of_clusters_expression))
-@when(parsers.parse(cache_number_of_clusters_expression))
-@then(parsers.parse(cache_number_of_clusters_expression))
+@given(parsers.parse(cache_number_of_instances_expression))
+@when(parsers.parse(cache_number_of_instances_expression))
+@then(parsers.parse(cache_number_of_instances_expression))
 def cache_number_of_instances(
         resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
@@ -120,6 +122,47 @@ def cache_earliest_restorable_time(
     restore_date = cluster_info['EarliestRestorableTime'] + datetime.timedelta(minutes=1)
     restore_date_string = restore_date.strftime('%Y-%m-%dT%H:%M:%S%z')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, restore_date_string)
+
+
+@given(parsers.parse(create_snapshot_expression))
+def create_snapshot(
+        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+):
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+    )
+    snapshot_id = cluster_id + '-' + datetime.datetime.now().strftime('%m-%d-%Y-%H-%M-%S')
+    docdb_utils.create_snapshot(boto3_session, cluster_id, snapshot_id)
+    start_time = time.time()
+    elapsed_time = time.time() - start_time
+    is_snapshot_available = docdb_utils.is_snapshot_available(boto3_session, snapshot_id)
+    while is_snapshot_available is False:
+        if elapsed_time > int(time_to_wait):
+            raise Exception(f'Waiting for snapshot creation in cluster {cluster_id} timed out')
+        time.sleep(constants.sleep_time_secs)
+        is_snapshot_available = docdb_utils.is_snapshot_available(boto3_session, snapshot_id)
+        elapsed_time = time.time() - start_time
+    put_to_ssm_test_cache(ssm_test_cache, "before", "SnapshotId", snapshot_id)
+    return True
+
+
+@given(parsers.parse(cache_cluster_params_expression))
+@then(parsers.parse(cache_cluster_params_expression))
+def cache_cluster_params(
+        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+):
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+    )
+    cluster_info = docdb_utils.describe_cluster(boto3_session, cluster_id)
+    cache_value = {
+        'AvailabilityZones': cluster_info.get('AvailabilityZones'),
+        'DBClusterIdentifier': cluster_info.get('DBClusterIdentifier'),
+        'DBSubnetGroup': cluster_info.get('DBSubnetGroup'),
+        'Engine': cluster_info.get('Engine'),
+        'VpcSecurityGroups': cluster_info.get('VpcSecurityGroups'),
+    }
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, cache_value)
 
 
 @then(parsers.parse(assert_azs_expression))
@@ -288,3 +331,11 @@ def delete_replaced_cluster(
     )
     replaced_cluster_id = cluster_id + "-replaced"
     docdb_utils.delete_cluster(boto3_session, replaced_cluster_id)
+
+
+@then(parsers.parse(delete_snapshot_expression))
+def delete_cluster_snapshot(
+        resource_manager, ssm_test_cache, boto3_session
+):
+    snapshot_id = ssm_test_cache["before"]['SnapshotId']
+    docdb_utils.delete_snapshot(boto3_session, snapshot_id)

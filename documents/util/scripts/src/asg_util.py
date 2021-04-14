@@ -2,13 +2,14 @@ import boto3
 import time
 import random
 from math import ceil
+from botocore.config import Config
 
 
 def get_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
 
     auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
         AutoScalingGroupNames=[
@@ -27,8 +28,8 @@ def get_instance_ids_in_asg(events, context):
 def get_healthy_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
 
     auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
         AutoScalingGroupNames=[
@@ -50,8 +51,8 @@ def get_healthy_instance_ids_in_asg(events, context):
 def filter_healthy_instance_ids_in_asg(events, context):
     if 'AutoScalingGroupName' not in events or 'InstanceIds' not in events:
         raise KeyError('Requires AutoScalingGroupName, InsatnceIds in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
 
     auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
         AutoScalingGroupNames=[
@@ -79,8 +80,8 @@ def filter_healthy_instance_ids_in_asg(events, context):
 def get_instance_ids_in_asg_random_az(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
 
     auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
         AutoScalingGroupNames=[
@@ -100,8 +101,8 @@ def get_instance_ids_in_asg_random_az(events, context):
 def get_networking_configuration_from_asg(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
 
     auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
         AutoScalingGroupNames=[
@@ -128,8 +129,8 @@ def get_networking_configuration_from_asg(events, context):
 def suspend_launch(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
     autoscaling.suspend_processes(
         AutoScalingGroupName=events['AutoScalingGroupName'],
         ScalingProcesses=[
@@ -141,8 +142,8 @@ def suspend_launch(events, context):
 def start_instance_refresh(events, context):
     if 'AutoScalingGroupName' not in events or 'PercentageOfInstances' not in events:
         raise KeyError('Requires AutoScalingGroupName, PercentageOfInstances in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
     refresh_response = autoscaling.start_instance_refresh(
         AutoScalingGroupName=events['AutoScalingGroupName'],
         Strategy='Rolling',
@@ -157,8 +158,8 @@ def start_instance_refresh(events, context):
 def cancel_instance_refresh(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
     autoscaling.cancel_instance_refresh(
         AutoScalingGroupName=events['AutoScalingGroupName']
     )
@@ -167,8 +168,8 @@ def cancel_instance_refresh(events, context):
 def wait_for_refresh_to_finish(events, context):
     if 'AutoScalingGroupName' not in events or 'InstanceRefreshId' not in events:
         raise KeyError('Requires AutoScalingGroupName, InstanceRefreshId in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
     while True:
         instance_refresh_status = autoscaling.describe_instance_refreshes(
             AutoScalingGroupName=events['AutoScalingGroupName'],
@@ -189,8 +190,8 @@ def wait_for_refresh_to_finish(events, context):
 def assert_no_refresh_in_progress(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
     instance_refreshes = autoscaling.describe_instance_refreshes(
         AutoScalingGroupName=events['AutoScalingGroupName']
     )
@@ -205,8 +206,8 @@ def assert_no_refresh_in_progress(events, context):
 def assert_no_suspended_process(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
-
-    autoscaling = boto3.client('autoscaling')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    autoscaling = boto3.client('autoscaling', config=config)
     auto_scaling_groups = autoscaling.describe_auto_scaling_groups(
         AutoScalingGroupNames=[
             events['AutoScalingGroupName']

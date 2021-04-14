@@ -2,11 +2,11 @@ import json
 import logging
 import time
 import uuid
+import boto3
 from datetime import datetime
 from typing import List, Callable, Optional
-
-import boto3
 from botocore.exceptions import ClientError
+from botocore.config import Config
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -61,7 +61,8 @@ def revert_sqs_policy(events: dict, context: dict) -> None:
     """
     if "QueueUrl" not in events or "OptionalBackupPolicy" not in events:
         raise KeyError("Requires QueueUrl and OptionalBackupPolicy in events")
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     queue_url: str = events.get("QueueUrl")
     optional_backup_policy: str = events.get("OptionalBackupPolicy")
     optional_backup_policy = None if optional_backup_policy.startswith("{{") else optional_backup_policy
@@ -75,7 +76,8 @@ def send_message_of_size(events, context):
     """
     Sends a message of given size in bytes. Character u'a' is equal to one byte
     """
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     queue_url = events['QueueUrl']
     message_size = events['MessageSize']
     message_body = 'a' * message_size
@@ -106,7 +108,8 @@ def get_message_receipt_handle(queue_url: str, message_id: str, timeout: int):
     :param timeout Max time to wait until message found
     :return ReceiptHandle of the message
     """
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     start = datetime.now()
 
     while True:
@@ -128,7 +131,8 @@ def delete_message_by_id(event, context):
     """
     Delete message by its ID
     """
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     queue_url = event['QueueUrl']
     message_id = event['MessageId']
     timeout = int(event.get('TimeOut', 100))
@@ -205,7 +209,8 @@ def send_messages(messages_to_send: List[dict], target_queue_url: str) -> dict:
     :param target_queue_url: URL of the queue to send
     :return: response of send_message_batch method
     """
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     send_message_batch_response: dict = sqs_client.send_message_batch(QueueUrl=target_queue_url,
                                                                       Entries=messages_to_send)
     return send_message_batch_response
@@ -218,7 +223,8 @@ def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -
     :param source_queue_url:  URL of the queue where from messages are received
     :return: response of receive_message method
     """
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     receive_message_response: dict = \
         sqs_client.receive_message(QueueUrl=source_queue_url,
                                    MaxNumberOfMessages=messages_transfer_batch_size,
@@ -236,7 +242,8 @@ def transfer_messages(events: dict, context: dict) -> dict:
             or "MessagesTransferBatchSize" not in events:
         raise KeyError("Requires SourceQueueUrl and TargetQueueUrl and NumberOfMessagesToTransfer and "
                        "MessagesTransferBatchSize and ForceExecution in events")
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     start_execution = datetime.utcnow()
 
     source_queue_url: str = events['SourceQueueUrl']
@@ -401,8 +408,8 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     source_redrive_policy: str = events.get("SourceRedrivePolicy")
     if not source_redrive_policy:
         raise KeyError("Requires not empty SourceRedrivePolicy")
-
-    sqs_client = boto3.client("sqs")
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    sqs_client = boto3.client("sqs", config=config)
     source_redrive_policy: dict = json.loads(source_redrive_policy)
     dead_letter_queue_name: str = source_redrive_policy.get("deadLetterTargetArn").split(':', 5)[5]
     get_queue_url_response: dict = sqs_client.get_queue_url(QueueName=dead_letter_queue_name)

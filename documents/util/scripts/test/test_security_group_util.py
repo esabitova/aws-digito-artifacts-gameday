@@ -15,7 +15,7 @@ class TestSecurityGroupUtil(unittest.TestCase):
         self.side_effect_map = {
             'ec2': self.mock_ec2
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ec2.describe_security_groups.return_value = \
             test_data_provider.get_sample_describe_security_groups_response()
         self.mock_ec2.authorize_security_group_ingress.return_value = {}

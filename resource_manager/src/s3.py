@@ -62,7 +62,7 @@ class S3:
         if region_name == 'us-east-1':
             return 'https://{}.s3.amazonaws.com/{}'.format(bucket_name, file_name)
         else:
-            return 'https://{}.s3-{}.amazonaws.com/{}'.format(bucket_name, region_name, file_name)
+            return 'https://{}.s3.{}.amazonaws.com/{}'.format(bucket_name, region_name, file_name)
 
     def _get_account_id(self):
         sts_client = self.session.client('sts')
