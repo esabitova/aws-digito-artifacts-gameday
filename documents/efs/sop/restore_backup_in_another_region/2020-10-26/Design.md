@@ -105,7 +105,7 @@ No.
         * Call [DescribeRestoreJob](https://docs.aws.amazon.com/aws-backup/latest/devguide/API_DescribeRestoreJob.html)
           from `backup` service
         * Verify that the restore job has `COMPLETED` status
-1. `OutputRestoreTime`
+1. `OutputRecoveryTime`
     * Type: aws:executeScript
     * Inputs:
         * `InputPayload`:
@@ -118,7 +118,7 @@ No.
 ## Outputs
 
 * `RestoreBackupJob.RestoreJobId`: ID of the restore job
-* `OutputRestoreTime.RecoveryTime`: Recovery process duration
+* `OutputRecoveryTime.RecoveryTime`: Recovery process duration
 * `VerifyRestoreJobStatus.RecoveryPointArn`: Recovery point ARN
 
 

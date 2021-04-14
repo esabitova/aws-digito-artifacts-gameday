@@ -32,6 +32,35 @@ parameters:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
+  - name: GetFileSystemMetadata
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: efs
+      Api: describeFileSystems
+      FileSystemId: "{{ FileSystemID }}"
+    outputs:
+      - Name: IsEncrypted
+        Selector: "$.FileSystems[0].Encrypted"
+        Type: Boolean
+      - Name: KmsKeyId
+        Selector: "$.FileSystems[0].KmsKeyId"
+        Type: String
+      - Name: PerformanceMode
+        Selector: "$.FileSystems[0].PerformanceMode"
+        Type: String
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
   - name: restoreBackupJob
     action: aws:executeAwsApi
     onFailure: Abort
@@ -61,6 +90,26 @@ mainSteps:
       PropertySelector: "$.Status"
       DesiredValues:
         - "COMPLETED"
+    outputs:
+      - Name: RecoveryPointArn
+        Selector: "$.RecoveryPointArn"
+        Type: String
     isEnd: true
+  - name: outputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
 outputs:
   - restoreBackupJob.RestoreJobId
+  - outputRecoveryTime.RecoveryTime
+  - verifyRestoreJobStatus.RecoveryPointArn
