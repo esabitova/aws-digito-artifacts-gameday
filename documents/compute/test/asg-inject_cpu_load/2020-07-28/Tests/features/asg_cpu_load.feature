@@ -33,6 +33,8 @@ Feature: SSM automation document ASG CPU stress testing
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                    |   ON_DEMAND|{{cache:InstanceType}}|
       |documents/compute/test/ec2-inject_cpu_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |
     And published "Digito-SimulateHighCpuLoadInAsg_2020-07-28" SSM document
+    And published "Digito-KillStressOnHealthyInstances_2020-07-28" SSM document
+    And published "Digito-KillStressCommand_2020-07-28" SSM document
 
     When SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" executed
       |AutoScalingGroupName                               |AutomationAssumeRole                                                                |CpuUtilizationAlarmName                                 |CpuLoadPercentage          |Duration                |PercentageOfInstances          |ExpectedRecoveryTime          |

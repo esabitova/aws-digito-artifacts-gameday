@@ -7,7 +7,7 @@ Feature: SSM automation document for scaling up DocDb instances.
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                         | ON_DEMAND    |
       | documents/docdb/sop/scaling_up/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-ScalingUp_2020-09-21" SSM document
-    And cache current number of clusters as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And SSM automation document "Digito-ScalingUp_2020-09-21" executed
@@ -17,7 +17,7 @@ Feature: SSM automation document for scaling up DocDb instances.
     When SSM automation document "Digito-ScalingUp_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache current number of clusters as "NumberOfInstances" "after" SSM automation execution
+    And cache current number of instances as "NumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
 

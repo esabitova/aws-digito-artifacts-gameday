@@ -300,7 +300,7 @@ class TestSqsUtil(unittest.TestCase):
         self.side_effect_map = {
             'sqs': self.sqs_client_mock
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.sqs_client_mock.send_message_batch.return_value = SEND_MESSAGE_BATCH_RESPONSE
         self.sqs_client_mock.delete_message_batch.return_value = DELETE_MESSAGE_BATCH_RESPONSE
 

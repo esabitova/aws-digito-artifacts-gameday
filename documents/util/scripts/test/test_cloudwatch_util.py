@@ -19,7 +19,7 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.side_effect_map = {
             'cloudwatch': self.cw_mock
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
 
     def tearDown(self):
         self.patcher.stop()

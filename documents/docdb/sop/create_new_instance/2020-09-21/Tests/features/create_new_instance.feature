@@ -13,7 +13,7 @@ Feature: SSM automation document to recover the database into a known good state
     And the cached input parameters
       | DBInstanceIdentifier |
       | new-docdb-instance1  |
-    And cache current number of clusters as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache property "ExpectedAvailabilityZone" in step "before" SSM automation execution
@@ -25,7 +25,7 @@ Feature: SSM automation document to recover the database into a known good state
     Then SSM automation document "Digito-CreateNewDocDbInstance_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache current number of clusters as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then sleep for "60" seconds
@@ -48,7 +48,7 @@ Feature: SSM automation document to recover the database into a known good state
     And the cached input parameters
       | DBInstanceIdentifier |
       | new-docdb-instance2  |
-    And cache current number of clusters as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-CreateNewDocDbInstance_2020-09-21" executed
@@ -57,7 +57,7 @@ Feature: SSM automation document to recover the database into a known good state
     Then SSM automation document "Digito-CreateNewDocDbInstance_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache current number of clusters as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then sleep for "60" seconds
