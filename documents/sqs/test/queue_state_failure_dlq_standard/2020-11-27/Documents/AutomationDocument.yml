@@ -238,7 +238,7 @@ mainSteps:
       InputPayload:
         QueueUrl: '{{ QueueUrl }}'
         MessageId: '{{ SendMessage.MessageId }}'
-        VisibilityTimeout: 10
+        VisibilityTimeout: 15
         MaxNumberOfMessages: 1
         WaitTimeSeconds: 1
         Count: 2
