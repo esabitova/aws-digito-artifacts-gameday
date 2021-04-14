@@ -5,9 +5,9 @@ import json
 import logging
 import os
 import sys
-from botocore.exceptions import ClientError
 import publisher.src.document_metadata_attrs as metadata_attrs
-
+from botocore.config import Config
+from botocore.exceptions import ClientError
 
 SCRIPT_DIR = '/documents/util/scripts/src'
 logger = logging.getLogger('PublishDocuments')
@@ -17,7 +17,8 @@ class PublishDocuments:
 
     def __init__(self, boto3_session):
         self.root_dir = os.getcwd()
-        self.ssm = boto3_session.client('ssm')
+        config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+        self.ssm = boto3_session.client('ssm', config=config)
 
     def publish_document(self, list_document_metadata):
         for document_metadata in list_document_metadata:
