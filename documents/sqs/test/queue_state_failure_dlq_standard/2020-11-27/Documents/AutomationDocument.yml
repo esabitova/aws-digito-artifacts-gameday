@@ -238,10 +238,11 @@ mainSteps:
       InputPayload:
         QueueUrl: '{{ QueueUrl }}'
         MessageId: '{{ SendMessage.MessageId }}'
-        VisibilityTimeout: 30
-        MaxNumberOfMessages: 10
-        WaitTimeSeconds: 5
+        VisibilityTimeout: 10
+        MaxNumberOfMessages: 1
+        WaitTimeSeconds: 1
         Count: 2
+        TimeOut: 600
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
