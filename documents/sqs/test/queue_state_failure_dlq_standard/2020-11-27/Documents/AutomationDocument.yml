@@ -192,7 +192,7 @@ mainSteps:
       Handler: update_max_receive_count
       InputPayload:
         SourceRedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
-        MaxReceiveCount: 2
+        MaxReceiveCount: 1
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
@@ -239,9 +239,9 @@ mainSteps:
         QueueUrl: '{{ QueueUrl }}'
         MessageId: '{{ SendMessage.MessageId }}'
         VisibilityTimeout: 30
-        MaxNumberOfMessages: 1
-        WaitTimeSeconds: 1
-        Count: 3
+        MaxNumberOfMessages: 10
+        WaitTimeSeconds: 5
+        Count: 2
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
