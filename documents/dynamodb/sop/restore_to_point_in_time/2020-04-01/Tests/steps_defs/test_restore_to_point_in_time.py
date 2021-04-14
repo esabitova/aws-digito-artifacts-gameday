@@ -13,6 +13,12 @@ def test_restore_to_latest_point_in_time():
 
 
 @scenario('../features/restore_to_latest_point_in_time.feature',
+          'Restores table to the latest available point. Change Alarms')
+def test_restore_to_latest_point_in_time_change_alarms():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/restore_to_latest_point_in_time.feature',
           'Restores table to the latest available point. With Scaling')
 def test_restore_to_latest_point_in_time_with_scaling():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""

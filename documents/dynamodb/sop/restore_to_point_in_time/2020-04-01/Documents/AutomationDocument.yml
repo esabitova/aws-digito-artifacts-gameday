@@ -29,9 +29,15 @@ parameters:
     type: String
     description: (Optional) The recovery point in time in format YYYY-MM-DDTHH:MM:SSZ
     default: ""
+  DynamoDBSourceTableAlarmNames:
+    type: StringList
+    description: (Optional) The DynamoDB Source Table Name Alarm Names.
+    default: 
+      - "non-existing-alarm"
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  
 mainSteps:
   - name: verifyDynamoDBTableTargetStatus
     action: aws:waitForAwsResourceProperty
@@ -119,7 +125,7 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-  # Start Stream settings
+# Start Stream settings
   - name: GetSourceDynamoDBTableStream
     action: aws:executeAwsApi
     onFailure: Abort
@@ -168,8 +174,8 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-  # End Stream settings
-  # Start kinesis destinations
+# End Stream settings
+# Start kinesis destinations
   - name: GetSourceDynamoDBTableKinesisDestination
     action: aws:executeScript
     outputs:
@@ -208,9 +214,9 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
 
-  # End kinesis destinations
+# End kinesis destinations
 
-  # Start TTL
+# Start TTL
 
   - name: GetSourceDynamoDBTableTimeToLive
     action: aws:executeAwsApi
@@ -248,7 +254,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
-
 # End TTL
 # Start tags
   - name: GetSourceDynamoDBTableTags
@@ -396,7 +401,8 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.register_scaling_targets
-
+# End Scaling
+# Start Switch Alarms 
   - name: SwitchAlarmsToTargetTable
     action: aws:executeScript
     outputs:
@@ -409,6 +415,7 @@ mainSteps:
       InputPayload:
         SourceTableName: "{{ DynamoDBTableSourceName }}"
         TargetTableName: "{{ DynamoDBTableTargetName }}"
+        DynamoDBSourceTableAlarmNames: "{{ DynamoDBSourceTableAlarmNames }}"
       Script: |-
         SCRIPT_PLACEHOLDER::cloudwatch_util.imports
 
@@ -416,3 +423,4 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
         SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
         SCRIPT_PLACEHOLDER::cloudwatch_util.copy_put_alarms_for_dynamo_db_table
+# End Switch Alarms

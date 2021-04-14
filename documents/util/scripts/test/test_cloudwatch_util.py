@@ -75,7 +75,7 @@ class TestCloudWatchUtil(unittest.TestCase):
 
     def test__describe_metric_alarms(self):
 
-        result = _describe_metric_alarms()
+        result = _describe_metric_alarms(alarm_names=[])
 
         self.assertEqual(result, DESCRIBE_ALARMS_RESPONSE)
 
@@ -87,7 +87,9 @@ class TestCloudWatchUtil(unittest.TestCase):
 
         result = copy_put_alarms_for_dynamo_db_table(events={
             'SourceTableName': 'source_table',
-            'TargetTableName': 'target_table'
+            'TargetTableName': 'target_table',
+            'DynamoDBSourceTableAlarmNames':
+            ['TargetTracking-table/myable-AlarmHigh-2b8fb5f6-8477-4904-9ffb-cb4112e71b3c']
         }, context={})
 
         self.assertEqual(result['AlarmsChanged'], 1)

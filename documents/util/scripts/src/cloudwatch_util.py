@@ -1,3 +1,4 @@
+from typing import List
 import boto3
 import time
 from datetime import datetime, timedelta
@@ -20,9 +21,9 @@ def _execute_boto3_cloudwatch(delegate):
     return response
 
 
-def _describe_metric_alarms():
+def _describe_metric_alarms(alarm_names: List[str]):
     return _execute_boto3_cloudwatch(
-        delegate=lambda x: x.describe_alarms(AlarmTypes=['MetricAlarm']))
+        delegate=lambda x: x.describe_alarms(AlarmTypes=['MetricAlarm'], AlarmNames=alarm_names))
 
 
 def _put_metric_alarm(**kwargs):
@@ -35,10 +36,13 @@ def copy_put_alarms_for_dynamo_db_table(events, context):
         raise KeyError('Requires SourceTableName')
     if 'TargetTableName' not in events:
         raise KeyError('Requires TargetTableName')
+    if 'DynamoDBSourceTableAlarmNames' not in events:
+        raise KeyError('Requires DynamoDBSourceTableAlarmNames')
 
     source_table_name: str = events['SourceTableName']
     target_table_name: str = events['TargetTableName']
-    source_alarms = _describe_metric_alarms()
+    alarms_names_to_change: str = events.get('DynamoDBSourceTableAlarmNames', [])
+    source_alarms = _describe_metric_alarms(alarm_names=alarms_names_to_change)
 
     alarms_copied_count: int = 0
 
