@@ -101,5 +101,3 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.recovery_time
       InputPayload:
         StartTime: '{{ RecordStartTime.StartTime }}'
-
-
