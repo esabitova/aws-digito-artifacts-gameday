@@ -1,7 +1,7 @@
 {
   "displayName": "Create a backup",
   "description": "Create a backup before major changes in configuration or a deployment",
-  "documentName": "Digito-CreateBackup_2020-10-26",
+  "documentName": "Digito-CreateEfsBackup_2020-10-26",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",

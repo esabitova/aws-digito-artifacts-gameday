@@ -18,11 +18,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for SSM CreateBackup
 Outputs:
-  DigitoCreateBackupAssumeRole:
+  DigitoCreateEfsBackupAssumeRole:
     Description: DigitoCreateBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoCreateBackupAssumeRole.Arn
+    Value: !GetAtt DigitoCreateEfsBackupAssumeRole.Arn
 Resources:
-  DigitoCreateBackupAssumeRole:
+  DigitoCreateEfsBackupAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoCreateBackupAssumePolicy:
+  DigitoCreateEfsBackupAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoCreateBackupAssumePolicy"
+      PolicyName: "DigitoCreateEfsBackupAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - elasticfilesystem:DescribeFileSystems
               - iam:PassRole
       Roles:
-        - Ref: DigitoCreateBackupAssumeRole
+        - Ref: DigitoCreateEfsBackupAssumeRole
