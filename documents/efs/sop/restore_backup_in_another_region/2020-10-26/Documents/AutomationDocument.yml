@@ -34,6 +34,7 @@ parameters:
 mainSteps:
   - name: RecordStartTime
     action: 'aws:executeScript'
+    onFailure: Abort
     inputs:
       Runtime: python3.7
       Handler: start_time
@@ -82,6 +83,7 @@ mainSteps:
         Type: String
   - name: VerifyRestoreJobStatus
     action: aws:waitForAwsResourceProperty
+    onFailure: Abort
     inputs:
       Service: backup
       Api: DescribeRestoreJob
@@ -93,9 +95,9 @@ mainSteps:
       - Name: RecoveryPointArn
         Selector: "$.RecoveryPointArn"
         Type: String
-    isEnd: true
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
+    onFailure: Abort
     outputs:
       - Name: RecoveryTime
         Selector: $.Payload
