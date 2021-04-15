@@ -30,7 +30,7 @@ parameters:
   DBInstanceClass:
     type: 'String'
     default: 'db.t3.medium'
-    description: 'Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region'
+    description: '(Optional) Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region'
   AvailabilityZone:
     type: String
     default: ''
