@@ -239,6 +239,8 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
         'MaxNumberOfMessages': how many messages to receive
         'WaitTimeSeconds': duration in seconds for which the call waits for a message to arrive in the queue
         'ScriptTimeout': script timeout in seconds
+        'checkDLQ': flag to check if messages arrived to DLQ
+        'RedrivePolicy': Redrive policy to check queue DLQ
     :return: response of receive_message method
     """
     if "QueueUrl" not in events:
@@ -247,60 +249,36 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
     if "MaxNumberOfMessages" in events and not 1 <= int(events['MaxNumberOfMessages']) <= 10:
         raise KeyError("Requires MaxNumberOfMessages to be in a range 1..10")
 
-    start = datetime.now()
     queue_url = events['QueueUrl']
-    script_timeout = int(events.get('ScriptTimeout', 100))
-    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 0))
+    script_timeout = int(events.get('ScriptTimeout', 300))
+    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
     max_number_of_messages = int(events.get('MaxNumberOfMessages', 1))
+    visibility_timeout = int(events.get('VisibilityTimeout', 30))
+
+    dlq_url = ''
+    if "checkDLQ" in events:
+        if "RedrivePolicy" not in events:
+            raise KeyError("Requires RedrivePolicy in events to check DLQ")
+        dlq_url = get_dead_letter_queue_url({'SourceRedrivePolicy': events['RedrivePolicy']}, {})['QueueUrl']
+
+    start = datetime.now()
 
     while True:
         received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
         if received_messages is not None and len(received_messages) != 0:
-            return {"Messages": received_messages}
+            # If DLQ Url is set check if messages arrived to DLQ
+            if "checkDLQ" in events:
+                time.sleep(60 + visibility_timeout)
+                number_of_dlq_messages = get_number_of_messages(dlq_url)
+                if number_of_dlq_messages > 0:
+                    return {"Messages": received_messages}
+                else:
+                    logger.debug('Message not found in DLQ')
+            else:
+                return {"Messages": received_messages}
 
         if (datetime.now() - start).total_seconds() > script_timeout:
-            raise KeyError("Could not read messages before timeout")
-
-
-def receive_message_by_id(events: dict, context: dict) -> dict:
-    """
-    Receive message from queue N times by its ID
-    """
-    if "QueueUrl" not in events or "MessageId" not in events:
-        raise KeyError("Requires QueueUrl, MessageId and VisibilityTimeout in events")
-
-    if "MaxNumberOfMessages" in events and not 1 <= int(events['MaxNumberOfMessages']) <= 10:
-        raise KeyError("Requires MaxNumberOfMessages to be in a range 1..10")
-
-    start = datetime.now()
-    sqs_client = boto3.client("sqs")
-    queue_url = events['QueueUrl']
-    message_id = events['MessageId']
-    count_to_receive = int(events.get('Count', 1))
-    visibility_timeout = int(events.get('VisibilityTimeout', 30))
-    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 0))
-    max_number_of_messages = int(events.get('MaxNumberOfMessages', 1))
-    timeout = int(events.get('TimeOut', 300))
-    output = []
-    while count_to_receive > 0:
-        response = sqs_client.receive_message(
-            QueueUrl=queue_url,
-            MaxNumberOfMessages=max_number_of_messages,
-            WaitTimeSeconds=wait_timeout_seconds,
-            VisibilityTimeout=visibility_timeout,
-            MessageAttributeNames=['All'],
-            AttributeNames=['All']
-        )
-        if 'Messages' in response and len(response['Messages']):
-            for message in response['Messages']:
-                if message['MessageId'] == message_id:
-                    output.append(message)
-                    count_to_receive -= 1
-
-        if (datetime.now() - start).total_seconds() > timeout:
-            raise Exception(f'Message {message_id} not found before timeout reached')
-
-    return {"Messages": output}
+            raise Exception('Could not read messages before timeout')
 
 
 def transfer_messages(events: dict, context: dict) -> dict:
@@ -485,3 +463,17 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
 
     return {"QueueUrl": dead_letter_queue_url}
+
+
+def get_number_of_messages(queue_url: str) -> int:
+    """
+    Util function to get approximate number of messages from the queue
+    """
+    sqs_client = boto3.client("sqs")
+    response = sqs_client.get_queue_attributes(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            'ApproximateNumberOfMessages'
+        ]
+    )
+    return int(response['Attributes']['ApproximateNumberOfMessages'])

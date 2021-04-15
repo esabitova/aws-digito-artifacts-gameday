@@ -208,45 +208,27 @@ mainSteps:
       Attributes:
         RedrivePolicy: '{{ GetUpdatedRedrivePolicy.RedrivePolicy }}'
 
-  - name: SleepBeforeSendMessage
-    action: "aws:sleep"
-    inputs:
-      Duration: "PT60S"
-
-  - name: SendMessage
-    action: aws:executeAwsApi
-    onFailure: step:GetDeadLetterQueueUrl
-    onCancel: step:GetDeadLetterQueueUrl
-    outputs:
-      - Name: MessageId
-        Selector: '$.MessageId'
-        Type: String
-    inputs:
-      Service: sqs
-      Api: SendMessage
-      QueueUrl: '{{ QueueUrl }}'
-      DelaySeconds: 0
-      MessageBody: "Test message"
-
-  - name: ReadMessageById
+  - name: ReadMessage
     action: aws:executeScript
     onFailure: step:GetDeadLetterQueueUrl
     onCancel: step:GetDeadLetterQueueUrl
     inputs:
       Runtime: python3.7
-      Handler: receive_message_by_id
+      Handler: receive_messages_by_events
       InputPayload:
         QueueUrl: '{{ QueueUrl }}'
-        MessageId: '{{ SendMessage.MessageId }}'
-        VisibilityTimeout: 15
-        MaxNumberOfMessages: 1
-        WaitTimeSeconds: 1
-        Count: 2
-        TimeOut: 600
+        MaxNumberOfMessages: 2
+        WaitTimeSeconds: 5
+        checkDLQ: 'true'
+        RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
+        VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
-        SCRIPT_PLACEHOLDER::sqs_util.receive_message_by_id
+        SCRIPT_PLACEHOLDER::sqs_util.get_number_of_messages
+        SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
+        SCRIPT_PLACEHOLDER::sqs_util.receive_messages
+        SCRIPT_PLACEHOLDER::sqs_util.receive_messages_by_events
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
