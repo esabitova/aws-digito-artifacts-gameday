@@ -18,14 +18,13 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
-    # Terminate execution
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreenBeforeTest" in status "InProgress" for "600" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And send "5" messages to queue
+    # Keep sending messages long enough so SSM times out if sending is not stopped by access denied error
+    And send messages for "1200" seconds until access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+
+    # Terminate execution
+    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "UpdateQueuePolicy" in status "Success" for "50" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-BreakingThePolicyForSQS_2020-11-27" SSM automation document
@@ -35,14 +34,13 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    # Try to send some messages to check that policy was removed
-    And send "5" messages to queue with error
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    # Alarm should still be triggered
-    When Wait for alarm to be in state "ALARM" for "50" seconds
+    # Check policy
+    When Wait for alarm to be in state "ALARM" for "150" seconds
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
+    And cache policy as "Policy" "after-terminate" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     # Run rollback
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
@@ -51,20 +49,22 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And cache policy as "Policy" "after" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    And send "5" messages to queue
+    And send messages for "300" seconds ignoring access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And Wait for alarm to be in state "OK" for "50" seconds
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
+    And sleep for "60" seconds
+    And cache policy as "Policy" "after" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "60" seconds
 
-    Then assert "Policy" at "before" became equal to "Policy" at "after"
+    Then assert "Policy" at "before" became not equal to "Policy" at "after-terminate"
+    And assert "Policy" at "before" became equal to "Policy" at "after"
