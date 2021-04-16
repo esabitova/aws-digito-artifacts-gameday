@@ -1,10 +1,12 @@
 from pytest_bdd import given, parsers, then
 from resource_manager.src.util import param_utils
 from resource_manager.src.util.dynamo_db_utils import \
+    add_global_table_and_wait_to_active,\
+    update_time_to_live, \
     add_kinesis_destinations, \
     drop_and_wait_dynamo_db_table_if_exists, \
     get_earliest_recovery_point_in_time, \
-    update_time_to_live
+    remove_global_table_and_wait_to_active
 
 DROP_TABLE_DESCRIPTION = "Drop Dynamo DB table with the name {table_name_ref} and wait " \
     "for {wait_sec} seconds with interval {delay_sec} seconds"
@@ -66,3 +68,45 @@ def enable_tll(ssm_test_cache,
                         is_enabled=True,
                         attribute_name=attribute_name,
                         boto3_session=boto3_session)
+
+
+@given(parsers.parse("enabled global dynamodb table {table_name_ref} in the region "
+                     "{region_global_table_ref} and wait for "
+                     "{wait_sec} seconds with delay {delay_sec} seconds"))
+def enable_global_table(ssm_test_cache,
+                        resource_manager,
+                        boto3_session,
+                        table_name_ref,
+                        region_global_table_ref,
+                        wait_sec,
+                        delay_sec):
+    cf_output = resource_manager.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    region_global_table = param_utils.parse_param_value(
+        region_global_table_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    add_global_table_and_wait_to_active(table_name=table_name,
+                                        global_table_regions=[region_global_table],
+                                        wait_sec=int(wait_sec),
+                                        delay_sec=int(delay_sec),
+                                        boto3_session=boto3_session)
+
+
+@then(parsers.parse("disable global dynamodb table {table_name_ref} in the region "
+                    "{region_global_table_ref} and wait for "
+                    "{wait_sec} seconds with delay {delay_sec} seconds"))
+def disable_global_table(ssm_test_cache,
+                         resource_manager,
+                         boto3_session,
+                         table_name_ref,
+                         region_global_table_ref,
+                         wait_sec,
+                         delay_sec):
+    cf_output = resource_manager.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    region_global_table = param_utils.parse_param_value(
+        region_global_table_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    remove_global_table_and_wait_to_active(table_name=table_name,
+                                           global_table_regions=[region_global_table],
+                                           wait_sec=int(wait_sec),
+                                           delay_sec=int(delay_sec),
+                                           boto3_session=boto3_session)

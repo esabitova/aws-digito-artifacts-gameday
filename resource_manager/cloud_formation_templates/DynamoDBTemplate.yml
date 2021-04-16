@@ -88,10 +88,7 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Ref DynamoDBTableName
-      BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: "5"
-        WriteCapacityUnits: "5"
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: "USER_ID"
           AttributeType: "S"

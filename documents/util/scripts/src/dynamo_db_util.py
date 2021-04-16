@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+import time
 from typing import List, Union
 
 import boto3
@@ -9,6 +10,7 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 ENABLED_INSIGHTS_STATUSES = ['ENABLING', 'ENABLED']
+GLOBAL_TABLE_ACTIVE_STATUSES = ['ACTIVE']
 
 
 def _parse_recovery_date_time(restore_date_time_str: str, format: str) -> Union[datetime, None]:
@@ -64,7 +66,7 @@ def _update_table(table_name: str, **kwargs):
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
 
-def _describe_table(table_name: str):
+def _describe_table(table_name: str) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_table(TableName=table_name))
 
@@ -88,6 +90,80 @@ def _update_contributor_insights(table_name: str, status: str, index_name: str =
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_contributor_insights(TableName=table_name,
                                                          ContributorInsightsAction=status))
+
+
+def _get_global_table_all_regions(table_name: str) -> List[dict]:
+    description = _describe_table(table_name=table_name)
+    replicas = description['Table'].get('Replicas', [])
+    return replicas
+
+
+def get_global_table_active_regions(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+
+    table_name: str = events['TableName']
+    replicas = _get_global_table_all_regions(table_name=table_name)
+
+    return{
+        'GlobalTableRegions': [r['RegionName']
+                               for r in replicas
+                               if r['ReplicaStatus'] in GLOBAL_TABLE_ACTIVE_STATUSES]
+    }
+
+
+def set_up_replication(events: dict, context: dict) -> dict:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'GlobalTableRegions' not in events:
+        raise KeyError('Requires GlobalTableRegions')
+
+    table_name: str = events['TableName']
+    global_table_regions: str = events.get('GlobalTableRegions', [])
+    if global_table_regions:
+        _update_table(table_name=table_name, ReplicaUpdates=[
+            {'Create': {'RegionName': region}} for region in global_table_regions])
+
+    return{
+        'GlobalTableRegionsAdded': global_table_regions
+    }
+
+
+def wait_replication_status_in_all_regions(events: dict, context: dict) -> List:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'ReplicasRegionsToWait' not in events:
+        raise KeyError('Requires ReplicasRegionsToWait')
+    if 'WaitTimeoutSeconds' not in events:
+        raise KeyError('Requires WaitTimeoutSeconds')
+
+    table_name: str = events['TableName']
+    wait_timeout_seconds: int = int(events['WaitTimeoutSeconds'])
+    replicas_regions_to_wait: str = events['ReplicasRegionsToWait']
+    if not replicas_regions_to_wait:
+        return{
+            "GlobalTableRegionsActive": 0
+        }
+
+    start = time.time()
+    elapsed = 0
+    while elapsed < wait_timeout_seconds:
+        replicas = _get_global_table_all_regions(table_name=table_name)
+        all_active = all([r['ReplicaStatus'] in GLOBAL_TABLE_ACTIVE_STATUSES
+                          for r in replicas
+                          if r['RegionName'] in replicas_regions_to_wait])
+        if all_active:
+            return{
+                'GlobalTableRegionsActive': replicas_regions_to_wait
+            }
+
+        end = time.time()
+        logging.info(f'time elapsed {elapsed} seconds. The last result:{replicas}')
+        time.sleep(20)
+        elapsed = end - start
+
+    raise ValueError(f'After {elapsed} not all replicas are Active. '
+                     'Regions to waits: {GLOBAL_TABLE_ACTIVE_STATUSES}')
 
 
 def update_contributor_insights_settings(events: dict, context: dict) -> List:

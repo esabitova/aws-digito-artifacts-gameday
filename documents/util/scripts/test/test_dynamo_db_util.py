@@ -6,11 +6,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from documents.util.scripts.src.dynamo_db_util import (_describe_contributor_insights,
-                                                       _describe_kinesis_destinations, _describe_table,
+                                                       _describe_kinesis_destinations,
+                                                       _describe_table,
+                                                       _get_global_table_all_regions,
                                                        _parse_recovery_date_time,
                                                        get_active_kinesis_destinations,
                                                        get_global_secondary_indexes,
+                                                       get_global_table_active_regions,
                                                        parse_recovery_date_time,
+                                                       set_up_replication,
                                                        update_table_stream,
                                                        _update_table,
                                                        _enable_kinesis_destinations,
@@ -23,7 +27,7 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_contributor_ins
                                                        _update_contributor_insights,
                                                        update_contributor_insights_settings,
                                                        _update_time_to_live,
-                                                       update_time_to_live)
+                                                       update_time_to_live, wait_replication_status_in_all_regions)
 
 
 GENERIC_SUCCESS_RESULT = {
@@ -90,7 +94,7 @@ DESCRIBE_TABLE_RESPONCE = {
                 "AttributeType": "S"
             }
         ],
-        "TableName": "my_table",
+        "TableName": "myable",
         "KeySchema": [
             {
                 "AttributeName": "id",
@@ -106,7 +110,7 @@ DESCRIBE_TABLE_RESPONCE = {
         },
         "TableSizeBytes": 0,
         "ItemCount": 0,
-        "TableArn": "arn:aws:dynamodb:us-east-2:435978235099:table/my_table",
+        "TableArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable",
         "TableId": "cd7e8790-c589-4d6d-9a5e-042d61c20fed",
         "GlobalSecondaryIndexes": [
             {
@@ -128,7 +132,7 @@ DESCRIBE_TABLE_RESPONCE = {
                 },
                 "IndexSizeBytes": 0,
                 "ItemCount": 0,
-                "IndexArn": "arn:aws:dynamodb:us-east-2:435978235099:table/my_table/index/Partition_key-index"
+                "IndexArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable/index/Partition_key-index"
             },
             {
                 "IndexName": "another-fkey-index",
@@ -141,8 +145,7 @@ DESCRIBE_TABLE_RESPONCE = {
                 "Projection": {
                     "ProjectionType": "ALL"
                 },
-                "IndexStatus": "CREATING",
-                "Backfilling": True,
+                "IndexStatus": "ACTIVE",
                 "ProvisionedThroughput": {
                     "NumberOfDecreasesToday": 0,
                     "ReadCapacityUnits": 5,
@@ -150,7 +153,21 @@ DESCRIBE_TABLE_RESPONCE = {
                 },
                 "IndexSizeBytes": 0,
                 "ItemCount": 0,
-                "IndexArn": "arn:aws:dynamodb:us-east-2:435978235099:table/my_table/index/another-fkey-index"
+                "IndexArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable/index/another-fkey-index"
+            }
+        ],
+        "StreamSpecification": {
+            "StreamEnabled": True,
+            "StreamViewType": "NEW_AND_OLD_IMAGES"
+        },
+        "LatestStreamLabel": "2021-04-11T16:50:33.128",
+        "LatestStreamArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable/stream/2021-04-11T16:50:33.128",
+        "GlobalTableVersion": "2019.11.21",
+        "Replicas": [
+            {
+                "RegionName": "ap-southeast-1",
+                "ReplicaStatus": "ACTIVE",
+                "ReplicaStatusDescription": "Failed to describe settings for the replica in region: ‘ap-southeast-1’."
             }
         ]
     }
@@ -261,6 +278,75 @@ class TestDynamoDbUtil(unittest.TestCase):
                                            format="%Y-%m-%dT%H:%M:%S%z")
 
         self.assertIsNone(result)
+
+    @patch('documents.util.scripts.src.dynamo_db_util._describe_table',
+           return_value=DESCRIBE_TABLE_RESPONCE)
+    def test__get_global_table_all_regions(self, describe_mock):
+        result = _get_global_table_all_regions(table_name='my_table')
+
+        self.assertEqual(result, [
+            {
+                "RegionName": "ap-southeast-1",
+                "ReplicaStatus": "ACTIVE",
+                "ReplicaStatusDescription": "Failed to describe settings for the replica in region: ‘ap-southeast-1’."
+            }
+        ])
+
+        describe_mock.assert_called_with(table_name='my_table')
+
+    @patch('documents.util.scripts.src.dynamo_db_util._get_global_table_all_regions',
+           return_value=[
+               {
+                   "RegionName": "ap-southeast-1",
+                   "ReplicaStatus": "ACTIVE"
+               }
+           ])
+    def test_wait_replication_status_in_all_regions(self, get_mock):
+        events = {
+            "TableName": 'my_table',
+            "ReplicasRegionsToWait": ['ap-southeast-1'],
+            "WaitTimeoutSeconds": 1
+        }
+        result = wait_replication_status_in_all_regions(events=events, context={})
+
+        self.assertEqual(result['GlobalTableRegionsActive'], ['ap-southeast-1'])
+
+        get_mock.assert_called_with(table_name='my_table')
+
+    @patch('documents.util.scripts.src.dynamo_db_util._update_table',
+           return_value={})
+    def test_set_up_replication(self, update_mock):
+        events = {
+            "TableName": 'my_table',
+            "GlobalTableRegions": ['ap-southeast-1']
+        }
+        result = set_up_replication(events=events, context={})
+
+        self.assertEqual(result['GlobalTableRegionsAdded'], ['ap-southeast-1'])
+
+        update_mock.assert_called_with(table_name='my_table',
+                                       ReplicaUpdates=[{
+                                           'Create': {
+                                               'RegionName': 'ap-southeast-1'
+                                           }}])
+
+    @patch('documents.util.scripts.src.dynamo_db_util._get_global_table_all_regions',
+           return_value=[
+               {
+                   "RegionName": "ap-southeast-1",
+                   "ReplicaStatus": "ACTIVE",
+                   "ReplicaStatusDescription": ""
+               }
+           ])
+    def test_get_global_table_active_regions(self, describe_mock):
+        events = {
+            "TableName": 'my_table'
+        }
+        result = get_global_table_active_regions(events=events, context={})
+
+        self.assertEqual(result['GlobalTableRegions'], ['ap-southeast-1'])
+
+        describe_mock.assert_called_with(table_name='my_table')
 
     @patch('documents.util.scripts.src.dynamo_db_util._parse_recovery_date_time',
            return_value=datetime(2021, 1, 1, 4, 0, 0))

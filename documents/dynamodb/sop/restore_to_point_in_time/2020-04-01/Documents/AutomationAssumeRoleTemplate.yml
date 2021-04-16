@@ -67,5 +67,8 @@ Resources:
               - "application-autoscaling:RegisterScalableTarget"
               - "cloudwatch:DescribeAlarms"
               - "cloudwatch:PutMetricAlarm"
+              - "dynamodb:CreateTableReplica"
+              - "dynamodb:CreateTable"
+
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole
