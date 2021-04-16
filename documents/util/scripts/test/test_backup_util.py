@@ -1,8 +1,15 @@
 BACKUP_PENDING_RECOVERY_ARN = "arn:aws:backup:eu-south-1:000000031337:recovery-point:TestPending"
 BACKUP_COMPLETED_RECOVERY_ARN = "arn:aws:backup:eu-south-1:000000031337:recovery-point:TestCompleted"
+BACKUP_VAULT_NAME = "test-backup-vault"
 
 
-def list_recovery_points_by_backup_vault(backup_vault_name):
+def list_empty_recovery_points():
+    return {
+        "RecoveryPoints": []
+    }
+
+
+def list_efs_recovery_points_by_backup_vault(backup_vault_name):
     return {
         "RecoveryPoints": [
             {

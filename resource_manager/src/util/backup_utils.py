@@ -84,7 +84,7 @@ def get_recovery_points(session: Session, backup_vault_name: str, resource_type:
     if resource_arn:
         kwargs['ByResourceArn'] = resource_arn
     response = local_backup_client.list_recovery_points_by_backup_vault(**kwargs)
-    if len(response['RecoveryPoints']) < 0:
+    if len(response['RecoveryPoints']) == 0:
         LOG.info(f'No recovery points found for resource_type:{resource_type} '
                  f'resource_arn:{resource_arn} in {backup_vault_name}')
     return response['RecoveryPoints']
