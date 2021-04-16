@@ -91,10 +91,6 @@ mainSteps:
       PropertySelector: "$.Status"
       DesiredValues:
         - "COMPLETED"
-    outputs:
-      - Name: RecoveryPointArn
-        Selector: "$.RecoveryPointArn"
-        Type: String
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
     onFailure: Abort
@@ -113,4 +109,3 @@ mainSteps:
 outputs:
   - RestoreBackupJob.RestoreJobId
   - OutputRecoveryTime.RecoveryTime
-  - VerifyRestoreJobStatus.RecoveryPointArn

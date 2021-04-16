@@ -23,7 +23,7 @@ Feature: SSM automation document to restore backup in another region
     And cache execution output value of "RestoreBackupJob.RestoreJobId" as "RestoreJobId" after SSM automation execution
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache property of "Status" as "RestoreJobStatus" "after" SSM automation execution
+    And cache restore job property "$.Status" as "RestoreJobStatus" "after" SSM automation execution
       | RestoreJobId                 |
       | {{cache:after>RestoreJobId}} |
 

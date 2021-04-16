@@ -1,7 +1,7 @@
 from boto3 import Session
 import logging
 from .boto3_client_factory import client
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def get_role_by_name(session: Session, role_name: str):

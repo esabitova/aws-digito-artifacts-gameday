@@ -3,7 +3,7 @@ from .boto3_client_factory import client
 import logging
 import time
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def run_backup(session: Session,
@@ -22,7 +22,7 @@ def run_backup(session: Session,
     :param wait_timeout timeout in seconds on waiting for backup completion
     """
 
-    LOG.info(f'Starting to back up {resource_arn} into {backup_vault_name}')
+    logger.info(f'Starting to back up {resource_arn} into {backup_vault_name}')
     backup_client = client('backup', session)
     response = backup_client.start_backup_job(
         BackupVaultName=backup_vault_name,
@@ -31,17 +31,17 @@ def run_backup(session: Session,
     )
 
     if wait:
-        LOG.info(f'Waiting for backup job {response["BackupJobId"]} to complete')
+        logger.info(f'Waiting for backup job {response["BackupJobId"]} to complete')
         timeout_timestamp = time.time() + int(wait_timeout)
         status = None
         while time.time() < timeout_timestamp:
             status = backup_client.describe_backup_job(BackupJobId=response['BackupJobId']).get('State')
             if status == "COMPLETED":
-                LOG.info(f'Backup job {response["BackupJobId"]} completed')
+                logger.info(f'Backup job {response["BackupJobId"]} completed')
                 break
             time.sleep(5)
         if status != "COMPLETED":
-            raise Exception(f'Backup job {response["BackupJobId"]} failed to complete, current status is {status}')
+            raise AssertionError(f'Backup job {response["BackupJobId"]} failed to complete, current status is {status}')
     return response['RecoveryPointArn']
 
 
@@ -61,7 +61,7 @@ def get_recovery_point(session: Session, backup_vault_name: str, resource_type: 
         for recovery_point in response['RecoveryPoints']:
             if recovery_point['Status'] == 'COMPLETED':
                 return recovery_point['RecoveryPointArn']
-    LOG.info(f'No recovery points found for {resource_type} in {backup_vault_name}')
+    logger.info(f'No recovery points found for {resource_type} in {backup_vault_name}')
     raise Exception(f'No recovery points found for {resource_type} in {backup_vault_name}')
 
 
@@ -81,8 +81,8 @@ def get_recovery_points(session: Session, backup_vault_name: str, resource_type:
         kwargs['ByResourceArn'] = resource_arn
     response = backup_client.list_recovery_points_by_backup_vault(**kwargs)
     if len(response['RecoveryPoints']) == 0:
-        LOG.info(f'No recovery points found for resource_type:{resource_type} '
-                 f'resource_arn:{resource_arn} in {backup_vault_name}')
+        logger.info(f'No recovery points found for resource_type:{resource_type} '
+                    f'resource_arn:{resource_arn} in {backup_vault_name}')
     return response['RecoveryPoints']
 
 
@@ -98,7 +98,7 @@ def delete_recovery_point(session: Session, recovery_point_arn: str, backup_vaul
     :param wait_timeout timeout in seconds on waiting for backup completion
     """
     backup_client = client('backup', session)
-    LOG.info(f'Recovery point {recovery_point_arn.split(":")[-1]} is deleting')
+    logger.info(f'Recovery point {recovery_point_arn.split(":")[-1]} is deleting')
     backup_client.delete_recovery_point(
         BackupVaultName=backup_vault_name,
         RecoveryPointArn=recovery_point_arn
@@ -113,5 +113,5 @@ def delete_recovery_point(session: Session, recovery_point_arn: str, backup_vaul
                 )
                 time.sleep(5)
             except backup_client.exceptions.ResourceNotFoundException:
-                LOG.info(f'Recovery point {recovery_point_arn.split(":")[-1]} successfully removed')
+                logger.info(f'Recovery point {recovery_point_arn.split(":")[-1]} successfully removed')
                 break
