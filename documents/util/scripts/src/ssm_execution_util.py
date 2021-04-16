@@ -57,7 +57,6 @@ def get_inputs_from_ssm_step_execution(events, context):
 
 
 def get_inputs_from_input_payload_ssm_step_execution(events, context):
-
     if 'ExecutionId' not in events or 'StepName' not in events or 'InputPayloadField' not in events:
         raise KeyError('Requires ExecutionId, StepName and InputPayloadField in events')
     events['ResponseField'] = 'InputPayload'

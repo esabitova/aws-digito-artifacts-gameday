@@ -1,0 +1,103 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "SOP - Update Provisioned Capacity"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  DynamoDBTableName:
+    type: String
+    description: (Required) The DynamoDB Table Name.
+  DynamoDBTableRCU:
+    type: Integer
+    description: (Required) The DynamoDB Table Read Capacity Units.
+  DynamoDBTableWCU:
+    type: Integer
+    description: (Required) The DynamoDB Table Write Capacity Units.
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+outputs:
+  - GetUpdatedProvisionedThroughput.ReadCapacityUnits
+  - GetUpdatedProvisionedThroughput.WriteCapacityUnits
+  - OutputRecoveryTime.RecoveryTime
+
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: UpdateDynamoDBTableProvisionedCapacity
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: UpdateTable
+      TableName: "{{ DynamoDBTableName }}"
+      ProvisionedThroughput:
+        ReadCapacityUnits: "{{ DynamoDBTableRCU }}"
+        WriteCapacityUnits: "{{ DynamoDBTableWCU }}"
+
+  - name: VerifyDynamoDBTableUpdateStatus
+    action: aws:waitForAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableName }}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
+
+  - name: GetUpdatedProvisionedThroughput
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableName }}"
+    outputs:
+      - Name: ReadCapacityUnits
+        Selector: "$.Table.ProvisionedThroughput.ReadCapacityUnits"
+        Type: Integer
+      - Name: WriteCapacityUnits
+        Selector: "$.Table.ProvisionedThroughput.WriteCapacityUnits"
+        Type: Integer
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
