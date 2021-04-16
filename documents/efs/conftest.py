@@ -11,7 +11,7 @@ from resource_manager.src.util.efs_utils import describe_filesystem
 logger = logging.getLogger(__name__)
 
 
-@when(parsers.parse('cache restore job property "{target_property}" as "{cache_property}" '
+@when(parsers.parse('cache restore job property "{json_path}" as "{cache_property}" '
                     '"{step_key}" SSM automation execution\n{input_parameters}'))
 def cache_backup_value(cfn_output_params, ssm_test_cache, boto3_session, json_path, cache_property, step_key,
                        input_parameters):
@@ -42,3 +42,13 @@ def cache_number_of_recovery_points(
     logger.info(f'{len(recovery_points)} recovery points found for efs_id:{efs_id} '
                 f'in {backup_vault_name} {step_key} SSM')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, len(recovery_points))
+
+
+@then(parsers.parse('assert EFS fs exists\n{input_parameters}'))
+def efs_fs_exists(resource_manager, boto3_session, ssm_test_cache, input_parameters):
+    efs_id = extract_param_value(input_parameters, 'FileSystemARN', resource_manager, ssm_test_cache).\
+        split(':')[-1].split('/')[-1]
+    try:
+        describe_filesystem(boto3_session, efs_id)['FileSystems'][0]['FileSystemArn']
+    except boto3_session.client('backup').exceptions.FileSystemNotFound:
+        raise AssertionError(f'FileSystem with ID {efs_id} doesn\'t exist after restore')

@@ -26,8 +26,14 @@ Feature: SSM automation document to restore backup in another region
     And cache restore job property "$.Status" as "RestoreJobStatus" "after" SSM automation execution
       | RestoreJobId                 |
       | {{cache:after>RestoreJobId}} |
+    And cache restore job property "$.CreatedResourceArn" as "RestoredEFSARN" "after" SSM automation execution
+      | RestoreJobId                 |
+      | {{cache:after>RestoreJobId}} |
 
     Then assert "RestoreJobStatus" at "after" became equal to "COMPLETED"
+    And assert EFS fs exists
+      | FileSystemARN                  |
+      | {{cache:after>RestoredEFSARN}} |
     And tear down created recovery points and jobs
       | RecoveryPointArn                  |  BackupVaultName                                      |
       | {{cache:before>RecoveryPointArn}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} |
