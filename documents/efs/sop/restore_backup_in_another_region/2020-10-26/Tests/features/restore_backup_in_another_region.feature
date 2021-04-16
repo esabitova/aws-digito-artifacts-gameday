@@ -7,8 +7,11 @@ Feature: SSM automation document to restore backup in another region
       | resource_manager/cloud_formation_templates/EFSTemplate.yml                                               | ON_DEMAND    |
       | documents/efs/sop/restore_backup_in_another_region/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreBackup_2020-10-26" SSM document
+    And cache number of recovery points as "NumberOfRecoveryPoints" "before" SSM automation execution
+      | BackupVaultName                                       | FileSystemID                      |
+      | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |
     And cache recovery point arn as "RecoveryPointArn"
-      | FileSystemID                     |  BackupVaultName                                       |
+      | FileSystemID                     | BackupVaultName                                        |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}}  |
     And SSM automation document "Digito-RestoreBackup_2020-10-26" executed
       | FileSystemID                     | JobIAMRoleArn                            | RecoveryPointArn                  | AutomationAssumeRole                                                      |
@@ -25,3 +28,10 @@ Feature: SSM automation document to restore backup in another region
       | {{cache:after>RestoreJobId}} |
 
     Then assert "RestoreJobStatus" at "after" became equal to "COMPLETED"
+    And tear down created recovery points and jobs
+      | RecoveryPointArn                  |  BackupVaultName                                      |
+      | {{cache:before>RecoveryPointArn}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} |
+    And cache number of recovery points as "NumberOfRecoveryPoints" "after" SSM automation execution
+      | BackupVaultName                                       | FileSystemID                      |
+      | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |
+    And assert "NumberOfRecoveryPoints" at "before" became equal to "NumberOfRecoveryPoints" at "after"
