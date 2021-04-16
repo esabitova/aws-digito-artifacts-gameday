@@ -1,0 +1,13 @@
+{
+  "displayName": "Create a backup",
+  "description": "Create a backup before major changes in configuration or a deployment",
+  "documentName": "Digito-CreateEfsBackup_2020-10-26",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "tag": "efs:sop:create_backup:2020-10-26",
+  "failureType": "SOFTWARE",
+  "risk": "MEDIUM",
+  "minorVersion": "001"
+}

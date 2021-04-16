@@ -4,6 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from botocore.exceptions import ClientError
+
 import resource_manager.src.util.sqs_utils as sqs_utils
 import resource_manager.src.util.boto3_client_factory as client_factory
 
@@ -64,6 +66,60 @@ class TestSQSUtil(unittest.TestCase):
             QueueUrl=SQS_QUEUE_URL, MessageBody=SQS_MESSAGE_BODY, MessageGroupId=SQS_FIFO_MESSAGE_GROUP,
             MessageDeduplicationId=now
         )
+
+    def test_send_messages_until_access_denied(self):
+        self.mock_sqs_service.send_message.side_effect = [
+            {}, ClientError({'Error': {'Code': 'AccessDenied'}}, ''), {}
+        ]
+        sqs_utils.send_messages_until_access_denied(self.session_mock, SQS_QUEUE_URL, 50)
+        self.assertEqual(2, self.mock_sqs_service.send_message.call_count)
+        self.mock_sqs_service.send_message.reset_mock()
+
+    def test_send_messages_until_access_denied_failed(self):
+        self.mock_sqs_service.send_message.side_effect = [
+            {}, ClientError({'Error': {'Code': 'SomeErrorCode'}}, ''), {}
+        ]
+        self.assertRaises(
+            ClientError, sqs_utils.send_messages_until_access_denied, self.session_mock, SQS_QUEUE_URL, 50
+        )
+        self.assertEqual(2, self.mock_sqs_service.send_message.call_count)
+        self.mock_sqs_service.send_message.reset_mock()
+
+    def test_send_messages_until_access_denied_timeout(self):
+        self.assertRaises(
+            Exception, sqs_utils.send_messages_until_access_denied, self.session_mock, SQS_QUEUE_URL, 50
+        )
+        self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
+
+    def test_send_messages_until_timeout(self):
+        sqs_utils.send_messages_until_timeout(self.session_mock, SQS_QUEUE_URL, 50)
+        self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
+
+    def test_send_messages_until_timeout_failed(self):
+        self.mock_sqs_service.send_message.side_effect = [
+            {}, ClientError({'Error': {'Code': 'SomeErrorCode'}}, ''), {}
+        ]
+        self.assertRaises(
+            ClientError, sqs_utils.send_messages_until_timeout, self.session_mock, SQS_QUEUE_URL, 50
+        )
+        self.assertEqual(2, self.mock_sqs_service.send_message.call_count)
+        self.mock_sqs_service.send_message.reset_mock()
+
+    def test_send_messages_until_timeout_access_denied(self):
+        self.mock_sqs_service.send_message.side_effect = [
+            {}, ClientError({'Error': {'Code': 'AccessDenied'}}, ''), {}
+        ]
+        sqs_utils.send_messages_until_timeout(self.session_mock, SQS_QUEUE_URL, 50)
+        self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
+        self.mock_sqs_service.send_message.reset_mock()
+
+    def test_send_messages_until_timeout_always_access_denied(self):
+        self.mock_sqs_service.send_message.side_effect = ClientError({'Error': {'Code': 'AccessDenied'}}, '')
+        self.assertRaises(
+            Exception, sqs_utils.send_messages_until_timeout, self.session_mock, SQS_QUEUE_URL, 50
+        )
+        self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
+        self.mock_sqs_service.send_message.reset_mock()
 
     def test_get_number_of_messages(self):
         self.mock_sqs_service.get_queue_attributes.return_value = get_queue_attributes_side_effect(25)
