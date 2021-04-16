@@ -10,7 +10,7 @@ Feature: SSM automation document to restore backup in another region
     And cache number of recovery points as "NumberOfRecoveryPoints" "before" SSM automation execution
       | BackupVaultName                                       | FileSystemID                      |
       | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |
-    And cache recovery point arn as "RecoveryPointArn"
+    And cache recovery point arn as "RecoveryPointArn" "before" SSM automation execution
       | FileSystemID                     | BackupVaultName                                        |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}}  |
     And SSM automation document "Digito-RestoreBackup_2020-10-26" executed
@@ -23,7 +23,7 @@ Feature: SSM automation document to restore backup in another region
     And cache execution output value of "RestoreBackupJob.RestoreJobId" as "RestoreJobId" after SSM automation execution
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache restore job property of "Status" as "RestoreJobStatus" "after" SSM automation execution
+    And cache property of "Status" as "RestoreJobStatus" "after" SSM automation execution
       | RestoreJobId                 |
       | {{cache:after>RestoreJobId}} |
 

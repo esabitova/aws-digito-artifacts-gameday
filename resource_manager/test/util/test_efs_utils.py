@@ -3,7 +3,7 @@ import pytest
 from unittest.mock import MagicMock
 import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.efs_utils as efs_utils
-from documents.util.scripts.test.test_efs_util import describe_file_systems
+from documents.util.scripts.test.test_data_provider import get_sample_describe_file_systems_response
 
 
 @pytest.mark.unit_test
@@ -29,7 +29,7 @@ class TestEfsUtil(unittest.TestCase):
             {'FileSystems': [{
                 "FileSystemArn": "arn:aws:elasticfilesystem:eu-south-1:435978235099:file-system/TestFsID"
             }]}
-        self.mock_efs_service.describe_file_systems.return_value = describe_file_systems(fs_id)
+        self.mock_efs_service.describe_file_systems.return_value = get_sample_describe_file_systems_response(fs_id)
         result = efs_utils.describe_filesystem(self.session_mock, fs_id)
         self.mock_efs_service.describe_file_systems.assert_called_once_with(FileSystemId=fs_id)
         self.assertEqual(result['FileSystems'][0]['FileSystemArn'],

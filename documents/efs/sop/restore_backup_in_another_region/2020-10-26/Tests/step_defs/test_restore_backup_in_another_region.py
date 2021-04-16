@@ -40,8 +40,10 @@ def cache_number_of_recovery_points(
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, len(recovery_points))
 
 
-@given(parsers.parse('cache recovery point arn as "{cache_property}"\n{input_parameters}'))
-def cache_recovery_point_arn(resource_manager, boto3_session, ssm_test_cache, cache_property, input_parameters):
+@given(parsers.parse('cache recovery point arn as "{cache_property}" '
+                     '"{step_key}" SSM automation execution\n{input_parameters}'))
+def cache_recovery_point_arn(resource_manager, boto3_session, ssm_test_cache,
+                             cache_property, step_key, input_parameters):
     efs_id = extract_param_value(input_parameters, 'FileSystemID', resource_manager, ssm_test_cache)
     backup_vault_name = extract_param_value(input_parameters, 'BackupVaultName', resource_manager, ssm_test_cache)
     default_iam_role_arn = get_role_by_name(boto3_session, "AWSBackupDefaultServiceRole")['Role']['Arn']
@@ -51,7 +53,7 @@ def cache_recovery_point_arn(resource_manager, boto3_session, ssm_test_cache, ca
                                                  default_iam_role_arn,
                                                  backup_vault_name,
                                                  wait=True)
-    put_to_ssm_test_cache(ssm_test_cache, 'before', cache_property, recovery_point_arn)
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, recovery_point_arn)
 
 
 @then(parsers.parse('tear down created recovery points and jobs\n{input_parameters}'))
