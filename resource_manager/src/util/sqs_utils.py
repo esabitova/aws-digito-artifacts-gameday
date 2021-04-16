@@ -1,7 +1,9 @@
 import logging
 import json
+import time
 from boto3 import Session
 from .boto3_client_factory import client
+from botocore.exceptions import ClientError
 
 
 def send_message_to_standard_queue(session: Session, queue_url: str, body: str,
@@ -47,6 +49,65 @@ def send_message_to_fifo_queue(boto3_session: Session, queue_url: str, body: str
                                            MessageGroupId=message_group_id)
     logging.debug(f'Response of send_message method for FIFO queue: {response}')
     return response
+
+
+def send_messages_until_access_denied(boto3_session, queue_url, time_to_wait):
+    """
+    Keep sending messages until access denied is caught
+    Raise error if max time to wait reached or any other error is caught
+    :param boto3_session boto3 client session
+    :param queue_url The URL of the queue
+    :param time_to_wait Max time in seconds to keep sending
+    """
+    time_to_wait = int(time_to_wait)
+    start_time = time.time()
+    elapsed_time = 0
+    while elapsed_time < time_to_wait:
+        try:
+            send_message_to_standard_queue(
+                boto3_session, queue_url, 'This is message',
+                {'test_attribute_name_1': {'StringValue': 'test_attribute_value_1', 'DataType': 'String'}}
+            )
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'AccessDenied':
+                logging.info('Message sending failed due to access denied')
+                return
+            else:
+                raise error
+        time.sleep(20)
+        elapsed_time = time.time() - start_time
+    logging.info(f'Sending messages ended after {time_to_wait} seconds')
+    raise Exception('Sending messages timed out, expected access denied error')
+
+
+def send_messages_until_timeout(boto3_session, queue_url, time_to_wait):
+    """
+    Keep sending messages until time to wait is reached
+    Ignore access denied error, raise error in any other case
+    :param boto3_session boto3 client session
+    :param queue_url The URL of the queue
+    :param time_to_wait Time in seconds to keep sending
+    """
+    time_to_wait = int(time_to_wait)
+    start_time = time.time()
+    elapsed_time = 0
+    any_messages_sent = False
+    while elapsed_time < time_to_wait:
+        try:
+            send_message_to_standard_queue(
+                boto3_session, queue_url, 'This is message',
+                {'test_attribute_name_1': {'StringValue': 'test_attribute_value_1', 'DataType': 'String'}}
+            )
+            any_messages_sent = True
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'AccessDenied':
+                logging.info('Message sending failed due to access denied, continue sending')
+            else:
+                raise error
+        time.sleep(20)
+        elapsed_time = time.time() - start_time
+    if not any_messages_sent:
+        raise Exception('No messages were sent before timeout')
 
 
 def get_number_of_messages(boto3_session: Session, queue_url: str):
