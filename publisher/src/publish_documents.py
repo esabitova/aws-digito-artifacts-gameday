@@ -147,7 +147,7 @@ class PublishDocuments:
         for file in files:
             # Skipping alarms (alarms are not SSM automation documents):
             # https://issues.amazon.com/issues/Digito-1743
-            if 'alarm' not in str(file):
+            if '/alarm/' not in str(file):
                 document_metadata = self.read_metadata(file)
                 existing_document_names.append(document_metadata['documentName'])
                 if document_metadata['documentName'] in desired_documents_list:
