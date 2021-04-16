@@ -98,7 +98,6 @@ def remove_global_table_and_wait_to_active(table_name: str,
     elapsed = 0
     while elapsed < wait_sec:
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
-        
         replicas = description['Table'].get('Replicas', [])
         all_deleted = description['Table'].get('Replicas', []) == []
         log.info(f'Replica deletion status: {all_deleted}. Replicas:{replicas}')
