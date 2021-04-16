@@ -65,7 +65,8 @@ class CloudFormationTemplate:
             StackName=stack_name,
             TemplateURL=cf_template_s3_url,
             Capabilities=['CAPABILITY_IAM'],
-            Parameters=parameters)
+            Parameters=parameters,
+            EnableTerminationProtection=True)
         self._wait_stack_operation_completion(stack_name)
 
     def _update(self, stack_name, cf_template_s3_url, parameters):
@@ -89,6 +90,15 @@ class CloudFormationTemplate:
             else:
                 logging.error(e)
                 raise e
+
+    def _update_termination_protection(self, stack_name, enable_termination_protection):
+        """
+        Updated the given stack's termination protection
+        :param stack_name The cloud formation stack name.
+        :param enable_termination_protection boolean value indicating whether or not to enable termination protection
+        """
+        self.client.update_termination_protection(StackName=stack_name,
+                                                  EnableTerminationProtection=enable_termination_protection)
 
     def _parse_input_parameters(self, **kwargs):
         """
@@ -130,6 +140,7 @@ class CloudFormationTemplate:
         :param stack_name The stack name to delete.
         """
 
+        self._update_termination_protection(stack_name, False)
         self.client.delete_stack(StackName=stack_name)
         waiter = self.client.get_waiter('stack_delete_complete')
         waiter.wait(StackName=stack_name)
