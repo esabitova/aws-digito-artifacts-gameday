@@ -49,15 +49,17 @@ def run_backup(session: Session,
     return response['RecoveryPointArn']
 
 
-def get_recovery_point(backup_vault_name: str, resource_type: str):
+def get_recovery_point(session: Session, backup_vault_name: str, resource_type: str):
     """
-    Returns first available complete backup job recovery point
+    Returns first available completed backup job recovery point
+    :param session boto3 client session
     :param backup_vault_name Backup Vault Name
     :param resource_type Resource type (EFS, EC2, etc)
     """
-
-    response = backup_client.list_recovery_points_by_backup_vault(
-        BackupVaultName=backup_vault_name, ByResourceType=resource_type
+    local_backup_client = client('backup', session)
+    response = local_backup_client.list_recovery_points_by_backup_vault(
+        BackupVaultName=backup_vault_name,
+        ByResourceType=resource_type
     )
     if len(response['RecoveryPoints']) > 0:
         for recovery_point in response['RecoveryPoints']:
