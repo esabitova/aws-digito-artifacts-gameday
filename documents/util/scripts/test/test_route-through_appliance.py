@@ -10,7 +10,7 @@ from documents.util.scripts.test.test_data_provider \
 
 
 @pytest.mark.unit_test
-class TestSsmExecutionUtil(unittest.TestCase):
+class TestRouteThroughApplianceUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
@@ -18,7 +18,7 @@ class TestSsmExecutionUtil(unittest.TestCase):
         self.side_effect_map = {
             'ec2': self.mock_ec2
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ec2.describe_route_tables.return_value = test_data_provider.get_sample_route_table_response()
         self.mock_ec2.delete_route.return_value = test_data_provider.get_sample_delete_route_response()
 

@@ -16,7 +16,7 @@ class TestAmiUtil(unittest.TestCase):
         self.side_effect_map = {
             'ec2': self.mock_ec2
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ec2.describe_images.return_value = test_data_provider.get_sample_describe_images_response()
 
     def tearDown(self):

@@ -16,7 +16,7 @@ class TestRdsUtil(unittest.TestCase):
         self.side_effect_map = {
             'rds': self.mock_rds
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_rds.describe_db_instances.return_value = get_sample_describe_db_instances_response()
 
     def tearDown(self):

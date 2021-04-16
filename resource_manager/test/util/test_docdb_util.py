@@ -147,3 +147,60 @@ class TestDocDBUtil(unittest.TestCase):
         result = docdb_utils.describe_cluster(self.session_mock, DOCDB_CLUSTER_ID)
         self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
         self.assertEqual(result, cluster)
+
+    def test_create_snapshot(self):
+        snapshot_id = 'Snapshot-1'
+        self.mock_docdb_service.create_db_cluster_snapshot.return_value = {
+            'DBClusterSnapshot': {
+                'DBClusterSnapshotIdentifier': snapshot_id
+            }
+        }
+        result = docdb_utils.create_snapshot(self.session_mock, DOCDB_CLUSTER_ID, snapshot_id)
+        self.mock_docdb_service.create_db_cluster_snapshot.assert_called_once_with(
+            DBClusterIdentifier=DOCDB_CLUSTER_ID,
+            DBClusterSnapshotIdentifier=snapshot_id
+        )
+        self.assertEqual(result, snapshot_id)
+
+    def test_delete_snapshot(self):
+        snapshot_id = 'Snapshot-1'
+        self.mock_docdb_service.delete_db_cluster_snapshot.return_value = {
+            'DBClusterSnapshot': {
+                'DBClusterSnapshotIdentifier': snapshot_id
+            }
+        }
+        result = docdb_utils.delete_snapshot(self.session_mock, snapshot_id)
+        self.mock_docdb_service.delete_db_cluster_snapshot.assert_called_once_with(
+            DBClusterSnapshotIdentifier=snapshot_id
+        )
+        self.assertEqual(result, snapshot_id)
+
+    def test_is_snapshot_available_truthy(self):
+        snapshot_id = 'Snapshot-1'
+        self.mock_docdb_service.describe_db_cluster_snapshots.return_value = {
+            'DBClusterSnapshots': [
+                {
+                    'Status': 'available'
+                }
+            ]
+        }
+        result = docdb_utils.is_snapshot_available(self.session_mock, snapshot_id)
+        self.mock_docdb_service.describe_db_cluster_snapshots.assert_called_once_with(
+            DBClusterSnapshotIdentifier=snapshot_id
+        )
+        self.assertEqual(True, result)
+
+    def test_is_snapshot_available_falsy(self):
+        snapshot_id = 'Snapshot-1'
+        self.mock_docdb_service.describe_db_cluster_snapshots.return_value = {
+            'DBClusterSnapshots': [
+                {
+                    'Status': 'creating'
+                }
+            ]
+        }
+        result = docdb_utils.is_snapshot_available(self.session_mock, snapshot_id)
+        self.mock_docdb_service.describe_db_cluster_snapshots.assert_called_once_with(
+            DBClusterSnapshotIdentifier=snapshot_id
+        )
+        self.assertEqual(False, result)

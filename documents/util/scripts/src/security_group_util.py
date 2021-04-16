@@ -1,8 +1,10 @@
 import boto3
+from botocore.config import Config
 
 
 def allow_access_to_self(events, context):
-    ec2 = boto3.client('ec2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ec2 = boto3.client('ec2', config=config)
 
     if 'AccountId' not in events or 'SecurityGroupId' not in events:
         raise KeyError('Requires AccountId, SecurityGroupId in events')

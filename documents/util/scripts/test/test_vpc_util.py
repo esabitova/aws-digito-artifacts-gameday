@@ -15,7 +15,7 @@ class TestVpcUtil(unittest.TestCase):
         self.side_effect_map = {
             'ec2': self.mock_ec2
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ec2.describe_subnets.return_value = test_data_provider.get_sample_describe_subnets_response()
         self.mock_ec2.describe_route_tables.return_value = test_data_provider.get_sample_route_table_response()
 
