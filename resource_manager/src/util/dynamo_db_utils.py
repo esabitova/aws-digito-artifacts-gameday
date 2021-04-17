@@ -80,9 +80,9 @@ def try_remove_replica(table_name: str,
                 'skipping this error while remove replica. '\
                     'The next try later in 20 seconds")
                 return True
-        finally:
-            time.sleep(20)
-            i += 1
+
+        time.sleep(20)
+        i += 1
 
 
 def remove_global_table_and_wait_to_active(table_name: str,
@@ -99,7 +99,7 @@ def remove_global_table_and_wait_to_active(table_name: str,
     while elapsed < wait_sec:
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
         replicas = description['Table'].get('Replicas', [])
-        all_deleted = description['Table'].get('Replicas', []) == []
+        all_deleted = replicas == []
         log.info(f'Replica deletion status: {all_deleted}. Replicas:{replicas}')
         if all_deleted:
             return
@@ -158,20 +158,15 @@ def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
     """
     start = time.time()
     elapsed = 0
-    while elapsed < wait_sec:
-        try:
-            _execute_boto3_dynamodb(boto3_session=boto3_session,
-                                    delegate=lambda x: x.delete_table(TableName=table_name))
-        except ClientError as ce:
-            code = ce.response['Error']['Code']
-            log.error(f"error when deleting table {table_name}:{code}")
-            if code == 'ResourceNotFoundException':
-                log.warning(f"The table {table_name} doesn't exist, happy path")
-                return
-        finally:
-            end = time.time()
-            elapsed = end - start
-            time.sleep(delay_sec)
+    try:
+        _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                delegate=lambda x: x.delete_table(TableName=table_name))
+    except ClientError as ce:
+        code = ce.response['Error']['Code']
+        log.error(f"error when deleting table {table_name}:{code}")
+        if code == 'ResourceNotFoundException':
+            log.warning(f"The table {table_name} doesn't exist, happy path")
+            return
 
     while elapsed < wait_sec:
         log.info(f"Waiting {table_name} to be deleted. Elapsed {elapsed} seconds")

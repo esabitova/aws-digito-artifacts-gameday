@@ -142,7 +142,7 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> List:
     replicas_regions_to_wait: str = events['ReplicasRegionsToWait']
     if not replicas_regions_to_wait:
         return{
-            "GlobalTableRegionsActive": 0
+            "GlobalTableRegionsActive": []
         }
 
     start = time.time()
@@ -325,10 +325,10 @@ def get_active_kinesis_destinations(events: dict, context: dict) -> List:
 
 
 def update_table_stream(events: dict, context: dict):
-    if 'StreamEnabled' not in events:
-        raise KeyError('Requires StreamEnabled')
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
+    if 'StreamEnabled' not in events:
+        raise KeyError('Requires StreamEnabled')
     if 'StreamViewType' not in events:
         raise KeyError('Requires StreamViewType')
 
@@ -358,7 +358,7 @@ def parse_recovery_date_time(events: dict, context: dict) -> dict:
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 
     if 'RecoveryPointDateTime' not in events:
-        raise KeyError('Requires ExecutionId')
+        raise KeyError('Requires RecoveryPointDateTime')
 
     restore_date_time_str = events['RecoveryPointDateTime']
     restore_date_time = _parse_recovery_date_time(restore_date_time_str=restore_date_time_str,
