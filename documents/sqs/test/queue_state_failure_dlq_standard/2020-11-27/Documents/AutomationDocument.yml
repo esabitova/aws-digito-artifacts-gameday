@@ -218,7 +218,7 @@ mainSteps:
       InputPayload:
         QueueUrl: '{{ QueueUrl }}'
         MaxNumberOfMessages: 2
-        WaitTimeSeconds: 5
+        WaitTimeSeconds: 20
         checkDLQ: 'true'
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
         VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'

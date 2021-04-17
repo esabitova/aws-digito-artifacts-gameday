@@ -268,14 +268,18 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
         if received_messages is not None and len(received_messages) != 0:
             # If DLQ Url is set check if messages arrived to DLQ
             if "checkDLQ" in events:
-                time.sleep(60 + visibility_timeout)
+                logger.info('Wait for DLQ to receive messages')
+                time.sleep(10 + visibility_timeout)
                 number_of_dlq_messages = get_number_of_messages(dlq_url)
+                logger.info(f'DLQ has {number_of_dlq_messages} messages')
                 if number_of_dlq_messages > 0:
                     return {"Messages": received_messages}
                 else:
-                    logger.debug('Message not found in DLQ')
+                    logger.info('Message not found in DLQ')
             else:
                 return {"Messages": received_messages}
+        else:
+            logger.info('Messages not received')
 
         if (datetime.now() - start).total_seconds() > script_timeout:
             raise Exception('Could not read messages before timeout')
@@ -314,26 +318,26 @@ def transfer_messages(events: dict, context: dict) -> dict:
     loop_count = 1
     number_of_messages_received_from_source = 0
 
+    if number_of_messages_to_transfer == 0:
+        return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
+                              number_of_messages_failed_to_send_to_target,
+                              number_of_messages_transferred_to_target, source_queue_url, start,
+                              start_execution, max_duration_seconds)
+
     while number_of_messages_received_from_source < number_of_messages_to_transfer \
             and (now - start) < max_duration_seconds:
-        logger.debug(f'Entered into loop #{loop_count} '
-                     f'with number_of_messages_transferred_to_target < number_of_messages_to_transfer = '
-                     f'{number_of_messages_transferred_to_target} < {number_of_messages_to_transfer}, '
-                     f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
+        logger.info(f'Entered into loop #{loop_count} '
+                    f'with number_of_messages_transferred_to_target < number_of_messages_to_transfer = '
+                    f'{number_of_messages_transferred_to_target} < {number_of_messages_to_transfer}, '
+                    f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
 
         messages_transfer_batch_size_for_each_call = \
             min((number_of_messages_to_transfer - number_of_messages_received_from_source),
                 messages_transfer_batch_size)
 
         received_messages: Optional[List[dict]] = receive_messages(source_queue_url,
-                                                                   messages_transfer_batch_size_for_each_call)
-        if received_messages is None or len(received_messages) == 0:
-            return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
-                                  number_of_messages_failed_to_send_to_target,
-                                  number_of_messages_transferred_to_target, source_queue_url, start,
-                                  start_execution, max_duration_seconds)
-        else:
-            number_of_messages_received_from_source += len(received_messages)
+                                                                   messages_transfer_batch_size_for_each_call, 5)
+        number_of_messages_received_from_source += len(received_messages)
 
         messages_to_send: List[dict] = []
         if is_source_queue_fifo and is_target_queue_fifo:  # If both queues are FIFO
