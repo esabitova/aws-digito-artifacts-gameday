@@ -239,8 +239,8 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
         'MaxNumberOfMessages': how many messages to receive
         'WaitTimeSeconds': duration in seconds for which the call waits for a message to arrive in the queue
         'ScriptTimeout': script timeout in seconds
-        'checkDLQ': flag to check if messages arrived to DLQ
         'RedrivePolicy': Redrive policy to check queue DLQ
+        'MaxAttempts': Max number of read attempts
     :return: response of receive_message method
     """
     if "QueueUrl" not in events:
@@ -254,35 +254,33 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
     wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
     max_number_of_messages = int(events.get('MaxNumberOfMessages', 1))
     visibility_timeout = int(events.get('VisibilityTimeout', 30))
+    max_attempts = int(events.get('MaxAttempts', 10))
 
-    dlq_url = ''
-    if "checkDLQ" in events:
-        if "RedrivePolicy" not in events:
-            raise KeyError("Requires RedrivePolicy in events to check DLQ")
-        dlq_url = get_dead_letter_queue_url({'SourceRedrivePolicy': events['RedrivePolicy']}, {})['QueueUrl']
+    if "RedrivePolicy" not in events:
+        raise KeyError("Requires RedrivePolicy in events to check DLQ")
+    dlq_url = get_dead_letter_queue_url({'SourceRedrivePolicy': events['RedrivePolicy']}, {})['QueueUrl']
 
     start = datetime.now()
+    attempt = 1
 
-    while True:
+    while (datetime.now() - start).total_seconds() < script_timeout and attempt <= max_attempts:
+        attempt += 1
         received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
         if received_messages is not None and len(received_messages) != 0:
-            # If DLQ Url is set check if messages arrived to DLQ
-            if "checkDLQ" in events:
-                logger.info('Wait for DLQ to receive messages')
-                time.sleep(10 + visibility_timeout)
-                number_of_dlq_messages = get_number_of_messages(dlq_url)
-                logger.info(f'DLQ has {number_of_dlq_messages} messages')
-                if number_of_dlq_messages > 0:
-                    return {"Messages": received_messages}
-                else:
-                    logger.info('Message not found in DLQ')
-            else:
+            # Check if messages arrived to DLQ
+            time.sleep(20)
+            logger.info('Wait for DLQ to receive messages')
+            number_of_dlq_messages = get_number_of_messages(dlq_url)
+            logger.info(f'DLQ has {number_of_dlq_messages} messages')
+            if number_of_dlq_messages > 0:
                 return {"Messages": received_messages}
+            else:
+                logger.info('Messages not found in DLQ')
+                time.sleep(visibility_timeout)
         else:
             logger.info('Messages not received')
 
-        if (datetime.now() - start).total_seconds() > script_timeout:
-            raise Exception('Could not read messages before timeout')
+    raise Exception('Could not read messages before timeout')
 
 
 def transfer_messages(events: dict, context: dict) -> dict:
@@ -326,10 +324,10 @@ def transfer_messages(events: dict, context: dict) -> dict:
 
     while number_of_messages_received_from_source < number_of_messages_to_transfer \
             and (now - start) < max_duration_seconds:
-        logger.info(f'Entered into loop #{loop_count} '
-                    f'with number_of_messages_transferred_to_target < number_of_messages_to_transfer = '
-                    f'{number_of_messages_transferred_to_target} < {number_of_messages_to_transfer}, '
-                    f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
+        logger.debug(f'Entered into loop #{loop_count} '
+                     f'with number_of_messages_transferred_to_target < number_of_messages_to_transfer = '
+                     f'{number_of_messages_transferred_to_target} < {number_of_messages_to_transfer}, '
+                     f'(now - start) < max_duration_seconds = {now - start} < {max_duration_seconds}')
 
         messages_transfer_batch_size_for_each_call = \
             min((number_of_messages_to_transfer - number_of_messages_received_from_source),

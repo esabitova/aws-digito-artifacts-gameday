@@ -13,11 +13,24 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And cache redrive policy as "RedrivePolicy" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And purge the queue
+      | QueueUrl                                             |
+      | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    And purge the queue
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And sleep for "60" seconds
+    And cache number of messages in queue as "NumberOfMessagesDLQ" "before" SSM automation execution
+      | QueueUrl                                             |
+      | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
     And SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" executed
       | QueueUrl                                       | AutomationAssumeRole                                                                     | DeadLetterQueueAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqStandardAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageStandardQueueAlarm}} |
+    And send "100" messages to queue
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    When Wait for the SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution is on step "ReadMessage" in status "InProgress" for "600" seconds
+    When Wait for the SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution is on step "ReadMessage" in status "Success" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-QueueStateFailureDlqStandard_2020-11-27" SSM automation document
@@ -34,6 +47,17 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
+    And cache number of messages in queue as "NumberOfMessagesDLQ" "after" SSM automation execution
+      | QueueUrl                                             |
+      | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    And purge the queue
+      | QueueUrl                                             |
+      | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    And purge the queue
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    And sleep for "60" seconds
+
     And cache visibility timeout as "VisibilityTimeout" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -42,4 +66,5 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     Then assert "VisibilityTimeout" at "before" became equal to "VisibilityTimeout" at "after"
-    Then assert "RedrivePolicy" at "before" became equal to "RedrivePolicy" at "after"
+    And assert "RedrivePolicy" at "before" became equal to "RedrivePolicy" at "after"
+    And assert "NumberOfMessagesDLQ" at "before" became equal to "NumberOfMessagesDLQ" at "after"

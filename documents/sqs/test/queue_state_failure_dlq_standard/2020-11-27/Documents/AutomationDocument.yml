@@ -207,11 +207,11 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
         RedrivePolicy: '{{ GetUpdatedRedrivePolicy.RedrivePolicy }}'
+        VisibilityTimeout: "0"
 
   - name: ReadMessage
     action: aws:executeScript
     onFailure: step:GetDeadLetterQueueUrl
-    onCancel: step:GetDeadLetterQueueUrl
     inputs:
       Runtime: python3.7
       Handler: receive_messages_by_events
@@ -219,9 +219,8 @@ mainSteps:
         QueueUrl: '{{ QueueUrl }}'
         MaxNumberOfMessages: 2
         WaitTimeSeconds: 20
-        checkDLQ: 'true'
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
-        VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
+        VisibilityTimeout: 0
       Script: |-
         SCRIPT_PLACEHOLDER::sqs_util.imports
 
@@ -233,7 +232,6 @@ mainSteps:
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     onFailure: step:GetDeadLetterQueueUrl
-    onCancel: step:GetDeadLetterQueueUrl
     maxAttempts: 120
     timeoutSeconds: 5
     inputs:
