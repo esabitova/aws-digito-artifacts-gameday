@@ -132,7 +132,7 @@ mainSteps:
       Api: GetQueueAttributes
       AttributeNames:
         - ApproximateNumberOfMessages
-      QueueUrl: '{{ GetQueueUrlFromPreviousExecution.QueueUrl }}'
+      QueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
 
   - name: MoveMessagesForPreviousExecution
     action: aws:executeAutomation
