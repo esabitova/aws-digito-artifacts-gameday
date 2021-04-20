@@ -260,8 +260,9 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
         VisibilityTimeout: "0"
+        Policy: '{{ GetUpdatedQueuePolicy.Policy }}'
         RedrivePolicy: '{{ GetUpdatedRedrivePolicy.RedrivePolicy }}'
-    onFailure: step:RollbackCurrentExecutionQueueAttributes
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: SendMessage
     action: aws:executeAwsApi
@@ -277,7 +278,7 @@ mainSteps:
       MessageBody: "Test message"
       MessageDeduplicationId: '{{global:DATE_TIME}}'
       MessageGroupId: '{{global:DATE_TIME}}'
-    onFailure: step:RollbackCurrentExecutionQueueAttributes
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: ReadMessage1
     action: aws:executeAwsApi
@@ -288,7 +289,7 @@ mainSteps:
       WaitTimeSeconds: 5
       AttributeNames:
         - All
-    onFailure: step:RollbackCurrentExecutionQueueAttributes
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: ReadMessage2
     action: aws:executeAwsApi
@@ -299,13 +300,13 @@ mainSteps:
       WaitTimeSeconds: 5
       AttributeNames:
         - All
-    onFailure: step:RollbackCurrentExecutionQueueAttributes
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     maxAttempts: 120
     timeoutSeconds: 5
-    onFailure: step:RollbackCurrentExecutionQueueAttributes
+    onFailure: step:RollbackCurrentExecutionQueuePolicy
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -313,6 +314,19 @@ mainSteps:
         - "{{ DeadLetterQueueAlarmName }}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecutionQueuePolicy
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: revert_sqs_policy
+      InputPayload:
+        OptionalBackupPolicy: '{{ BackupCurrentExecution.Policy }}'
+        QueueUrl: '{{ QueueUrl }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::sqs_util.imports
+
+        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
 
   - name: RollbackCurrentExecutionQueueAttributes
     action: aws:executeAwsApi
