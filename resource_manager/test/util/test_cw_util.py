@@ -20,6 +20,7 @@ time_out_secs = 5
 sleep_time_sec = 1
 dimensions = {'TestKey': 'TestValue'}
 
+
 def get_metric_statistics_calls(calls_number) -> []:
     calls = []
     for x in range(calls_number):
@@ -85,9 +86,9 @@ class TestCWUtil(unittest.TestCase):
             call(AlarmNames=[CW_ALARM_NAME]),
         ])
 
-    @patch('time.time', side_effect=[0,1,100,600])
+    @patch('time.time', side_effect=[0, 1, 100, 600])
     @patch('time.sleep', return_value=None)
-    def test_wait_for_metric_alarm_state_timeout(self, patched_time_sleep, patched_time_time ):
+    def test_wait_for_metric_alarm_state_timeout(self, patched_time_sleep, patched_time_time):
         self.mock_cw_service.describe_alarms.side_effect = [
             describe_alarms_side_effect(CW_OK_STATE),
             describe_alarms_side_effect(CW_OK_STATE),

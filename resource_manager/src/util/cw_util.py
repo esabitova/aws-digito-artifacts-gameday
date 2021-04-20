@@ -38,19 +38,19 @@ def __get_alarms_state(session: Session, alarm_name: str, alarm_type: AlarmType)
 
 
 def get_cw_metric_statistics(session: Session, start_time_utc, end_time_utc, metric_namespace: str,
-    metric_name: str, metric_dimensions: {}, period: int, statistics: str, unit: str = None):
+                             metric_name: str, metric_dimensions: {}, period: int, statistics: str, unit: str = None):
     cw = client('cloudwatch', session)
 
     request = {
-        "Namespace":metric_namespace,
-        "MetricName":metric_name,
-        "Dimensions":[
-            {"Name":key, "Value":value}
-            for key,value in metric_dimensions.items()],
-        "StartTime":start_time_utc,
-        "EndTime":end_time_utc,
-        "Period":period,
-        "Statistics":statistics,
+        "Namespace": metric_namespace,
+        "MetricName": metric_name,
+        "Dimensions": [
+            {"Name": key, "Value": value}
+            for key, value in metric_dimensions.items()],
+        "StartTime": start_time_utc,
+        "EndTime": end_time_utc,
+        "Period": period,
+        "Statistics": statistics,
     }
     if unit:
         request["Unit"] = unit
@@ -86,8 +86,6 @@ def get_ec2_metric_max_datapoint(session: Session, start_time_utc, end_time_utc,
     return max_dp
 
 
-
-
 def wait_for_metric_data_point(session: Session, name: str, datapoint_threshold: float,
                                operator: Operator, start_time_utc, end_time_utc, namespace, dimensions: [] = [],
                                period: int = 60, time_out_secs: int = 600, sleep_time_sec: int = 20,
@@ -115,7 +113,7 @@ def wait_for_metric_data_point(session: Session, name: str, datapoint_threshold:
         data_points = get_cw_metric_statistics(session, start_time_utc, end_time_utc,
                                                namespace, name, dimensions, period, statistics, unit)
         logging.info("[{}] metric for interval [{}::{}] data points: {}".format(name, str(start_time_utc),
-                                                                            str(end_time_utc), data_points))
+                                                                                str(end_time_utc), data_points))
 
         for dp in data_points:
             dp_max = float(dp['Maximum'])
@@ -129,7 +127,6 @@ def wait_for_metric_data_point(session: Session, name: str, datapoint_threshold:
         elapsed_time_secs = elapsed_time_secs + sleep_time_sec
     raise Exception(f'Waiting for [{name}] metric data point to be [{operator} {datapoint_threshold}] '
                     f'timed out after [{time_out_secs}] seconds.')
-
 
 
 def wait_for_metric_alarm_state(session: Session, alarm_name: str, expected_alarm_state: str, time_to_wait: int):

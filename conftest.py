@@ -34,6 +34,7 @@ from resource_manager.src.util.ssm_utils import send_step_approval
 from resource_manager.src.alarm_manager import AlarmManager
 from publisher.src.alarm_document_parser import AlarmDocumentParser
 
+
 def pytest_addoption(parser):
     """
     Hook: https://docs.pytest.org/en/stable/reference.html#initialization-hooks
@@ -217,6 +218,7 @@ def ssm_test_cache():
     cache = dict()
     return cache
 
+
 @pytest.fixture
 def alarm_manager(boto3_session):
     """
@@ -265,7 +267,7 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
     """
     for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
         if cfn_params_row.get('CfnTemplatePath') is None or len(cfn_params_row.get('CfnTemplatePath')) < 1 \
-            or cfn_params_row.get('ResourceType') is None or len(cfn_params_row.get('ResourceType')) < 1:
+                or cfn_params_row.get('ResourceType') is None or len(cfn_params_row.get('ResourceType')) < 1:
             raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
         cf_template_path = cfn_params_row.pop('CfnTemplatePath')
         resource_type = cfn_params_row.pop('ResourceType')
@@ -306,6 +308,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
         ssm_test_cache[exec_cache_key] = cached_execution
     return execution_id
 
+
 @given(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
              '\n{input_parameters}'))
 @when(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
@@ -313,7 +316,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
 @then(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
             '\n{input_parameters}'))
 def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_name, expected_status,
-    ssm_document, input_parameters, ssm_test_cache):
+                                              ssm_document, input_parameters, ssm_test_cache):
     """
     Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
     :param cfn_output_params The cfn output params from resource manager
@@ -340,7 +343,7 @@ wait_for_execution_step_with_params_description = \
 @when(parse(wait_for_execution_step_with_params_description))
 @then(parse(wait_for_execution_step_with_params_description))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
-    expected_status, ssm_document, input_parameters, ssm_test_cache):
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache):
     """
     Common step to wait for SSM document execution step waiting of final status
     :param cfn_output_params The cfn output params from resource manager
@@ -512,8 +515,8 @@ def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state
              'check every {delay_sec} seconds'))
 @then(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
             'check every {delay_sec} seconds'))
-def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str,delay_sec: str,
-    cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
+def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str,
+                           cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
 
     alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
                                                     'cache': ssm_test_cache})
@@ -545,16 +548,18 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str,delay_sec: str,
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')
 
-## Alarm
+# Alarm
+
+
 @given(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
 @when(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
 @then(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
 def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
-    alarm_manager, ssm_test_cache, cfn_output_params):
-    input_params = { name : parse_param_value(val, {'cache': ssm_test_cache,
-                                                    'cfn-output': cfn_output_params})
-                     for name, val in
-                     parse_str_table(input_parameters_table).rows[0].items()}
+                                    alarm_manager, ssm_test_cache, cfn_output_params):
+    input_params = {name : parse_param_value(val, {'cache': ssm_test_cache,
+                                                   'cfn-output': cfn_output_params})
+                    for name, val in
+                    parse_str_table(input_parameters_table).rows[0].items()}
     alarm_name = alarm_reference_id.split(':')[2]
     raw_alarm_document = AlarmDocumentParser.from_reference_id(alarm_reference_id)
     variables = raw_alarm_document.get_variables()
@@ -569,8 +574,9 @@ def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
 
     alarm_manager.deploy_alarm(alarm_name,
                                alarm_document.get_content(),
-                               {k:v for k,v in input_params.items()
+                               {k: v for k, v in input_params.items()
                                 if k not in variables})
+
 
 @then(parse('assert metrics for all alarms are populated'))
 def verify_alarm_metrics_exist(alarm_manager):
@@ -582,7 +588,7 @@ def verify_alarm_metrics_exist(alarm_manager):
         start = time.time()
         alarms_missing_data = alarm_manager.collect_alarms_without_data()
         if not alarms_missing_data:
-            return #All alarms have data
+            return  # All alarms have data
         logging.info(f'#{iteration}; Alarms missing data: {alarms_missing_data} '
                      f'Elapsed: {elapsed} sec;')
         time.sleep(delay_sec)
