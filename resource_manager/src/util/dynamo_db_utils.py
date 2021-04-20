@@ -1,7 +1,7 @@
 import logging
 import time
 import datetime
-from typing import List
+from typing import Any, Callable, List
 
 from boto3 import Session
 from botocore.exceptions import ClientError
@@ -9,31 +9,30 @@ from botocore.exceptions import ClientError
 log = logging.getLogger()
 
 
-def _execute_boto3_dynamodb(boto3_session: Session, delegate):
+def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], dict]) -> dict:
     dynamo_db_client = boto3_session.client('dynamodb')
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
-        logging.error(description)
-        raise ValueError('Failed to execute request')
+        raise ValueError(f'Failed to execute request. Response:{description}')
     return description
 
 
-def _update_table(boto3_session: Session, table_name: str, **kwargs):
+def _update_table(boto3_session: Session, table_name: str, **kwargs) -> dict:
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
 
-def _describe_table(table_name: str, boto3_session: Session):
+def _describe_table(table_name: str, boto3_session: Session) -> dict:
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.describe_table(TableName=table_name))
 
 
-def _describe_continuous_backups(table_name: str, boto3_session: Session):
+def _describe_continuous_backups(table_name: str, boto3_session: Session) -> dict:
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.describe_continuous_backups(TableName=table_name))
 
 
-def _check_if_table_deleted(table_name: str, boto3_session: Session):
+def _check_if_table_deleted(table_name: str, boto3_session: Session) -> dict:
     try:
         description = _describe_table(table_name=table_name,
                                       boto3_session=boto3_session)
@@ -46,7 +45,7 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session):
     return False
 
 
-def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, boto3_session: Session):
+def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, boto3_session: Session) -> dict:
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.update_time_to_live(TableName=table_name,
                                                                             TimeToLiveSpecification={
@@ -55,7 +54,7 @@ def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, 
                                                                             }))
 
 
-def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Session):
+def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Session) -> dict:
     return \
         _execute_boto3_dynamodb(boto3_session=boto3_session,
                                 delegate=lambda x:
@@ -65,7 +64,7 @@ def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Sessi
 
 def try_remove_replica(table_name: str,
                        global_table_regions: List[str],
-                       boto3_session: Session):
+                       boto3_session: Session) -> None:
     i: int = 0
     while i < 5:
         try:
@@ -85,17 +84,18 @@ def try_remove_replica(table_name: str,
         i += 1
 
 
-def remove_global_table_and_wait_to_active(table_name: str,
-                                           global_table_regions: List[str],
-                                           wait_sec: int,
-                                           delay_sec: int,
-                                           boto3_session: Session):
+def remove_global_table_and_wait_for_active(table_name: str,
+                                            global_table_regions: List[str],
+                                            wait_sec: int,
+                                            delay_sec: int,
+                                            boto3_session: Session) -> None:
     try_remove_replica(boto3_session=boto3_session,
                        global_table_regions=global_table_regions,
                        table_name=table_name)
 
     start = time.time()
     elapsed = 0
+    replicas = []
     while elapsed < wait_sec:
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
         replicas = description['Table'].get('Replicas', [])
@@ -108,12 +108,15 @@ def remove_global_table_and_wait_to_active(table_name: str,
         elapsed = end - start
         time.sleep(delay_sec)
 
+    raise TimeoutError('Timeout waiting for global table being deleted. '
+                       f'Elapsed:{elapsed};The latest State:{replicas}')
 
-def add_global_table_and_wait_to_active(table_name: str,
-                                        global_table_regions: List[str],
-                                        wait_sec: int,
-                                        delay_sec: int,
-                                        boto3_session: Session):
+
+def add_global_table_and_wait_for_active(table_name: str,
+                                         global_table_regions: List[str],
+                                         wait_sec: int,
+                                         delay_sec: int,
+                                         boto3_session: Session) -> None:
     _update_table(boto3_session=boto3_session,
                   table_name=table_name,
                   ReplicaUpdates=[
@@ -121,14 +124,20 @@ def add_global_table_and_wait_to_active(table_name: str,
 
     start = time.time()
     elapsed = 0
+    latest_replica_statuses = []
+    latest_table_status = []
     while elapsed < wait_sec:
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
         log.info(description)
 
-        all_active = all([r['ReplicaStatus'] == 'ACTIVE'
-                          for r in description['Table'].get('Replicas', [])
-                          if r['RegionName'] in global_table_regions])
-        table_active = description['Table']['TableStatus'] == 'ACTIVE'
+        latest_replica_statuses = [r['ReplicaStatus']
+                                   for r in description['Table'].get('Replicas', [])
+                                   if r['RegionName'] in global_table_regions]
+        all_active = all([s == 'ACTIVE'
+                          for s in latest_replica_statuses])
+
+        latest_table_status = description['Table']['TableStatus']
+        table_active = latest_table_status == 'ACTIVE'
         log.info(f'Current status of table and replica. Replicas is active={all_active}; '
                  f'Table is active={table_active}')
         if all_active and table_active:
@@ -137,6 +146,11 @@ def add_global_table_and_wait_to_active(table_name: str,
         end = time.time()
         elapsed = end - start
         time.sleep(delay_sec)
+
+    raise TimeoutError('Timeout waiting for global table to be Active. '
+                       f'Elapsed:{elapsed};'
+                       f'The latest table status:{latest_table_status};'
+                       f'The latest replicas statuses:{latest_replica_statuses};')
 
 
 def get_earliest_recovery_point_in_time(table_name: str, boto3_session: Session) -> datetime.datetime:

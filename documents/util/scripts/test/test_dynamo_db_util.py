@@ -256,6 +256,13 @@ class TestDynamoDbUtil(unittest.TestCase):
     def tearDown(self):
         self.patcher.stop()
 
+    @staticmethod
+    def describe_contributor_mock(**kwargs):
+        if "table_name" in kwargs and "index_name" in kwargs:
+            return DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_AND_INDEX_RESPONCE
+        else:
+            return DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
+
     def test__execute_boto3_dynamodb_raises_exception(self):
         with self.assertRaises(Exception) as context:
             _execute_boto3_dynamodb(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
@@ -744,16 +751,17 @@ class TestDynamoDbUtil(unittest.TestCase):
             .assert_called_with(TableName='my_table', IndexName="my_index")
 
     @patch('documents.util.scripts.src.dynamo_db_util._describe_contributor_insights',
-           return_value=DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE)
-    def test_contributor_insights_settings_table(self, describe_mock):
+           new_callable=lambda: TestDynamoDbUtil.describe_contributor_mock)
+    def test_get_contributor_insights_settings(self, describe_mock):
         events = {
             "TableName": "my_table",
-            "Indexes": []
+            "Indexes": ["Partition_key-index"]
         }
         result = get_contributor_insights_settings(events=events, context={})
 
         self.assertEqual(result['TableContributorInsightsStatus'], 'ENABLED')
-        describe_mock.assert_called_with(table_name='my_table')
+        self.assertEqual(result['IndexesContributorInsightsStatus'],
+                         '[{"IndexName": "Partition_key-index", "ContributorInsightsStatus": "ENABLED"}]')
 
     def test__update_contributor_insights_of_table(self):
         _update_contributor_insights(table_name='my_table', status='ENABLE')

@@ -22,7 +22,7 @@ def _parse_recovery_date_time(restore_date_time_str: str, format: str) -> Union[
     return None
 
 
-def _execute_boto3_dynamodb(delegate):
+def _execute_boto3_dynamodb(delegate) -> dict:
     dynamo_db_client = boto3.client('dynamodb')
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -31,28 +31,28 @@ def _execute_boto3_dynamodb(delegate):
     return description
 
 
-def _describe_kinesis_destinations(table_name: str):
+def _describe_kinesis_destinations(table_name: str) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
 
 
-def _list_tags(resource_arn: str):
+def _list_tags(resource_arn: str) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.list_tags_of_resource(ResourceArn=resource_arn))
 
 
-def _update_tags(resource_arn: str, tags: List):
+def _update_tags(resource_arn: str, tags: List) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.tag_resource(ResourceArn=resource_arn, Tags=tags))
 
 
-def _enable_kinesis_destinations(table_name: str, kds_arn: str):
+def _enable_kinesis_destinations(table_name: str, kds_arn: str) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
                                                                   StreamArn=kds_arn))
 
 
-def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str):
+def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_time_to_live(TableName=table_name,
                                                  TimeToLiveSpecification={
@@ -61,7 +61,7 @@ def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str)
                                                  }))
 
 
-def _update_table(table_name: str, **kwargs):
+def _update_table(table_name: str, **kwargs) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
@@ -71,7 +71,7 @@ def _describe_table(table_name: str) -> dict:
         delegate=lambda x: x.describe_table(TableName=table_name))
 
 
-def _describe_contributor_insights(table_name: str, index_name: str = None):
+def _describe_contributor_insights(table_name: str, index_name: str = None) -> dict:
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.describe_contributor_insights(TableName=table_name, IndexName=index_name))
@@ -80,7 +80,7 @@ def _describe_contributor_insights(table_name: str, index_name: str = None):
         delegate=lambda x: x.describe_contributor_insights(TableName=table_name))
 
 
-def _update_contributor_insights(table_name: str, status: str, index_name: str = None):
+def _update_contributor_insights(table_name: str, status: str, index_name: str = None) -> dict:
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.update_contributor_insights(TableName=table_name,
@@ -98,7 +98,7 @@ def _get_global_table_all_regions(table_name: str) -> List[dict]:
     return replicas
 
 
-def get_global_table_active_regions(events: dict, context: dict) -> List:
+def get_global_table_active_regions(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
 
@@ -129,7 +129,7 @@ def set_up_replication(events: dict, context: dict) -> dict:
     }
 
 
-def wait_replication_status_in_all_regions(events: dict, context: dict) -> List:
+def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'ReplicasRegionsToWait' not in events:
@@ -158,7 +158,7 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> List:
             }
 
         end = time.time()
-        logging.info(f'time elapsed {elapsed} seconds. The last result:{replicas}')
+        logging.debug(f'time elapsed {elapsed} seconds. The last result:{replicas}')
         time.sleep(20)
         elapsed = end - start
 
@@ -166,7 +166,7 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> List:
                      'Regions to waits: {GLOBAL_TABLE_ACTIVE_STATUSES}')
 
 
-def update_contributor_insights_settings(events: dict, context: dict) -> List:
+def update_contributor_insights_settings(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'TableContributorInsightsStatus' not in events:
@@ -191,7 +191,7 @@ def update_contributor_insights_settings(events: dict, context: dict) -> List:
     return get_contributor_insights_settings(events=events, context=context)
 
 
-def get_contributor_insights_settings(events: dict, context: dict) -> List:
+def get_contributor_insights_settings(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Indexes' not in events:
@@ -214,20 +214,20 @@ def get_contributor_insights_settings(events: dict, context: dict) -> List:
     }
 
 
-def get_global_secondary_indexes(events: dict, context: dict) -> List:
+def get_global_secondary_indexes(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
 
     table_name = events['TableName']
     result = _describe_table(table_name=table_name)
-    logger.info(result)
+    logger.debug(result)
 
     return {
         "Indexes": [gsi['IndexName'] for gsi in result['Table'].get('GlobalSecondaryIndexes', [])]
     }
 
 
-def update_resource_tags(events: dict, context: dict) -> List:
+def update_resource_tags(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Region' not in events:
@@ -252,7 +252,7 @@ def update_resource_tags(events: dict, context: dict) -> List:
     }
 
 
-def list_resource_tags(events: dict, context: dict) -> List:
+def list_resource_tags(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Region' not in events:
@@ -271,7 +271,7 @@ def list_resource_tags(events: dict, context: dict) -> List:
     }
 
 
-def update_time_to_live(events: dict, context: dict) -> List:
+def update_time_to_live(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Status' not in events:
@@ -287,7 +287,7 @@ def update_time_to_live(events: dict, context: dict) -> List:
 
     table_name = events['TableName']
     attribute_name = events.get('AttributeName', '')
-    logging.info(f'table:{table_name};kinesis is_enabled: {is_enabled};')
+    logging.debug(f'table:{table_name};kinesis is_enabled: {is_enabled};')
     result = _update_time_to_live(table_name=table_name,
                                   is_enabled=is_enabled,
                                   attribute_name=attribute_name)
@@ -295,7 +295,7 @@ def update_time_to_live(events: dict, context: dict) -> List:
     return {**result}
 
 
-def add_kinesis_destinations(events: dict, context: dict) -> List:
+def add_kinesis_destinations(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Destinations' not in events:
@@ -310,7 +310,7 @@ def add_kinesis_destinations(events: dict, context: dict) -> List:
                                            context=context)
 
 
-def get_active_kinesis_destinations(events: dict, context: dict) -> List:
+def get_active_kinesis_destinations(events: dict, context: dict) -> dict:
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     ACTIVE_STATUSES = ['ACTIVE', 'ENABLING']

@@ -7,8 +7,8 @@ from botocore.exceptions import ClientError
 from resource_manager.src.util.dynamo_db_utils import (
     _check_if_table_deleted, _describe_continuous_backups, _describe_table,
     _execute_boto3_dynamodb, _update_table, add_kinesis_destinations,
-    remove_global_table_and_wait_to_active, try_remove_replica,
-    update_time_to_live, add_global_table_and_wait_to_active,
+    remove_global_table_and_wait_for_active, try_remove_replica,
+    update_time_to_live, add_global_table_and_wait_for_active,
     get_earliest_recovery_point_in_time, drop_and_wait_dynamo_db_table_if_exists)
 
 GENERIC_SUCCESS_RESULT = {
@@ -250,12 +250,12 @@ class TestDynamoDbUtil(unittest.TestCase):
     @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
            return_value=None)
     def test_add_global_table_and_wait_to_active(self, time_mock, describe_mock, update_mock):
-        add_global_table_and_wait_to_active(boto3_session=self.session_mock,
-                                            table_name="my_table",
-                                            global_table_regions=['region-1'],
-                                            wait_sec=1,
-                                            delay_sec=1,
-                                            )
+        add_global_table_and_wait_for_active(boto3_session=self.session_mock,
+                                             table_name="my_table",
+                                             global_table_regions=['region-1'],
+                                             wait_sec=1,
+                                             delay_sec=1,
+                                             )
 
         update_mock.assert_called_with(boto3_session=self.session_mock,
                                        table_name="my_table",
@@ -283,12 +283,12 @@ class TestDynamoDbUtil(unittest.TestCase):
     @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
            return_value=None)
     def test_remove_global_table_and_wait_to_active(self, time_mock, describe_mock, try_remove_mock):
-        remove_global_table_and_wait_to_active(boto3_session=self.session_mock,
-                                               table_name="my_table",
-                                               global_table_regions=['region-1'],
-                                               wait_sec=1,
-                                               delay_sec=1,
-                                               )
+        remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
+                                                table_name="my_table",
+                                                global_table_regions=['region-1'],
+                                                wait_sec=1,
+                                                delay_sec=1,
+                                                )
 
         try_remove_mock.assert_called_with(boto3_session=self.session_mock,
                                            table_name="my_table",
