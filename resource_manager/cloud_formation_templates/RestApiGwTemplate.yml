@@ -22,6 +22,15 @@ Outputs:
     Description: Usage Plan Id
     Value:
       Ref: UsagePlan
+  RestApiGwId:
+    Description: The ID of the REST API Gateway
+    Value: !Ref ApplicationsApi
+  RestApiGwStageName:
+    Description: The stage name of the REST API Gateway
+    Value: !Ref ApplicationsApiStage
+  RestApiGwDeploymentId:
+    Description: The deployment ID of the REST API Gateway
+    Value: !Ref ApplicationsApiDeployment
   SyntheticAlarmName:
     Description: REST API GW Alarm based on HTTP4xx metric
     Value: !Ref Api4xxErrors
