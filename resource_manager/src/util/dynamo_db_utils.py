@@ -10,6 +10,12 @@ log = logging.getLogger()
 
 
 def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], dict]) -> dict:
+    """
+    Executes the given delegate against `dynamodb` client.
+    Validates is the response is successfull (return code `200`)
+    :param delegate: The lambda function
+    :param boto3_session: The boto3 session
+    """
     dynamo_db_client = boto3_session.client('dynamodb')
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -18,21 +24,43 @@ def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], di
 
 
 def _update_table(boto3_session: Session, table_name: str, **kwargs) -> dict:
+    """
+    Updates the given table with specified set of parametes (`kwargs`). Calls `update_table` of `dynamodb` client
+    :param table_name: The table name
+    :param kwargs: The parameters of update_table
+    :param boto3_session: The boto3 session
+    """
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
 
 def _describe_table(table_name: str, boto3_session: Session) -> dict:
+    """
+    Returns a response of `describe_table` method of `dynamodb` client
+    :param table_name: The table name
+    :param boto3_session: The boto3 session
+    """
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.describe_table(TableName=table_name))
 
 
 def _describe_continuous_backups(table_name: str, boto3_session: Session) -> dict:
+    """
+    Returns a response of `describe_continuous_backups` method of `dynamodb` client
+    :param table_name: The table name
+    :param boto3_session: The boto3 session
+    """
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.describe_continuous_backups(TableName=table_name))
 
 
-def _check_if_table_deleted(table_name: str, boto3_session: Session) -> dict:
+def _check_if_table_deleted(table_name: str, boto3_session: Session) -> bool:
+    """
+    Checks if the table is deleted
+    :param table_name: The table name
+    :param boto3_session: The boto3 session
+    :return : `True` if the table doesn't exist, `False` otherwise
+    """
     try:
         description = _describe_table(table_name=table_name,
                                       boto3_session=boto3_session)
@@ -46,6 +74,13 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session) -> dict:
 
 
 def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, boto3_session: Session) -> dict:
+    """
+    Updates TLL setting for the given table
+    :param table_name: The table name
+    :param is_enabled: The flag that says if TTL needs to be enabled
+    :param attribute_name: The name of the attribute that will be used to decided on TTL
+    :param boto3_session: The boto3 session
+    """
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.update_time_to_live(TableName=table_name,
                                                                             TimeToLiveSpecification={
@@ -55,6 +90,12 @@ def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, 
 
 
 def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Session) -> dict:
+    """
+    Adds a new kinesis destination
+    :param table_name: The table name
+    :param kds_arn: The ARN of Kinesis Data Stream
+    :param boto3_session: The boto3 session
+    """
     return \
         _execute_boto3_dynamodb(boto3_session=boto3_session,
                                 delegate=lambda x:
@@ -64,9 +105,20 @@ def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Sessi
 
 def try_remove_replica(table_name: str,
                        global_table_regions: List[str],
-                       boto3_session: Session) -> None:
+                       boto3_session: Session,
+                       retry_count: int = 5,
+                       delay_sec: int = 20) -> None:
+    """
+    Gives a try to remove replica. Sometimes the table is in use and the request fails.
+    This function makes several retries and the given delay
+    :param table_name: The table name
+    :param global_table_regions: The list of regions where replica should be removed from
+    :param delay_sec: The delay in seconds between request attempts
+    :param retry_count: The number of retries
+    :param boto3_session: The boto3 session
+    """
     i: int = 0
-    while i < 5:
+    while i < retry_count:
         try:
             _update_table(boto3_session=boto3_session,
                           table_name=table_name,
@@ -80,7 +132,7 @@ def try_remove_replica(table_name: str,
                     'The next try later in 20 seconds")
                 return True
 
-        time.sleep(20)
+        time.sleep(delay_sec)
         i += 1
 
 
@@ -89,6 +141,13 @@ def remove_global_table_and_wait_for_active(table_name: str,
                                             wait_sec: int,
                                             delay_sec: int,
                                             boto3_session: Session) -> None:
+    """
+    Removes replicas in the given regions and waits them to be removed
+    :param table_name: The table name
+    :param global_table_regions: The list of regions where replica should be removed from
+    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param boto3_session: The boto3 session
+    """
     try_remove_replica(boto3_session=boto3_session,
                        global_table_regions=global_table_regions,
                        table_name=table_name)
@@ -117,6 +176,13 @@ def add_global_table_and_wait_for_active(table_name: str,
                                          wait_sec: int,
                                          delay_sec: int,
                                          boto3_session: Session) -> None:
+    """
+    Adds global table in the given regions and waits when replicas and the table it self became ACTIVE
+    :param table_name: The table name
+    :param global_table_regions: The list of regions
+    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param boto3_session: The boto3 session
+    """
     _update_table(boto3_session=boto3_session,
                   table_name=table_name,
                   ReplicaUpdates=[
@@ -164,7 +230,7 @@ def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
                                             wait_sec: int = 300,
                                             delay_sec=20) -> None:
     """
-    Requests table deletions and waits until the given table is gone
+    Requests table deletion and waits until the given table is gone
     :param table_name: The table name
     :param wait_sec: The number of seconds to wait table deletion
     :param delay_sec: The delay in seconds between pulling atttempts of table status
