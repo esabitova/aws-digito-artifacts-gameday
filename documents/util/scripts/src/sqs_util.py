@@ -267,17 +267,16 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
         received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
         if received_messages is not None and len(received_messages) != 0:
             # Check if messages arrived to DLQ
-            logger.info('Wait for DLQ to receive messages')
-            time.sleep(20)
-            received_dlq_messages = receive_messages(dlq_url, 10, 10)
+            logger.debug('Wait for DLQ to receive messages')
+            received_dlq_messages = receive_messages(dlq_url, 10, 20)
             number_of_dlq_messages = len(received_dlq_messages)
-            logger.info(f'DLQ has {number_of_dlq_messages} messages')
+            logger.debug(f'DLQ has {number_of_dlq_messages} messages')
             if number_of_dlq_messages > 0:
                 return {"Messages": received_messages}
             else:
-                logger.info('Messages not found in DLQ')
+                logger.debug('Messages not found in DLQ')
         else:
-            logger.info('Messages not received')
+            logger.debug('Messages not received')
 
     raise Exception('Could not read messages before timeout')
 
