@@ -253,7 +253,6 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
     script_timeout = int(events.get('ScriptTimeout', 300))
     wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
     max_number_of_messages = int(events.get('MaxNumberOfMessages', 1))
-    visibility_timeout = int(events.get('VisibilityTimeout', 30))
     max_attempts = int(events.get('MaxAttempts', 10))
 
     if "RedrivePolicy" not in events:
@@ -268,15 +267,15 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
         received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
         if received_messages is not None and len(received_messages) != 0:
             # Check if messages arrived to DLQ
-            time.sleep(20)
             logger.info('Wait for DLQ to receive messages')
-            number_of_dlq_messages = get_number_of_messages(dlq_url)
+            time.sleep(20)
+            received_dlq_messages = receive_messages(dlq_url, 10, 10)
+            number_of_dlq_messages = len(received_dlq_messages)
             logger.info(f'DLQ has {number_of_dlq_messages} messages')
             if number_of_dlq_messages > 0:
                 return {"Messages": received_messages}
             else:
                 logger.info('Messages not found in DLQ')
-                time.sleep(visibility_timeout)
         else:
             logger.info('Messages not received')
 
