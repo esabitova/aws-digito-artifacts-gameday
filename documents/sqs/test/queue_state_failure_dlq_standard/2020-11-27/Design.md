@@ -174,7 +174,7 @@ Yes. The script will perform rollback of main queue attributes: Policy, Visibili
     * Inputs:
         * `MainQueueUrl`
     * Explanation:
-        * Read message from the main queue 2 times
+       * Read message from the main queue 2 times
     * OnFailure: step: RollbackCurrentExecution
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty

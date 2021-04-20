@@ -216,9 +216,11 @@ def send_messages(messages_to_send: List[dict], target_queue_url: str) -> dict:
     return send_message_batch_response
 
 
-def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -> Optional[List[dict]]:
+def receive_messages(source_queue_url: str, messages_transfer_batch_size: int, wait_timeout: int = 0) -> \
+        Optional[List[dict]]:
     """
     Receive messages
+    :param wait_timeout: The duration i seconds for which the call waits for a message to arrive in the queue
     :param messages_transfer_batch_size: how many messages to receive
     :param source_queue_url:  URL of the queue where from messages are received
     :return: response of receive_message method
@@ -228,9 +230,60 @@ def receive_messages(source_queue_url: str, messages_transfer_batch_size: int) -
     receive_message_response: dict = \
         sqs_client.receive_message(QueueUrl=source_queue_url,
                                    MaxNumberOfMessages=messages_transfer_batch_size,
+                                   WaitTimeSeconds=wait_timeout,
                                    MessageAttributeNames=['All'],
                                    AttributeNames=['All'])
     return receive_message_response.get('Messages')
+
+
+def receive_messages_by_events(events: dict, context: dict) -> dict:
+    """
+    Receive messages using events as an input and invoke method receive_messages
+    :param context:
+    :param events:
+        'QueueUrl': URL of the queue where from messages are received
+        'MaxNumberOfMessages': how many messages to receive
+        'WaitTimeSeconds': duration in seconds for which the call waits for a message to arrive in the queue
+        'ScriptTimeout': script timeout in seconds
+        'RedrivePolicy': Redrive policy to check queue DLQ
+        'MaxAttempts': Max number of read attempts
+    :return: response of receive_message method
+    """
+    if "QueueUrl" not in events:
+        raise KeyError("Requires QueueUrl in events")
+
+    if "MaxNumberOfMessages" in events and not 1 <= int(events['MaxNumberOfMessages']) <= 10:
+        raise KeyError("Requires MaxNumberOfMessages to be in a range 1..10")
+
+    queue_url = events['QueueUrl']
+    script_timeout = int(events.get('ScriptTimeout', 300))
+    wait_timeout_seconds = int(events.get('WaitTimeSeconds', 5))
+    max_number_of_messages = int(events.get('MaxNumberOfMessages', 1))
+    max_attempts = int(events.get('MaxAttempts', 10))
+
+    if "RedrivePolicy" not in events:
+        raise KeyError("Requires RedrivePolicy in events to check DLQ")
+    dlq_url = get_dead_letter_queue_url({'SourceRedrivePolicy': events['RedrivePolicy']}, {})['QueueUrl']
+
+    start = datetime.now()
+    attempt = 1
+
+    while (datetime.now() - start).total_seconds() < script_timeout and attempt <= max_attempts:
+        attempt += 1
+        received_messages = receive_messages(queue_url, max_number_of_messages, wait_timeout_seconds)
+        if received_messages is not None and len(received_messages) != 0:
+            # Check if messages arrived to DLQ
+            logger.debug('Wait for DLQ to receive messages')
+            received_dlq_messages = receive_messages(dlq_url, 10, 20)
+            if received_dlq_messages and len(received_dlq_messages) > 0:
+                logger.debug(f'DLQ has {len(received_dlq_messages)} messages')
+                return {"Messages": received_messages}
+            else:
+                logger.debug('Messages not found in DLQ')
+        else:
+            logger.debug('Messages not received')
+
+    raise Exception('Could not read messages before timeout')
 
 
 def transfer_messages(events: dict, context: dict) -> dict:
@@ -267,6 +320,12 @@ def transfer_messages(events: dict, context: dict) -> dict:
     loop_count = 1
     number_of_messages_received_from_source = 0
 
+    if number_of_messages_to_transfer == 0:
+        return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
+                              number_of_messages_failed_to_send_to_target,
+                              number_of_messages_transferred_to_target, source_queue_url, start,
+                              start_execution, max_duration_seconds)
+
     while number_of_messages_received_from_source < number_of_messages_to_transfer \
             and (now - start) < max_duration_seconds:
         logger.debug(f'Entered into loop #{loop_count} '
@@ -279,14 +338,8 @@ def transfer_messages(events: dict, context: dict) -> dict:
                 messages_transfer_batch_size)
 
         received_messages: Optional[List[dict]] = receive_messages(source_queue_url,
-                                                                   messages_transfer_batch_size_for_each_call)
-        if received_messages is None or len(received_messages) == 0:
-            return get_statistics(loop_count, now, number_of_messages_failed_to_delete_from_source,
-                                  number_of_messages_failed_to_send_to_target,
-                                  number_of_messages_transferred_to_target, source_queue_url, start,
-                                  start_execution, max_duration_seconds)
-        else:
-            number_of_messages_received_from_source += len(received_messages)
+                                                                   messages_transfer_batch_size_for_each_call, 5)
+        number_of_messages_received_from_source += len(received_messages)
 
         messages_to_send: List[dict] = []
         if is_source_queue_fifo and is_target_queue_fifo:  # If both queues are FIFO
@@ -416,3 +469,17 @@ def get_dead_letter_queue_url(events: dict, context: dict) -> dict:
     dead_letter_queue_url: str = get_queue_url_response['QueueUrl']
 
     return {"QueueUrl": dead_letter_queue_url}
+
+
+def get_number_of_messages(queue_url: str) -> int:
+    """
+    Util function to get approximate number of messages from the queue
+    """
+    sqs_client = boto3.client("sqs")
+    response = sqs_client.get_queue_attributes(
+        QueueUrl=queue_url,
+        AttributeNames=[
+            'ApproximateNumberOfMessages'
+        ]
+    )
+    return int(response['Attributes']['ApproximateNumberOfMessages'])

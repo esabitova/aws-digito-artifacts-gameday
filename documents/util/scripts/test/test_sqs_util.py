@@ -6,9 +6,9 @@ from unittest.mock import patch, MagicMock, call
 import pytest
 from botocore.exceptions import ClientError
 
-from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy, get_message_receipt_handle
-from documents.util.scripts.src.sqs_util import get_dead_letter_queue_url, update_max_receive_count
-from documents.util.scripts.src.sqs_util import send_message_of_size, transfer_messages
+from documents.util.scripts.src.sqs_util import add_deny_in_sqs_policy, revert_sqs_policy, get_message_receipt_handle,\
+    get_dead_letter_queue_url, update_max_receive_count, transfer_messages, send_message_of_size,\
+    receive_messages_by_events
 
 SQS_STANDARD_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyQueue"
 SQS_STANDARD_DEST_QUEUE_URL = "https://sqs.us-east-2.amazonaws.com/123456789012/MyDestQueue"
@@ -492,24 +492,31 @@ class TestSqsUtil(unittest.TestCase):
             "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
             "ForceExecution": True
         }
-        self.sqs_client_mock.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD, {'Messages': []}]
+        self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD
         self.sqs_client_mock.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
         actual_response = transfer_messages(events, None)
         self.assertIsNotNone(actual_response)
-        self.assertEqual(2, actual_response['NumberOfMessagesTransferredToTarget'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertEqual(20, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToSendToTarget'])
         self.assertIsNotNone(actual_response['TimeElapsed'])
         self.sqs_client_mock.get_queue_attributes.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
         ])
-        self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-                                                                MaxNumberOfMessages=self.messages_transfer_batch_size,
-                                                                MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+        expected_call_count = 10
+        self.assertEqual(expected_call_count, self.sqs_client_mock.receive_message.call_count)
+        self.sqs_client_mock.receive_message.assert_called_with(
+            QueueUrl=SQS_STANDARD_QUEUE_URL,
+            MaxNumberOfMessages=4,
+            MessageAttributeNames=['All'],
+            AttributeNames=['All'],
+            WaitTimeSeconds=5
+        )
+        self.assertEqual(expected_call_count, self.sqs_client_mock.send_message_batch.call_count)
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_TO_STANDARD)
+        self.assertEqual(expected_call_count, self.sqs_client_mock.delete_message_batch.call_count)
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                      Entries=DELETE_MESSAGE_ENTRIES)
 
@@ -521,22 +528,25 @@ class TestSqsUtil(unittest.TestCase):
             "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
             "ForceExecution": True
         }
-        self.sqs_client_mock.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD, {'Messages': []}]
+        self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD
         self.sqs_client_mock.get_queue_attributes.side_effect = [INVALID_ATTRIBUTE_NAME_ERROR, {}]
         actual_response = transfer_messages(events, None)
         self.assertIsNotNone(actual_response)
-        self.assertEqual(2, actual_response['NumberOfMessagesTransferredToTarget'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertEqual(20, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToSendToTarget'])
         self.assertIsNotNone(actual_response['TimeElapsed'])
         self.sqs_client_mock.get_queue_attributes.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
         ])
-        self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-                                                                MaxNumberOfMessages=self.messages_transfer_batch_size,
-                                                                MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+        self.sqs_client_mock.receive_message.assert_called_with(
+            QueueUrl=SQS_STANDARD_QUEUE_URL,
+            MaxNumberOfMessages=4,
+            MessageAttributeNames=['All'],
+            AttributeNames=['All'],
+            WaitTimeSeconds=5
+        )
         actual_send_message_batch_args = self.sqs_client_mock.send_message_batch.call_args[1]
         self.assertEqual(SQS_STANDARD_DEST_QUEUE_URL, actual_send_message_batch_args['QueueUrl'])
         actual_send_message_batch_entries = actual_send_message_batch_args['Entries']
@@ -560,22 +570,25 @@ class TestSqsUtil(unittest.TestCase):
             "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
             "ForceExecution": True
         }
-        self.sqs_client_mock.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_FIFO, {'Messages': []}]
+        self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_FIFO
         self.sqs_client_mock.get_queue_attributes.side_effect = [{}, INVALID_ATTRIBUTE_NAME_ERROR]
         actual_response = transfer_messages(events, None)
         self.assertIsNotNone(actual_response)
-        self.assertEqual(2, actual_response['NumberOfMessagesTransferredToTarget'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertEqual(20, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToSendToTarget'])
         self.assertIsNotNone(actual_response['TimeElapsed'])
         self.sqs_client_mock.get_queue_attributes.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
         ])
-        self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-                                                                MaxNumberOfMessages=self.messages_transfer_batch_size,
-                                                                MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+        self.sqs_client_mock.receive_message.assert_called_with(
+            QueueUrl=SQS_STANDARD_QUEUE_URL,
+            MaxNumberOfMessages=4,
+            MessageAttributeNames=['All'],
+            AttributeNames=['All'],
+            WaitTimeSeconds=5
+        )
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_TO_STANDARD)
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -589,22 +602,25 @@ class TestSqsUtil(unittest.TestCase):
             "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
             "ForceExecution": True
         }
-        self.sqs_client_mock.receive_message.side_effect = [RECEIVE_MESSAGE_RESPONSE_FROM_FIFO, {'Messages': []}]
+        self.sqs_client_mock.receive_message.return_value = RECEIVE_MESSAGE_RESPONSE_FROM_FIFO
         self.sqs_client_mock.get_queue_attributes.side_effect = [{}, {}]
         actual_response = transfer_messages(events, None)
         self.assertIsNotNone(actual_response)
-        self.assertEqual(2, actual_response['NumberOfMessagesTransferredToTarget'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
-        self.assertEqual(1, actual_response['NumberOfMessagesFailedToSendToTarget'])
+        self.assertEqual(20, actual_response['NumberOfMessagesTransferredToTarget'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToDeleteFromSource'])
+        self.assertEqual(10, actual_response['NumberOfMessagesFailedToSendToTarget'])
         self.assertIsNotNone(actual_response['TimeElapsed'])
         self.sqs_client_mock.get_queue_attributes.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
         ])
-        self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-                                                                MaxNumberOfMessages=self.messages_transfer_batch_size,
-                                                                MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+        self.sqs_client_mock.receive_message.assert_called_with(
+            QueueUrl=SQS_STANDARD_QUEUE_URL,
+            MaxNumberOfMessages=4,
+            MessageAttributeNames=['All'],
+            AttributeNames=['All'],
+            WaitTimeSeconds=5
+        )
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_FROM_FIFO_TO_FIFO)
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -643,7 +659,8 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
                                                                 MaxNumberOfMessages=number_of_messages_to_transfer,
                                                                 MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+                                                                AttributeNames=['All'],
+                                                                WaitTimeSeconds=5)
         self.sqs_client_mock.send_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL,
                                                                    Entries=MESSAGES_TO_SEND_TO_STANDARD[:2])
         self.sqs_client_mock.delete_message_batch.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
@@ -692,7 +709,7 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.send_message_batch.assert_not_called()
         self.sqs_client_mock.delete_message_batch.assert_not_called()
 
-    def test_transfer_messages_from_standard_to_standard_multiple_loop(self):
+    def test_transfer_messages_from_standard_to_standard_missing_response(self):
         """
         Test :func:`documents.util.scripts.src.sqs_util.transfer_messages`
         when it makes multiple loops
@@ -702,19 +719,21 @@ class TestSqsUtil(unittest.TestCase):
             "SourceQueueUrl": SQS_STANDARD_QUEUE_URL,
             "TargetQueueUrl": SQS_STANDARD_DEST_QUEUE_URL,
             "MessagesTransferBatchSize": messages_transfer_batch_size,
-            "NumberOfMessagesToTransfer": self.number_of_messages_to_transfer,
+            "NumberOfMessagesToTransfer": 2,
             "ForceExecution": True
         }
         self.sqs_client_mock.receive_message.side_effect = \
             [{'Messages': [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][0]]},
-             {'Messages': [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][1]]},
-             {'Messages': []}]
+             {'Messages': []},
+             {'Messages': [RECEIVE_MESSAGE_RESPONSE_FROM_STANDARD['Messages'][1]]}]
         self.sqs_client_mock.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
         self.sqs_client_mock.delete_message_batch.side_effect = \
             [{'Successful': [DELETE_MESSAGE_BATCH_RESPONSE['Successful'][0]]},
+             {'Successful': []},
              {'Successful': [DELETE_MESSAGE_BATCH_RESPONSE['Successful'][1]]}]
         self.sqs_client_mock.send_message_batch.side_effect = \
             [{'Successful': [SEND_MESSAGE_BATCH_RESPONSE['Successful'][0]]},
+             {'Successful': []},
              {'Successful': [SEND_MESSAGE_BATCH_RESPONSE['Successful'][1]]}]
         actual_response = transfer_messages(events, None)
         self.assertIsNotNone(actual_response)
@@ -726,16 +745,21 @@ class TestSqsUtil(unittest.TestCase):
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, AttributeNames=['FifoQueue']),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, AttributeNames=['FifoQueue'])
         ])
-        self.sqs_client_mock.receive_message.assert_called_with(QueueUrl=SQS_STANDARD_QUEUE_URL,
-                                                                MaxNumberOfMessages=messages_transfer_batch_size,
-                                                                MessageAttributeNames=['All'],
-                                                                AttributeNames=['All'])
+        self.sqs_client_mock.receive_message.assert_called_with(
+            QueueUrl=SQS_STANDARD_QUEUE_URL,
+            MaxNumberOfMessages=1,
+            MessageAttributeNames=['All'],
+            AttributeNames=['All'],
+            WaitTimeSeconds=5
+        )
         self.sqs_client_mock.send_message_batch.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[0]]),
+            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[]),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[1]])
         ])
         self.sqs_client_mock.delete_message_batch.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[0]]),
+            call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[]),
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[1]])
         ])
 
@@ -796,3 +820,21 @@ class TestSqsUtil(unittest.TestCase):
             "SourceRedrivePolicy": ""
         }
         self.assertRaises(KeyError, get_dead_letter_queue_url, events, None)
+
+    def test_receive_messages_by_events_empty_events(self):
+        events = {}
+        self.assertRaises(KeyError, receive_messages_by_events, events, None)
+
+    def test_receive_message_by_events_max_number_of_messages_lower_than_range(self):
+        events = {
+            'QueueUrl': SQS_STANDARD_QUEUE_URL,
+            'MaxNumberOfMessages': 0
+        }
+        self.assertRaises(KeyError, receive_messages_by_events, events, None)
+
+    def test_receive_message_by_events_max_number_of_messages_upper_than_range(self):
+        events = {
+            'QueueUrl': SQS_STANDARD_QUEUE_URL,
+            'MaxNumberOfMessages': 11
+        }
+        self.assertRaises(KeyError, receive_messages_by_events, events, None)
