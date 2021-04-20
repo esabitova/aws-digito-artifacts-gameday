@@ -45,5 +45,6 @@ Resources:
             Resource: "*"
             Action:
               - lambda:PutProvisionedConcurrencyConfig
+              - lambda:GetProvisionedConcurrencyConfig
       Roles:
         - Ref: DigitoLambdaChangeProvisionedConcurrencyAssumeRole

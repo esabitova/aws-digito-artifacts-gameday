@@ -10,6 +10,9 @@ __cache_memory_size_value_expression = \
 assert_concurrent_executions_expression = 'assert current concurrent executions value is equal to input value' \
                                           '\n{input_parameters}'
 delete_concurrency_expression = 'delete function concurrency\n{input_parameters}'
+assert_provisioned_concurrency_expression = 'assert current provisioned concurrency is equal to input value' \
+                                            '\n{input_parameters}'
+delete_provisioned_concurrency_expression = 'delete provisioned concurrency config\n{input_parameters}'
 
 
 def __populate_cache_with_memory_size(
@@ -49,3 +52,28 @@ def delete_function_concurrency(
 ):
     lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
     lambda_utils.delete_function_concurrency(lambda_arn, boto3_session)
+
+
+@then(parsers.parse(assert_provisioned_concurrency_expression))
+def assert_provisioned_concurrency_value(
+        resource_manager, ssm_test_cache, boto3_session, input_parameters
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
+    qualifier = extract_param_value(input_parameters, "LambdaQualifier", resource_manager, ssm_test_cache)
+    expected_provisioned_concurrency_value = extract_param_value(input_parameters, "InputValue", resource_manager,
+                                                                 ssm_test_cache)
+    actual_provisioned_concurrency_value = lambda_utils.get_function_provisioned_concurrency(
+        lambda_arn,
+        qualifier,
+        boto3_session
+    )
+    assert int(actual_provisioned_concurrency_value) == int(expected_provisioned_concurrency_value)
+
+
+@then(parsers.parse(delete_provisioned_concurrency_expression))
+def delete_provisioned_concurrency_config(
+        resource_manager, ssm_test_cache, boto3_session, input_parameters
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
+    qualifier = extract_param_value(input_parameters, "LambdaQualifier", resource_manager, ssm_test_cache)
+    lambda_utils.delete_function_provisioned_concurrency_config(lambda_arn, qualifier, boto3_session)

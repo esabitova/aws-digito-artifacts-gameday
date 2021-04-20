@@ -47,3 +47,15 @@ mainSteps:
       - Name: NewValueOfProvisionedConcurrency
         Selector: $.RequestedProvisionedConcurrentExecutions
         Type: Integer
+
+  - name: GetProvisionedConcurrencyConfig
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: lambda
+      Api: GetProvisionedConcurrencyConfig
+      FunctionName: '{{ LambdaARN }}'
+      Qualifier: '{{ LambdaQualifier }}'
+      PropertySelector: '$.Status'
+      DesiredValues:
+        - READY
