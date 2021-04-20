@@ -1,0 +1,327 @@
+#
+# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for REST API GW
+Outputs:
+  RestApiGwUsagePlanId:
+    Description: Usage Plan Id
+    Value:
+      Ref: UsagePlan
+  SyntheticAlarmName:
+    Description: REST API GW Alarm based on HTTP4xx metric
+    Value: !Ref Api4xxErrors
+Parameters:
+  RestApiGwQuotaLimit:
+    Description: Usage Plan limit value
+    Type: String
+    Default: 50000
+  RestApiGwQuotaPeriod:
+    Description: Usage Plan limit value
+    Type: String
+    Default: WEEK
+Resources:
+  UsagePlan:
+    Type: AWS::ApiGateway::UsagePlan
+    Properties:
+      ApiStages:
+        - ApiId: !Ref ApplicationsApi
+          Stage: !Ref ApplicationsApiStage
+      Description: Test Usage Plan
+      Quota:
+        Limit: !Ref RestApiGwQuotaLimit
+        Offset: 0
+        Period: !Ref RestApiGwQuotaPeriod
+      Throttle:
+        BurstLimit: 100
+        RateLimit: 100
+      UsagePlanName: TestUsagePlan
+
+  ApplicationsApiStage:
+    DependsOn: ApiAccount
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      TracingEnabled: true
+      RestApiId: !Ref ApplicationsApi
+      StageName: "test"
+      DeploymentId: !Ref ApplicationsApiDeployment
+      MethodSettings:
+        - LoggingLevel: INFO
+          ResourcePath: "/*"
+          HttpMethod: "*"
+          MetricsEnabled: true
+          ThrottlingRateLimit: 5
+          ThrottlingBurstLimit: 10
+
+  Api4xxErrors:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api 4xx Errors are more than 30%. Only used in canary deployment'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: TestAPI
+      EvaluationPeriods: 5
+      MetricName: 4XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.3
+      TreatMissingData: notBreaching
+
+  ApplicationsApi:
+    #DeletionPolicy: Retain
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: TestAPI
+      Body:
+        openapi: 3.0.0
+
+        info:
+          title: TestApiName
+          description: Test API for SSM
+          version: 2019-10-13
+
+        # Enable request validator. See doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-validation-sample-api-swagger.html
+        x-amazon-apigateway-request-validators:
+          all:
+            validateRequestBody: true
+            validateRequestParameters: true
+        x-amazon-apigateway-request-validator: all
+
+        x-amazon-apigateway-gateway-responses:
+          # Provide more detailed error message for bad request body errors. See doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions-gateway-responses.html
+          BAD_REQUEST_BODY:
+            responseTemplates:
+              application/json: '{"errorCode": "BadRequestBody", "message": "$context.error.validationErrorString"}'
+            responseParameters:
+              gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          DEFAULT_4XX:
+            responseParameters:
+              gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          DEFAULT_5XX:
+            responseParameters:
+              gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+        paths:
+          /applications:
+            get:
+              operationId: ListApplications
+              parameters:
+                - name: nextToken
+                  in: query
+                  required: false
+                  schema:
+                    type: string
+                - name: maxItems
+                  in: query
+                  required: false
+                  schema:
+                    type: integer
+                    minimum: 1
+                    maximum: 100
+              responses:
+                "200":
+                  description: "Successfully list applications"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/ApplicationList"
+                "400":
+                  description: "Bad Request Exception"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/BadRequestException"
+                "401":
+                  description: "Unauthorized Exception"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/UnauthorizedException"
+                "429":
+                  description: "Too Many Requests Exception"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/TooManyRequestsException"
+                "500":
+                  description: "Internal Server Error"
+                  content:
+                    application/json:
+                      schema:
+                        $ref: "#/components/schemas/InternalServerErrorException"
+              x-amazon-apigateway-integration:
+                uri: https://api.site.com
+                httpMethod: POST
+                type: http_proxy
+                passthroughBehavior: never
+        components:
+          schemas:
+            BadRequestException:
+              type: object
+              properties:
+                message:
+                  type: string
+                errorCode:
+                  type: string
+            UnauthorizedException:
+              type: object
+              properties:
+                message:
+                  type: string
+                errorCode:
+                  type: string
+            NotFoundException:
+              type: object
+              properties:
+                message:
+                  type: string
+                errorCode:
+                  type: string
+            ConflictException:
+              type: object
+              properties:
+                message:
+                  type: string
+                errorCode:
+                  type: string
+            TooManyRequestsException:
+              type: object
+              properties:
+                message:
+                  type: string
+                errorCode:
+                  type: string
+            InternalServerErrorException:
+              type: object
+              properties:
+                message:
+                  type: string
+                errorCode:
+                  type: string
+            CreateApplicationInput:
+              type: object
+              required:
+                - applicationId
+                - description
+                - author
+              properties:
+                applicationId:
+                  type: string
+                  pattern: ^[a-zA-Z0-9\-]{3,128}$
+                description:
+                  type: string
+                  minLength: 3
+                  maxLength: 256
+                author:
+                  type: string
+                  pattern: ^[a-zA-Z0-9\-]{1,128}$
+                homePageUrl:
+                  type: string
+                  pattern: ^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$
+            UpdateApplicationInput:
+              type: object
+              properties:
+                description:
+                  type: string
+                  minLength: 3
+                  maxLength: 256
+                author:
+                  type: string
+                  pattern: ^[a-zA-Z0-9\-]{1,128}$
+                homePageUrl:
+                  type: string
+                  pattern: ^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$
+            Application:
+              type: object
+              required:
+                - applicationId
+                - description
+                - author
+              properties:
+                applicationId:
+                  type: string
+                description:
+                  type: string
+                author:
+                  type: string
+                creationTime:
+                  type: string
+                homePageUrl:
+                  type: string
+            ApplicationSummary:
+              type: object
+              properties:
+                applicationId:
+                  type: string
+                description:
+                  type: string
+                creationTime:
+                  type: string
+            ApplicationList:
+              type: object
+              properties:
+                applications:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/ApplicationSummary"
+                nextToken:
+                  type: string
+      Description: Test API
+
+  ApiGatewayPushToCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: 'Push logs to CloudWatch logs from API Gateway'
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+
+  ApiAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !Sub ${ApiGatewayPushToCloudWatchRole.Arn}
+
+  ApplicationsApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApplicationsApi
+
+  ApiAvailability:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api availability is lower than 90%. Only used in canary deployment'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Sub ${AWS::StackName}-API
+      EvaluationPeriods: 5
+      MetricName: 5XXErrors
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 0.1
+      TreatMissingData: notBreaching

@@ -149,12 +149,16 @@ def list_objects_v2_paginated_side_effect(Bucket):
 
 @pytest.mark.unit_test
 class TestS3Util(unittest.TestCase):
-    def setUp(self):
-        self.patcher = patch('documents.util.scripts.src.s3_util.s3_client')
-        self.client = self.patcher.start()
-        self.client.side_effect = MagicMock()
 
-        self.client.list_object_versions.side_effect = list_object_versions_side_effect
+    def setUp(self):
+        self.patcher = patch('boto3.client')
+        self.client = self.patcher.start()
+        self.s3_service = MagicMock()
+        self.side_effect_map = {
+            's3': self.s3_service
+        }
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
+        self.s3_service.list_object_versions.side_effect = list_object_versions_side_effect
 
         # Mock paginators
         self.list_object_versions_mock = MagicMock()
@@ -165,7 +169,7 @@ class TestS3Util(unittest.TestCase):
             'list_object_versions': self.list_object_versions_mock,
             'list_objects_v2': self.list_objects_v2_mock
         }
-        self.client.get_paginator.side_effect = lambda action_name: side_effect_map.get(action_name)
+        self.s3_service.get_paginator.side_effect = lambda action_name: side_effect_map.get(action_name)
 
     def tearDown(self):
         self.patcher.stop()
@@ -185,7 +189,7 @@ class TestS3Util(unittest.TestCase):
 
         self.assertEqual("3", response['NumberOfObjectsExistInRestoreBucket'])
         self.assertEqual(True, response['AreObjectsExistInRestoreBucket'])
-        self.client.list_object_versions.assert_called_once()
+        self.s3_service.list_object_versions.assert_called_once()
 
     def test_check_existence_of_objects_in_bucket_empty(self):
         events = {
@@ -195,7 +199,7 @@ class TestS3Util(unittest.TestCase):
 
         self.assertEqual("0", response['NumberOfObjectsExistInRestoreBucket'])
         self.assertEqual(False, response['AreObjectsExistInRestoreBucket'])
-        self.client.list_object_versions.assert_called_once()
+        self.s3_service.list_object_versions.assert_called_once()
 
     # Test clean_bucket
 
@@ -203,7 +207,7 @@ class TestS3Util(unittest.TestCase):
         events = {}
         self.assertRaises(KeyError, clean_bucket, events, None)
         self.list_object_versions_mock.paginate.assert_not_called()
-        self.client.delete_object.assert_not_called()
+        self.s3_service.delete_object.assert_not_called()
 
     def test_clean_bucket(self):
         events = {
@@ -212,8 +216,8 @@ class TestS3Util(unittest.TestCase):
         response = clean_bucket(events, None)
         self.list_object_versions_mock.paginate.assert_called_once_with(Bucket=S3_BUCKET)
         self.assertEqual(6, response['NumberOfDeletedObjects'])
-        self.assertEqual(6, self.client.delete_object.call_count)
-        self.client.delete_object.assert_has_calls([
+        self.assertEqual(6, self.s3_service.delete_object.call_count)
+        self.s3_service.delete_object.assert_has_calls([
             call(Bucket=S3_BUCKET, Key="test0.txt", VersionId="null"),
             call(Bucket=S3_BUCKET, Key="test0.txt", VersionId=S3_FILE_VERSION_ID),
             call(Bucket=S3_BUCKET, Key="test_deleted0.txt", VersionId=S3_FILE_VERSION_ID),
@@ -229,14 +233,14 @@ class TestS3Util(unittest.TestCase):
         response = clean_bucket(events, None)
         self.list_object_versions_mock.paginate.assert_called_once_with(Bucket=S3_EMPTY_BUCKET)
         self.assertEqual(0, response['NumberOfDeletedObjects'])
-        self.client.delete_object.assert_not_called()
+        self.s3_service.delete_object.assert_not_called()
 
     # Test restore_from_backup
 
     def test_restore_from_backup_missing_buckets(self):
         events = {}
         self.assertRaises(KeyError, restore_from_backup, events, None)
-        self.client.copy.assert_not_called()
+        self.s3_service.copy.assert_not_called()
         self.list_objects_v2_mock.paginate.assert_not_called()
 
     def test_restore_from_backup_missing_source_bucket(self):
@@ -244,7 +248,7 @@ class TestS3Util(unittest.TestCase):
             "S3BucketToRestoreName": S3_BUCKET
         }
         self.assertRaises(KeyError, restore_from_backup, events, None)
-        self.client.copy.assert_not_called()
+        self.s3_service.copy.assert_not_called()
         self.list_objects_v2_mock.paginate.assert_not_called()
 
     def test_restore_from_backup_missing_target_bucket(self):
@@ -252,7 +256,7 @@ class TestS3Util(unittest.TestCase):
             "S3BackupBucketName": S3_BUCKET
         }
         self.assertRaises(KeyError, restore_from_backup, events, None)
-        self.client.copy.assert_not_called()
+        self.s3_service.copy.assert_not_called()
         self.list_objects_v2_mock.paginate.assert_not_called()
 
     def test_restore_from_backup(self):
@@ -263,8 +267,8 @@ class TestS3Util(unittest.TestCase):
         response = restore_from_backup(events, None)
         self.list_objects_v2_mock.paginate.assert_called_once_with(Bucket=S3_BUCKET)
         self.assertEqual(4, response['CopiedFilesNumber'])
-        self.assertEqual(4, self.client.copy.call_count)
-        self.client.copy.assert_has_calls([
+        self.assertEqual(4, self.s3_service.copy.call_count)
+        self.s3_service.copy.assert_has_calls([
             call({'Bucket': S3_BUCKET, 'Key': 'test0_0.txt'}, S3_EMPTY_BUCKET, 'test0_0.txt'),
             call({'Bucket': S3_BUCKET, 'Key': 'test0_1.txt'}, S3_EMPTY_BUCKET, 'test0_1.txt'),
             call({'Bucket': S3_BUCKET, 'Key': 'test1_0.txt'}, S3_EMPTY_BUCKET, 'test1_0.txt'),
@@ -280,31 +284,31 @@ class TestS3Util(unittest.TestCase):
         response = restore_from_backup(events, None)
         self.list_objects_v2_mock.paginate.assert_called_once_with(Bucket=S3_EMPTY_BUCKET)
         self.assertEqual(0, response['CopiedFilesNumber'])
-        self.client.copy.assert_not_called()
+        self.s3_service.copy.assert_not_called()
 
     # Test restore_to_the_previous_version
 
     def test_restore_to_the_previous_version_missing_bucket_and_key(self):
         events = {}
         self.assertRaises(KeyError, restore_to_the_previous_version, events, None)
-        self.client.list_object_versions.assert_not_called()
-        self.client.copy.assert_not_called()
+        self.s3_service.list_object_versions.assert_not_called()
+        self.s3_service.copy.assert_not_called()
 
     def test_restore_to_the_previous_version_missing_bucket(self):
         events = {
             "S3BucketObjectKey": "key"
         }
         self.assertRaises(KeyError, restore_to_the_previous_version, events, None)
-        self.client.list_object_versions.assert_not_called()
-        self.client.copy.assert_not_called()
+        self.s3_service.list_object_versions.assert_not_called()
+        self.s3_service.copy.assert_not_called()
 
     def test_restore_to_the_previous_version_missing_key(self):
         events = {
             "S3BucketName": S3_BUCKET
         }
         self.assertRaises(KeyError, restore_to_the_previous_version, events, None)
-        self.client.list_object_versions.assert_not_called()
-        self.client.copy.assert_not_called()
+        self.s3_service.list_object_versions.assert_not_called()
+        self.s3_service.copy.assert_not_called()
 
     def test_restore_to_the_previous_version_empty_source(self):
         events = {
@@ -312,8 +316,8 @@ class TestS3Util(unittest.TestCase):
             "S3BucketName": S3_EMPTY_BUCKET
         }
         self.assertRaises(AssertionError, restore_to_the_previous_version, events, None)
-        self.client.list_object_versions.assert_called_once_with(Bucket=S3_EMPTY_BUCKET, Prefix="key", MaxKeys=2)
-        self.client.copy.assert_not_called()
+        self.s3_service.list_object_versions.assert_called_once_with(Bucket=S3_EMPTY_BUCKET, Prefix="key", MaxKeys=2)
+        self.s3_service.copy.assert_not_called()
 
     def test_restore_to_the_previous_version_object_has_no_versions(self):
         events = {
@@ -321,9 +325,9 @@ class TestS3Util(unittest.TestCase):
             "S3BucketName": S3_BUCKET
         }
         self.assertRaises(AssertionError, restore_to_the_previous_version, events, None)
-        self.client.list_object_versions.assert_called_once_with(Bucket=S3_BUCKET, Prefix=S3_OBJECT_KEY_NO_VERSIONS,
-                                                                 MaxKeys=2)
-        self.client.copy.assert_not_called()
+        self.s3_service.list_object_versions.assert_called_once_with(Bucket=S3_BUCKET, Prefix=S3_OBJECT_KEY_NO_VERSIONS,
+                                                                     MaxKeys=2)
+        self.s3_service.copy.assert_not_called()
 
     def test_restore_to_the_previous_version(self):
         events = {
@@ -331,9 +335,9 @@ class TestS3Util(unittest.TestCase):
             "S3BucketName": S3_BUCKET
         }
         response = restore_to_the_previous_version(events, None)
-        self.client.list_object_versions.assert_called_once_with(Bucket=S3_BUCKET, Prefix=S3_OBJECT_WITH_VERSIONS,
-                                                                 MaxKeys=2)
-        self.client.copy.assert_called_once_with(
+        self.s3_service.list_object_versions.assert_called_once_with(Bucket=S3_BUCKET, Prefix=S3_OBJECT_WITH_VERSIONS,
+                                                                     MaxKeys=2)
+        self.s3_service.copy.assert_called_once_with(
             {'Bucket': S3_BUCKET, 'Key': S3_OBJECT_WITH_VERSIONS, 'VersionId': S3_FILE_VERSION_ID}, S3_BUCKET,
             S3_OBJECT_WITH_VERSIONS
         )

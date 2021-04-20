@@ -21,36 +21,22 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreenBeforeTest" in status "InProgress" for "600" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And send "5" messages to queue
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-
-    # Try to send some messages until alarm triggers
-    And send "5" messages to queue with error
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "30" seconds
-    And send "5" messages to queue with error
+    # Keep sending messages long enough so SSM times out if sending is not stopped by access denied error
+    And send messages for "1200" seconds until access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    # Alarm should be triggered despite messages being sent in less than 60 secs after last send attempt
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "Success" for "50" seconds
+    # Once sending messages stops it may take up to 2 mins to update alarm
+    # This step should not be reached if access denied error was not caught
+    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "Success" for "200" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    And Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "600" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And send "5" messages to queue
+    # Keep sending more messages ignoring access denied errors until policy propagates and SSM execution finishes
+    And send messages for "300" seconds ignoring access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |

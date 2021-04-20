@@ -40,7 +40,12 @@ class TestCloudFormation(unittest.TestCase):
         ]
         self.cfn_helper.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
-        self.cf_service_mock.create_stack.assert_called_once()
+        self.cf_service_mock.create_stack.assert_called_once_with(StackName='test_stack_name',
+                                                                  TemplateURL='test_template_url',
+                                                                  Capabilities=['CAPABILITY_IAM'],
+                                                                  Parameters=[{'ParameterKey': 'test_in_param',
+                                                                               'ParameterValue': 'test_in_val'}],
+                                                                  EnableTerminationProtection=True)
         self.cf_service_mock.describe_stacks.assert_has_calls([call(StackName='test_stack_name'),
                                                                call(StackName='test_stack_name'),
                                                                call(StackName='test_stack_name')])
@@ -112,5 +117,7 @@ class TestCloudFormation(unittest.TestCase):
     def test_delete_cf_stack_success(self):
         self.cfn_helper.delete_cf_stack('test_stack_name')
 
+        self.cf_service_mock.update_termination_protection.assert_called_once_with(
+            StackName='test_stack_name', EnableTerminationProtection=False)
         self.cf_service_mock.delete_stack.assert_called_once()
         self.cf_service_mock.get_waiter.assert_called_once()

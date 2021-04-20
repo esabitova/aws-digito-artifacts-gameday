@@ -1,10 +1,11 @@
 import json
-
 import boto3
+from botocore.config import Config
 
 
 def get_output_from_ssm_step_execution(events, context):
-    ssm = boto3.client('ssm')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
@@ -35,7 +36,8 @@ def get_output_from_ssm_step_execution(events, context):
 
 
 def get_inputs_from_ssm_step_execution(events, context):
-    ssm = boto3.client('ssm')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
 
     if 'ExecutionId' not in events or 'StepName' not in events or 'ResponseField' not in events:
         raise KeyError('Requires ExecutionId, StepName and ResponseField in events')
@@ -55,7 +57,6 @@ def get_inputs_from_ssm_step_execution(events, context):
 
 
 def get_inputs_from_input_payload_ssm_step_execution(events, context):
-
     if 'ExecutionId' not in events or 'StepName' not in events or 'InputPayloadField' not in events:
         raise KeyError('Requires ExecutionId, StepName and InputPayloadField in events')
     events['ResponseField'] = 'InputPayload'
@@ -68,7 +69,8 @@ def get_inputs_from_input_payload_ssm_step_execution(events, context):
 
 
 def get_step_durations(events, context):
-    ssm = boto3.client('ssm')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
 
     if 'ExecutionId' not in events or 'StepName' not in events:
         raise KeyError('Requires ExecutionId, StepName in events')
@@ -93,8 +95,8 @@ def cancel_command_execution(events, context):
         raise KeyError('Requires DocumentName, InstanceIds, Parameters in events')
     events['ResponseField'] = 'CommandId'
     command_id = get_output_from_ssm_step_execution(events, context)[events['ResponseField']]
-
-    ssm = boto3.client('ssm')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
     ssm.cancel_command(
         CommandId=command_id,
         InstanceIds=events['InstanceIds']
@@ -106,7 +108,8 @@ def run_command_document_async(events, context):
         raise KeyError('Requires DocumentName, InstanceIds, Parameters in events')
 
     params = json.loads(events['DocumentParameters']) if 'DocumentParameters' in events else {}
-    ssm = boto3.client('ssm')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
     response = ssm.send_command(
         InstanceIds=events['InstanceIds'],
         DocumentName=events['DocumentName'],
@@ -117,7 +120,8 @@ def run_command_document_async(events, context):
 
 def get_inputs_from_ssm_execution(events, context):
     output = {}
-    ssm = boto3.client('ssm')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
 
     if 'ExecutionId' not in events:
         raise KeyError('Requires ExecutionId')

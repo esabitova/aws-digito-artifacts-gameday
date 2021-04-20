@@ -1,0 +1,14 @@
+{
+  "displayName": "SOP - Change Quota Limit",
+  "description": "Change Quota Limit",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RESTAPIGWChangeQuotaLimit_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Change Quota Limit",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "api-gw:sop:change_quota_limit:2020-10-26"
+}

@@ -18,7 +18,7 @@ class TestAsgUtil(unittest.TestCase):
         self.side_effect_map = {
             'autoscaling': self.mock_autoscaling
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_autoscaling.describe_auto_scaling_groups.return_value = \
             test_data_provider.get_sample_describe_auto_scaling_groups_response()
         self.mock_autoscaling.describe_launch_configurations.return_value = \

@@ -1,0 +1,14 @@
+{
+  "displayName": "SOP - Change Concurrency limit",
+  "description": "Test Lambda behavior when hitting ReservedConcurrentExecutions value",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ChangeConcurrencyLimit_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Test Lambda behavior when hitting ReservedConcurrentExecutions value",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "lambda:sop:change_concurrency_limit:2020-10-26"
+}
