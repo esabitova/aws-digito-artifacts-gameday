@@ -30,7 +30,7 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    When Wait for the SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution is on step "ReadMessage" in status "Success" for "600" seconds
+    When Wait for the SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-QueueStateFailureDlqStandard_2020-11-27" SSM automation document
@@ -50,6 +50,9 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And cache number of messages in queue as "NumberOfMessagesDLQ" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -67,4 +70,5 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
 
     Then assert "VisibilityTimeout" at "before" became equal to "VisibilityTimeout" at "after"
     And assert "RedrivePolicy" at "before" became equal to "RedrivePolicy" at "after"
+    And assert "NumberOfMessages" at "after" became equal to "100"
     And assert "NumberOfMessagesDLQ" at "before" became equal to "NumberOfMessagesDLQ" at "after"

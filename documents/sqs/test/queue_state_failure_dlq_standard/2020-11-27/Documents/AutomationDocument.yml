@@ -266,6 +266,7 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
       Attributes:
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
+        VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
 
   - name: SleepBeforeGetNumberOfMessagesToMove
     action: "aws:sleep"
