@@ -1,7 +1,9 @@
 import unittest
-import pytest
-from unittest.mock import patch
 from unittest.mock import MagicMock
+from unittest.mock import patch
+
+import pytest
+
 from documents.util.scripts.src.apigw_util import check_limit_and_period
 from documents.util.scripts.src.apigw_util import set_limit_and_period
 
