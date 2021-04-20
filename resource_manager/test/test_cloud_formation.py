@@ -131,8 +131,8 @@ class TestCloudFormation(unittest.TestCase):
 
     def test_describe_cf_stack_events(self):
         stack_name = "test_stack_name"
-        event1 = { 'StackId': 'dummy', 'LogicalResourceId':'res1', 'ResourceStatus':'UPDATE_COMPLETE'}
-        self.cf_service_mock.describe_stack_events.return_value = {'StackEvents':[event1]}
+        event1 = {'StackId': 'dummy', 'LogicalResourceId': 'res1', 'ResourceStatus': 'UPDATE_COMPLETE'}
+        self.cf_service_mock.describe_stack_events.return_value = {'StackEvents': [event1]}
         res = self.cfn_helper.describe_cf_stack_events(stack_name)
 
         self.cf_service_mock.describe_stack_events.assert_called_once_with(StackName=stack_name)
@@ -140,12 +140,12 @@ class TestCloudFormation(unittest.TestCase):
 
     def test_describe_cf_stack_events_with_more(self):
         stack_name = "test_stack_name"
-        event1 = { 'StackId': 'dummy', 'LogicalResourceId':'res1', 'ResourceStatus':'UPDATE_COMPLETE'},
-        event2 = { 'StackId': 'dummy', 'LogicalResourceId':'res2', 'ResourceStatus':'UPDATE_COMPLETE'},
-        event3 = { 'StackId': 'dummy', 'LogicalResourceId':'res3', 'ResourceStatus':'UPDATE_COMPLETE'},
+        event1 = {'StackId': 'dummy', 'LogicalResourceId': 'res1', 'ResourceStatus': 'UPDATE_COMPLETE'},
+        event2 = {'StackId': 'dummy', 'LogicalResourceId': 'res2', 'ResourceStatus': 'UPDATE_COMPLETE'},
+        event3 = {'StackId': 'dummy', 'LogicalResourceId': 'res3', 'ResourceStatus': 'UPDATE_COMPLETE'},
         self.cf_service_mock.describe_stack_events.side_effect = [
-            {'StackEvents':[event1, event2], 'NextToken':'next'},
-            {'StackEvents':[event3], }
+            {'StackEvents': [event1, event2], 'NextToken':'next'},
+            {'StackEvents': [event3], }
         ]
         res = self.cfn_helper.describe_cf_stack_events(stack_name)
 
