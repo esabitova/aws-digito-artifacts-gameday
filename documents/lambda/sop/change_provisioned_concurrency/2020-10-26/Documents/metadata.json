@@ -1,0 +1,14 @@
+{
+  "displayName": "SOP - Change Provisioned Concurrency",
+  "description": "Change Provisioned Concurrency",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ChangeProvisionedConcurrency_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Change Provisioned Concurrency",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "lambda:sop:change_provisioned_concurrency:2020-10-26"
+}
