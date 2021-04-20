@@ -24,8 +24,8 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
-      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | MoveFromDeadLetterQueue |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True                    |
+      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | MoveMessagesFromDeadLetterQueue |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True                            |
     And send "100" messages to FIFO queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
@@ -43,7 +43,7 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
-      | QueueUrl                                         |
+      | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
 
     And purge the queue

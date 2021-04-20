@@ -47,14 +47,13 @@ Resources:
               - cloudwatch:DescribeAlarms
               - sqs:GetQueueAttributes
               - sqs:SetQueueAttributes
-              - sqs:AddPermission
-              - sqs:RemovePermission
               - sqs:ReceiveMessage
               - sqs:SendMessage
               - sqs:DeleteMessage
               - sqs:GetQueueUrl
               - ssm:StartAutomationExecution
               - ssm:GetAutomationExecution
+              - ssm:GetParameters
               - iam:PassRole
               - logs:CreateLogStream
               - logs:PutLogEvents

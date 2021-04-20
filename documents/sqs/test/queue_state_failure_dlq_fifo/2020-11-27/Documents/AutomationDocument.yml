@@ -28,7 +28,7 @@ parameters:
   DeadLetterQueueAlarmName:
     type: String
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
-  MoveFromDeadLetterQueue:
+  MoveMessagesFromDeadLetterQueue:
     type: String
     description: (Optional) Purge dead-letter queue and assert alarm to be green after test and also during rollback execution
     default: 'false'
@@ -58,8 +58,8 @@ mainSteps:
       - Name: QueueUrl
         Selector: $.Payload.QueueUrl[0]
         Type: String
-      - Name: MoveFromDeadLetterQueue
-        Selector: $.Payload.MoveFromDeadLetterQueue[0]
+      - Name: MoveMessagesFromDeadLetterQueue
+        Selector: $.Payload.MoveMessagesFromDeadLetterQueue[0]
         Type: String
     inputs:
       Runtime: python3.7
@@ -132,7 +132,7 @@ mainSteps:
     inputs:
       Choices:
         - NextStep: AssertMoveEnabledFlag
-          Variable: "{{ GetInputsFromPreviousExecution.MoveFromDeadLetterQueue }}"
+          Variable: "{{ GetInputsFromPreviousExecution.MoveMessagesFromDeadLetterQueue }}"
           EqualsIgnoreCase: 'true'
     isEnd: true
 
@@ -141,8 +141,8 @@ mainSteps:
     inputs:
       Choices:
         - NextStep: GetNumberOfMessagesToMoveForPreviousExecution
-          Variable: "{{ GetInputsFromPreviousExecution.MoveFromDeadLetterQueue }}"
-          EqualsIgnoreCase: '{{ MoveFromDeadLetterQueue }}'
+          Variable: "{{ GetInputsFromPreviousExecution.MoveMessagesFromDeadLetterQueue }}"
+          EqualsIgnoreCase: '{{ MoveMessagesFromDeadLetterQueue }}'
     isEnd: true
 
   - name: GetNumberOfMessagesToMoveForPreviousExecution
@@ -187,9 +187,6 @@ mainSteps:
   - name: BackupCurrentExecution
     action: aws:executeAwsApi
     outputs:
-      - Name: Policy
-        Selector: '$.Attributes.Policy'
-        Type: String
       - Name: QueueArn
         Selector: '$.Attributes.QueueArn'
         Type: String
@@ -239,7 +236,6 @@ mainSteps:
   - name: ReadMessage
     action: aws:executeScript
     onFailure: step:RollbackCurrentExecution
-    onCancel: step:RollbackCurrentExecution
     inputs:
       Runtime: python3.7
       Handler: receive_messages_by_events
@@ -247,7 +243,6 @@ mainSteps:
         QueueUrl: '{{ QueueUrl }}'
         MaxNumberOfMessages: 2
         WaitTimeSeconds: 20
-        checkDLQ: 'true'
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
         VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
       Script: |-
@@ -281,12 +276,12 @@ mainSteps:
         RedrivePolicy: '{{ BackupCurrentExecution.RedrivePolicy }}'
         VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
 
-  - name: CheckIsMoveFromDeadLetterQueue
+  - name: CheckIsMoveMessagesFromDeadLetterQueue
     action: aws:branch
     inputs:
       Choices:
         - NextStep: GetDeadLetterQueueUrl
-          Variable: "{{ MoveFromDeadLetterQueue }}"
+          Variable: "{{ MoveMessagesFromDeadLetterQueue }}"
           EqualsIgnoreCase: 'true'
     isEnd: true
 

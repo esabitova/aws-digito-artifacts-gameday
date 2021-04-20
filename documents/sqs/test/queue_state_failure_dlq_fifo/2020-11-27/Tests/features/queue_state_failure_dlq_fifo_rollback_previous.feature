@@ -24,8 +24,8 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
-      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | MoveFromDeadLetterQueue |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True                    |
+      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | MoveMessagesFromDeadLetterQueue |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True                            |
     And send "100" messages to FIFO queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
@@ -41,8 +41,8 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | {{cache:SsmExecutionId>1}} |
 
     When SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
-      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | IsRollback | PreviousExecutionId        | MoveFromDeadLetterQueue |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True       | {{cache:SsmExecutionId>1}} | True                    |
+      | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            | IsRollback | PreviousExecutionId        | MoveMessagesFromDeadLetterQueue |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} | True       | {{cache:SsmExecutionId>1}} | True                            |
 
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution in status "Success"
       | ExecutionId                |
