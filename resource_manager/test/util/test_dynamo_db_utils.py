@@ -177,7 +177,7 @@ class TestDynamoDbUtil(unittest.TestCase):
             _execute_boto3_dynamodb(self.session_mock,
                                     lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-        self.assertTrue('Failed to execute request' in context.exception.args)
+        self.assertTrue(type(context.exception) is ValueError)
 
     def test__update_table(self):
 
