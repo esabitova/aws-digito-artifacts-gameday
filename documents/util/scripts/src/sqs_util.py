@@ -275,9 +275,8 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
             # Check if messages arrived to DLQ
             logger.debug('Wait for DLQ to receive messages')
             received_dlq_messages = receive_messages(dlq_url, 10, 20)
-            number_of_dlq_messages = len(received_dlq_messages)
-            logger.debug(f'DLQ has {number_of_dlq_messages} messages')
-            if number_of_dlq_messages > 0:
+            if received_dlq_messages and len(received_dlq_messages) > 0:
+                logger.debug(f'DLQ has {len(received_dlq_messages)} messages')
                 return {"Messages": received_messages}
             else:
                 logger.debug('Messages not found in DLQ')
