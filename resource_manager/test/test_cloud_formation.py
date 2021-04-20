@@ -1,9 +1,10 @@
 import unittest
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from botocore.exceptions import ClientError
 import resource_manager.src.util.boto3_client_factory as client_factory
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 
 @pytest.mark.unit_test
@@ -32,7 +33,13 @@ class TestCloudFormation(unittest.TestCase):
         client_factory.clients = {}
         client_factory.resources = {}
 
-    def test_deploy_cf_stack_new_success(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_deploy_cf_stack_new_success(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.cf_service_mock.describe_stacks.side_effect = [
             {'Stacks': [{'StackStatus': 'IN_PROGRESS'}]},
             {'Stacks': [{'StackStatus': 'COMPLETED'}]},

@@ -1,12 +1,13 @@
 import unittest
 from datetime import datetime
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from botocore.exceptions import ClientError
 
 import resource_manager.src.util.sqs_utils as sqs_utils
+from documents.util.scripts.test.mock_sleep import MockSleep
+
 
 SQS_QUEUE_URL = "https://this.is.some.url"
 SQS_FIFO_QUEUE_URL = "https://this.is.some.url.fifo"
@@ -33,6 +34,7 @@ def get_queue_attributes_side_effect(number_of_messages):
 class TestSQSUtil(unittest.TestCase):
 
     def setUp(self):
+        self.mock_time = 0
         self.session_mock = MagicMock()
         self.mock_sqs_service = MagicMock()
         self.client_side_effect_map = {
@@ -43,6 +45,13 @@ class TestSQSUtil(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def mock_sleep(self, time):
+        """
+        A mock sleep call to replace time.sleep which is called by dependencies
+        """
+        self.mock_time += time
+        return time
 
     def test_send_message_to_queue(self):
         sqs_utils.send_message_to_standard_queue(self.session_mock, SQS_QUEUE_URL, SQS_MESSAGE_BODY)
@@ -63,7 +72,13 @@ class TestSQSUtil(unittest.TestCase):
             MessageDeduplicationId=now
         )
 
-    def test_send_messages_until_access_denied(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_access_denied(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_sqs_service.send_message.side_effect = [
             {}, ClientError({'Error': {'Code': 'AccessDenied'}}, ''), {}
         ]
@@ -71,7 +86,13 @@ class TestSQSUtil(unittest.TestCase):
         self.assertEqual(2, self.mock_sqs_service.send_message.call_count)
         self.mock_sqs_service.send_message.reset_mock()
 
-    def test_send_messages_until_access_denied_failed(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_access_denied_failed(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_sqs_service.send_message.side_effect = [
             {}, ClientError({'Error': {'Code': 'SomeErrorCode'}}, ''), {}
         ]
@@ -81,17 +102,35 @@ class TestSQSUtil(unittest.TestCase):
         self.assertEqual(2, self.mock_sqs_service.send_message.call_count)
         self.mock_sqs_service.send_message.reset_mock()
 
-    def test_send_messages_until_access_denied_timeout(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_access_denied_timeout(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.assertRaises(
             Exception, sqs_utils.send_messages_until_access_denied, self.session_mock, SQS_QUEUE_URL, 50
         )
         self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
 
-    def test_send_messages_until_timeout(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_timeout(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         sqs_utils.send_messages_until_timeout(self.session_mock, SQS_QUEUE_URL, 50)
         self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
 
-    def test_send_messages_until_timeout_failed(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_timeout_failed(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_sqs_service.send_message.side_effect = [
             {}, ClientError({'Error': {'Code': 'SomeErrorCode'}}, ''), {}
         ]
@@ -101,7 +140,13 @@ class TestSQSUtil(unittest.TestCase):
         self.assertEqual(2, self.mock_sqs_service.send_message.call_count)
         self.mock_sqs_service.send_message.reset_mock()
 
-    def test_send_messages_until_timeout_access_denied(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_timeout_access_denied(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_sqs_service.send_message.side_effect = [
             {}, ClientError({'Error': {'Code': 'AccessDenied'}}, ''), {}
         ]
@@ -109,7 +154,13 @@ class TestSQSUtil(unittest.TestCase):
         self.assertEqual(3, self.mock_sqs_service.send_message.call_count)
         self.mock_sqs_service.send_message.reset_mock()
 
-    def test_send_messages_until_timeout_always_access_denied(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_send_messages_until_timeout_always_access_denied(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_sqs_service.send_message.side_effect = ClientError({'Error': {'Code': 'AccessDenied'}}, '')
         self.assertRaises(
             Exception, sqs_utils.send_messages_until_timeout, self.session_mock, SQS_QUEUE_URL, 50

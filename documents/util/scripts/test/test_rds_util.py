@@ -5,6 +5,7 @@ from .test_data_provider import get_sample_describe_db_instances_response, DB_IN
 from unittest.mock import patch
 from unittest.mock import MagicMock, call
 from documents.util.scripts.src.rds_util import restore_to_pit, get_cluster_writer_id, wait_cluster_failover_completed
+from .mock_sleep import MockSleep
 
 
 @pytest.mark.unit_test
@@ -56,7 +57,13 @@ class TestRdsUtil(unittest.TestCase):
         actual_writer_id = get_cluster_writer_id(events, None)['WriterId']
         self.assertEqual(expected_writer_id, actual_writer_id)
 
-    def test_wait_cluster_failover_completed_success(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_cluster_failover_completed_success(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         test_writer_id = 'writer_id_001'
         test_cluster_id = 'test_cluster_id'
         events = {'ClusterId': test_cluster_id, 'WriterId': test_writer_id}
