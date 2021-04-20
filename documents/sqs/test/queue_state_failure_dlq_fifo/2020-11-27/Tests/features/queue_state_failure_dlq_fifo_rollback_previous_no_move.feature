@@ -26,6 +26,9 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" executed
       | QueueUrl                                             | AutomationAssumeRole                                                                 | DeadLetterQueueAlarmName                            |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqFifoAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageFifoQueueAlarm}} |
+    And send "100" messages to FIFO queue
+      | QueueUrl                                             |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
 
     When Wait for the SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
