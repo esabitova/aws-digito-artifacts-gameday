@@ -117,19 +117,6 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
 
-  - name: RollbackPreviousExecutionQueuePolicy
-    action: aws:executeScript
-    inputs:
-      Runtime: python3.7
-      Handler: revert_sqs_policy
-      InputPayload:
-        OptionalBackupPolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.Policy }}'
-        QueueUrl: '{{ QueueUrl }}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::sqs_util.imports
-
-        SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
-
   - name: RollbackPreviousExecutionQueueAttributes
     action: aws:executeAwsApi
     inputs:
