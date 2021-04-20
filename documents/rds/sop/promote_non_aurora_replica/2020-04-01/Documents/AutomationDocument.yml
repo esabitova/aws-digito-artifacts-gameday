@@ -23,13 +23,14 @@ parameters:
   Dryrun:
     type: Boolean
     default: false
+    description: (Optional) Dryrun indicates a testing run, changes will be rolled back.
   AutomationAssumeRole:
     type: String
     description: "(Required) The ARN of the role that allows Automation to perform\
          \ the actions on your behalf."
   DbInstanceIdentifier:
     type: String
-    description: The identifier of the source DB instance with at least one read replica
+    description: (Required) The identifier of the source DB instance with at least one read replica
 outputs:
   - OutputRecoveryTime.RecoveryTime
 mainSteps:

@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import publisher.src.document_metadata_attrs as metadata_attrs
+from publisher.src.document_validator import DocumentValidator
 from botocore.config import Config
 from botocore.exceptions import ClientError
 
@@ -19,6 +20,7 @@ class PublishDocuments:
         self.root_dir = os.getcwd()
         config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
         self.ssm = boto3_session.client('ssm', config=config)
+        self.document_validator = DocumentValidator()
 
     def publish_document(self, list_document_metadata):
         for document_metadata in list_document_metadata:
@@ -235,6 +237,17 @@ class PublishDocuments:
             value = document_metadata.get(rf)
             if not value:
                 failed_fields.append('Required attribute [{}] missing in [{}].'.format(rf, metadata_file_path))
+            if rf in metadata_attrs.metadata_valid_values_map:
+                if rf == 'failureType':
+                    failure_types = value.split(",")
+                    for failure_type in failure_types:
+                        if failure_type not in metadata_attrs.metadata_valid_values_map.get(rf):
+                            failed_fields.append('Invalid value [{}] for attribute [{}] in [{}].'
+                                                 .format(failure_type, rf, metadata_file_path))
+                else:
+                    if value not in metadata_attrs.metadata_valid_values_map.get(rf):
+                        failed_fields.append('Invalid value [{}] for attribute [{}] in [{}].'
+                                             .format(value, rf, metadata_file_path))
         return failed_fields
 
 

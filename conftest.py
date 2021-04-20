@@ -2,7 +2,8 @@ import logging
 import time
 import uuid
 from datetime import timedelta, datetime
-
+import random
+import string
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -29,6 +30,9 @@ from resource_manager.src.util.sts_utils import assume_role_session
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.ssm_utils import send_step_approval
+
+from resource_manager.src.alarm_manager import AlarmManager
+from publisher.src.alarm_document_parser import AlarmDocumentParser
 
 
 def pytest_addoption(parser):
@@ -215,6 +219,20 @@ def ssm_test_cache():
     return cache
 
 
+@pytest.fixture
+def alarm_manager(boto3_session):
+    """
+    Container for alarms deployed during a test. Alarms created during a test
+    are destroyed at the end of the test.
+    """
+    cfn_helper = CloudFormationTemplate(boto3_session)
+    s3_helper = S3(boto3_session)
+    unique_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    manager = AlarmManager(unique_suffix, boto3_session, cfn_helper, s3_helper)
+    yield manager
+    manager.destroy_deployed_alarms()
+
+
 def get_boto3_session(aws_profile):
     '''
     Helper to create boto3 session based on given AWS profile.
@@ -318,7 +336,7 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
 
 
 wait_for_execution_step_with_params_description = \
-    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '\
+    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" ' \
     'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'
 
 
@@ -495,13 +513,13 @@ def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state
 
 @given(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
              'check every {delay_sec} seconds'))
-def wait_until_alarm_green(resource_manager,
-                           boto3_session: boto3.Session,
-                           alarm_name_ref: str,
-                           wait_sec: str,
-                           delay_sec: str):
-    cf_output = resource_manager.get_cfn_output_params()
-    alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cf_output})
+@then(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+            'check every {delay_sec} seconds'))
+def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str,
+                           cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
+
+    alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
+                                                    'cache': ssm_test_cache})
     alarm_state = AlarmState.INSUFFICIENT_DATA
     wait_sec = int(wait_sec)
     delay_sec = int(delay_sec)
@@ -527,5 +545,57 @@ def wait_until_alarm_green(resource_manager,
         iteration += 1
 
     raise TimeoutError(f'After {wait_sec} alarm {alarm_name} is in {alarm_state} state;'
+                       f'Elapsed: {elapsed} sec;'
+                       f'{iteration} iterations;')
+
+# Alarm
+
+
+@given(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
+@when(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
+@then(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
+def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
+                                    alarm_manager, ssm_test_cache, cfn_output_params):
+    input_params = {name : parse_param_value(val, {'cache': ssm_test_cache,
+                                                   'cfn-output': cfn_output_params})
+                    for name, val in
+                    parse_str_table(input_parameters_table).rows[0].items()}
+    alarm_name = alarm_reference_id.split(':')[2]
+    raw_alarm_document = AlarmDocumentParser.from_reference_id(alarm_reference_id)
+    variables = raw_alarm_document.get_variables()
+
+    alarm_document = raw_alarm_document.replace_variables(**input_params)
+
+    if alarm_document.get_variables():
+        raise Exception(f'Test must provide values to the following variables: '
+                        f'{str(list(alarm_document.get_variables()))}'
+                        f'referenceId: {alarm_reference_id}'
+                        f'path: {AlarmDocumentParser.get_document_directory(alarm_reference_id)}')
+
+    alarm_manager.deploy_alarm(alarm_name,
+                               alarm_document.get_content(),
+                               {k: v for k, v in input_params.items()
+                                if k not in variables})
+
+
+@then(parse('assert metrics for all alarms are populated'))
+def verify_alarm_metrics_exist(alarm_manager):
+    wait_sec = int(300)
+    delay_sec = int(15)
+    elapsed = 0
+    iteration = 1
+    while elapsed < wait_sec:
+        start = time.time()
+        alarms_missing_data = alarm_manager.collect_alarms_without_data()
+        if not alarms_missing_data:
+            return  # All alarms have data
+        logging.info(f'#{iteration}; Alarms missing data: {alarms_missing_data} '
+                     f'Elapsed: {elapsed} sec;')
+        time.sleep(delay_sec)
+        end = time.time()
+        elapsed += (end - start)
+        iteration += 1
+
+    raise TimeoutError(f'After {wait_sec} the following alarms metrics have no data: {alarms_missing_data}'
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')

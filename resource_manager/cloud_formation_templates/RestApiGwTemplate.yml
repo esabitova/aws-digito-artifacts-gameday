@@ -22,6 +22,15 @@ Outputs:
     Description: Usage Plan Id
     Value:
       Ref: UsagePlan
+  RestApiGwId:
+    Description: The ID of the REST API Gateway
+    Value: !Ref ApplicationsApi
+  RestApiGwStageName:
+    Description: The stage name of the REST API Gateway
+    Value: !Ref ApplicationsApiStage
+  RestApiGwDeploymentId:
+    Description: The deployment ID of the REST API Gateway
+    Value: !Ref ApplicationsApiDeployment
   SyntheticAlarmName:
     Description: REST API GW Alarm based on HTTP4xx metric
     Value: !Ref Api4xxErrors
@@ -49,7 +58,20 @@ Resources:
       Throttle:
         BurstLimit: 100
         RateLimit: 100
-      UsagePlanName: TestUsagePlan
+      UsagePlanName: !Join
+        - "-"
+        - - "RestApiGateway-UsagePlan-Digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
 
   ApplicationsApiStage:
     DependsOn: ApiAccount
@@ -57,7 +79,20 @@ Resources:
     Properties:
       TracingEnabled: true
       RestApiId: !Ref ApplicationsApi
-      StageName: "test"
+      StageName: !Join
+        - "-"
+        - - "RestApiGateway-Stage-Digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       DeploymentId: !Ref ApplicationsApiDeployment
       MethodSettings:
         - LoggingLevel: INFO
@@ -75,7 +110,20 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ApiName
-          Value: TestAPI
+          Value: !Join
+            - "-"
+            - - "RestApiGateway-Digito"
+              - !Ref "AWS::Region"
+              - !Ref "AWS::AccountId"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
       EvaluationPeriods: 5
       MetricName: 4XXErrors
       Namespace: AWS/ApiGateway
@@ -88,7 +136,20 @@ Resources:
     #DeletionPolicy: Retain
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: TestAPI
+      Name: !Join
+        - "-"
+        - - "RestApiGateway-Digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       Body:
         openapi: 3.0.0
 
@@ -317,7 +378,20 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       Dimensions:
         - Name: ApiName
-          Value: !Sub ${AWS::StackName}-API
+          Value: !Join
+            - "-"
+            - - "RestApiGateway-Digito"
+              - !Ref "AWS::Region"
+              - !Ref "AWS::AccountId"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
       EvaluationPeriods: 5
       MetricName: 5XXErrors
       Namespace: AWS/ApiGateway

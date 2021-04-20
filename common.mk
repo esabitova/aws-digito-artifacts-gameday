@@ -55,9 +55,9 @@ unit_test_incrementally:
 	python3 -m pytest -m unit_test --inc --cov-append --suppress-no-test-exit-code --workers auto && \
 	deactivate
 
-metadata_validator:
+style_validator:
 	source venv/bin/activate && \
-    python -m pytest -m metadata_validator --no-cov && \
+    python -m pytest -m style_validator --no-cov && \
     deactivate
 
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles

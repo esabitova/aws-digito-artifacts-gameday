@@ -7,7 +7,7 @@ import resource_manager.src.util.boto3_client_factory as client_factory
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from unittest.mock import MagicMock
 from botocore.response import StreamingBody
-from documents.util.scripts.test.test_lambda_util import LAMBDA_ARN, LAMBDA_NAME
+from documents.util.scripts.test.test_lambda_util import LAMBDA_ARN, LAMBDA_NAME, LAMBDA_VERSION
 
 
 def mock_get_function(status_code, memory=0):
@@ -103,3 +103,22 @@ class TestLambdaUtil(unittest.TestCase):
     def test_delete_function_concurrency(self):
         lambda_utils.delete_function_concurrency(LAMBDA_ARN, self.session_mock)
         self.mock_lambda.delete_function_concurrency.assert_called_once_with(FunctionName=LAMBDA_ARN)
+
+    def test_get_function_provisioned_concurrency(self):
+        provisioned_concurrency = 50
+        self.mock_lambda.get_provisioned_concurrency_config.return_value = {
+            'AllocatedProvisionedConcurrentExecutions': provisioned_concurrency
+        }
+        response = lambda_utils.get_function_provisioned_concurrency(LAMBDA_ARN, LAMBDA_VERSION, self.session_mock)
+        self.assertEqual(provisioned_concurrency, response)
+        self.mock_lambda.get_provisioned_concurrency_config.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            Qualifier=LAMBDA_VERSION
+        )
+
+    def test_delete_function_provisioned_concurrency_config(self):
+        lambda_utils.delete_function_provisioned_concurrency_config(LAMBDA_ARN, LAMBDA_VERSION, self.session_mock)
+        self.mock_lambda.delete_provisioned_concurrency_config.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            Qualifier=LAMBDA_VERSION
+        )
