@@ -140,6 +140,9 @@ ENABLE_KINESIS_DESTINATIONS_RESPONSE = {
     "DestinationStatusDescription": 'Description'
 }
 
+RESOURCE_NOT_FOUND_ERROR = ClientError({'Error': {'Code': 'ResourceNotFoundException'}}, "")
+RESOURCE_IN_USE_ERROR = ClientError({'Error': {'Code': 'ResourceInUseException'}}, "")
+
 
 @pytest.mark.unit_test
 class TestDynamoDbUtil(unittest.TestCase):
@@ -167,10 +170,6 @@ class TestDynamoDbUtil(unittest.TestCase):
         # Clean client factory cache after each test.
         client_factory.clients = {}
         client_factory.resources = {}
-
-    def raise_client_error():
-        raise ClientError(error_response={'Error': {'Code': 'ResourceNotFoundException', 'Message': 'abc'}},
-                          operation_name='DescribeTable')
 
     def test__execute_boto3_dynamodb_raises_exception(self):
         with self.assertRaises(Exception) as context:
@@ -214,6 +213,14 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         self.assertFalse(result)
 
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           side_effect=RESOURCE_NOT_FOUND_ERROR)
+    def test__check_if_table_deleted__deleted(self, describe_mock):
+        result = _check_if_table_deleted(boto3_session=self.session_mock,
+                                         table_name="my_table")
+
+        self.assertTrue(result)
+
     def test_update_time_to_live(self):
         result = update_time_to_live(boto3_session=self.session_mock,
                                      table_name="my_table",
@@ -244,6 +251,21 @@ class TestDynamoDbUtil(unittest.TestCase):
                                        ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}])
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
+           side_effect=RESOURCE_IN_USE_ERROR)
+    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep')
+    def test_try_remove_replica_client_error(self, sleep_mock, update_mock):
+        try_remove_replica(boto3_session=self.session_mock,
+                           table_name="my_table",
+                           global_table_regions=['region-1'],
+                           delay_sec=10,
+                           retry_count=1)
+
+        update_mock.assert_called_with(boto3_session=self.session_mock,
+                                       table_name="my_table",
+                                       ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}])
+        sleep_mock.assert_called_with(10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={**DESCRIBE_TABLE_RESPONCE})
@@ -264,6 +286,34 @@ class TestDynamoDbUtil(unittest.TestCase):
         describe_mock.assert_called_with(boto3_session=self.session_mock,
                                          table_name="my_table"
                                          )
+
+    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
+           return_value={})
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           return_value={'Table': {
+               "TableStatus": "NOT_ACTIVE_YET",
+               "Replicas": [
+                   {
+                       "RegionName": "my_region",
+                       "ReplicaStatus": "NOT_ACTIVE_YET"
+                   }
+               ]}})
+    def test_add_global_table_and_wait_to_active_timeout(self, describe_mock, update_mock):
+        with self.assertRaises(TimeoutError):
+            add_global_table_and_wait_for_active(boto3_session=self.session_mock,
+                                                 table_name="my_table",
+                                                 global_table_regions=['region-1'],
+                                                 wait_sec=1,
+                                                 delay_sec=1
+                                                 )
+
+            update_mock.assert_called_with(boto3_session=self.session_mock,
+                                           table_name="my_table",
+                                           ReplicaUpdates=[{'Create': {'RegionName': 'region-1'}}]
+                                           )
+            describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                             table_name="my_table"
+                                             )
 
     @patch('resource_manager.src.util.dynamo_db_utils._describe_continuous_backups',
            return_value=DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE)
@@ -298,6 +348,27 @@ class TestDynamoDbUtil(unittest.TestCase):
                                          table_name="my_table"
                                          )
 
+    @patch('resource_manager.src.util.dynamo_db_utils.try_remove_replica',
+           return_value={})
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           return_value={'Table': {'Replicas': [{'Region': 'secondary_region'}]}})
+    def test_remove_global_table_and_wait_to_active_timeout(self, describe_mock, try_remove_mock):
+        with self.assertRaises(TimeoutError):
+            remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
+                                                    table_name="my_table",
+                                                    global_table_regions=['region-1'],
+                                                    wait_sec=1,
+                                                    delay_sec=1,
+                                                    )
+
+        try_remove_mock.assert_called_with(boto3_session=self.session_mock,
+                                           table_name="my_table",
+                                           global_table_regions=['region-1']
+                                           )
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         table_name="my_table"
+                                         )
+
     @patch('resource_manager.src.util.dynamo_db_utils._execute_boto3_dynamodb',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._check_if_table_deleted',
@@ -314,3 +385,35 @@ class TestDynamoDbUtil(unittest.TestCase):
         execute_mock.assert_called()
         check_mock.assert_called_with(boto3_session=self.session_mock,
                                       table_name="my_table")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._execute_boto3_dynamodb',
+           side_effect=RESOURCE_NOT_FOUND_ERROR)
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_table_deleted',
+           return_value=True)
+    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
+           return_value=None)
+    def test_drop_and_wait_dynamo_db_table_if_exists__not_exists(self, time_mock, check_mock, execute_mock):
+        drop_and_wait_dynamo_db_table_if_exists(boto3_session=self.session_mock,
+                                                table_name="my_table",
+                                                wait_sec=1,
+                                                delay_sec=1,
+                                                )
+
+        execute_mock.assert_called()
+        self.assertFalse(check_mock.called)
+
+    @patch('resource_manager.src.util.dynamo_db_utils._execute_boto3_dynamodb',
+           return_value={})
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_table_deleted',
+           return_value=False)
+    def test_drop_and_wait_dynamo_db_table_if_exists__timeout(self, check_mock, execute_mock):
+        with self.assertRaises(TimeoutError):
+            drop_and_wait_dynamo_db_table_if_exists(boto3_session=self.session_mock,
+                                                    table_name="my_table",
+                                                    wait_sec=1,
+                                                    delay_sec=1,
+                                                    )
+
+            execute_mock.assert_called()
+            check_mock.assert_called_with(boto3_session=self.session_mock,
+                                          table_name="my_table")

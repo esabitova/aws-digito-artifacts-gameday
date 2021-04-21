@@ -2,7 +2,7 @@
 import json
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from parameterized import parameterized
 
 import pytest
@@ -225,6 +225,8 @@ UPDATE_TTL_RESPONSE = {
 
 @pytest.mark.unit_test
 class TestDynamoDbUtil(unittest.TestCase):
+    CALLS_COUNTER = 0
+
     def setUp(self):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
@@ -252,9 +254,25 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.dynamodb_client_mock\
             .enable_kinesis_streaming_destination\
             .return_value = ENABLE_KINESIS_DESTINATIONS_RESPONSE
+        TestDynamoDbUtil.CALLS_COUNTER = 0
 
     def tearDown(self):
         self.patcher.stop()
+
+    @staticmethod
+    def get_global_table_all_regions_mock(**kwargs):
+        if TestDynamoDbUtil.CALLS_COUNTER == 0:
+            TestDynamoDbUtil.CALLS_COUNTER += 1
+            return [{
+                "RegionName": "ap-southeast-1",
+                "ReplicaStatus": "ENABLING"
+            }]
+        else:
+            TestDynamoDbUtil.CALLS_COUNTER += 1
+            return [{
+                "RegionName": "ap-southeast-1",
+                "ReplicaStatus": "ACTIVE"
+            }]
 
     @staticmethod
     def describe_contributor_mock(**kwargs):
@@ -296,6 +314,15 @@ class TestDynamoDbUtil(unittest.TestCase):
             wait_replication_status_in_all_regions(events=events, context={})
 
         self.assertTrue(exception_message in context.exception.args)
+
+    def test_wait_replication_status_in_all_regions_raises_timeout(self):
+        events = {
+            "TableName": 'my_table',
+            "ReplicasRegionsToWait": ['ap-southeast-1'],
+            "WaitTimeoutSeconds": 0
+        }
+        with self.assertRaises(TimeoutError):
+            wait_replication_status_in_all_regions(events=events, context={})
 
     @parameterized.expand([
         ({}, "Requires TableName"),
@@ -443,23 +470,19 @@ class TestDynamoDbUtil(unittest.TestCase):
         describe_mock.assert_called_with(table_name='my_table')
 
     @patch('documents.util.scripts.src.dynamo_db_util._get_global_table_all_regions',
-           return_value=[
-               {
-                   "RegionName": "ap-southeast-1",
-                   "ReplicaStatus": "ACTIVE"
-               }
-           ])
-    def test_wait_replication_status_in_all_regions(self, get_mock):
+           new_callable=lambda: TestDynamoDbUtil.get_global_table_all_regions_mock)
+    @patch('documents.util.scripts.src.dynamo_db_util.time.sleep')
+    def test_wait_replication_status_in_all_regions(self, sleep_mock, get_mock):
         events = {
             "TableName": 'my_table',
             "ReplicasRegionsToWait": ['ap-southeast-1'],
-            "WaitTimeoutSeconds": 1
+            "WaitTimeoutSeconds": 2
         }
         result = wait_replication_status_in_all_regions(events=events, context={})
 
         self.assertEqual(result['GlobalTableRegionsActive'], ['ap-southeast-1'])
-
-        get_mock.assert_called_with(table_name='my_table')
+        self.assertEqual(TestDynamoDbUtil.CALLS_COUNTER, 2)
+        sleep_mock.assert_has_calls([call(20)])
 
     def test_wait_replication_status_in_all_regions_no_regions(self):
         events = {

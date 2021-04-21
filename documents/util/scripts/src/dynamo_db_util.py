@@ -254,8 +254,8 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
         time.sleep(20)
         elapsed = end - start
 
-    raise ValueError(f'After {elapsed} not all replicas are Active. '
-                     'Regions to waits: {GLOBAL_TABLE_ACTIVE_STATUSES}')
+    raise TimeoutError(f'After {elapsed} not all replicas are Active. '
+                       'Regions to waits: {GLOBAL_TABLE_ACTIVE_STATUSES}')
 
 
 def update_contributor_insights_settings(events: dict, context: dict) -> dict:

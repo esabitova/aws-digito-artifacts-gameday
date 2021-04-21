@@ -129,8 +129,7 @@ def try_remove_replica(table_name: str,
             if ce.response['Error']['Code'] == 'ResourceInUseException':
                 log.warning(f"The table `{table_name}` current in use (something in progress) '\
                 'skipping this error while remove replica. '\
-                    'The next try later in 20 seconds")
-                return True
+                    f'The next try later in {delay_sec} seconds")
 
         time.sleep(delay_sec)
         i += 1
