@@ -87,7 +87,6 @@ Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Ref DynamoDBTableName
       BillingMode: PROVISIONED
       ProvisionedThroughput:
         ReadCapacityUnits: "5"

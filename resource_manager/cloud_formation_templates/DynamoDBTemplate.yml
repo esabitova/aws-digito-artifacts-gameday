@@ -87,7 +87,6 @@ Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Ref DynamoDBTableName
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: "USER_ID"
