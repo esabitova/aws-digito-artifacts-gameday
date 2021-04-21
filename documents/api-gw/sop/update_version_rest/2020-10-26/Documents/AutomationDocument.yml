@@ -15,7 +15,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Changes Usage Plan limit and period of REST API GW"
+description: "SOP - Update deployment version REST API GW"
 schemaVersion: "0.3"
 assumeRole: "{{AutomationAssumeRole}}"
 parameters:
