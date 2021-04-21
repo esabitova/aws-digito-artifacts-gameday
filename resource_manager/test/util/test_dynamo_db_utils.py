@@ -323,8 +323,16 @@ class TestDynamoDbUtil(unittest.TestCase):
                                                      )
         self.assertEqual(result, 'some time')
         describe_backups_mock.assert_called_with(boto3_session=self.session_mock,
-                                                 table_name="my_table"
-                                                 )
+                                                 table_name="my_table")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_continuous_backups',
+           return_value={})
+    def test_get_earliest_recovery_point_in_time__backups_disabled(self, describe_backups_mock):
+        with self.assertRaises(ValueError):
+            get_earliest_recovery_point_in_time(boto3_session=self.session_mock,
+                                                table_name="my_table")
+        describe_backups_mock.assert_called_with(boto3_session=self.session_mock,
+                                                 table_name="my_table")
 
     @patch('resource_manager.src.util.dynamo_db_utils.try_remove_replica',
            return_value={})

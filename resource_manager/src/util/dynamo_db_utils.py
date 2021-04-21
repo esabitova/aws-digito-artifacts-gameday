@@ -219,7 +219,14 @@ def add_global_table_and_wait_for_active(table_name: str,
 
 
 def get_earliest_recovery_point_in_time(table_name: str, boto3_session: Session) -> datetime.datetime:
+    """
+    Returns the earliest restorable timestamp
+    :param table_name: The table name
+    :param boto3_session: The boto3 session
+    """
     continuous_backups = _describe_continuous_backups(table_name=table_name, boto3_session=boto3_session)
+    if 'ContinuousBackupsDescription' not in continuous_backups:
+        raise ValueError(f'Continuous backups are not enabled for the table {table_name}')
     backups_description = continuous_backups['ContinuousBackupsDescription']
     return backups_description['PointInTimeRecoveryDescription']['EarliestRestorableDateTime']
 
