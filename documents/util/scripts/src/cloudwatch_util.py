@@ -1,8 +1,73 @@
 import logging
 import time
-import boto3
 from datetime import datetime, timedelta
+from typing import List
+
+import boto3
 from botocore.config import Config
+
+PUT_METRIC_ALARM_PARAMS = ['AlarmName', 'AlarmDescription', 'ActionsEnabled', 'OKActions',
+                           'AlarmActions', 'InsufficientDataActions', 'MetricName', 'Namespace', 'Statistic',
+                           'ExtendedStatistic',
+                           'Dimensions', 'Period', 'Unit', 'EvaluationPeriods', 'DatapointsToAlarm',
+                           'Threshold', 'ComparisonOperator', 'TreatMissingData', 'EvaluateLowSampleCountPercentile',
+                           'Metrics', 'Tags', 'ThresholdMetricId']
+
+
+def _execute_boto3_cloudwatch(delegate):
+    cloudwatch_client = boto3.client('cloudwatch')
+    response = delegate(cloudwatch_client)
+    if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        logging.error(response)
+        raise ValueError('Failed to execute request')
+    return response
+
+
+def _describe_metric_alarms(alarm_names: List[str]):
+    return _execute_boto3_cloudwatch(
+        delegate=lambda x: x.describe_alarms(AlarmTypes=['MetricAlarm'], AlarmNames=alarm_names))
+
+
+def _put_metric_alarm(**kwargs):
+    return _execute_boto3_cloudwatch(
+        delegate=lambda x: x.put_metric_alarm(**kwargs))
+
+
+def copy_put_alarms_for_dynamo_db_table(events, context):
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
+    if 'DynamoDBSourceTableAlarmNames' not in events:
+        raise KeyError('Requires DynamoDBSourceTableAlarmNames')
+
+    source_table_name: str = events['SourceTableName']
+    target_table_name: str = events['TargetTableName']
+    alarms_names_to_change: str = events.get('DynamoDBSourceTableAlarmNames', [])
+    source_alarms = _describe_metric_alarms(alarm_names=alarms_names_to_change)
+
+    alarms_copied_count: int = 0
+
+    for alarm in filter(lambda x: x['Namespace'] == 'AWS/DynamoDB', source_alarms.get('MetricAlarms', [])):
+        copy_alarm = False
+        for dimension in alarm['Dimensions']:
+            if dimension['Name'] == 'TableName' and \
+                    dimension['Value'] == source_table_name:
+                copy_alarm = True
+                dimension['Value'] = target_table_name
+
+        if copy_alarm:
+            keys = [*alarm.keys()]
+            for key in keys:
+                if key not in PUT_METRIC_ALARM_PARAMS:
+                    del alarm[key]
+            _put_metric_alarm(**alarm)
+            alarms_copied_count += 1
+            copy_alarm = False
+
+    return {
+        "AlarmsChanged": alarms_copied_count
+    }
 
 
 def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_time_utc):
