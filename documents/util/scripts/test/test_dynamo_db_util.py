@@ -11,7 +11,7 @@ from documents.util.scripts.src.dynamo_db_util import (_execute_boto3_dynamodb,
                                                        _describe_kinesis_destinations,
                                                        _describe_table,
                                                        _get_global_table_all_regions,
-                                                       _parse_recovery_date_time,
+                                                       _parse_date_time,
                                                        get_active_kinesis_destinations,
                                                        get_global_secondary_indexes,
                                                        get_global_table_active_regions,
@@ -404,8 +404,8 @@ class TestDynamoDbUtil(unittest.TestCase):
     def test__parse_recovery_date_time_correct_format_success(self):
         date_time_str = '2021-01-01T15:00:00+0400'
 
-        result = _parse_recovery_date_time(restore_date_time_str=date_time_str,
-                                           format="%Y-%m-%dT%H:%M:%S%z")
+        result = _parse_date_time(date_time_str=date_time_str,
+                                  format="%Y-%m-%dT%H:%M:%S%z")
 
         tz = timezone(timedelta(seconds=14400))
         expected = datetime(2021, 1, 1, 15, 0, 0, tzinfo=tz)
@@ -414,16 +414,16 @@ class TestDynamoDbUtil(unittest.TestCase):
     def test__parse_recovery_date_time_correct_empty_input(self):
         date_time_str = ''
 
-        result = _parse_recovery_date_time(restore_date_time_str=date_time_str,
-                                           format="%Y-%m-%dT%H:%M:%S%z")
+        result = _parse_date_time(date_time_str=date_time_str,
+                                  format="%Y-%m-%dT%H:%M:%S%z")
 
         self.assertIsNone(result)
 
     def test__parse_recovery_date_time_wrong_format(self):
         date_time_str = '02/01/2001T15:00:00+0400'
 
-        result = _parse_recovery_date_time(restore_date_time_str=date_time_str,
-                                           format="%Y-%m-%dT%H:%M:%S%z")
+        result = _parse_date_time(date_time_str=date_time_str,
+                                  format="%Y-%m-%dT%H:%M:%S%z")
 
         self.assertIsNone(result)
 
@@ -619,6 +619,7 @@ class TestDynamoDbUtil(unittest.TestCase):
             }])
         }
 
+        # TODO: check for multiple calls
         self.assertEqual(result, expected_output)
         enable_mock.assert_called_with(table_name='my_table', kds_arn='TestStreamArn1')
 

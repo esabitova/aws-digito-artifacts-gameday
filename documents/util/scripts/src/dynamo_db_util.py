@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime
 import time
-from typing import List, Union
+from typing import Any, Callable, List, Union
 
 import boto3
 
@@ -13,16 +13,28 @@ ENABLED_INSIGHTS_STATUSES = ['ENABLING', 'ENABLED']
 GLOBAL_TABLE_ACTIVE_STATUSES = ['ACTIVE']
 
 
-def _parse_recovery_date_time(restore_date_time_str: str, format: str) -> Union[datetime, None]:
-    if restore_date_time_str.strip():
+def _parse_date_time(date_time_str: str, format: str) -> Union[datetime, None]:
+    """
+    Parses the given string to date time the given format. In case of failure returns `None`
+    :param date_time_str: The date time string
+    :param format: The date time format
+    :return: The response of AWS API
+    """
+    if date_time_str.strip():
         try:
-            return datetime.strptime(restore_date_time_str, format)
+            return datetime.strptime(date_time_str, format)
         except ValueError as ve:
             logger.error(ve)
     return None
 
 
-def _execute_boto3_dynamodb(delegate) -> dict:
+def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
+    """
+    Executes the given delegate against `dynamodb` client.
+    Validates is the response is successfull (return code `200`)
+    :param delegate: The lambda function
+    :return: The response of AWS API
+    """
     dynamo_db_client = boto3.client('dynamodb')
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -32,27 +44,56 @@ def _execute_boto3_dynamodb(delegate) -> dict:
 
 
 def _describe_kinesis_destinations(table_name: str) -> dict:
+    """
+    Describes KDS destinations
+    :param table_name: The table name
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
 
 
 def _list_tags(resource_arn: str) -> dict:
+    """
+    List tags
+    :param resource_arn: The ARN of the dynamodb table
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.list_tags_of_resource(ResourceArn=resource_arn))
 
 
-def _update_tags(resource_arn: str, tags: List) -> dict:
+def _update_tags(resource_arn: str, tags: List[dict]) -> dict:
+    """
+    Updates tags
+    :param table_name: The table name
+    :param tags: The list of the tags
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.tag_resource(ResourceArn=resource_arn, Tags=tags))
 
 
 def _enable_kinesis_destinations(table_name: str, kds_arn: str) -> dict:
+    """
+    Enabled KDS destination for the given table
+    :param table_name: The table name
+    :param kds_arn: The KDS ARN
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
                                                                   StreamArn=kds_arn))
 
 
 def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str) -> dict:
+    """
+    Updates TTL for the given table
+    :param table_name: The table name
+    :param is_enabled: True if TTL should be enabled, False otherwise.
+    :param attribute_name: The attribute name that will be used as TTL
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_time_to_live(TableName=table_name,
                                                  TimeToLiveSpecification={
@@ -62,16 +103,33 @@ def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str)
 
 
 def _update_table(table_name: str, **kwargs) -> dict:
+    """
+    Updates table
+    :param table_name: The table name
+    :param kwargs: The arguments of update_table of boto3 dynamodb client
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
 
 def _describe_table(table_name: str) -> dict:
+    """
+    Describes table
+    :param table_name: The table name
+    :return: The response of AWS API
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_table(TableName=table_name))
 
 
 def _describe_contributor_insights(table_name: str, index_name: str = None) -> dict:
+    """
+    Describes Contributor Insights settings for a table or an index
+    :param table_name: The table name
+    :param index_name: The index name
+    :return: The response of AWS API
+    """
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.describe_contributor_insights(TableName=table_name, IndexName=index_name))
@@ -81,6 +139,13 @@ def _describe_contributor_insights(table_name: str, index_name: str = None) -> d
 
 
 def _update_contributor_insights(table_name: str, status: str, index_name: str = None) -> dict:
+    """
+    Update Contributor Insights settings for a table or an index
+    :param table_name: The table name
+    :param index_name: The index name
+    :param status: The status
+    :return: The response of AWS API
+    """
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.update_contributor_insights(TableName=table_name,
@@ -93,12 +158,24 @@ def _update_contributor_insights(table_name: str, status: str, index_name: str =
 
 
 def _get_global_table_all_regions(table_name: str) -> List[dict]:
+    """
+    Describes the table and return '$.Table.Replicas' element
+    :param table_name: The table name
+    :return: The list of replicas
+    """
     description = _describe_table(table_name=table_name)
     replicas = description['Table'].get('Replicas', [])
     return replicas
 
 
 def get_global_table_active_regions(events: dict, context: dict) -> dict:
+    """
+    Returns list of replicas of the given table
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `GlobalTableRegions` - The list of regions where replicas should be established
+    :return: The dictionary that contains list of regions where replicas set up where status is Active
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
 
@@ -113,6 +190,13 @@ def get_global_table_active_regions(events: dict, context: dict) -> dict:
 
 
 def set_up_replication(events: dict, context: dict) -> dict:
+    """
+    Sets up replicas in the given regions
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `GlobalTableRegions` - The list of regions where replicas should be established
+    :return: The dictionary that contains list of regions where replicas set up
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'GlobalTableRegions' not in events:
@@ -130,6 +214,14 @@ def set_up_replication(events: dict, context: dict) -> dict:
 
 
 def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
+    """
+    Updates contributor insights settings for the given table and the list of indexes
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `ReplicasRegionsToWait` - The list of regions where replicas should be active
+    * `WaitTimeoutSeconds` - The number of seconds to wait Active status
+    :return: The dictionary that contains list of regions where status is Active
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'ReplicasRegionsToWait' not in events:
@@ -167,6 +259,16 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
 
 
 def update_contributor_insights_settings(events: dict, context: dict) -> dict:
+    """
+    Updates contributor insights settings for the given table and the list of indexes
+    Returns the current state of contributor insights settings after the update
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `TableContributorInsightsStatus` - The status of the given table
+    * `IndexesContributorInsightsStatus` - The status of the indexes
+    :return: The dictionary that contains contributor insights status for the table and also
+    a list of `IndexName`-`Status` map
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'TableContributorInsightsStatus' not in events:
@@ -192,6 +294,14 @@ def update_contributor_insights_settings(events: dict, context: dict) -> dict:
 
 
 def get_contributor_insights_settings(events: dict, context: dict) -> dict:
+    """
+    Returns contributor insights settings for the given table and the list of indexes
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `Indexes` - The list of indexes
+    :return: The dictionary that contains contributor insights status for the table and also
+    a list of `IndexName`-`Status` map
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Indexes' not in events:
@@ -215,6 +325,12 @@ def get_contributor_insights_settings(events: dict, context: dict) -> dict:
 
 
 def get_global_secondary_indexes(events: dict, context: dict) -> dict:
+    """
+    Returns the list of global indexes
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    :return: The dictionary that contains a list of index names
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
 
@@ -228,6 +344,15 @@ def get_global_secondary_indexes(events: dict, context: dict) -> dict:
 
 
 def update_resource_tags(events: dict, context: dict) -> dict:
+    """
+    Returns the list of resource tags of a Dynamo DB table
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `Region` - The region to concatenate ARN
+    * `Account` - The account to concatenate ARN
+    * `Tags` - The dump of JSON-like list of tags
+    :return: The dictionary that contains a dump of JSON-like list of tags of the updated table
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Region' not in events:
@@ -253,6 +378,14 @@ def update_resource_tags(events: dict, context: dict) -> dict:
 
 
 def list_resource_tags(events: dict, context: dict) -> dict:
+    """
+    Returns the list of resource tags of a Dynamo DB table
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `Region` - The region to concatenate ARN
+    * `Account` - The account to concatenate ARN
+    :return: The dictionary that contains a dump of JSON-like list of tags
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Region' not in events:
@@ -272,6 +405,13 @@ def list_resource_tags(events: dict, context: dict) -> dict:
 
 
 def update_time_to_live(events: dict, context: dict) -> dict:
+    """
+    Updates TTL for the given table. Enables TTL is the provided `Status` equals to `ENABLED`
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `Status` - The status of TTL
+    :return: The dictionary that contains repose of TTL update AWS API
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Status' not in events:
@@ -296,6 +436,13 @@ def update_time_to_live(events: dict, context: dict) -> dict:
 
 
 def add_kinesis_destinations(events: dict, context: dict) -> dict:
+    """
+    Adds Kinesis Data Stream destinations to the given table settings
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `Destinations` - The JSON dump of Kinesis Destinations with ARNs of KDS and Statuses
+    :return: The dictionary that contains 'KinesisDestinations' with a JSON dump of ARNs and statuses
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Destinations' not in events:
@@ -311,6 +458,12 @@ def add_kinesis_destinations(events: dict, context: dict) -> dict:
 
 
 def get_active_kinesis_destinations(events: dict, context: dict) -> dict:
+    """
+    Returns information about Kinesis Data Stream destinations of the given Dynamo DB table
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    :return: The dictionary that contains 'KinesisDestinations' with a JSON dump of ARNs and statuses
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     ACTIVE_STATUSES = ['ACTIVE', 'ENABLING']
@@ -325,6 +478,14 @@ def get_active_kinesis_destinations(events: dict, context: dict) -> dict:
 
 
 def update_table_stream(events: dict, context: dict):
+    """
+    if `StreamEnabled` is True, enabled streaming for the given table according to the given `StreamViewType`
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    * `StreamEnabled` - The flag that says if Streaming should be enabled
+    * `StreamViewType` - The stream view type
+    :return: The dictionary that contains 'StreamViewType' and `StreamEnabled` values of the target table
+    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'StreamEnabled' not in events:
@@ -352,7 +513,7 @@ def update_table_stream(events: dict, context: dict):
 
 def parse_recovery_date_time(events: dict, context: dict) -> dict:
     """
-    Tries to parses the given `RecoveryPointDateTime` and returns it back if success
+    Tries to parse the given `RecoveryPointDateTime` and returns it back if success
     :return: The dictionary that indicates if latest availabe recovery point should be used
     """
     DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
@@ -361,8 +522,8 @@ def parse_recovery_date_time(events: dict, context: dict) -> dict:
         raise KeyError('Requires RecoveryPointDateTime')
 
     restore_date_time_str = events['RecoveryPointDateTime']
-    restore_date_time = _parse_recovery_date_time(restore_date_time_str=restore_date_time_str,
-                                                  format=DATETIME_FORMAT)
+    restore_date_time = _parse_date_time(date_time_str=restore_date_time_str,
+                                         format=DATETIME_FORMAT)
     if restore_date_time:
         return {
             'RecoveryPointDateTime': datetime.strftime(restore_date_time, DATETIME_FORMAT),
