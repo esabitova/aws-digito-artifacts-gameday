@@ -1,4 +1,5 @@
 import logging
+
 import boto3
 from botocore.config import Config
 
@@ -110,3 +111,106 @@ def set_limit_and_period(events, context):
 
     return {"Limit": current_usage_plan_limit,
             "Period": current_usage_plan_period}
+
+
+def get_deployment(gateway_id: str, deployment_id: str) -> dict:
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    client = boto3.client('apigateway', config=config)
+    deployment = client.get_deployment(restApiId=gateway_id, deploymentId=deployment_id)
+    if not deployment['ResponseMetadata']['HTTPStatusCode'] == 200:
+        log.error(f'Failed to perform get_deployment with restApiId {gateway_id} and \
+        deploymentId {deployment_id},response is {deployment}')
+        raise ValueError('Failed to perform get_deployment')
+    return deployment
+
+
+def get_deployments(gateway_id: str, limit: int = 25, position: str = '') -> dict:
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    client = boto3.client('apigateway', config=config)
+    if not position:
+        deployments = client.get_deployments(restApiId=gateway_id, limit=limit)
+    else:
+        deployments = client.get_deployments(restApiId=gateway_id, limit=limit, position=position)
+    if not deployments['ResponseMetadata']['HTTPStatusCode'] == 200:
+        log.error(f'Failed to perform get_deployments with restApiId: {gateway_id},response is: {deployments}')
+        raise ValueError('Failed to perform get_deployment')
+    return deployments
+
+
+def get_stage(gateway_id: str, stage_name: str) -> dict:
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    client = boto3.client('apigateway', config=config)
+    stage = client.get_stage(restApiId=gateway_id, stageName=stage_name)
+    if not stage['ResponseMetadata']['HTTPStatusCode'] == 200:
+        log.error(f'Failed to perform get_deployment with restApiId {gateway_id} and \
+        stageName {stage_name},response is {stage}')
+        raise ValueError('Failed to perform get_stage')
+    return stage
+
+
+def find_previous_deployment_if_not_provided(events: dict, context: dict) -> dict:
+    """
+    Find previous deployment if not provided
+    """
+    if 'RestApiGwId' not in events or 'RestStageName' not in events:
+        raise KeyError('Requires RestApiGwId and RestStageName in events')
+
+    gateway_id: str = events['RestApiGwId']
+    stage_name: str = events['RestStageName']
+    provided_deployment_id: str = events.get('RestDeploymentId', '')
+    output = {}
+
+    current_deployment_id = get_stage(gateway_id, stage_name)['deploymentId']
+    output['OriginalDeploymentId'] = current_deployment_id
+
+    if provided_deployment_id and provided_deployment_id == current_deployment_id:
+        raise ValueError('Provided deployment ID and current deployment ID should not be the same')
+
+    if provided_deployment_id:
+        output['DeploymentIdToApply'] = get_deployment(gateway_id, provided_deployment_id)['id']
+        return output
+
+    current_deployment_creation_date = get_deployment(gateway_id, current_deployment_id)['createdDate']
+    deployment_items = get_deployments(gateway_id, 500)['items']
+    if len(deployment_items) == 1 and deployment_items[0]['id'] == current_deployment_id:
+        raise ValueError(f'There are no deployments found to apply in RestApiGateway ID: {gateway_id},\
+        except current deployment ID: {current_deployment_id}')
+
+    deployment_items.sort(key=lambda x: x['createdDate'], reverse=True)
+    for item in deployment_items:
+        if item['createdDate'] < current_deployment_creation_date and item['id'] != current_deployment_id:
+            output['DeploymentIdToApply'] = item['id']
+            return output
+
+    raise ValueError(f'Could not find any existing deployment which has createdDate less than current deployment ID: \
+      {current_deployment_id}, with createdDate: {current_deployment_creation_date}')
+
+
+def update_deployment(events: dict, context: dict) -> dict:
+    """
+    Apply RestDeploymentId to provided RestStageName
+    """
+    if 'RestApiGwId' not in events or 'RestStageName' not in events or 'RestDeploymentId' not in events:
+        raise KeyError('Requires RestApiGwId, RestStageName and DeploymentId in events')
+
+    output = {}
+    gateway_id: str = events['RestApiGwId']
+    stage_name: str = events['RestStageName']
+    deployment_id: str = events['RestDeploymentId']
+
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    client = boto3.client('apigateway', config=config)
+    response = client.update_stage(
+        restApiId=gateway_id,
+        stageName=stage_name,
+        patchOperations=[
+            {
+                'op': 'replace',
+                'path': '/deploymentId',
+                'value': deployment_id,
+            },
+        ]
+    )
+    output['DeploymentIdNewValue'] = response['deploymentId']
+
+    return output

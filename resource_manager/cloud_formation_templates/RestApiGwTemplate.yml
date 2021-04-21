@@ -31,6 +31,9 @@ Outputs:
   RestApiGwDeploymentId:
     Description: The deployment ID of the REST API Gateway
     Value: !Ref ApplicationsApiDeployment
+  RestApiGwDeploymentV2Id:
+    Description: The deployment ID of the REST API Gateway
+    Value: !Ref ApplicationsApiDeploymentV2
   SyntheticAlarmName:
     Description: REST API GW Alarm based on HTTP4xx metric
     Value: !Ref Api4xxErrors
@@ -369,6 +372,12 @@ Resources:
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref ApplicationsApi
+
+  ApplicationsApiDeploymentV2:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApplicationsApi
+
 
   ApiAvailability:
     Type: 'AWS::CloudWatch::Alarm'

@@ -1,0 +1,14 @@
+{
+  "displayName": "SOP - Update Version Rest",
+  "description": "The script accepts given deployment id and applies it on the given stage",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RestApiGwUpdateVersionRest_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "The script accepts given deployment id and applies it on the given stage",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "api-gw:sop:update_version_rest:2020-10-26"
+}
