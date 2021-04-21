@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM DigitoQueueStateFailureDlqStandard
+Description: Role for SSM LambdaChangeProvisionedConcurrency
 Outputs:
-  DigitoQueueStateFailureDlqStandardAssumeRole:
-    Description: DigitoQueueStateFailureDlqStandard Automation Assume Role ARN
-    Value: !GetAtt SqsDlqMessageStandardQueueAlarmAssumeRole.Arn
+  DigitoLambdaChangeProvisionedConcurrencyAssumeRoleArn:
+    Description: DigitoLambdaChangeProvisionedConcurrency Automation Assume Role ARN
+    Value: !GetAtt DigitoLambdaChangeProvisionedConcurrencyAssumeRole.Arn
 Resources:
-  SqsDlqMessageStandardQueueAlarmAssumeRole:
+  DigitoLambdaChangeProvisionedConcurrencyAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,30 +34,17 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  SqsDlqMessageStandardQueueAlarmAssumePolicy:
+  DigitoLambdaChangeProvisionedConcurrencyAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: SqsDlqMessageStandardQueueAlarmAssumePolicy
+      PolicyName: DigitoLambdaChangeProvisionedConcurrencyAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: "*"
             Action:
-              - cloudwatch:DescribeAlarms
-              - sqs:GetQueueAttributes
-              - sqs:SetQueueAttributes
-              - sqs:ReceiveMessage
-              - sqs:SendMessage
-              - sqs:DeleteMessage
-              - sqs:GetQueueUrl
-              - ssm:StartAutomationExecution
-              - ssm:GetAutomationExecution
-              - ssm:GetParameters
-              - iam:PassRole
-              - logs:CreateLogStream
-              - logs:PutLogEvents
-              - logs:DescribeLogGroups
-              - logs:DescribeLogStreams
+              - lambda:PutProvisionedConcurrencyConfig
+              - lambda:GetProvisionedConcurrencyConfig
       Roles:
-        - Ref: SqsDlqMessageStandardQueueAlarmAssumeRole
+        - Ref: DigitoLambdaChangeProvisionedConcurrencyAssumeRole

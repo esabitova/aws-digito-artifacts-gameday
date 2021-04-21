@@ -1,9 +1,9 @@
 import unittest
 import pytest
 import resource_manager.src.util.boto3_client_factory as client_factory
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 from resource_manager.src.ssm_document import SsmDocument
-
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 SSM_EXECUTION_ID = '123456'
 SSM_DOCUMENT_NAME = 'document-name'
@@ -43,7 +43,13 @@ class TestSsmDocument(unittest.TestCase):
         self.assertRaises(Exception, self.ssm_document.execute, 'test_document_name',
                           {'test_param_1': ['test_value_1']})
 
-    def test_wait_for_execution_completion(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_execution_completion(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         execution_1 = {'AutomationExecution':
                        {'StepExecutions': [{'StepStatus': 'InProgress',
                                            'StepName': 'test_step',
@@ -76,7 +82,13 @@ class TestSsmDocument(unittest.TestCase):
         self.mock_ssm.start_automation_execution.assert_called_once()
 
     # Test wait_for_execution_step_status_is_terminal_or_waiting
-    def test_wait_for_execution_step_status_is_terminal_or_waiting_success(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_execution_step_status_is_terminal_or_waiting_success(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         execution_1 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
         execution_2 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
         execution_3 = prepare_execution_description(SSM_STEP_NAME, 'Success')
@@ -88,7 +100,13 @@ class TestSsmDocument(unittest.TestCase):
         )
         self.assertEqual("Success", status)
 
-    def test_wait_for_execution_step_status_is_terminal_or_waiting_waiting(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_execution_step_status_is_terminal_or_waiting_waiting(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         execution_1 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
         execution_2 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
         execution_3 = prepare_execution_description(SSM_STEP_NAME, 'Waiting')
@@ -100,7 +118,13 @@ class TestSsmDocument(unittest.TestCase):
         )
         self.assertEqual("Waiting", status)
 
-    def test_wait_for_execution_step_status_is_terminal_or_waiting_timeout(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_execution_step_status_is_terminal_or_waiting_timeout(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_ssm.get_automation_execution.return_value = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
 
         status = self.ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
@@ -108,7 +132,13 @@ class TestSsmDocument(unittest.TestCase):
         )
         self.assertEqual("WaitTimedOut", status)
 
-    def test_wait_for_execution_step_status_is_in_progress(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_execution_step_status_is_in_progress(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         execution_1 = prepare_execution_description(SSM_STEP_NAME, 'Pending')
         execution_2 = prepare_execution_description(SSM_STEP_NAME, 'Pending')
         execution_3 = prepare_execution_description(SSM_STEP_NAME, 'InProgress')
@@ -120,7 +150,13 @@ class TestSsmDocument(unittest.TestCase):
         )
         self.assertEqual("InProgress", status)
 
-    def test_wait_for_execution_step_status_is_in_progress_timeout(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_execution_step_status_is_in_progress_timeout(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_ssm.get_automation_execution.return_value = prepare_execution_description(SSM_STEP_NAME, 'Pending')
 
         status = self.ssm_document.wait_for_execution_step_status_is_in_progress(

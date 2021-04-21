@@ -8,6 +8,7 @@ from documents.util.scripts.src.lambda_util import get_concurrent_execution_quot
 CONCURRENT_EXECUTION_QUOTA_CODE = 'L-B99A9384'
 LAMBDA_NAME = 'LambdaTemplate-0-LambdaFunction-5UDF2PBK1R'
 LAMBDA_ARN = 'arn:aws:lambda:us-east-1:435978235099:function:LambdaTemplate-0-LambdaFunction-5UDF2PBK1R'
+LAMBDA_VERSION = 1
 
 
 def get_concurrent_execution_quota_mock_data(limit):

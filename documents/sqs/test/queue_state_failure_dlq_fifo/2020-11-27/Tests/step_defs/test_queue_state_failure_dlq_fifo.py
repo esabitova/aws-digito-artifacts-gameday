@@ -7,27 +7,27 @@ from pytest_bdd import (
 
 @scenario('../features/queue_state_failure_dlq_fifo.feature',
           'Create AWS resources using CloudFormation template and execute SSM automation document to test behavior of '
-          'FIFO queue after receiving a message maximum allowed times and purge DLQ afterwards')
+          'FIFO queue after receiving a message maximum allowed times and move messages from DLQ afterwards')
 def test_queue_state_failure_dlq_fifo():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
-@scenario('../features/queue_state_failure_dlq_fifo_no_purge.feature',
+@scenario('../features/queue_state_failure_dlq_fifo_no_move.feature',
           'Create AWS resources using CloudFormation template and execute SSM automation document to test behavior of '
           'FIFO queue after receiving a message maximum allowed times')
-def test_queue_state_failure_dlq_fifo_no_purge():
+def test_queue_state_failure_dlq_fifo_no_move():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
 @scenario('../features/queue_state_failure_dlq_fifo_rollback_previous.feature',
           'Create AWS resources using CloudFormation template and execute SSM automation document to test '
-          'rollback of a previous execution and purge DLQ')
+          'rollback of a previous execution and move messages from DLQ')
 def test_queue_state_failure_dlq_fifo_rollback_previous():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
-@scenario('../features/queue_state_failure_dlq_fifo_rollback_previous_no_purge.feature',
+@scenario('../features/queue_state_failure_dlq_fifo_rollback_previous_no_move.feature',
           'Create AWS resources using CloudFormation template and execute SSM automation document to test '
           'rollback of a previous execution')
-def test_queue_state_failure_dlq_fifo_rollback_previous_no_purge():
+def test_queue_state_failure_dlq_fifo_rollback_previous_no_move():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""

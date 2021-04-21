@@ -22,13 +22,13 @@ parameters:
   Dryrun:
     type: Boolean
     default: true
-    description: Dryrun indicates a testing run, changes will be rolled back.
+    description: (Optional) Dryrun indicates a testing run, changes will be rolled back.
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
   AutoScalingGroupName:
     type: String
-    description: The Name of the ASG to scaleOut
+    description: (Required) The Name of the ASG to scaleOut
 outputs:
   - OutputRecoveryTime.RecoveryTime
 mainSteps:

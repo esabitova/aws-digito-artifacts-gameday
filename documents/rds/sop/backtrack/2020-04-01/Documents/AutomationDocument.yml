@@ -25,10 +25,10 @@ parameters:
          \ the actions on your behalf"
   DbClusterIdentifier:
     type: String
-    description: The identifier for the db cluster
+    description: (Required) The identifier for the db cluster
   BacktrackTo:
     type: String
-    description: An ISO 8601 date and time
+    description: (Required) An ISO 8601 date and time
 mainSteps:
   - name: BacktrackDb
     action: 'aws:executeAwsApi'

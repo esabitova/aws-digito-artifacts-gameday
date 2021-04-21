@@ -31,8 +31,7 @@ parameters:
     description: (Required) Alarm which should be green after test.
   AutomationAssumeRole:
     type: String
-    description: (Optional) The ARN of the role that allows Automation to perform the actions on your behalf.
-    default: ''
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
   - name: WaitForAvailableStateBeforeFailover
     action: 'aws:waitForAwsResourceProperty'

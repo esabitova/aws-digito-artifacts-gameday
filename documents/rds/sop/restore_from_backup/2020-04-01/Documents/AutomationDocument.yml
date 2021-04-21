@@ -22,16 +22,17 @@ parameters:
   Dryrun:
     type: Boolean
     default: false
+    description: (Optional) Dryrun indicates a testing run, changes will be rolled back.
   AutomationAssumeRole:
     type: String
     description: "(Required) The ARN of the role that allows Automation to perform\
          \ the actions on your behalf"
   DbInstanceIdentifier:
     type: String
-    description: The identifier of the DB instance to be replaced, or base name if dry run
+    description: (Required) The identifier of the DB instance to be replaced, or base name if dry run
   SnapshotId:
     type: String
-    description: The identifier of the snapshot to restore
+    description: (Optional) The identifier of the snapshot to restore
     default: '$LATEST'
 outputs:
   - OutputRecoveryTime.RecoveryTime

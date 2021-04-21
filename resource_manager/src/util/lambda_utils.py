@@ -71,3 +71,34 @@ def delete_function_concurrency(lambda_arn: str, session: Session):
     lambda_client.delete_function_concurrency(
         FunctionName=lambda_arn
     )
+
+
+def get_function_provisioned_concurrency(lambda_arn: str, qualifier: str, session: Session):
+    """
+    Calls AWS API to get the value of provisioned concurrency parameter of given Lambda
+    :param lambda_arn: The ARN of Lambda Function
+    :param qualifier: version number or alias name
+    :param session The boto3 session
+    :return: The metadata of response
+    """
+    lambda_client = client('lambda', session)
+    response = lambda_client.get_provisioned_concurrency_config(
+        FunctionName=lambda_arn,
+        Qualifier=qualifier
+    )
+    return response.get('AllocatedProvisionedConcurrentExecutions')
+
+
+def delete_function_provisioned_concurrency_config(lambda_arn: str, qualifier: str, session: Session):
+    """
+    Calls AWS API to delete provisioned concurrency parameter of given Lambda
+    :param lambda_arn: The ARN of Lambda Function
+    :param qualifier: version number or alias name
+    :param session The boto3 session
+    :return: The metadata of response
+    """
+    lambda_client = client('lambda', session)
+    lambda_client.delete_provisioned_concurrency_config(
+        FunctionName=lambda_arn,
+        Qualifier=qualifier
+    )
