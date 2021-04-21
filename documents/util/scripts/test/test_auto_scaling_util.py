@@ -58,30 +58,21 @@ class TestAutoScalingUtil(unittest.TestCase):
         self.patcher.stop()
 
     def test__execute_boto3_dynamodb_raises_exception(self):
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValueError):
             _execute_boto3_auto_scaling(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-        self.assertTrue('Failed to execute request' in context.exception.args)
-
-    @parameterized.expand([
-        ({}, "Requires TableName")
-
-    ])
-    def test_get_scaling_targets_settings_raises_exception(self, events, exception_message):
-        with self.assertRaises(KeyError) as context:
+    @parameterized.expand([{'events': {}}])
+    def test_get_scaling_targets_settings_raises_exception(self, events):
+        with self.assertRaises(KeyError):
             get_scaling_targets(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires ScalingTargets"),
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
     ])
-    def test_register_scaling_targets_raises_exception(self, events, exception_message):
-        with self.assertRaises(KeyError) as context:
+    def test_register_scaling_targets_raises_exception(self, events):
+        with self.assertRaises(KeyError):
             register_scaling_targets(events=events, context={})
-
-        self.assertTrue(exception_message in context.exception.args)
 
     def test__describe_scalable_targets(self):
 

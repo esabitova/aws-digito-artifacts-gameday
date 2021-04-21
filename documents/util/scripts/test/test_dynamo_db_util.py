@@ -231,10 +231,8 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
         self.dynamodb_client_mock = MagicMock()
-        self.application_autoscalingclient_mock = MagicMock()
         self.side_effect_map = {
-            'dynamodb': self.dynamodb_client_mock,
-            'application-autoscaling': self.application_autoscalingclient_mock
+            'dynamodb': self.dynamodb_client_mock
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
@@ -282,38 +280,30 @@ class TestDynamoDbUtil(unittest.TestCase):
             return DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
 
     def test__execute_boto3_dynamodb_raises_exception(self):
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(Exception):
             _execute_boto3_dynamodb(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-        self.assertTrue('Failed to execute request' in context.exception.args)
-
-    @parameterized.expand([({}, "Requires TableName")])
-    def test_get_global_table_active_regions_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    @parameterized.expand([{'events': {}}])
+    def test_get_global_table_active_regions_raises_exception(self, events):
+        with self.assertRaises(Exception):
             get_global_table_active_regions(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires GlobalTableRegions")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}}
     ])
-    def test_set_up_replication_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_set_up_replication_raises_exception(self, events):
+        with self.assertRaises(Exception):
             set_up_replication(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires ReplicasRegionsToWait"),
-        ({'TableName': 'my_table', 'ReplicasRegionsToWait': 'somevalue'}, "Requires WaitTimeoutSeconds")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
+        {'events': {'TableName': 'my_table', 'ReplicasRegionsToWait': 'somevalue'}}
     ])
-    def test_wait_replication_status_in_all_regions_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_wait_replication_status_in_all_regions_raises_exception(self, events):
+        with self.assertRaises(KeyError):
             wait_replication_status_in_all_regions(events=events, context={})
-
-        self.assertTrue(exception_message in context.exception.args)
 
     def test_wait_replication_status_in_all_regions_raises_timeout(self):
         events = {
@@ -325,108 +315,85 @@ class TestDynamoDbUtil(unittest.TestCase):
             wait_replication_status_in_all_regions(events=events, context={})
 
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires TableContributorInsightsStatus"),
-        ({'TableName': 'my_table', 'TableContributorInsightsStatus': 'somevalue'},
-         "Requires IndexesContributorInsightsStatus")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
+        {'events': {'TableName': 'my_table', 'TableContributorInsightsStatus': 'somevalue'}}
     ])
-    def test_update_contributor_insights_settings_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_update_contributor_insights_settings_raises_exception(self, events):
+        with self.assertRaises(Exception):
             update_contributor_insights_settings(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires Indexes")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}}
     ])
-    def test_get_contributor_insights_settings_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_get_contributor_insights_settings_raises_exception(self, events):
+        with self.assertRaises(Exception):
             get_contributor_insights_settings(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName")
+        {'events': {}}
     ])
-    def test_get_global_secondary_indexes_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_get_global_secondary_indexes_raises_exception(self, events):
+        with self.assertRaises(Exception):
             get_global_secondary_indexes(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires Region"),
-        ({'TableName': 'my_table', 'Region': 'Region'}, "Requires Account"),
-        ({'TableName': 'my_table', 'Region': 'Region', 'Account': 'Account'}, "Requires Tags")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
+        {'events': {'TableName': 'my_table', 'Region': 'Region'}},
+        {'events': {'TableName': 'my_table', 'Region': 'Region', 'Account': 'Account'}}
     ])
-    def test_update_resource_tags_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_update_resource_tags_raises_exception(self, events):
+        with self.assertRaises(Exception):
             update_resource_tags(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires Region"),
-        ({'TableName': 'my_table', 'Region': 'Region'}, "Requires Account")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
+        {'events': {'TableName': 'my_table', 'Region': 'Region'}}
     ])
-    def test_list_resource_tags_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_list_resource_tags_raises_exception(self, events):
+        with self.assertRaises(Exception):
             list_resource_tags(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires Status"),
-        ({'TableName': 'my_table', 'Status': 'ENABLED'}, "Requires AttributeName when status is ENABLED")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
+        {'events': {'TableName': 'my_table', 'Status': 'ENABLED'}}
     ])
-    def test_update_time_to_live_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_update_time_to_live_raises_exception(self, events):
+        with self.assertRaises(Exception):
             update_time_to_live(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires Destinations")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}}
     ])
-    def test_add_kinesis_destinations_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_add_kinesis_destinations_raises_exception(self, events):
+        with self.assertRaises(Exception):
             add_kinesis_destinations(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName")
+        {'events': {}}
     ])
-    def test_get_active_kinesis_destinations_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_get_active_kinesis_destinations_raises_exception(self, events):
+        with self.assertRaises(Exception):
             get_active_kinesis_destinations(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
     @parameterized.expand([
-        ({}, "Requires TableName"),
-        ({'TableName': 'my_table'}, "Requires StreamEnabled"),
-        ({'TableName': 'my_table', 'StreamEnabled': 'StreamEnabled'}, "Requires StreamViewType")
+        {'events': {}},
+        {'events': {'TableName': 'my_table'}},
+        {'events': {'TableName': 'my_table', 'StreamEnabled': 'StreamEnabled'}}
     ])
-    def test_update_table_stream_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    def test_update_table_stream_raises_exception(self, events):
+        with self.assertRaises(Exception):
             update_table_stream(events=events, context={})
 
-        self.assertTrue(exception_message in context.exception.args)
-
-    @parameterized.expand([
-        ({}, "Requires RecoveryPointDateTime")
-    ])
-    def test_parse_recovery_date_time_raises_exception(self, events, exception_message):
-        with self.assertRaises(Exception) as context:
+    @parameterized.expand([{'events': {}}])
+    def test_parse_recovery_date_time_raises_exception(self, events):
+        with self.assertRaises(Exception):
             parse_recovery_date_time(events=events, context={})
-
-        self.assertTrue(exception_message in context.exception.args)
 
     def test__parse_recovery_date_time_correct_format_success(self):
         date_time_str = '2021-01-01T15:00:00+0400'
