@@ -23,12 +23,10 @@ def cache_table_property(resource_manager, ssm_test_cache, boto3_session, json_p
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, target_value)
 
 
-DROP_TABLE_DESCRIPTION = "Drop Dynamo DB table with the name {table_name_ref} and wait " \
-    "for {wait_sec} seconds with interval {delay_sec} seconds"
-
-
-@given(parsers.parse(DROP_TABLE_DESCRIPTION))
-@then(parsers.parse(DROP_TABLE_DESCRIPTION))
+@given(parsers.parse("drop Dynamo DB table with the name {table_name_ref} and wait "
+                     "for {wait_sec} seconds with interval {delay_sec} seconds"))
+@then(parsers.parse("drop Dynamo DB table with the name {table_name_ref} and wait "
+                    "for {wait_sec} seconds with interval {delay_sec} seconds"))
 def drop_and_wait_dynamo_db_table(ssm_test_cache,
                                   resource_manager,
                                   boto3_session,
@@ -43,7 +41,7 @@ def drop_and_wait_dynamo_db_table(ssm_test_cache,
                                             delay_sec=int(delay_sec))
 
 
-@given(parsers.parse("valid recovery point in time for {table_name_ref} and cache it as {field_name}"))
+@given(parsers.parse("find a valid recovery point in time for {table_name_ref} and cache it as {field_name}"))
 def find_valid_recovery_point_in_time(ssm_test_cache,
                                       resource_manager,
                                       boto3_session,
@@ -57,7 +55,7 @@ def find_valid_recovery_point_in_time(ssm_test_cache,
     ssm_test_cache[field_name] = str(valid_recovery_point.strftime("%Y-%m-%dT%H:%M:%S%z"))
 
 
-@given(parsers.parse("enabled kinesis stream {kds_arn_ref} on dynamodb table {table_name_ref}"))
+@given(parsers.parse("enable kinesis stream {kds_arn_ref} on dynamodb table {table_name_ref}"))
 def enable_kinesis_streaming_destination(ssm_test_cache,
                                          resource_manager,
                                          boto3_session,
@@ -69,7 +67,7 @@ def enable_kinesis_streaming_destination(ssm_test_cache,
     add_kinesis_destinations(table_name=table_name, kds_arn=kds_arn, boto3_session=boto3_session)
 
 
-@given(parsers.parse("enabled ttl on dynamodb table {table_name_ref} with attribute name {attribute_name_ref}"))
+@given(parsers.parse("enable ttl on dynamodb table {table_name_ref} with attribute name {attribute_name_ref}"))
 def enable_tll(ssm_test_cache,
                resource_manager,
                boto3_session,

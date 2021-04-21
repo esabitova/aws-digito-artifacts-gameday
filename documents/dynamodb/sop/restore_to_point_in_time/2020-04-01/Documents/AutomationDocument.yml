@@ -1,20 +1,3 @@
-#
-# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy of this
-# software and associated documentation files (the "Software"), to deal in the Software
-# without restriction, including without limitation the rights to use, copy, modify,
-# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
-# permit persons to whom the Software is furnished to do so.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-#
----
 description: "Restore To Point In Time SOP"
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
@@ -37,7 +20,6 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  
 mainSteps:
   - name: verifyDynamoDBTableTargetStatus
     action: aws:waitForAwsResourceProperty
@@ -76,7 +58,7 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
-        SCRIPT_PLACEHOLDER::dynamo_db_util._parse_recovery_date_time
+        SCRIPT_PLACEHOLDER::dynamo_db_util._parse_date_time
         SCRIPT_PLACEHOLDER::dynamo_db_util.parse_recovery_date_time
   - name: CheckIfUseLatestRecoveryPoint
     action: aws:branch
@@ -125,7 +107,6 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-# Start Stream settings
   - name: GetSourceDynamoDBTableStream
     action: aws:executeAwsApi
     onFailure: Abort
@@ -174,8 +155,6 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-# End Stream settings
-# Start kinesis destinations
   - name: GetSourceDynamoDBTableKinesisDestination
     action: aws:executeScript
     outputs:
@@ -213,11 +192,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._enable_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
-
-# End kinesis destinations
-
-# Start TTL
-
   - name: GetSourceDynamoDBTableTimeToLive
     action: aws:executeAwsApi
     onFailure: Abort
@@ -254,8 +228,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
-# End TTL
-# Start tags
   - name: GetSourceDynamoDBTableTags
     action: aws:executeScript
     outputs:
@@ -297,8 +269,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
         SCRIPT_PLACEHOLDER::dynamo_db_util.list_resource_tags
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_resource_tags
-# End Tags
-# Start Contributor Insights
   - name: GetSourceIndexes
     action: aws:executeScript
     outputs:
@@ -361,8 +331,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_contributor_insights
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_contributor_insights_settings
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_contributor_insights_settings
-# End Contributor Insights
-# Start Scaling
   - name: GetScalingTargets
     action: aws:executeScript
     outputs:
@@ -401,8 +369,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.register_scaling_targets
-# End Scaling
-# Start Switch Alarms 
   - name: SwitchAlarmsToTargetTable
     action: aws:executeScript
     outputs:
@@ -423,8 +389,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
         SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
         SCRIPT_PLACEHOLDER::cloudwatch_util.copy_put_alarms_for_dynamo_db_table
-# End Switch Alarms
-# Start GlobalTable
   - name: GetGlobalTableRegions
     action: aws:executeScript
     outputs:
@@ -482,4 +446,3 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_global_table_active_regions
         SCRIPT_PLACEHOLDER::dynamo_db_util.wait_replication_status_in_all_regions
-# End GlobalTable

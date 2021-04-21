@@ -14,12 +14,6 @@ GLOBAL_TABLE_ACTIVE_STATUSES = ['ACTIVE']
 
 
 def _parse_date_time(date_time_str: str, format: str) -> Union[datetime, None]:
-    """
-    Parses the given string to date time the given format. In case of failure returns `None`
-    :param date_time_str: The date time string
-    :param format: The date time format
-    :return: The response of AWS API
-    """
     if date_time_str.strip():
         try:
             return datetime.strptime(date_time_str, format)
@@ -29,12 +23,6 @@ def _parse_date_time(date_time_str: str, format: str) -> Union[datetime, None]:
 
 
 def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
-    """
-    Executes the given delegate against `dynamodb` client.
-    Validates is the response is successfull (return code `200`)
-    :param delegate: The lambda function
-    :return: The response of AWS API
-    """
     dynamo_db_client = boto3.client('dynamodb')
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -44,56 +32,27 @@ def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
 
 
 def _describe_kinesis_destinations(table_name: str) -> dict:
-    """
-    Describes KDS destinations
-    :param table_name: The table name
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
 
 
 def _list_tags(resource_arn: str) -> dict:
-    """
-    List tags
-    :param resource_arn: The ARN of the dynamodb table
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.list_tags_of_resource(ResourceArn=resource_arn))
 
 
 def _update_tags(resource_arn: str, tags: List[dict]) -> dict:
-    """
-    Updates tags
-    :param table_name: The table name
-    :param tags: The list of the tags
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.tag_resource(ResourceArn=resource_arn, Tags=tags))
 
 
 def _enable_kinesis_destinations(table_name: str, kds_arn: str) -> dict:
-    """
-    Enabled KDS destination for the given table
-    :param table_name: The table name
-    :param kds_arn: The KDS ARN
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
                                                                   StreamArn=kds_arn))
 
 
 def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str) -> dict:
-    """
-    Updates TTL for the given table
-    :param table_name: The table name
-    :param is_enabled: True if TTL should be enabled, False otherwise.
-    :param attribute_name: The attribute name that will be used as TTL
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_time_to_live(TableName=table_name,
                                                  TimeToLiveSpecification={
@@ -103,33 +62,16 @@ def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str)
 
 
 def _update_table(table_name: str, **kwargs) -> dict:
-    """
-    Updates table
-    :param table_name: The table name
-    :param kwargs: The arguments of update_table of boto3 dynamodb client
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
 
 def _describe_table(table_name: str) -> dict:
-    """
-    Describes table
-    :param table_name: The table name
-    :return: The response of AWS API
-    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_table(TableName=table_name))
 
 
 def _describe_contributor_insights(table_name: str, index_name: str = None) -> dict:
-    """
-    Describes Contributor Insights settings for a table or an index
-    :param table_name: The table name
-    :param index_name: The index name
-    :return: The response of AWS API
-    """
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.describe_contributor_insights(TableName=table_name, IndexName=index_name))
@@ -139,13 +81,6 @@ def _describe_contributor_insights(table_name: str, index_name: str = None) -> d
 
 
 def _update_contributor_insights(table_name: str, status: str, index_name: str = None) -> dict:
-    """
-    Update Contributor Insights settings for a table or an index
-    :param table_name: The table name
-    :param index_name: The index name
-    :param status: The status
-    :return: The response of AWS API
-    """
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.update_contributor_insights(TableName=table_name,
@@ -158,11 +93,6 @@ def _update_contributor_insights(table_name: str, status: str, index_name: str =
 
 
 def _get_global_table_all_regions(table_name: str) -> List[dict]:
-    """
-    Describes the table and return '$.Table.Replicas' element
-    :param table_name: The table name
-    :return: The list of replicas
-    """
     description = _describe_table(table_name=table_name)
     replicas = description['Table'].get('Replicas', [])
     return replicas
@@ -378,14 +308,6 @@ def update_resource_tags(events: dict, context: dict) -> dict:
 
 
 def list_resource_tags(events: dict, context: dict) -> dict:
-    """
-    Returns the list of resource tags of a Dynamo DB table
-    :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `Region` - The region to concatenate ARN
-    * `Account` - The account to concatenate ARN
-    :return: The dictionary that contains a dump of JSON-like list of tags
-    """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
     if 'Region' not in events:
