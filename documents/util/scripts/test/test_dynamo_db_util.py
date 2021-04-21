@@ -506,7 +506,7 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         describe_mock.assert_called_with(table_name='my_table')
 
-    @patch('documents.util.scripts.src.dynamo_db_util._parse_recovery_date_time',
+    @patch('documents.util.scripts.src.dynamo_db_util._parse_date_time',
            return_value=datetime(2021, 1, 1, 4, 0, 0))
     def test_parse_recovery_date_time_input_valid(self, parse_mock):
 
@@ -516,10 +516,10 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         self.assertEqual(result['RecoveryPointDateTime'], '2021-01-01T04:00:00')
         self.assertEqual(result['UseLatestRecoveryPoint'], False)
-        parse_mock.assert_called_with(restore_date_time_str='some_valid_date',
+        parse_mock.assert_called_with(date_time_str='some_valid_date',
                                       format='%Y-%m-%dT%H:%M:%S%z')
 
-    @patch('documents.util.scripts.src.dynamo_db_util._parse_recovery_date_time',
+    @patch('documents.util.scripts.src.dynamo_db_util._parse_date_time',
            return_value=None)
     def test_parse_recovery_date_time_input_not_valid(self, parse_mock):
 
@@ -529,7 +529,7 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         self.assertEqual(result['RecoveryPointDateTime'], 'None')
         self.assertEqual(result['UseLatestRecoveryPoint'], True)
-        parse_mock.assert_called_with(restore_date_time_str='not_valid_date',
+        parse_mock.assert_called_with(date_time_str='not_valid_date',
                                       format='%Y-%m-%dT%H:%M:%S%z')
 
     @patch('documents.util.scripts.src.dynamo_db_util._update_table',
