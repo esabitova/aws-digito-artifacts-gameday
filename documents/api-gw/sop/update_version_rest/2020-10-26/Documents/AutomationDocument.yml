@@ -15,7 +15,8 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "SOP - Update deployment version REST API GW"
+description: "She script accepts given deployment id and applies it on the given stage. If deployment id is not set,
+the script tries to find previous deployment (by creation date) and applies it on the stage."
 schemaVersion: "0.3"
 assumeRole: "{{AutomationAssumeRole}}"
 parameters:
