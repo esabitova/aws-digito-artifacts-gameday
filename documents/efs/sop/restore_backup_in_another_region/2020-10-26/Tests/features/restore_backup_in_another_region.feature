@@ -13,9 +13,12 @@ Feature: SSM automation document to restore backup in another region
     And cache recovery point arn as "RecoveryPointArn" "before" SSM automation execution
       | FileSystemID                     | BackupVaultName                                        |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}}  |
+    And cache different region name as "DestinationRegionName" "before" SSM automation execution
+      | FileSystemID                     |
+      | {{cfn-output:EFSTemplate>EFSID}} |
     And SSM automation document "Digito-RestoreBackup_2020-10-26" executed
-      | FileSystemID                     | JobIAMRoleArn                            | RecoveryPointArn                  | AutomationAssumeRole                                                      |
-      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>JobIAMRoleArn}} | {{cache:before>RecoveryPointArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreBackupAssumeRole}} |
+      | FileSystemID                     | JobIAMRoleArn                            | RecoveryPointArn                  | AutomationAssumeRole                                                      | DestinationRegion |
+      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>JobIAMRoleArn}} | {{cache:before>RecoveryPointArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreBackupAssumeRole}} | {{cache:before>DestinationRegionName}} |
 
     When SSM automation document "Digito-RestoreBackup_2020-10-26" execution in status "Success"
       | ExecutionId                |

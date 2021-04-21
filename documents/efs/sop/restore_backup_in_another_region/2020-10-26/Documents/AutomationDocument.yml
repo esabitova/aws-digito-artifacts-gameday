@@ -31,20 +31,10 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  DestinationRegion:
+    type: String
+    description: (Required) The region name to restore backup into
 mainSteps:
-  - name: RecordStartTime
-    action: 'aws:executeScript'
-    onFailure: Abort
-    inputs:
-      Runtime: python3.7
-      Handler: start_time
-      Script: |-
-        SCRIPT_PLACEHOLDER::common_util.imports
-        SCRIPT_PLACEHOLDER::common_util.start_time
-    outputs:
-      - Name: StartTime
-        Selector: $.Payload
-        Type: String
   - name: GetFileSystemMetadata
     action: aws:executeAwsApi
     onFailure: Abort
@@ -62,21 +52,40 @@ mainSteps:
       - Name: PerformanceMode
         Selector: "$.FileSystems[0].PerformanceMode"
         Type: String
-  - name: RestoreBackupJob
-    action: aws:executeAwsApi
+  - name: RecordStartTime
+    action: aws:executeScript
     onFailure: Abort
     inputs:
-      Service: backup
-      Api: startRestoreJob
-      IamRoleArn: "{{ JobIAMRoleArn }}"
-      RecoveryPointArn: "{{ RecoveryPointArn }}"
-      IdempotencyToken: "{{global:DATE_TIME}}"
-      Metadata:
-        file-system-id: "{{ FileSystemID }}"
-        Encrypted: "false"
-        PerformanceMode: "generalPurpose"
-        newFileSystem: "true"
-        CreationToken: "{{global:DATE_TIME}}"
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+  - name: RestoreBackupJob
+    action: aws:executeScript
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: restore_backup_in_region
+      Script: |-
+        SCRIPT_PLACEHOLDER::backup_util.imports
+        SCRIPT_PLACEHOLDER::backup_util.restore_backup_in_region
+      InputPayload:
+        IamRoleArn: "{{ JobIAMRoleArn }}"
+        RecoveryPointArn: "{{ RecoveryPointArn }}"
+        IdempotencyToken: "{{ global:DATE_TIME }}"
+        Region: "{{ DestinationRegion }}"
+        ResourceType: "EFS"
+        Metadata:
+          file-system-id: "{{ FileSystemID }}"
+          Encrypted: "false"
+          PerformanceMode: "generalPurpose"
+          newFileSystem: "true"
+          CreationToken: "{{ global:DATE_TIME }}"
     outputs:
       - Name: RestoreJobId
         Selector: "$.RestoreJobId"

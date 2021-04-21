@@ -79,9 +79,11 @@ No.
     * Type: aws:executeScript
     * Inputs:
         * `InputPayload`:
+           * `Region`: destination Region Name
            * `RecoveryPointArn`: ARN for recovery point
            * `IamRoleArn`: IAM role used to restore backup (RestoreJobIamRoleArn)
            * `IdempotencyToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
+           * `ResourceType`: constant string 'EFS'
            * `Metadata`:
                * `file-system-id`: EFS volume id (FileSystemID)
                * `Encrypted`: Is file system encrypted (GetFileSystemMetadata.Encrypted)
