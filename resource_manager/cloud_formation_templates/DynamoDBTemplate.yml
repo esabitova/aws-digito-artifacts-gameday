@@ -81,7 +81,6 @@ Resources:
   KinesisDataStream:
     Type: AWS::Kinesis::Stream
     Properties:
-      Name: DigitoKinesisDataStream
       RetentionPeriodHours: 168
       ShardCount: 2
   DynamoDBTable:
