@@ -1,10 +1,12 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
+from parameterized import parameterized
 
 import pytest
 from documents.util.scripts.src.auto_scaling_util import (
     _describe_scalable_targets,
+    _execute_boto3_auto_scaling,
     get_scaling_targets,
     _register_scalable_target,
     register_scaling_targets)
@@ -54,6 +56,32 @@ class TestAutoScalingUtil(unittest.TestCase):
 
     def tearDown(self):
         self.patcher.stop()
+
+    def test__execute_boto3_dynamodb_raises_exception(self):
+        with self.assertRaises(ValueError) as context:
+            _execute_boto3_auto_scaling(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
+
+        self.assertTrue('Failed to execute request' in context.exception.args)
+
+    @parameterized.expand([
+        ({}, "Requires TableName")
+
+    ])
+    def test_get_scaling_targets_settings_raises_exception(self, events, exception_message):
+        with self.assertRaises(KeyError) as context:
+            get_scaling_targets(events=events, context={})
+
+        self.assertTrue(exception_message in context.exception.args)
+
+    @parameterized.expand([
+        ({}, "Requires TableName"),
+        ({'TableName': 'my_table'}, "Requires ScalingTargets"),
+    ])
+    def test_register_scaling_targets_raises_exception(self, events, exception_message):
+        with self.assertRaises(KeyError) as context:
+            register_scaling_targets(events=events, context={})
+
+        self.assertTrue(exception_message in context.exception.args)
 
     def test__describe_scalable_targets(self):
 
