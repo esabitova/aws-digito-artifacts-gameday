@@ -4,8 +4,15 @@ from unittest.mock import patch
 
 import pytest
 
-from documents.util.scripts.src.apigw_util import check_limit_and_period
-from documents.util.scripts.src.apigw_util import set_limit_and_period
+from documents.util.scripts.src.apigw_util import (
+    check_limit_and_period,
+    set_limit_and_period,
+    get_stage,
+    get_deployment,
+    get_deployments,
+    https_status_code,
+    update_deployment
+)
 
 USAGE_PLAN_ID: str = "jvgy9s"
 USAGE_PLAN_LIMIT = 50000
@@ -13,6 +20,10 @@ USAGE_PLAN_PERIOD: str = "WEEK"
 NEW_USAGE_PLAN_LIMIT = 50000
 NEW_HUGECHANGE_USAGE_PLAN_LIMIT = 5000
 NEW_USAGE_PLAN_PERIOD: str = "WEEK"
+
+REST_API_GW_ID: str = "0djifyccl6"
+REST_API_GW_STAGE_NAME: str = "DummyStage"
+REST_API_GW_DEPLOYMENT_ID: str = "j4ujo3"
 
 
 def get_sample_get_usage_plan_response():
@@ -28,7 +39,7 @@ def get_sample_get_usage_plan_response():
     return response
 
 
-def get_sample_error_get_usage_plan_response():
+def get_sample_https_status_code_403_response():
     response = {
         "ResponseMetadata": {
             "HTTPStatusCode": 403
@@ -150,8 +161,12 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
             'apigateway': self.mock_apigw
         }
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
-        self.mock_apigw.get_usage_plan.return_value = get_sample_error_get_usage_plan_response()
-        self.mock_apigw.update_usage_plan.return_value = get_sample_error_get_usage_plan_response()
+        self.mock_apigw.get_usage_plan.return_value = get_sample_https_status_code_403_response()
+        self.mock_apigw.update_usage_plan.return_value = get_sample_https_status_code_403_response()
+        self.mock_apigw.get_deployment.return_value = get_sample_https_status_code_403_response()
+        self.mock_apigw.get_deployments.return_value = get_sample_https_status_code_403_response()
+        self.mock_apigw.get_stage.return_value = get_sample_https_status_code_403_response()
+        self.mock_apigw.update_stage.return_value = get_sample_https_status_code_403_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -175,6 +190,44 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         with pytest.raises(ValueError) as exception_info:
             set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Failed to update usage plan limit and period'))
+
+    def test_error_https_response_code(self):
+        with pytest.raises(ValueError) as exception_info:
+            https_status_code(get_sample_https_status_code_403_response(), 'Error message.')
+        self.assertTrue(exception_info.match('Error message.'))
+
+    def test_error_get_deployment(self):
+        with pytest.raises(ValueError) as exception_info:
+            get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID)
+        self.assertTrue(exception_info.match(f'Failed to perform get_deployment with restApiId: {REST_API_GW_ID} '
+                                             f'and deploymentId: {REST_API_GW_DEPLOYMENT_ID} '
+                                             f'Response is: {get_sample_https_status_code_403_response()}'))
+
+    def test_error_get_deployments(self):
+        with pytest.raises(ValueError) as exception_info:
+            get_deployments(REST_API_GW_ID)
+        self.assertTrue(exception_info.match(f'Failed to perform get_deployments with restApiId: {REST_API_GW_ID} '
+                                             f'Response is: {get_sample_https_status_code_403_response()}'))
+
+    def test_error_get_stage(self):
+        with pytest.raises(ValueError) as exception_info:
+            get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+        self.assertTrue(exception_info.match(f'Failed to perform get_stage with restApiId: {REST_API_GW_ID} '
+                                             f'and stageName: {REST_API_GW_STAGE_NAME} '
+                                             f'Response is: {get_sample_https_status_code_403_response()}'))
+
+    def test_error_update_deployment(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+
+        with pytest.raises(ValueError) as exception_info:
+            update_deployment(events, None)
+        self.assertTrue(exception_info.match(f'Failed to perform update_stage with restApiId: {REST_API_GW_ID}, '
+                                             f'stageName: {REST_API_GW_STAGE_NAME} and '
+                                             f'deploymentId: {REST_API_GW_DEPLOYMENT_ID} '
+                                             f'Response is: {get_sample_https_status_code_403_response()}'))
 
 
 @pytest.mark.unit_test
