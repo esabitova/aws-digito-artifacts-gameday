@@ -45,9 +45,6 @@ Resources:
             Resource: "*"
             Action:
               - apigateway:GET
-              - apigateway:PUT
-              - apigateway:POST
               - apigateway:PATCH
-              - ssm:GetAutomationExecution
       Roles:
         - Ref: DigitoRestApiGwUpdateVersionRestAssumeRole

@@ -16,7 +16,7 @@ Medium
 
 ## Permission required for AutomationAssumeRole
 * apigateway:GET
-* apigateway:PUT
+* apigateway:PATCH
 
 ## Supports Rollback
 No.
@@ -37,7 +37,7 @@ No.
 
 ## Details
 
-1. `FindPreviousDeploymentIfNotProvided`
+1. `FindDeploymentIdForUpdate`
     * Type: aws:executeScript
     * Inputs:
         * `RestApiGwId`
@@ -65,10 +65,10 @@ No.
         * If `RestDeploymentId` is **NOT** provided, 
           * Get details of the current deployment:
             * Execute [get_deployment](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.get_deployment):
-              * Parameters:
-                * `restApiId`=`RestApiGwId`
-                * `deploymentId`=`originalDeploymentId`
-              * Return `.createdDate` as `currentDeploymentCreationDate`
+                * Parameters:
+                    * `restApiId`=`RestApiGwId`
+                    * `deploymentId`=`originalDeploymentId`
+                * Return `.createdDate` as `c~~~~urrentDeploymentCreationDate`
           * Determine previous deployment based on creation date:
             * Execute [get_deployments](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.get_deployments):
                 * Parameters:
@@ -90,10 +90,12 @@ No.
           * Parameters:
             * `restApiId`=`RestApiGwId`
             * `stageName`=`RestStageName`
-            * `patchOperations`=`op='replace',path='/deploymentId',value='<FindPreviousDeploymentIfNotProvided.RestDeploymentIdToApply>'`
+            * `patchOperations`
+              =`op='replace',path='/deploymentId',value='<FindDeploymentIdForUpdate.RestDeploymentIdToApply>'`
           * Return `.deploymentId`
 
 ## Outputs
-* `FindPreviousDeploymentIfNotProvided.RestDeploymentIdOriginalValue`
-* `FindPreviousDeploymentIfNotProvided.RestDeploymentIdToApply`
+
+* `FindDeploymentIdForUpdate.RestDeploymentIdOriginalValue`
+* `FindDeploymentIdForUpdate.RestDeploymentIdToApply`
 * `ChangeDeployment.RestDeploymentIdNewValue`

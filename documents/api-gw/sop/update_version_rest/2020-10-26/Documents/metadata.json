@@ -1,13 +1,13 @@
 {
   "displayName": "SOP - Update Version Rest",
-  "description": "The script accepts given deployment id and applies it on the given stage",
+  "description": "The document accepts given deployment id and applies it on the given stage. If deployment id is not set,\nthe script tries to find previous deployment (by creation date) and applies it on the stage.",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "documentName": "Digito-RestApiGwUpdateVersionRest_2020-10-26",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
-  "intent": "The script accepts given deployment id and applies it on the given stage",
+  "intent": "The document accepts given deployment id and applies it on the given stage. If deployment id is not set,\nthe script tries to find previous deployment (by creation date) and applies it on the stage.",
   "minorVersion": "001",
   "risk": "MEDIUM",
   "tag": "api-gw:sop:update_version_rest:2020-10-26"
