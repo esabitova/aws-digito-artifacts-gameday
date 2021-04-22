@@ -15,7 +15,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Changes Memory Size of Lambda Function"
+description: "Switch Alias of Lambda functions to another version"
 schemaVersion: "0.3"
 assumeRole: "{{AutomationAssumeRole}}"
 parameters:
