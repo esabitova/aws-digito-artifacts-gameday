@@ -147,12 +147,15 @@ def get_stage(gateway_id: str, stage_name: str) -> dict:
     return response
 
 
-def find_previous_deployment_if_not_provided(events: dict, context: dict) -> dict:
+def find_deployment_id_for_update(events: dict, context: dict) -> dict:
     """
-    Find previous deployment if not provided
+    Find deployment id for update
     """
-    if 'RestApiGwId' not in events or 'RestStageName' not in events:
-        raise KeyError('Requires RestApiGwId and RestStageName in events')
+    if 'RestApiGwId' not in events:
+        raise KeyError('Requires RestApiGwId in events')
+
+    if 'RestStageName' not in events:
+        raise KeyError('Requires RestStageName in events')
 
     output: dict = {}
     gateway_id: str = events['RestApiGwId']

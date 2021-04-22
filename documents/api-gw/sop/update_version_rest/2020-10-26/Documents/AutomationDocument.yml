@@ -64,7 +64,7 @@ mainSteps:
         Type: String
     inputs:
       Runtime: "python3.7"
-      Handler: "find_previous_deployment_if_not_provided"
+      Handler: "find_deployment_id_for_update"
       InputPayload:
         RestApiGwId: '{{ RestApiGwId }}'
         RestStageName: '{{ RestStageName }}'
@@ -75,7 +75,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::apigw_util.get_deployment
         SCRIPT_PLACEHOLDER::apigw_util.get_deployments
         SCRIPT_PLACEHOLDER::apigw_util.https_status_code
-        SCRIPT_PLACEHOLDER::apigw_util.find_previous_deployment_if_not_provided
+        SCRIPT_PLACEHOLDER::apigw_util.find_deployment_id_for_update
 
   - name: UpdateDeployment
     action: aws:executeScript
