@@ -1,4 +1,8 @@
 import boto3
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def restore_backup_in_region(events, context):
@@ -24,7 +28,8 @@ def restore_backup_in_region(events, context):
         if key not in events['Metadata']:
             raise KeyError(f'Requires {key} in events\' Metadata')
 
-    backup_client = boto3.client('backup', region=events['Region'])
+    backup_client = boto3.client('backup', region_name=events['Region'])
+    logger.info(f'Running Restore with the following args: {events}')
     response = backup_client.start_restore_job(
         RecoveryPointArn=events['RecoveryPointArn'],
         Metadata={

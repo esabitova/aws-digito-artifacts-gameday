@@ -4,7 +4,7 @@ efs:sop:restore_backup_in_another_region:2020-10-26
 
 ## Intent
 
-Restore backup in case of software failure or if it's region failure and backup relicated to another region, restore it
+Restore backup in case of software failure or if it's region failure and backup replicated to another region, restore it
 there
 
 ## Type

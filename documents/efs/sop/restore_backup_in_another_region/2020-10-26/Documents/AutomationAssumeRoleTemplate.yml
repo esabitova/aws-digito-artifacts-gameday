@@ -49,6 +49,10 @@ Resources:
               - "elasticfilesystem:DescribeFileSystems"
               - "backup:StartBackupJob"
               - "backup:DescribeBackupJob"
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+              - "logs:DescribeLogGroups"
+              - "logs:DescribeLogStreams"
               - "iam:PassRole"
       Roles:
         - Ref: DigitoRestoreBackupAssumeRole

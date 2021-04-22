@@ -2,10 +2,11 @@
 Feature: SSM automation document to restore backup in another region
 
   Scenario: Restore backup in another region
-    Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                          | ResourceType |
-      | resource_manager/cloud_formation_templates/EFSTemplate.yml                                               | ON_DEMAND    |
-      | documents/efs/sop/restore_backup_in_another_region/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+    Given cache different region name as "DestinationRegionName" "before" SSM automation execution
+    And the cloud formation templates as integration test resources
+      | CfnTemplatePath                                                                                          | ResourceType | DestinationRegion                       |
+      | resource_manager/cloud_formation_templates/EFSTemplate.yml                                               | ON_DEMAND    | {{cache:before>DestinationRegionName}}  |
+      | documents/efs/sop/restore_backup_in_another_region/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  | |
     And published "Digito-RestoreBackup_2020-10-26" SSM document
     And cache number of recovery points as "NumberOfRecoveryPoints" "before" SSM automation execution
       | BackupVaultName                                       | FileSystemID                      |
@@ -13,11 +14,8 @@ Feature: SSM automation document to restore backup in another region
     And cache recovery point arn as "RecoveryPointArn" "before" SSM automation execution
       | FileSystemID                     | BackupVaultName                                        |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}}  |
-    And cache different region name as "DestinationRegionName" "before" SSM automation execution
-      | FileSystemID                     |
-      | {{cfn-output:EFSTemplate>EFSID}} |
     And SSM automation document "Digito-RestoreBackup_2020-10-26" executed
-      | FileSystemID                     | JobIAMRoleArn                            | RecoveryPointArn                  | AutomationAssumeRole                                                      | DestinationRegion |
+      | FileSystemID                     | JobIAMRoleArn                            | RecoveryPointArn                  | AutomationAssumeRole                                                      | DestinationRegion                      |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>JobIAMRoleArn}} | {{cache:before>RecoveryPointArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreBackupAssumeRole}} | {{cache:before>DestinationRegionName}} |
 
     When SSM automation document "Digito-RestoreBackup_2020-10-26" execution in status "Success"

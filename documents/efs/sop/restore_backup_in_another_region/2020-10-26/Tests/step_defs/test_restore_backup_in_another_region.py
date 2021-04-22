@@ -39,6 +39,31 @@ def cache_recovery_point_arn(resource_manager, boto3_session, ssm_test_cache,
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, recovery_point_arn)
 
 
+@given(parsers.parse('cache different region name as "{cache_property}" "{step_key}" '
+                     'SSM automation execution'))
+def cache_different_region(boto3_session, ssm_test_cache,
+                           cache_property, step_key):
+
+    source_region = boto3_session.region_name
+    available_region_list = boto3_session.get_available_regions('efs')
+    available_region_list.remove(source_region)
+    # remove regions not supporting cross-region backups
+    available_region_list.remove('eu-south-1')
+    available_region_list.remove('af-south-1')
+    available_region_list.remove('ap-east-1')
+    available_region_list.remove('me-south-1')
+    logger.info(f'Available region list: {available_region_list}')
+    # choose the first region from a location where source EFS volume was created
+    # if location contains only one region and it contains source EFS volume, choose the first one from other location
+    destination_region = available_region_list[0]
+    for region in available_region_list:
+        if region.startswith(source_region.split('-')[0]):
+            destination_region = region
+            break
+    logger.info(f'Caching new region for EFS: {destination_region}')
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, destination_region)
+
+
 @then(parsers.parse('tear down created recovery points and jobs\n{input_parameters}'))
 def tear_down(resource_manager, boto3_session, ssm_test_cache, input_parameters):
     recovery_point_arn = extract_param_value(input_parameters, 'RecoveryPointArn', resource_manager, ssm_test_cache)
