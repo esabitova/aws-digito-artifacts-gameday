@@ -7,6 +7,7 @@ import publisher.src.ssm_automation_doc_rules as ssm_doc_rules
 class TestRulesValidator(RulesValidator):
     is_rollback_param = Parameter('IsRollback', 'String', False)
     previous_exec_id_param = Parameter('PreviousExecutionId', 'String', False)
+    alarm_red_steps = ['AssertAlarmTriggered', 'AssertAlarmToBeRed']
     rollback_branch_steps = ['CheckIsRollback', 'SelectExecutionMode']
 
     def __init__(self):
@@ -15,11 +16,12 @@ class TestRulesValidator(RulesValidator):
             ssm_doc_rules.required_parameters + [Parameter('.*AlarmName', 'String', True)],
             ssm_doc_rules.required_outputs,
             ssm_doc_rules.required_steps + [['AssertAlarmToBeGreenBeforeTest'],
-                                            ['AssertAlarmTriggered', 'AssertAlarmToBeRed'],
+                                            self.alarm_red_steps,
                                             ['AssertAlarmToBeGreen']]))
 
     def _validate_custom_rules(self, document, file_path, violations):
         self.__validate_rollback(document, file_path, violations)
+        self.__validate_on_failure(document, file_path, violations)
 
     def __validate_rollback(self, document, file_path, violations):
         parameters = document.get('parameters')
@@ -40,3 +42,18 @@ class TestRulesValidator(RulesValidator):
             if not self._is_step_present(document_steps, assert_step_names):
                 violations.append('Missing step to validate equality of parameter value (of relevant parameters) '
                                   'with that of previous execution in [{}]'.format(file_path))
+
+    def __validate_on_failure(self, document, file_path, violations):
+        is_rollback_param_present = self._is_present(self.is_rollback_param.name, document.get('parameters'))
+        if not is_rollback_param_present:
+            return
+
+        alarm_red_steps = self._get_steps(document, self.alarm_red_steps)
+        if alarm_red_steps:
+            alarm_red_step = alarm_red_steps[0]
+            if not alarm_red_step.get('onFailure'):
+                violations.append('Missing onFailure attribute for step [{}] in [{}]'
+                                  .format(alarm_red_step.get('name'), file_path))
+            elif alarm_red_step.get('onFailure') == 'Abort':
+                violations.append('OnFailure attribute for step [{}] should be a valid step and not Abort in [{}]'
+                                  .format(alarm_red_step.get('name'), file_path))
