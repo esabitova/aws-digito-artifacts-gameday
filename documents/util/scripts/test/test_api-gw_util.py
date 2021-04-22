@@ -11,7 +11,8 @@ from documents.util.scripts.src.apigw_util import (
     get_deployment,
     get_deployments,
     https_status_code,
-    update_deployment
+    update_deployment,
+    find_deployment_id_for_update
 )
 
 USAGE_PLAN_ID: str = "jvgy9s"
@@ -23,7 +24,8 @@ NEW_USAGE_PLAN_PERIOD: str = "WEEK"
 
 REST_API_GW_ID: str = "0djifyccl6"
 REST_API_GW_STAGE_NAME: str = "DummyStage"
-REST_API_GW_DEPLOYMENT_ID: str = "j4ujo3"
+REST_API_GW_DEPLOYMENT_ID_V1: str = "j4ujo3"
+REST_API_GW_DEPLOYMENT_ID_V2: str = "m2uen1"
 
 
 def get_sample_get_usage_plan_response():
@@ -61,15 +63,35 @@ def get_sample_update_usage_plan_response():
     return response
 
 
+def get_sample_get_stage_response():
+    response = {
+        "ResponseMetadata": {
+            "HTTPStatusCode": 200
+        },
+        "deploymentId": REST_API_GW_DEPLOYMENT_ID_V1,
+        "stageName": REST_API_GW_STAGE_NAME
+    }
+    return response
+
+
 def get_sample_update_stage_response():
     response = {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
-        "deploymentId": REST_API_GW_DEPLOYMENT_ID,
+        "deploymentId": REST_API_GW_DEPLOYMENT_ID_V2,
         "stageName": REST_API_GW_STAGE_NAME
     }
+    return response
 
+
+def get_sample_get_deployment_response():
+    response = {
+        "ResponseMetadata": {
+            "HTTPStatusCode": 200
+        },
+        "id": REST_API_GW_DEPLOYMENT_ID_V2
+    }
     return response
 
 
@@ -85,7 +107,9 @@ class TestApigwUtil(unittest.TestCase):
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_apigw.get_usage_plan.return_value = get_sample_get_usage_plan_response()
         self.mock_apigw.update_usage_plan.return_value = get_sample_update_usage_plan_response()
+        self.mock_apigw.get_stage.return_value = get_sample_get_stage_response()
         self.mock_apigw.update_stage.return_value = get_sample_update_stage_response()
+        self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -163,15 +187,57 @@ class TestApigwUtil(unittest.TestCase):
             set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
 
+    def test_get_deployment(self):
+        output = get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V2)
+        self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['id'])
+
+    def test_get_stage(self):
+        output = get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+        self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['deploymentId'])
+
+    def test_find_deployment_id_for_update_with_provided_id(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V2
+
+        output = find_deployment_id_for_update(events, None)
+        self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
+
+    def test_find_deployment_id_for_update_with_same_id(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
+
+        with pytest.raises(ValueError) as exception_info:
+            find_deployment_id_for_update(events, None)
+        self.assertTrue(exception_info.match('Provided deployment ID and current deployment ID should not be the same'))
+
+    def test_input1_deployment_id_for_update(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+
+        with pytest.raises(KeyError) as exception_info:
+            find_deployment_id_for_update(events, None)
+        self.assertTrue(exception_info.match('Requires RestStageName in events'))
+
+    def test_input2_deployment_id_for_update(self):
+        events = {}
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+
+        with pytest.raises(KeyError) as exception_info:
+            find_deployment_id_for_update(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
     def test_update_deployment(self):
         events = {}
         events['RestApiGwId'] = REST_API_GW_ID
         events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V2
 
         output = update_deployment(events, None)
-        self.assertEqual(REST_API_GW_DEPLOYMENT_ID, output['DeploymentIdNewValue'])
-        self.assertEqual(REST_API_GW_STAGE_NAME, output['StageName'])
+        self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdNewValue'])
 
     def test_input1_update_deployment(self):
         events = {}
@@ -185,7 +251,7 @@ class TestApigwUtil(unittest.TestCase):
     def test_input2_update_deployment(self):
         events = {}
         events['RestApiGwId'] = REST_API_GW_ID
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(KeyError) as exception_info:
             update_deployment(events, None)
@@ -194,7 +260,7 @@ class TestApigwUtil(unittest.TestCase):
     def test_input3_update_deployment(self):
         events = {}
         events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(KeyError) as exception_info:
             update_deployment(events, None)
@@ -248,9 +314,9 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
 
     def test_error_get_deployment(self):
         with pytest.raises(ValueError) as exception_info:
-            get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID)
+            get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
         self.assertTrue(exception_info.match(f'Failed to perform get_deployment with restApiId: {REST_API_GW_ID} '
-                                             f'and deploymentId: {REST_API_GW_DEPLOYMENT_ID} '
+                                             f'and deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
     def test_error_get_deployments(self):
@@ -270,13 +336,13 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         events = {}
         events['RestApiGwId'] = REST_API_GW_ID
         events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(ValueError) as exception_info:
             update_deployment(events, None)
         self.assertTrue(exception_info.match(f'Failed to perform update_stage with restApiId: {REST_API_GW_ID}, '
                                              f'stageName: {REST_API_GW_STAGE_NAME} and '
-                                             f'deploymentId: {REST_API_GW_DEPLOYMENT_ID} '
+                                             f'deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
 
