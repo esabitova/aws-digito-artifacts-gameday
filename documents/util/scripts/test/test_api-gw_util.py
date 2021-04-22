@@ -61,6 +61,18 @@ def get_sample_update_usage_plan_response():
     return response
 
 
+def get_sample_update_stage_response():
+    response = {
+        "ResponseMetadata": {
+            "HTTPStatusCode": 200
+        },
+        "deploymentId": REST_API_GW_DEPLOYMENT_ID,
+        "stageName": REST_API_GW_STAGE_NAME
+    }
+
+    return response
+
+
 @pytest.mark.unit_test
 class TestApigwUtil(unittest.TestCase):
     def setUp(self):
@@ -73,6 +85,7 @@ class TestApigwUtil(unittest.TestCase):
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_apigw.get_usage_plan.return_value = get_sample_get_usage_plan_response()
         self.mock_apigw.update_usage_plan.return_value = get_sample_update_usage_plan_response()
+        self.mock_apigw.update_stage.return_value = get_sample_update_stage_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -149,6 +162,43 @@ class TestApigwUtil(unittest.TestCase):
         with pytest.raises(KeyError) as exception_info:
             set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
+
+    def test_update_deployment(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+
+        output = update_deployment(events, None)
+        self.assertEqual(REST_API_GW_DEPLOYMENT_ID, output['DeploymentIdNewValue'])
+        self.assertEqual(REST_API_GW_STAGE_NAME, output['StageName'])
+
+    def test_input1_update_deployment(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+
+        with pytest.raises(KeyError) as exception_info:
+            update_deployment(events, None)
+        self.assertTrue(exception_info.match('Requires RestDeploymentId in events'))
+
+    def test_input2_update_deployment(self):
+        events = {}
+        events['RestApiGwId'] = REST_API_GW_ID
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+
+        with pytest.raises(KeyError) as exception_info:
+            update_deployment(events, None)
+        self.assertTrue(exception_info.match('Requires RestStageName in events'))
+
+    def test_input3_update_deployment(self):
+        events = {}
+        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID
+
+        with pytest.raises(KeyError) as exception_info:
+            update_deployment(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
 
 
 @pytest.mark.unit_test
