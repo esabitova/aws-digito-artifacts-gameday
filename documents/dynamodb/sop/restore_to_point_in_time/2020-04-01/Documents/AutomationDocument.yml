@@ -228,47 +228,43 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
+  - name: GetSourceDynamoDBTableArn
+    action: aws:executeAwsApi
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableSourceName }}"
+    outputs:
+      - Name: SourceTableArn
+        Selector: "$.Table.TableArn"
+        Type: String
   - name: GetSourceDynamoDBTableTags
-    action: aws:executeScript
-    outputs:
-      - Name: SourceTags
-        Selector: $.Payload.Tags
-        Type: String
+    action: aws:executeAwsApi
     inputs:
-      Runtime: python3.6
-      Handler: list_resource_tags
-      InputPayload:
-        TableName: "{{ DynamoDBTableSourceName }}"
-        Region: "{{ global:REGION }}"
-        Account: "{{ global:ACCOUNT_ID }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
-
-        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
-        SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
-        SCRIPT_PLACEHOLDER::dynamo_db_util.list_resource_tags
+      Service: dynamodb
+      Api: ListTagsOfResource
+      ResourceArn: "{{ GetSourceDynamoDBTableArn.SourceTableArn }}"
+    outputs:
+      - Name: SourceTableTags
+        Selector: "$.Tags"
+        Type: MapList
+  - name: GetTargetDynamoDBTableArn
+    action: aws:executeAwsApi
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{ DynamoDBTableTargetName }}"
+    outputs:
+      - Name: TargetTableArn
+        Selector: "$.Table.TableArn"
+        Type: String
   - name: UpdateTargetDynamoDBTableTags
-    action: aws:executeScript
-    outputs:
-      - Name: TargetTags
-        Selector: $.Payload.Tags
-        Type: String
+    action: aws:executeAwsApi
     inputs:
-      Runtime: python3.6
-      Handler: update_resource_tags
-      InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        Region: "{{ global:REGION }}"
-        Account: "{{ global:ACCOUNT_ID }}"
-        Tags: "{{ GetSourceDynamoDBTableTags.SourceTags }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
-
-        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
-        SCRIPT_PLACEHOLDER::dynamo_db_util._update_tags
-        SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
-        SCRIPT_PLACEHOLDER::dynamo_db_util.list_resource_tags
-        SCRIPT_PLACEHOLDER::dynamo_db_util.update_resource_tags
+      Service: dynamodb
+      Api: TagResource
+      ResourceArn: "{{ GetTargetDynamoDBTableArn.TargetTableArn }}"
+      Tags: "{{ GetSourceDynamoDBTableTags.SourceTableTags }}"
   - name: GetSourceIndexes
     action: aws:executeScript
     outputs:
@@ -331,7 +327,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_contributor_insights
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_contributor_insights_settings
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_contributor_insights_settings
-  - name: GetScalingTargets
+  - name: GetSourceScalableTargets
     action: aws:executeAwsApi
     inputs:
       Service: application-autoscaling
@@ -340,28 +336,35 @@ mainSteps:
         - "table/{{ DynamoDBTableSourceName }}"
       ServiceNamespace: dynamodb
     outputs:
-      - Name: SourceScalingTargets
+      - Name: SourceScalableTargets
         Selector: "$.ScalableTargets"
         Type: MapList
-  - name: RegisterScalingTargets
+  - name: RegisterScalableTargets
     action: aws:executeScript
-    outputs:
-      - Name: TargetsScalingTargets
-        Selector: $.Payload.ScalingTargets
-        Type: String
     inputs:
       Runtime: python3.6
       Handler: register_scaling_targets
       InputPayload:
         TableName: "{{ DynamoDBTableTargetName }}"
-        ScalingTargets: "{{ GetScalingTargets.SourceScalingTargets }}"
+        ScalableTargets: "{{ GetSourceScalableTargets.SourceScalableTargets }}"
       Script: |-
         SCRIPT_PLACEHOLDER::auto_scaling_util.imports
 
         SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
         SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
-        SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.register_scaling_targets
+  - name: GetTargetScalableTargets
+    action: aws:executeAwsApi
+    inputs:
+      Service: application-autoscaling
+      Api: DescribeScalableTargets
+      ResourceIds: 
+        - "table/{{ DynamoDBTableTargetName }}"
+      ServiceNamespace: dynamodb
+    outputs:
+      - Name: TargetScalableTargets
+        Selector: "$.ScalableTargets"
+        Type: MapList
   - name: SwitchAlarmsToTargetTable
     action: aws:executeScript
     outputs:
