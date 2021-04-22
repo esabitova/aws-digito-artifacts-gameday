@@ -189,8 +189,14 @@ def update_deployment(events: dict, context: dict) -> dict:
     """
     Apply RestDeploymentId to provided RestStageName
     """
-    if 'RestApiGwId' not in events or 'RestStageName' not in events or 'RestDeploymentId' not in events:
-        raise KeyError('Requires RestApiGwId, RestStageName and DeploymentId in events')
+    if 'RestApiGwId' not in events:
+        raise KeyError('Requires RestApiGwId in events')
+
+    if 'RestStageName' not in events:
+        raise KeyError('Requires RestStageName in events')
+
+    if 'RestDeploymentId' not in events:
+        raise KeyError('Requires RestDeploymentId in events')
 
     gateway_id: str = events['RestApiGwId']
     stage_name: str = events['RestStageName']
@@ -212,4 +218,5 @@ def update_deployment(events: dict, context: dict) -> dict:
     https_status_code(response, f'Failed to perform update_stage with restApiId: {gateway_id}, stageName: {stage_name} '
                                 f'and deploymentId: {deployment_id}')
 
-    return {'DeploymentIdNewValue': response['deploymentId']}
+    return {'DeploymentIdNewValue': response['deploymentId'],
+            'StageName': response['stageName']}
