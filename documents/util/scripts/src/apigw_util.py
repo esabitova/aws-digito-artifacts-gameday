@@ -115,15 +115,15 @@ def set_limit_and_period(events, context):
 
 def https_status_code(response: dict, error_message: str) -> None:
     if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
-        raise ValueError(f'{error_message}. Response is: {response}')
+        raise ValueError(f'{error_message} Response is: {response}')
 
 
 def get_deployment(gateway_id: str, deployment_id: str) -> dict:
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     client = boto3.client('apigateway', config=config)
     response = client.get_deployment(restApiId=gateway_id, deploymentId=deployment_id)
-    https_status_code(response, f'Failed to perform get_deployment with restApiId: {gateway_id} and \
-    deploymentId: {deployment_id}')
+    https_status_code(response, f'Failed to perform get_deployment with restApiId: {gateway_id} and '
+                                f'deploymentId: {deployment_id}')
     return response
 
 
@@ -209,7 +209,7 @@ def update_deployment(events: dict, context: dict) -> dict:
             },
         ]
     )
-    https_status_code(response, f'Failed to perform update_stage with restApiId: {gateway_id}, stageName: {stage_name} \
-    and deploymentId: {deployment_id}')
+    https_status_code(response, f'Failed to perform update_stage with restApiId: {gateway_id}, stageName: {stage_name} '
+                                f'and deploymentId: {deployment_id}')
 
     return {'DeploymentIdNewValue': response['deploymentId']}
