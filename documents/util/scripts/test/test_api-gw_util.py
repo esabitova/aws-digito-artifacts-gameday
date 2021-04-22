@@ -203,6 +203,7 @@ class TestApigwUtil(unittest.TestCase):
 
         output = find_deployment_id_for_update(events, None)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
+        self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['OriginalDeploymentId'])
 
     def test_find_deployment_id_for_update_with_same_id(self):
         events = {}
