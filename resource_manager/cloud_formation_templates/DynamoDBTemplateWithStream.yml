@@ -97,6 +97,9 @@ Resources:
         StreamViewType: !Ref StreamViewType
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Key
+          Value: Value
 
   ##### Health Alarms #####
   WriteThrottleEventsAlarm:
