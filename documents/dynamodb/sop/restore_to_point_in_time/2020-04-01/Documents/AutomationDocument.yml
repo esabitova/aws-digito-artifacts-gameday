@@ -15,7 +15,7 @@ parameters:
   DynamoDBSourceTableAlarmNames:
     type: StringList
     description: (Optional) The DynamoDB Source Table Name Alarm Names.
-    default: 
+    default:
       - "non-existing-alarm"
   AutomationAssumeRole:
     type: String
@@ -331,44 +331,26 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_contributor_insights
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_contributor_insights_settings
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_contributor_insights_settings
-  - name: GetScalingTargets
+  - name: CopyScalingTargets
     action: aws:executeScript
     outputs:
-      - Name: SourceScalingTargets
-        Selector: $.Payload.ScalingTargets
-        Type: String
+      - Name: CopiedScalingTargets
+        Selector: $.Payload
+        Type: MapList
     inputs:
       Runtime: python3.6
-      Handler: get_scaling_targets
+      Handler: copy_scaling_targets
       InputPayload:
-        TableName: "{{ DynamoDBTableSourceName }}"
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
       Script: |-
         SCRIPT_PLACEHOLDER::auto_scaling_util.imports
 
         SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
-        SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
-
-  - name: RegisterScalingTargets
-    action: aws:executeScript
-    outputs:
-      - Name: TargetsScalingTargets
-        Selector: $.Payload.ScalingTargets
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: register_scaling_targets
-      InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        ScalingTargets: "{{ GetScalingTargets.SourceScalingTargets }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::auto_scaling_util.imports
-
-        SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
         SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
-        SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
-        SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
-        SCRIPT_PLACEHOLDER::auto_scaling_util.register_scaling_targets
+        SCRIPT_PLACEHOLDER::auto_scaling_util.copy_scaling_targets
+
   - name: SwitchAlarmsToTargetTable
     action: aws:executeScript
     outputs:

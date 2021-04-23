@@ -1,5 +1,4 @@
 
-import json
 import logging
 from typing import Any, Callable
 
@@ -49,52 +48,30 @@ def _register_scalable_target(table_name: str, dimension: str, min_cap: int, max
                                                       ResourceId=f'table/{table_name}'))
 
 
-def get_scaling_targets(events: dict, context: dict) -> dict:
+def copy_scaling_targets(events: dict, context: dict) -> dict:
     """
     Returns scalable targets
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    :return: The dictionary that contains a JSON dump of an array of objects
-    that contains attributes of scaling targets, namely
-    `ScalableDimension`, `Min` and `Max`
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
+    :return: MapList of copied scalable targets
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires SourceTableName')
 
-    table_name: str = events['TableName']
-    table_result = _describe_scalable_targets(table_name=table_name)
+    source_table_name: str = events['SourceTableName']
+    target_table_name: str = events['TargetTableName']
+    table_result = _describe_scalable_targets(table_name=source_table_name)
 
-    scaling_targets = [{"Dimension": x['ScalableDimension'], "Min":int(x["MinCapacity"]), "Max":int(x["MaxCapacity"])}
-                       for x in table_result.get('ScalableTargets', [])]
+    scaling_targets = [{'ScalableDimension': x['ScalableDimension'],
+                        'MinCapacity':int(x["MinCapacity"]),
+                        'MaxCapacity':int(x["MaxCapacity"])} for x in table_result.get('ScalableTargets', [])]
+    for x in scaling_targets:
+        _register_scalable_target(table_name=target_table_name,
+                                  dimension=x['ScalableDimension'],
+                                  min_cap=int(x["MinCapacity"]),
+                                  max_cap=int(x["MaxCapacity"]))
 
-    return {
-        "ScalingTargets": json.dumps(scaling_targets)
-    }
-
-
-def register_scaling_targets(events: dict, context: dict) -> dict:
-    """
-    Returns scalable targets
-    :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `ScalingTargets` - The array of object that contains attributes of scaling targets, namely
-    `ScalableDimension`, `Min` and `Max`
-    :return: The dictionary that contains a JSON dump of an array of objects
-    that contains attributes of scaling targets, namely
-    `ScalableDimension`, `Min` and `Max`
-    """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'ScalingTargets' not in events:
-        raise KeyError('Requires ScalingTargets')
-
-    table_name: str = events['TableName']
-    scaling_targets = json.loads(events['ScalingTargets'])
-    for target in scaling_targets:
-        _register_scalable_target(table_name=table_name,
-                                  dimension=target['Dimension'],
-                                  min_cap=target["Min"],
-                                  max_cap=target["Max"])
-
-    return get_scaling_targets(events=events,
-                               context=context)
+    return scaling_targets
