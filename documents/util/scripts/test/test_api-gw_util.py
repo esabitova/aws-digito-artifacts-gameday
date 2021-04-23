@@ -5,12 +5,12 @@ from unittest.mock import patch
 import pytest
 
 from documents.util.scripts.src.apigw_util import (
+    assert_https_status_code_200,
     check_limit_and_period,
     set_limit_and_period,
     get_stage,
     get_deployment,
     get_deployments,
-    https_status_code,
     update_deployment,
     find_deployment_id_for_update
 )
@@ -308,10 +308,10 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
             set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Failed to update usage plan limit and period'))
 
-    def test_error_https_response_code(self):
+    def test_error_https_status_code_200(self):
         with pytest.raises(ValueError) as exception_info:
-            https_status_code(get_sample_https_status_code_403_response(), 'Error message.')
-        self.assertTrue(exception_info.match('Error message.'))
+            assert_https_status_code_200(get_sample_https_status_code_403_response(), 'Error message')
+        self.assertTrue(exception_info.match('Error message'))
 
     def test_error_get_deployment(self):
         with pytest.raises(ValueError) as exception_info:

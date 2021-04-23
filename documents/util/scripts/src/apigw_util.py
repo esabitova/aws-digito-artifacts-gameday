@@ -113,7 +113,7 @@ def set_limit_and_period(events, context):
             "Period": current_usage_plan_period}
 
 
-def https_status_code(response: dict, error_message: str) -> None:
+def assert_https_status_code_200(response: dict, error_message: str) -> None:
     if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
         raise ValueError(f'{error_message} Response is: {response}')
 
@@ -122,8 +122,8 @@ def get_deployment(gateway_id: str, deployment_id: str) -> dict:
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     client = boto3.client('apigateway', config=config)
     response = client.get_deployment(restApiId=gateway_id, deploymentId=deployment_id)
-    https_status_code(response, f'Failed to perform get_deployment with restApiId: {gateway_id} and '
-                                f'deploymentId: {deployment_id}')
+    assert_https_status_code_200(response, f'Failed to perform get_deployment with '
+                                           f'restApiId: {gateway_id} and deploymentId: {deployment_id}')
     return response
 
 
@@ -135,7 +135,7 @@ def get_deployments(gateway_id: str, limit: int = 25, position: str = '') -> dic
     else:
         response = client.get_deployments(restApiId=gateway_id, limit=limit, position=position)
 
-    https_status_code(response, f'Failed to perform get_deployments with restApiId: {gateway_id}')
+    assert_https_status_code_200(response, f'Failed to perform get_deployments with restApiId: {gateway_id}')
     return response
 
 
@@ -143,7 +143,8 @@ def get_stage(gateway_id: str, stage_name: str) -> dict:
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     client = boto3.client('apigateway', config=config)
     response = client.get_stage(restApiId=gateway_id, stageName=stage_name)
-    https_status_code(response, f'Failed to perform get_stage with restApiId: {gateway_id} and stageName: {stage_name}')
+    assert_https_status_code_200(response, f'Failed to perform get_stage with '
+                                           f'restApiId: {gateway_id} and stageName: {stage_name}')
     return response
 
 
@@ -218,8 +219,8 @@ def update_deployment(events: dict, context: dict) -> dict:
             },
         ]
     )
-    https_status_code(response, f'Failed to perform update_stage with restApiId: {gateway_id}, stageName: {stage_name} '
-                                f'and deploymentId: {deployment_id}')
+    assert_https_status_code_200(response, f'Failed to perform update_stage with restApiId: {gateway_id},'
+                                           f' stageName: {stage_name} and deploymentId: {deployment_id}')
 
     return {'DeploymentIdNewValue': response['deploymentId'],
             'StageName': response['stageName']}
