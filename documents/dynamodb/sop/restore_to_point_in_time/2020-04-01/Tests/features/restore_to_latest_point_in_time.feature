@@ -135,10 +135,8 @@ Feature: SSM automation document to restore the database from point in time.
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                                 | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+
     Then SSM automation document "Digito-RestoreToPointInTime_2020-04-01" execution in status "Success"
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And Wait for the SSM automation document "Digito-RestoreToPointInTime_2020-04-01" execution is on step "UpdateTargetDynamoDBTableStream" in status "Success" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds

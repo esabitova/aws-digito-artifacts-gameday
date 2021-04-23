@@ -116,37 +116,34 @@ mainSteps:
       TableName: "{{ DynamoDBTableSourceName }}"
     outputs:
       - Name: SourceStreamEnabled
-        Selector: "$.Table.StreamSpecification.StreamEnabled"
+        Selector: "$.Payload.StreamSpecification.StreamEnabled"
         Type: Boolean
       - Name: SourceStreamViewType
-        Selector: "$.Table.StreamSpecification.StreamViewType"
+        Selector: "$.Payload.StreamSpecification.StreamViewType"
         Type: String
-  - name: CheckIfStreamEnabled
-    action: aws:branch
-    inputs:
-      Choices:
-        - NextStep: UpdateTargetDynamoD
-        BTableStream
-          Variable: "{{GetSourceDynamoDBTableStream.SourceStreamEnabled}}"
-          BooleanEquals: true
-      Default: GetSourceDynamoDBTableKinesisDestination
   - name: UpdateTargetDynamoDBTableStream
-    action: aws:executeAwsApi
-    onFailure: Abort
+    action: aws:executeScript
+    outputs:
+      - Name: RecoveryPointDateTime
+        Selector: $.Payload.StreamEnabled
+        Type: Boolean
+      - Name: UseLatestRecoveryPoint
+        Selector: $.Payload.StreamViewType
+        Type: String
     inputs:
-      Service: dynamodb
-      Api: UpdateTable
-      TableName: "{{ DynamoDBTableTargetName }}"
-      StreamSpecification:
+      Runtime: python3.6
+      Handler: update_table_stream
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
         StreamEnabled: "{{ GetSourceDynamoDBTableStream.SourceStreamEnabled }}"
         StreamViewType: "{{ GetSourceDynamoDBTableStream.SourceStreamViewType }}"
-    outputs:
-      - Name: TableStreamEnabled
-        Selector: "$.Table.StreamSpecification.StreamEnabled"
-        Type: Boolean
-      - Name: TableStreamViewType
-        Selector: "$.Table.StreamSpecification.StreamViewType"
-        Type: String
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util.update_table_stream
+
   - name: WaitTableToBeActiveAfterSteamSet
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
