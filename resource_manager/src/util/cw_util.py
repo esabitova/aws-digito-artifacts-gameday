@@ -1,5 +1,6 @@
 import logging
 import time
+from datetime import datetime
 from resource_manager.src.util.enums.alarm_type import AlarmType
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from boto3 import Session
@@ -38,7 +39,7 @@ def __get_alarms_state(session: Session, alarm_name: str, alarm_type: AlarmType)
 
 
 def get_cw_metric_statistics(session: Session, start_time_utc, end_time_utc, metric_namespace: str,
-                             metric_name: str, metric_dimensions: {}, period: int, statistics: str, unit: str = None):
+                             metric_name: str, metric_dimensions: {}, period: int, statistics: [], unit: str = None):
     cw = client('cloudwatch', session)
 
     request = {
@@ -87,7 +88,7 @@ def get_ec2_metric_max_datapoint(session: Session, start_time_utc, end_time_utc,
 
 
 def wait_for_metric_data_point(session: Session, name: str, datapoint_threshold: float,
-                               operator: Operator, start_time_utc, end_time_utc, namespace, dimensions: [] = [],
+                               operator: Operator, namespace, start_time_utc, end_time_utc=None, dimensions: [] = [],
                                period: int = 60, time_out_secs: int = 600, sleep_time_sec: int = 20,
                                unit: str = 'Percent', statistics: [] = ["Maximum"]) -> float:
     """
@@ -108,13 +109,21 @@ def wait_for_metric_data_point(session: Session, name: str, datapoint_threshold:
     :param statistics: The metric statistics (default: ['Maximum'])
     :return: The desired metric data point
     """
+    m_dimensions = {}
+    for key, value in dimensions.items():
+        m_dimensions[key] = value
     elapsed_time_secs = 0
     while elapsed_time_secs < time_out_secs:
-        data_points = get_cw_metric_statistics(session, start_time_utc, end_time_utc,
-                                               namespace, name, dimensions, period, statistics, unit)
-        logging.info("[{}] metric for interval [{}::{}] data points: {}".format(name, str(start_time_utc),
-                                                                                str(end_time_utc), data_points))
-
+        end_time = end_time_utc if end_time_utc else datetime.utcnow()
+        data_points = get_cw_metric_statistics(session=session,
+                                               start_time_utc=start_time_utc,
+                                               end_time_utc=end_time,
+                                               metric_namespace=namespace,
+                                               metric_name=name,
+                                               metric_dimensions=m_dimensions,
+                                               period=period,
+                                               statistics=statistics,
+                                               unit=unit)
         for dp in data_points:
             dp_max = float(dp['Maximum'])
             if operator == Operator.MORE_OR_EQUAL and dp_max >= datapoint_threshold:
