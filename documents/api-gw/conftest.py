@@ -5,9 +5,6 @@ from resource_manager.src.util import apigw_util as apigw_util
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 
-cache_value_expression = 'cache value as "{cache_property}" "{step_key}" SSM automation execution' \
-                         '\n{input_parameters}'
-
 cache_current_stage_deployment_id_expression = 'cache current deployment id as "{cache_property}" "{step_key}" SSM ' \
                                                'automation execution' \
                                                '\n{input_parameters}'
@@ -36,15 +33,6 @@ def cache_apigw_property(resource_manager, ssm_test_cache, boto3_session, json_p
     response = apigw_client.get_usage_plan(usagePlanId=apigw_usage_plan_id)
     target_value = jsonpath_ng.parse(json_path).find(response)[0].value
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, target_value)
-
-
-@given(parsers.parse(cache_value_expression))
-@when(parsers.parse(cache_value_expression))
-def cache_value(resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
-    value = extract_param_value(
-        input_parameters, "Value", resource_manager, ssm_test_cache
-    )
-    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, value)
 
 
 @given(parsers.parse(create_dummy_deployment_expression))
