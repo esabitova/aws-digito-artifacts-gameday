@@ -99,3 +99,13 @@ def generate_and_cache_different_list_value_by_property_name(resource_manager, s
     old_value = extract_param_value(input_parameters, old_property, resource_manager, ssm_test_cache)
     cache_value = generate_different_value_from_list(input_list, old_value)
     put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, cache_value)
+
+
+def assert_https_status_code_200(response: dict, error_message: str) -> None:
+    if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
+        raise AssertionError(f'{error_message} Response is: {response}')
+
+
+def assert_https_status_code(code: int, response: dict, error_message: str) -> None:
+    if not response['ResponseMetadata']['HTTPStatusCode'] <= code:
+        raise AssertionError(f'{error_message} Response is: {response}')
