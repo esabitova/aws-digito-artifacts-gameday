@@ -49,6 +49,29 @@ def _register_scalable_target(table_name: str, dimension: str, min_cap: int, max
                                                       ResourceId=f'table/{table_name}'))
 
 
+def get_scaling_targets(events: dict, context: dict) -> dict:
+    """
+    Returns scalable targets
+    :param events: The dictionary that supposed to have the following keys:
+    * `TableName` - The table name
+    :return: The dictionary that contains a JSON dump of an array of objects
+    that contains attributes of scaling targets, namely
+    `ScalableDimension`, `Min` and `Max`
+    """
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+
+    table_name: str = events['TableName']
+    table_result = _describe_scalable_targets(table_name=table_name)
+
+    scaling_targets = [{"Dimension": x['ScalableDimension'], "Min":int(x["MinCapacity"]), "Max":int(x["MaxCapacity"])}
+                       for x in table_result.get('ScalableTargets', [])]
+
+    return {
+        "ScalingTargets": json.dumps(scaling_targets)
+    }
+
+
 def register_scaling_targets(events: dict, context: dict) -> dict:
     """
     Returns scalable targets
@@ -66,11 +89,12 @@ def register_scaling_targets(events: dict, context: dict) -> dict:
         raise KeyError('Requires ScalingTargets')
 
     table_name: str = events['TableName']
-    scaling_targets = events['ScalingTargets']
+    scaling_targets = json.loads(events['ScalingTargets'])
     for target in scaling_targets:
         _register_scalable_target(table_name=table_name,
-                                  dimension=target['ScalableDimension'],
-                                  min_cap=target["MinCapacity"],
-                                  max_cap=target["MaxCapacity"])
+                                  dimension=target['Dimension'],
+                                  min_cap=target["Min"],
+                                  max_cap=target["Max"])
 
-    return _describe_scalable_targets(table_name=table_name)['ScalableTargets']
+    return get_scaling_targets(events=events,
+                               context=context)

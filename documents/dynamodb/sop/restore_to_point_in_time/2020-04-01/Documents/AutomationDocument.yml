@@ -332,17 +332,23 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_contributor_insights_settings
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_contributor_insights_settings
   - name: GetScalingTargets
-    action: aws:executeAwsApi
-    inputs:
-      Service: application-autoscaling
-      Api: DescribeScalableTargets
-      ResourceIds: 
-        - "table/{{ DynamoDBTableSourceName }}"
-      ServiceNamespace: dynamodb
+    action: aws:executeScript
     outputs:
       - Name: SourceScalingTargets
-        Selector: "$.ScalableTargets"
-        Type: MapList
+        Selector: $.Payload.ScalingTargets
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_scaling_targets
+      InputPayload:
+        TableName: "{{ DynamoDBTableSourceName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::auto_scaling_util.imports
+
+        SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
+        SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
+        SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
+
   - name: RegisterScalingTargets
     action: aws:executeScript
     outputs:
@@ -361,6 +367,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
         SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
+        SCRIPT_PLACEHOLDER::auto_scaling_util.get_scaling_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.register_scaling_targets
   - name: SwitchAlarmsToTargetTable
     action: aws:executeScript
