@@ -283,17 +283,46 @@ def update_resource_tags(events: dict, context: dict) -> dict:
     * `Tags` - The dump of JSON-like list of tags
     :return: The dictionary that contains a dump of JSON-like list of tags of the updated table
     """
-    if 'TableNameArn' not in events:
-        raise KeyError('Requires TableNameArn')
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Region' not in events:
+        raise KeyError('Requires Region')
+    if 'Account' not in events:
+        raise KeyError('Requires Account')
     if 'Tags' not in events:
         raise KeyError('Requires Tags')
 
-    table_arn = events['TableNameArn']
-    tags = events['Tags']
-    _update_tags(resource_arn=table_arn, tags=tags)
+    table_name = events['TableName']
+    region = events['Region']
+    account = events['Account']
+    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{table_name}'
+    tags = json.loads(events['Tags'])
+    _update_tags(resource_arn=resource_arn, tags=tags)
+
+    result = list_resource_tags(events=events,
+                                context=context)
 
     return {
-        "Tags": _list_tags(resource_arn=table_arn)['Tags']
+        "Tags": json.dumps(result['Tags'])
+    }
+
+
+def list_resource_tags(events: dict, context: dict) -> dict:
+    if 'TableName' not in events:
+        raise KeyError('Requires TableName')
+    if 'Region' not in events:
+        raise KeyError('Requires Region')
+    if 'Account' not in events:
+        raise KeyError('Requires Account')
+
+    table_name = events['TableName']
+    region = events['Region']
+    account = events['Account']
+    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{table_name}'
+    result = _list_tags(resource_arn=resource_arn)
+
+    return {
+        "Tags": json.dumps(result['Tags'])
     }
 
 

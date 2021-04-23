@@ -5,6 +5,7 @@ from parameterized import parameterized
 
 import pytest
 from documents.util.scripts.src.auto_scaling_util import (
+    _describe_scalable_targets,
     _execute_boto3_auto_scaling,
     _register_scalable_target,
     register_scaling_targets)
@@ -47,6 +48,8 @@ class TestAutoScalingUtil(unittest.TestCase):
         }
         self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
 
+        self.application_autoscaling_client_mock.describe_scalable_targets.return_value = \
+            DESCRIBE_SCALABLE_TARGETS_RESPONSE
         self.application_autoscaling_client_mock.register_scalable_target.return_value = \
             DESCRIBE_SCALABLE_TARGETS_RESPONSE
 
@@ -64,6 +67,16 @@ class TestAutoScalingUtil(unittest.TestCase):
     def test_register_scaling_targets_raises_exception(self, events):
         with self.assertRaises(KeyError):
             register_scaling_targets(events=events, context={})
+
+    def test__describe_scalable_targets(self):
+
+        result = _describe_scalable_targets(table_name='my_table')
+
+        self.application_autoscaling_client_mock\
+            .describe_scalable_targets\
+            .assert_called_with(ServiceNamespace='dynamodb',
+                                ResourceIds=['table/my_table'])
+        self.assertEquals(result, DESCRIBE_SCALABLE_TARGETS_RESPONSE)
 
     def test__register_scalable_target(self):
 
@@ -83,15 +96,19 @@ class TestAutoScalingUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.auto_scaling_util._register_scalable_target',
            return_value={})
-    def test_register_scaling_targets(self, register_mock):
+    @patch('documents.util.scripts.src.auto_scaling_util._describe_scalable_targets',
+           return_value=DESCRIBE_SCALABLE_TARGETS_RESPONSE)
+    def test_register_scaling_targets(self, describe_mock, register_mock):
         events = {
             "TableName": "my_table",
-            "ScalableTargets":
+            "ScalingTargets":
             DESCRIBE_SCALABLE_TARGETS_RESPONSE['ScalableTargets']
         }
-        register_scaling_targets(events=events, context={})
+        result = register_scaling_targets(events=events, context={})
 
+        self.assertEqual(result, DESCRIBE_SCALABLE_TARGETS_RESPONSE['ScalableTargets'])
         register_mock.assert_called_with(table_name='my_table',
                                          dimension='dimension',
                                          max_cap=5,
                                          min_cap=1)
+        describe_mock.assert_called_with(table_name='my_table')

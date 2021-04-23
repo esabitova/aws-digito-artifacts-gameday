@@ -1,6 +1,6 @@
 
 import logging
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 import boto3
 
@@ -20,6 +20,17 @@ def _execute_boto3_auto_scaling(delegate: Callable[[Any], dict]) -> dict:
     return description
 
 
+def _describe_scalable_targets(table_name: str) -> dict:
+    """
+    Describes scalable targets
+    :param table_name: The table name
+    :return: The response of AWS API
+    """
+    return _execute_boto3_auto_scaling(
+        delegate=lambda x: x.describe_scalable_targets(ServiceNamespace='dynamodb',
+                                                       ResourceIds=[f'table/{table_name}']))
+
+
 def _register_scalable_target(table_name: str, dimension: str, min_cap: int, max_cap: int) -> dict:
     """
     Describes scalable targets
@@ -37,7 +48,7 @@ def _register_scalable_target(table_name: str, dimension: str, min_cap: int, max
                                                       ResourceId=f'table/{table_name}'))
 
 
-def register_scaling_targets(events: dict, context: dict) -> Union[dict, None]:
+def register_scaling_targets(events: dict, context: dict) -> dict:
     """
     Returns scalable targets
     :param events: The dictionary that supposed to have the following keys:
@@ -50,13 +61,15 @@ def register_scaling_targets(events: dict, context: dict) -> Union[dict, None]:
     """
     if 'TableName' not in events:
         raise KeyError('Requires TableName')
-    if 'ScalableTargets' not in events:
-        raise KeyError('Requires ScalableTargets')
+    if 'ScalingTargets' not in events:
+        raise KeyError('Requires ScalingTargets')
 
     table_name: str = events['TableName']
-    scaling_targets = events.get('ScalableTargets', [])
+    scaling_targets = events['ScalingTargets']
     for target in scaling_targets:
         _register_scalable_target(table_name=table_name,
                                   dimension=target['ScalableDimension'],
                                   min_cap=target["MinCapacity"],
                                   max_cap=target["MaxCapacity"])
+
+    return _describe_scalable_targets(table_name=table_name)['ScalableTargets']
