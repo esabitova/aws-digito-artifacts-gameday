@@ -1,0 +1,14 @@
+{
+  "displayName": "SOP - Switch Alias of Lambda functions to another version",
+  "description": "Switch Alias of Lambda functions to another version",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-LambdaSwitchLambdaVersionInAlias_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Switch Alias of Lambda functions to another version",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "lambda:sop:lambda_switch_lambda_version_in_alias:2020-10-26"
+}

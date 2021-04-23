@@ -62,6 +62,10 @@ def pytest_addoption(parser):
                      help="Flag to run integration tests in distributed mode "
                           "(multi session/machines targeting same AWS account). "
                           "NOTE: Flag should be used only for CI/CD pipeline, not for personal usage.")
+    parser.addoption("--target_service",
+                     action="store",
+                     help="If specified, style validator would be run only against documents for this service. "
+                          "The default behavior being that it would be run for all existing services")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -127,6 +131,11 @@ def pytest_sessionfinish(session, exitstatus):
             # NOTE: We don't want to call this when running tests on multiple machines (sessions). Since resources
             # may still be in use by other machines (sessions).
             rm.destroy_all_resources()
+
+
+@pytest.fixture(scope='session')
+def target_service(request):
+    return request.config.option.target_service
 
 
 @pytest.fixture(scope='session')

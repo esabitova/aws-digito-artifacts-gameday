@@ -10,10 +10,15 @@ import publisher.src.document_metadata_attrs as metadata_attrs
 import boto3
 
 
+@pytest.mark.style_validator
 class TestPublishDocuments(unittest.TestCase):
+    target_service = ""
+
+    @pytest.fixture(autouse=True)
+    def __get_service_fixture(self, target_service):
+        self.target_service = target_service
 
     @pytest.mark.metadata_validator
-    @pytest.mark.style_validator
     def test_validate_metadata_files(self):
         pd = PublishDocuments(boto3.Session())
         meta_attrs_map = metadata_attrs.metadata_attrs_map
@@ -29,6 +34,8 @@ class TestPublishDocuments(unittest.TestCase):
                     with open(os.path.join(root, f)) as metadata_file:
                         document_metadata = json.load(metadata_file)
                         file_path = os.path.join(root, f)
+                        if not self.__file_in_target_service(file_path):
+                            continue
                         violations = []
                         if '/alarm/' in file_path:
                             violations = pd.get_metadata_violations(document_metadata, file_path,
@@ -46,7 +53,6 @@ class TestPublishDocuments(unittest.TestCase):
         if len(fail_messages) > 0:
             raise Exception("Detected [{}] metadata.json structural violations.".format(len(fail_messages)))
 
-    @pytest.mark.style_validator
     @pytest.mark.ssm_document_validator
     def test_validate_automation_document(self):
         existing_services = ['rds', 'compute', 'sqs', 'docdb', 'lambda', 's3', 'nat-gw']
@@ -63,6 +69,8 @@ class TestPublishDocuments(unittest.TestCase):
                 if f == 'AutomationDocument.yml':
                     with open(os.path.join(root, f)) as automation_file:
                         file_path = os.path.join(root, f)
+                        if not self.__file_in_target_service(file_path):
+                            continue
                         automation_document = yaml.safe_load(automation_file)
                         service = file_path.split('/')[1]
                         violations = document_validator.validate_document(automation_document, file_path)
@@ -70,6 +78,7 @@ class TestPublishDocuments(unittest.TestCase):
                             warn_messages.extend(violations)
                         else:
                             fail_messages.extend(violations)
+
         logging.info("Detected [{}] WARN and [{}] ERROR structural violations"
                      .format(len(warn_messages), len(fail_messages)))
         for msg in warn_messages:
@@ -78,3 +87,6 @@ class TestPublishDocuments(unittest.TestCase):
             logging.error(msg)
         if len(fail_messages) > 0:
             raise Exception("Detected [{}] ERROR structural violations.".format(len(fail_messages)))
+
+    def __file_in_target_service(self, file_path):
+        return (not self.target_service) or '/' + self.target_service + '/' in file_path

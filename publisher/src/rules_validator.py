@@ -52,7 +52,10 @@ class RulesValidator(ABC):
                 violations.append('Parameter [{}] is missing a type in [{}].'.format(param, file_path))
             elif param_value.get("type") == 'SecureString':
                 violations.append('Parameter [{}] uses disallowed type SecureString in [{}].'.format(param, file_path))
-            # TODO some more syntax checks need to be implemented
+
+            if 'default' in param_value and str(param_value.get('default')).startswith('ssm:{{'):
+                violations.append('Default value for parameter [{}] is trying to built on another parameter in [{}].'
+                                  .format(param, file_path))
 
     def _validate_required_params(self, document, file_path, violations):
         document_params = document.get('parameters')
@@ -110,3 +113,10 @@ class RulesValidator(ABC):
 
     def _get_step_names(self, document):
         return list(map(lambda s: s.get('name'), document.get('mainSteps')))
+
+    def _get_steps(self, document, target_step_names):
+        doc_steps = document.get('mainSteps')
+        matching_steps = []
+        for step in target_step_names:
+            matching_steps.extend([s for s in doc_steps if re.fullmatch(step, s.get('name')) is not None])
+        return matching_steps
