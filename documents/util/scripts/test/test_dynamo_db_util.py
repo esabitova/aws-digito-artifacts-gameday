@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, call, patch
 from parameterized import parameterized
 
 import pytest
-from documents.util.scripts.src.dynamo_db_util import (_execute_boto3_dynamodb,
+from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _execute_boto3_dynamodb,
                                                        _describe_contributor_insights,
                                                        _describe_kinesis_destinations,
                                                        _describe_table,
@@ -27,7 +27,7 @@ from documents.util.scripts.src.dynamo_db_util import (_execute_boto3_dynamodb,
                                                        copy_contributor_insights_settings,
                                                        _update_contributor_insights,
                                                        _update_time_to_live,
-                                                       update_time_to_live,
+                                                       copy_time_to_live,
                                                        wait_replication_status_in_all_regions)
 
 
@@ -219,6 +219,13 @@ UPDATE_TTL_RESPONSE = {
         'AttributeName': 'End_Date'
     }
 }
+DESCRIBE_TTL_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "TimeToLiveDescription": {
+        "TimeToLiveStatus": "ENABLED",
+        "AttributeName": "End_Date"
+    }
+}
 
 
 @pytest.mark.unit_test
@@ -238,6 +245,7 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
         self.dynamodb_client_mock.tag_resource.return_value = TAG_RESOURCE_RESPONCE
         self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONCE
+        self.dynamodb_client_mock.describe_time_to_live.return_value = DESCRIBE_TTL_RESPONSE
         self.dynamodb_client_mock.describe_contributor_insights.return_value = \
             DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
         self.dynamodb_client_mock.update_contributor_insights.return_value = \
@@ -281,27 +289,27 @@ class TestDynamoDbUtil(unittest.TestCase):
         with self.assertRaises(ValueError):
             _execute_boto3_dynamodb(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-    @parameterized.expand([{'events': {}}])
-    def test_get_global_table_active_regions_raises_exception(self, events):
+    @parameterized.expand([({}, {})])
+    def test_get_global_table_active_regions_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
             get_global_table_active_regions(events=events, context={})
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}}
+        ({}, {}),
+        ({'TableName': 'my_table'}, {})
     ])
-    def test_set_up_replication_raises_exception(self, events):
+    def test_set_up_replication_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            set_up_replication(events=events, context={})
+            set_up_replication(events=events, context=context)
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}},
-        {'events': {'TableName': 'my_table', 'ReplicasRegionsToWait': 'somevalue'}}
+        ({}, {}),
+        ({'TableName': 'my_table'}, {}),
+        ({'TableName': 'my_table', 'ReplicasRegionsToWait': 'somevalue'}, {})
     ])
-    def test_wait_replication_status_in_all_regions_raises_exception(self, events):
+    def test_wait_replication_status_in_all_regions_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            wait_replication_status_in_all_regions(events=events, context={})
+            wait_replication_status_in_all_regions(events=events, context=context)
 
     def test_wait_replication_status_in_all_regions_raises_timeout(self):
         events = {
@@ -313,60 +321,59 @@ class TestDynamoDbUtil(unittest.TestCase):
             wait_replication_status_in_all_regions(events=events, context={})
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'SourceTableName': 'my_table'}}
+        ({}, {}),
+        ({'SourceTableName': 'my_table'}, {})
     ])
-    def test_copy_contributor_insights_settings_raises_exception(self, events):
+    def test_copy_contributor_insights_settings_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            copy_contributor_insights_settings(events=events, context={})
+            copy_contributor_insights_settings(events=events, context=context)
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'SourceTableName': 'my_table'}},
-        {'events': {'SourceTableName': 'my_table', 'Region': 'Region'}},
-        {'events': {'SourceTableName': 'my_table', 'Region': 'Region', 'Account': 'Account'}}
+        ({}, {}),
+        ({'SourceTableName': 'my_table'}, {}),
+        ({'SourceTableName': 'my_table', 'TargetTableName': 'my_table'}, {}),
+        ({'SourceTableName': 'my_table', 'TargetTableName': 'my_table', 'Region': 'Region'}, {})
     ])
-    def test_update_resource_tags_raises_exception(self, events):
+    def test_update_resource_tags_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            copy_resource_tags(events=events, context={})
+            copy_resource_tags(events=events, context=context)
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}},
-        {'events': {'TableName': 'my_table', 'Status': 'ENABLED'}}
+        ({}, {}),
+        ({'SourceTableName': 'my_table'}, {})
     ])
-    def test_update_time_to_live_raises_exception(self, events):
+    def test_copy_time_to_live_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            update_time_to_live(events=events, context={})
+            copy_time_to_live(events=events, context=context)
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}}
+        ({}, {}),
+        ({'TableName': 'my_table'}, {})
     ])
-    def test_add_kinesis_destinations_raises_exception(self, events):
+    def test_add_kinesis_destinations_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            add_kinesis_destinations(events=events, context={})
+            add_kinesis_destinations(events=events, context=context)
 
     @parameterized.expand([
-        {'events': {}}
+        ({}, {})
     ])
-    def test_get_active_kinesis_destinations_raises_exception(self, events):
+    def test_get_active_kinesis_destinations_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            get_active_kinesis_destinations(events=events, context={})
+            get_active_kinesis_destinations(events=events, context=context)
 
     @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}},
-        {'events': {'TableName': 'my_table', 'StreamEnabled': 'StreamEnabled'}}
+        ({}, {}),
+        ({'TableName': 'my_table'}, {}),
+        ({'TableName': 'my_table', 'StreamEnabled': 'StreamEnabled'}, {})
     ])
-    def test_update_table_stream_raises_exception(self, events):
+    def test_update_table_stream_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            update_table_stream(events=events, context={})
+            update_table_stream(events=events, context=context)
 
-    @parameterized.expand([{'events': {}}])
-    def test_parse_recovery_date_time_raises_exception(self, events):
+    @parameterized.expand([({}, {})])
+    def test_parse_recovery_date_time_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            parse_recovery_date_time(events=events, context={})
+            parse_recovery_date_time(events=events, context=context)
 
     def test__parse_recovery_date_time_correct_format_success(self):
         date_time_str = '2021-01-01T15:00:00+0400'
@@ -393,6 +400,11 @@ class TestDynamoDbUtil(unittest.TestCase):
                                   format="%Y-%m-%dT%H:%M:%S%z")
 
         self.assertIsNone(result)
+
+    def test__describe_time_to_live(self):
+        result = _describe_time_to_live(table_name='my_table')
+
+        self.assertEqual(result, DESCRIBE_TTL_RESPONSE)
 
     @patch('documents.util.scripts.src.dynamo_db_util._describe_table',
            return_value=DESCRIBE_TABLE_RESPONCE)
@@ -601,39 +613,32 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.dynamo_db_util._update_time_to_live',
            return_value=UPDATE_TTL_RESPONSE)
-    def test_update_time_to_live_enable(self, ttl_mock):
+    @patch('documents.util.scripts.src.dynamo_db_util._describe_time_to_live',
+           return_value=DESCRIBE_TTL_RESPONSE)
+    def test_copy_time_to_live_enable(self, describe_mock, update_mock):
 
-        result = update_time_to_live(events={
-            "TableName": "my_table",
-            "Status": "ENABLED",
-            "AttributeName": "End_Date"
+        result = copy_time_to_live(events={
+            "SourceTableName": "my_table",
+            "TargetTableName": "my_table_target",
         }, context={})
 
-        self.assertEqual(result, UPDATE_TTL_RESPONSE)
-        ttl_mock.assert_called_with(table_name='my_table', is_enabled=True, attribute_name='End_Date')
-
-    def test_update_time_to_live_disabled(self):
-
-        result = update_time_to_live(events={
-            "TableName": "my_table",
-            "Status": "DISABLED",
-            "AttributeName": "End_Date"
-        }, context={})
-
-        self.assertEqual(result, {"Enabled": False})
+        self.assertEqual(result, {'TTLAttribute': 'End_Date', 'TTLCopied': True})
+        describe_mock.assert_called_with(table_name='my_table')
+        update_mock.assert_called_with(table_name='my_table_target', is_enabled=True, attribute_name='End_Date')
 
     @patch('documents.util.scripts.src.dynamo_db_util._update_time_to_live',
            return_value=UPDATE_TTL_RESPONSE)
-    def test_update_time_to_live_not_called(self, ttl_mock):
+    @patch('documents.util.scripts.src.dynamo_db_util._describe_time_to_live',
+           return_value={"TimeToLiveDescription": {}})
+    def test_copy_time_to_live_disabled(self, describe_mock, update_mock: MagicMock):
 
-        result = update_time_to_live(events={
-            "TableName": "my_table",
-            "Status": "ENABLED",
-            "AttributeName": "End_Date"
+        result = copy_time_to_live(events={
+            "SourceTableName": "my_table",
+            "TargetTableName": "my_table_target",
         }, context={})
 
-        self.assertEqual(result, UPDATE_TTL_RESPONSE)
-        ttl_mock.is_not_called()
+        self.assertEqual(result, {'TTLAttribute': '', 'TTLCopied': False})
+        update_mock.assert_not_called()
 
     def test__list_tags(self):
 

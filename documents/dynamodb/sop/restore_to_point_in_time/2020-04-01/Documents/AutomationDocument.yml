@@ -206,28 +206,28 @@ mainSteps:
       - Name: SourceTableAttributeName
         Selector: "$.Payload.TimeToLiveDescription.AttributeName"
         Type: String
-  - name: UpdateTargetDynamoDBTableTimeToLive
+  - name: CopyDynamoDBTableTimeToLive
     action: aws:executeScript
     outputs:
-      - Name: TargetTimeToLiveEnabled
-        Selector: $.Payload.Enabled
+      - Name: TargetTTLCopied
+        Selector: $.Payload.TTLCopied
         Type: Boolean
-      - Name: TargetTimeToLiveAttributeName
-        Selector: $.Payload.AttributeName
+      - Name: TargetTTLAttribute
+        Selector: $.Payload.TTLAttribute
         Type: String
     inputs:
       Runtime: python3.6
-      Handler: update_time_to_live
+      Handler: copy_time_to_live
       InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        Status: "{{ GetSourceDynamoDBTableTimeToLive.SourceTableTimeToLiveStatus }}"
-        AttributeName: "{{ GetSourceDynamoDBTableTimeToLive.SourceTableAttributeName }}"
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_time_to_live
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
-        SCRIPT_PLACEHOLDER::dynamo_db_util.update_time_to_live
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_time_to_live
   - name: CopyDynamoDBTableTags
     action: aws:executeScript
     outputs:

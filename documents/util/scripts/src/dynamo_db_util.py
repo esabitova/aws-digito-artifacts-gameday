@@ -52,6 +52,11 @@ def _enable_kinesis_destinations(table_name: str, kds_arn: str) -> dict:
                                                                   StreamArn=kds_arn))
 
 
+def _describe_time_to_live(table_name: str) -> dict:
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.describe_time_to_live(TableName=table_name))
+
+
 def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str) -> dict:
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_time_to_live(TableName=table_name,
@@ -278,35 +283,39 @@ def copy_resource_tags(events: dict, context: dict) -> dict:
     }
 
 
-def update_time_to_live(events: dict, context: dict) -> dict:
+def copy_time_to_live(events: dict, context: dict) -> dict:
     """
     Updates TTL for the given table. Enables TTL is the provided `Status` equals to `ENABLED`
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `Status` - The status of TTL
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The targe table name
     :return: The dictionary that contains repose of TTL update AWS API
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'Status' not in events:
-        raise KeyError('Requires Status')
-    is_enabled = events['Status'] == 'ENABLED'
-    if not is_enabled:
-        return{
-            "Enabled": False,
-        }
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
 
-    if is_enabled and 'AttributeName' not in events:
-        raise KeyError('Requires AttributeName when status is ENABLED')
+    source_table_name = events['SourceTableName']
+    target_table_name = events['TargetTableName']
+    ttl_description = _describe_time_to_live(table_name=source_table_name)
+    is_enabled = ttl_description\
+        .get('TimeToLiveDescription', {})\
+        .get('TimeToLiveStatus', '') == 'ENABLED'
+    attribute_name = ttl_description\
+        .get('TimeToLiveDescription', {})\
+        .get('AttributeName', '')
 
-    table_name = events['TableName']
-    attribute_name = events.get('AttributeName', '')
-    logging.debug(f'table:{table_name};kinesis is_enabled: {is_enabled};')
-    result = _update_time_to_live(table_name=table_name,
-                                  is_enabled=is_enabled,
-                                  attribute_name=attribute_name)
+    logging.debug(f'table:{target_table_name};TTL is enabled: {is_enabled};')
+    if is_enabled:
+        _update_time_to_live(table_name=target_table_name,
+                             is_enabled=is_enabled,
+                             attribute_name=attribute_name)
 
-    return {**result}
+    return {
+        'TTLCopied': is_enabled,
+        'TTLAttribute': attribute_name
+    }
 
 
 def add_kinesis_destinations(events: dict, context: dict) -> dict:

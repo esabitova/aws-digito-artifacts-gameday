@@ -58,10 +58,10 @@ class TestAutoScalingUtil(unittest.TestCase):
         with self.assertRaises(ValueError):
             _execute_boto3_auto_scaling(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-    @parameterized.expand([{'events': {}}, {'events': {'SourceTableName': 'my_table'}}])
-    def test_copy_scaling_targets_raises_exception(self, events):
+    @parameterized.expand([({}, {}), ({'SourceTableName': 'my_table'}, {})])
+    def test_copy_scaling_targets_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            copy_scaling_targets(events=events, context={})
+            copy_scaling_targets(events=events, context=context)
 
     def test__describe_scalable_targets(self):
 
