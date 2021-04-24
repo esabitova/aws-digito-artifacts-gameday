@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 import re
-from datetime import timedelta, datetime
+from datetime import datetime
 import random
 import string
 import boto3
@@ -306,6 +306,10 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
     parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
     execution_id = ssm_document.execute(ssm_document_name, parameters)
 
+    _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache)
+    return execution_id
+
+def _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache):
     # Caching automation execution ids to be able to use them in test as parameter references in data tables
     # |ExecutionId               | <- parameters name can be anything
     # |{{cache:SsmExecutionId>1}}| <- cache execution id reference. Number '1' refers to sequence of executions in test.
@@ -317,8 +321,6 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
         sequence_number = str(len(cached_execution) + 1)
         cached_execution[sequence_number] = execution_id
         ssm_test_cache[exec_cache_key] = cached_execution
-    return execution_id
-
 
 @given(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
              '\n{input_parameters}'))
@@ -399,14 +401,6 @@ def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ss
     ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
 
 
-@when(parse('SSM automation document "{ssm_document_name}" executed with rollback\n{ssm_input_parameters}'))
-def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_cache, cfn_output_params, ssm_document):
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
-    execution_id = ssm_document.execute(ssm_document_name, parameters)
-    ssm_test_cache['SsmRollbackExecutionId'] = execution_id
-    return execution_id
-
-
 @given(parse('sleep for "{seconds}" seconds'))
 @when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
@@ -445,8 +439,7 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
     metric_period = int(input_param_row.pop('MetricPeriod'))
 
     exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
-    # We need to include metric period to metric start time to have latest metrics
-    exec_start = exec_start + timedelta(seconds=metric_period)
+
     act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
                                             metric_namespace, metric_name, input_param_row, metric_period)
     if operator == 'greaterOrEqual':
@@ -508,6 +501,15 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
     param_value = parse_param_value(value, {'cache': ssm_test_cache})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
+
+
+@then(parse('cache rollback execution id\n{input_parameters}'))
+def cache_rollback_execution_id(ssm_document, ssm_test_cache, input_parameters):
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    _put_ssm_execution_id_in_test_cache(ssm_document.get_step_output(
+        ssm_execution_id, 'TriggerRollback', 'RollbackExecutionId'), ssm_test_cache)
 
 
 @when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))

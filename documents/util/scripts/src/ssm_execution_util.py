@@ -136,3 +136,27 @@ def get_inputs_from_ssm_execution(events, context):
         output[parameter] = response_parameters[parameter]
 
     return output
+
+
+def start_rollback_execution(events, context):
+    output = {}
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ssm = boto3.client('ssm', config=config)
+
+    if 'ExecutionId' not in events or not events['ExecutionId']:
+        raise KeyError('Requires not empty ExecutionId')
+
+    response = ssm.get_automation_execution(AutomationExecutionId=events['ExecutionId'])
+
+    # Get parameters for current execution and add IsRollback and PreviousExecutionId
+    response_parameters = response['AutomationExecution']['Parameters']
+    response_parameters['IsRollback'] = ['true']
+    response_parameters['PreviousExecutionId'] = [events['ExecutionId']]
+
+    rollback_execution_response = ssm.start_automation_execution(
+        DocumentName=response['AutomationExecution']['DocumentName'],
+        DocumentVersion=response['AutomationExecution']['DocumentVersion'],
+        Parameters=response_parameters
+    )
+    output['RollbackExecutionId'] = rollback_execution_response['AutomationExecutionId']
+    return output

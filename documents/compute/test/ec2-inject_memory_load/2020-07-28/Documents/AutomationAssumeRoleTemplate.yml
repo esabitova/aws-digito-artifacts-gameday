@@ -50,6 +50,8 @@ Resources:
               - 'ssm:DescribeInstanceInformation'
               - 'ssm:GetAutomationExecution'
               - 'ssm:CancelCommand'
+              - 'ssm:StartAutomationExecution'
+              - 'cloudwatch:DescribeAlarmHistory'
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
               - 'iam:PassRole'
