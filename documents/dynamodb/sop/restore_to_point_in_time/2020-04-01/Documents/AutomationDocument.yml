@@ -192,20 +192,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._enable_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
-  - name: GetSourceDynamoDBTableTimeToLive
-    action: aws:executeAwsApi
-    onFailure: Abort
-    inputs:
-      Service: dynamodb
-      Api: DescribeTimeToLive
-      TableName: "{{ DynamoDBTableSourceName }}"
-    outputs:
-      - Name: SourceTableTimeToLiveStatus
-        Selector: "$.Payload.TimeToLiveDescription.TimeToLiveStatus"
-        Type: String
-      - Name: SourceTableAttributeName
-        Selector: "$.Payload.TimeToLiveDescription.AttributeName"
-        Type: String
   - name: CopyDynamoDBTableTimeToLive
     action: aws:executeScript
     outputs:
