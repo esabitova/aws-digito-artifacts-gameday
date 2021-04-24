@@ -13,7 +13,7 @@ from documents.util.scripts.src.dynamo_db_util import (_execute_boto3_dynamodb,
                                                        _get_global_table_all_regions,
                                                        _parse_date_time,
                                                        get_active_kinesis_destinations,
-                                                       get_global_secondary_indexes,
+                                                       _get_global_secondary_indexes,
                                                        get_global_table_active_regions,
                                                        parse_recovery_date_time,
                                                        set_up_replication,
@@ -24,9 +24,8 @@ from documents.util.scripts.src.dynamo_db_util import (_execute_boto3_dynamodb,
                                                        _update_tags,
                                                        _list_tags,
                                                        copy_resource_tags,
-                                                       get_contributor_insights_settings,
+                                                       copy_contributor_insights_settings,
                                                        _update_contributor_insights,
-                                                       update_contributor_insights_settings,
                                                        _update_time_to_live,
                                                        update_time_to_live,
                                                        wait_replication_status_in_all_regions)
@@ -279,12 +278,12 @@ class TestDynamoDbUtil(unittest.TestCase):
             return DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
 
     def test__execute_boto3_dynamodb_raises_exception(self):
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValueError):
             _execute_boto3_dynamodb(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
     @parameterized.expand([{'events': {}}])
     def test_get_global_table_active_regions_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             get_global_table_active_regions(events=events, context={})
 
     @parameterized.expand([
@@ -292,7 +291,7 @@ class TestDynamoDbUtil(unittest.TestCase):
         {'events': {'TableName': 'my_table'}}
     ])
     def test_set_up_replication_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             set_up_replication(events=events, context={})
 
     @parameterized.expand([
@@ -315,27 +314,11 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @parameterized.expand([
         {'events': {}},
-        {'events': {'TableName': 'my_table'}},
-        {'events': {'TableName': 'my_table', 'TableContributorInsightsStatus': 'somevalue'}}
+        {'events': {'SourceTableName': 'my_table'}}
     ])
-    def test_update_contributor_insights_settings_raises_exception(self, events):
-        with self.assertRaises(Exception):
-            update_contributor_insights_settings(events=events, context={})
-
-    @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}}
-    ])
-    def test_get_contributor_insights_settings_raises_exception(self, events):
-        with self.assertRaises(Exception):
-            get_contributor_insights_settings(events=events, context={})
-
-    @parameterized.expand([
-        {'events': {}}
-    ])
-    def test_get_global_secondary_indexes_raises_exception(self, events):
-        with self.assertRaises(Exception):
-            get_global_secondary_indexes(events=events, context={})
+    def test_copy_contributor_insights_settings_raises_exception(self, events):
+        with self.assertRaises(KeyError):
+            copy_contributor_insights_settings(events=events, context={})
 
     @parameterized.expand([
         {'events': {}},
@@ -344,7 +327,7 @@ class TestDynamoDbUtil(unittest.TestCase):
         {'events': {'SourceTableName': 'my_table', 'Region': 'Region', 'Account': 'Account'}}
     ])
     def test_update_resource_tags_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             copy_resource_tags(events=events, context={})
 
     @parameterized.expand([
@@ -353,7 +336,7 @@ class TestDynamoDbUtil(unittest.TestCase):
         {'events': {'TableName': 'my_table', 'Status': 'ENABLED'}}
     ])
     def test_update_time_to_live_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             update_time_to_live(events=events, context={})
 
     @parameterized.expand([
@@ -361,14 +344,14 @@ class TestDynamoDbUtil(unittest.TestCase):
         {'events': {'TableName': 'my_table'}}
     ])
     def test_add_kinesis_destinations_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             add_kinesis_destinations(events=events, context={})
 
     @parameterized.expand([
         {'events': {}}
     ])
     def test_get_active_kinesis_destinations_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             get_active_kinesis_destinations(events=events, context={})
 
     @parameterized.expand([
@@ -377,12 +360,12 @@ class TestDynamoDbUtil(unittest.TestCase):
         {'events': {'TableName': 'my_table', 'StreamEnabled': 'StreamEnabled'}}
     ])
     def test_update_table_stream_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             update_table_stream(events=events, context={})
 
     @parameterized.expand([{'events': {}}])
     def test_parse_recovery_date_time_raises_exception(self, events):
-        with self.assertRaises(Exception):
+        with self.assertRaises(KeyError):
             parse_recovery_date_time(events=events, context={})
 
     def test__parse_recovery_date_time_correct_format_success(self):
@@ -690,13 +673,10 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.dynamo_db_util._describe_table',
            return_value=DESCRIBE_TABLE_RESPONCE)
-    def test_get_global_secondary_indexes(self, describe_mock):
-        events = {
-            "TableName": "my_table"
-        }
-        result = get_global_secondary_indexes(events=events, context={})
+    def test__get_global_secondary_indexes(self, describe_mock):
+        result = _get_global_secondary_indexes(table_name="my_table")
 
-        self.assertEqual(result['Indexes'], ['Partition_key-index', 'another-fkey-index'])
+        self.assertEqual(result, ['Partition_key-index', 'another-fkey-index'])
         describe_mock.assert_called_with(table_name='my_table')
 
     def test__describe_contributor_insights_for_table(self):
@@ -721,16 +701,30 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.dynamo_db_util._describe_contributor_insights',
            new_callable=lambda: TestDynamoDbUtil.describe_contributor_mock)
-    def test_get_contributor_insights_settings(self, describe_mock):
+    @patch('documents.util.scripts.src.dynamo_db_util._update_contributor_insights',
+           return_value={})
+    @patch('documents.util.scripts.src.dynamo_db_util._get_global_secondary_indexes',
+           return_value=["Partition_key-index"])
+    def test_copy_contributor_insights_settings(self, get_indexes_mock, update_mock, describe_mock):
         events = {
-            "TableName": "my_table",
+            "SourceTableName": "my_table",
+            "TargetTableName": "my_table_target",
             "Indexes": ["Partition_key-index"]
         }
-        result = get_contributor_insights_settings(events=events, context={})
+        result = copy_contributor_insights_settings(events=events, context={})
 
-        self.assertEqual(result['TableContributorInsightsStatus'], 'ENABLED')
-        self.assertEqual(result['IndexesContributorInsightsStatus'],
-                         '[{"IndexName": "Partition_key-index", "ContributorInsightsStatus": "ENABLED"}]')
+        get_indexes_mock.assert_called_with(table_name='my_table')
+        update_mock.assert_has_calls([
+            call(table_name='my_table_target',
+                 status='ENABLE'),
+            call(table_name='my_table_target',
+                 status='ENABLE',
+                 index_name="Partition_key-index")
+        ])
+
+        self.assertEqual(result['CopiedTableContributorInsightsStatus'], 'ENABLED')
+        self.assertEqual(result['CopiedIndexesContributorInsightsStatus'],
+                         [{"IndexName": "Partition_key-index", "ContributorInsightsStatus": "ENABLED"}])
 
     def test__update_contributor_insights_of_table(self):
         _update_contributor_insights(table_name='my_table', status='ENABLE')
@@ -753,23 +747,3 @@ class TestDynamoDbUtil(unittest.TestCase):
             .assert_called_with(TableName='my_table',
                                 IndexName='Partition_key-index',
                                 ContributorInsightsAction='ENABLE')
-
-    @patch('documents.util.scripts.src.dynamo_db_util._update_contributor_insights',
-           return_value={})
-    @patch('documents.util.scripts.src.dynamo_db_util.get_contributor_insights_settings',
-           return_value=GET_CONTRIBUTOR_INSIGHTS_RESPONSE)
-    def test_update_contributor_insights_settings(self, get_mock, update_mock):
-        events = {
-            "TableName": "my_table",
-            "TableContributorInsightsStatus": "ENABLED",
-            "IndexesContributorInsightsStatus":
-            "[{\"IndexName\": \"digito-index-1\", \"ContributorInsightsStatus\": \"ENABLED\"}]"
-        }
-        result = update_contributor_insights_settings(events=events, context={})
-
-        self.assertEqual(result, GET_CONTRIBUTOR_INSIGHTS_RESPONSE)
-        update_mock.assert_called_with(table_name='my_table',
-                                       index_name='digito-index-1',
-                                       status='ENABLE')
-        get_mock_events = {**events, "Indexes": ['digito-index-1']}
-        get_mock.assert_called_with(events=get_mock_events, context={})

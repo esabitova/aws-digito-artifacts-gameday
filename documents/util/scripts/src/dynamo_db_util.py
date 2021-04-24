@@ -188,89 +188,60 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
                        'Regions to waits: {GLOBAL_TABLE_ACTIVE_STATUSES}')
 
 
-def update_contributor_insights_settings(events: dict, context: dict) -> dict:
-    """
-    Updates contributor insights settings for the given table and the list of indexes
-    Returns the current state of contributor insights settings after the update
-    :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `TableContributorInsightsStatus` - The status of the given table
-    * `IndexesContributorInsightsStatus` - The status of the indexes
-    :return: The dictionary that contains contributor insights status for the table and also
-    a list of `IndexName`-`Status` map
-    """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'TableContributorInsightsStatus' not in events:
-        raise KeyError('Requires TableContributorInsightsStatus')
-    if 'IndexesContributorInsightsStatus' not in events:
-        raise KeyError('Requires IndexesContributorInsightsStatus')
-
-    table_name: str = events['TableName']
-    table_status: str = events['TableContributorInsightsStatus']
-    indexes_statuses: List = json.loads(events['IndexesContributorInsightsStatus']
-                                        ) if events['IndexesContributorInsightsStatus'] else []
-    if table_status in ENABLED_INSIGHTS_STATUSES:
-        _update_contributor_insights(table_name=table_name,
-                                     status='ENABLE')
-
-    for index_status in indexes_statuses:
-        if index_status['ContributorInsightsStatus'] in ENABLED_INSIGHTS_STATUSES:
-            _update_contributor_insights(table_name=table_name,
-                                         status='ENABLE',
-                                         index_name=index_status['IndexName'])
-    events['Indexes'] = [x['IndexName'] for x in indexes_statuses]
-    return get_contributor_insights_settings(events=events, context=context)
-
-
-def get_contributor_insights_settings(events: dict, context: dict) -> dict:
+def copy_contributor_insights_settings(events: dict, context: dict) -> dict:
     """
     Returns contributor insights settings for the given table and the list of indexes
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `Indexes` - The list of indexes
-    :return: The dictionary that contains contributor insights status for the table and also
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
+    :return: The dictionary that contains copied contributor insights statuses for the table and also
     a list of `IndexName`-`Status` map
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'Indexes' not in events:
-        raise KeyError('Requires Indexes')
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
 
-    table_name: str = events['TableName']
-    indexes: List = events['Indexes']
-    table_result = _describe_contributor_insights(table_name=table_name)
+    source_table_name: str = events['SourceTableName']
+    target_table_name: str = events['TargetTableName']
 
+    # coping settings for table
+    table_result = _describe_contributor_insights(table_name=source_table_name)
+    table_status = table_result['ContributorInsightsStatus']
+    if table_status in ENABLED_INSIGHTS_STATUSES:
+        _update_contributor_insights(table_name=target_table_name,
+                                     status='ENABLE')
+    # coping settings for indexes
+    indexes = _get_global_secondary_indexes(table_name=source_table_name)
     indexes_results = [_describe_contributor_insights(
-        table_name=table_name, index_name=index_name) for index_name in indexes]
+        table_name=source_table_name, index_name=index_name) for index_name in indexes]
+
     index_statuses = [{
         'IndexName': r['IndexName'],
         'ContributorInsightsStatus': r['ContributorInsightsStatus']
     } for r in indexes_results]
+    for index_status in index_statuses:
+        if index_status['ContributorInsightsStatus'] in ENABLED_INSIGHTS_STATUSES:
+            _update_contributor_insights(table_name=target_table_name,
+                                         status='ENABLE',
+                                         index_name=index_status['IndexName'])
 
     return {
-        "TableContributorInsightsStatus": table_result['ContributorInsightsStatus'],
-        "IndexesContributorInsightsStatus": json.dumps(index_statuses)
+        "CopiedTableContributorInsightsStatus": table_result['ContributorInsightsStatus'],
+        "CopiedIndexesContributorInsightsStatus": index_statuses
     }
 
 
-def get_global_secondary_indexes(events: dict, context: dict) -> dict:
+def _get_global_secondary_indexes(table_name: str) -> List[str]:
     """
     Returns the list of global indexes
-    :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    :return: The dictionary that contains a list of index names
+    :param table_name: The table name
+    :return: The list of global secondary index names
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-
-    table_name = events['TableName']
     result = _describe_table(table_name=table_name)
     logger.debug(result)
 
-    return {
-        "Indexes": [gsi['IndexName'] for gsi in result['Table'].get('GlobalSecondaryIndexes', [])]
-    }
+    return [gsi['IndexName'] for gsi in result['Table'].get('GlobalSecondaryIndexes', [])]
 
 
 def copy_resource_tags(events: dict, context: dict) -> dict:

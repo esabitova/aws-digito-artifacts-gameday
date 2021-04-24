@@ -249,68 +249,30 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_tags
         SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
         SCRIPT_PLACEHOLDER::dynamo_db_util.copy_resource_tags
-  - name: GetSourceIndexes
+  - name: CopyDynamoDBTableContributorInsights
     action: aws:executeScript
     outputs:
-      - Name: SourceIndexes
-        Selector: $.Payload.Indexes
-        Type: StringList
+      - Name: CopiedTableContributorInsightsStatus
+        Selector: $.Payload.CopiedTableContributorInsightsStatus
+        Type: String
+      - Name: CopiedIndexesContributorInsightsStatus
+        Selector: $.Payload.CopiedIndexesContributorInsightsStatus
+        Type: MapList
     inputs:
       Runtime: python3.6
-      Handler: get_global_secondary_indexes
+      Handler: copy_contributor_insights_settings
       InputPayload:
-        TableName: "{{ DynamoDBTableSourceName }}"
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_global_secondary_indexes
-  - name: GetSourceDynamoDBTableContributorInsights
-    action: aws:executeScript
-    outputs:
-      - Name: TableContributorInsightsStatus
-        Selector: $.Payload.TableContributorInsightsStatus
-        Type: String
-      - Name: IndexesContributorInsightsStatus
-        Selector: $.Payload.IndexesContributorInsightsStatus
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: get_contributor_insights_settings
-      InputPayload:
-        TableName: "{{ DynamoDBTableSourceName }}"
-        Indexes: "{{ GetSourceIndexes.SourceIndexes }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
-
-        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
-        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_contributor_insights
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_contributor_insights_settings
-  - name: UpdateTargetDynamoDBTableContributorInsights
-    action: aws:executeScript
-    outputs:
-      - Name: TargetTableContributorInsightsStatus
-        Selector: $.Payload.TableContributorInsightsStatus
-        Type: String
-      - Name: TargetIndexesContributorInsightsStatus
-        Selector: $.Payload.IndexesContributorInsightsStatus
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: update_contributor_insights_settings
-      InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        TableContributorInsightsStatus: "{{ GetSourceDynamoDBTableContributorInsights.TableContributorInsightsStatus }}"
-        IndexesContributorInsightsStatus: "{{ GetSourceDynamoDBTableContributorInsights.IndexesContributorInsightsStatus }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
-
-        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_secondary_indexes
         SCRIPT_PLACEHOLDER::dynamo_db_util._describe_contributor_insights
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_contributor_insights
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_contributor_insights_settings
-        SCRIPT_PLACEHOLDER::dynamo_db_util.update_contributor_insights_settings
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_contributor_insights_settings
   - name: CopyScalingTargets
     action: aws:executeScript
     outputs:
