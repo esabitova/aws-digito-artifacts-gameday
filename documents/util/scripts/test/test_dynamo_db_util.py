@@ -23,8 +23,7 @@ from documents.util.scripts.src.dynamo_db_util import (_execute_boto3_dynamodb,
                                                        add_kinesis_destinations,
                                                        _update_tags,
                                                        _list_tags,
-                                                       list_resource_tags,
-                                                       update_resource_tags,
+                                                       copy_resource_tags,
                                                        get_contributor_insights_settings,
                                                        _update_contributor_insights,
                                                        update_contributor_insights_settings,
@@ -340,22 +339,13 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @parameterized.expand([
         {'events': {}},
-        {'events': {'TableName': 'my_table'}},
-        {'events': {'TableName': 'my_table', 'Region': 'Region'}},
-        {'events': {'TableName': 'my_table', 'Region': 'Region', 'Account': 'Account'}}
+        {'events': {'SourceTableName': 'my_table'}},
+        {'events': {'SourceTableName': 'my_table', 'Region': 'Region'}},
+        {'events': {'SourceTableName': 'my_table', 'Region': 'Region', 'Account': 'Account'}}
     ])
     def test_update_resource_tags_raises_exception(self, events):
         with self.assertRaises(Exception):
-            update_resource_tags(events=events, context={})
-
-    @parameterized.expand([
-        {'events': {}},
-        {'events': {'TableName': 'my_table'}},
-        {'events': {'TableName': 'my_table', 'Region': 'Region'}}
-    ])
-    def test_list_resource_tags_raises_exception(self, events):
-        with self.assertRaises(Exception):
-            list_resource_tags(events=events, context={})
+            copy_resource_tags(events=events, context={})
 
     @parameterized.expand([
         {'events': {}},
@@ -668,18 +658,6 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         self.assertEqual(result, LIST_TAG_RESPONCE)
 
-    @patch('documents.util.scripts.src.dynamo_db_util._list_tags',
-           return_value=LIST_TAG_RESPONCE)
-    def test_list_resource_tags(self, mock_list_tags):
-        result = list_resource_tags(events={
-            "TableName": "my_table",
-            "Region": "us-west-1",
-            "Account": "1234567890"
-        }, context={})
-
-        self.assertEqual(result, {"Tags": json.dumps(LIST_TAG_RESPONCE["Tags"])})
-        mock_list_tags.assert_called_with(resource_arn='arn:aws:dynamodb:us-west-1:1234567890:table/my_table')
-
     def test__update_tags(self):
 
         result = _update_tags(resource_arn="my_table", tags=[])
@@ -688,21 +666,21 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.dynamo_db_util._update_tags',
            return_value=TAG_RESOURCE_RESPONCE)
-    @patch('documents.util.scripts.src.dynamo_db_util.list_resource_tags',
+    @patch('documents.util.scripts.src.dynamo_db_util._list_tags',
            return_value=LIST_TAG_RESPONCE)
     def test_update_resource_tags(self, list_mock, update_mock):
         events = {
-            "TableName": "my_table",
+            "SourceTableName": "my_table",
+            "TargetTableName": "my_table_target",
             "Region": "us-west-1",
-            "Account": "1234567890",
-            "Tags": json.dumps(LIST_TAG_RESPONCE['Tags'])
+            "Account": "1234567890"
         }
-        result = update_resource_tags(events=events, context={})
+        result = copy_resource_tags(events=events, context={})
 
-        self.assertEqual(result, {"Tags": json.dumps(LIST_TAG_RESPONCE["Tags"])})
-        update_mock.assert_called_with(resource_arn='arn:aws:dynamodb:us-west-1:1234567890:table/my_table',
+        self.assertEqual(result, {"Tags": LIST_TAG_RESPONCE["Tags"]})
+        update_mock.assert_called_with(resource_arn='arn:aws:dynamodb:us-west-1:1234567890:table/my_table_target',
                                        tags=LIST_TAG_RESPONCE['Tags'])
-        list_mock.assert_called_with(events=events, context={})
+        list_mock.assert_called_with(resource_arn='arn:aws:dynamodb:us-west-1:1234567890:table/my_table')
 
     def test__describe_table(self):
 

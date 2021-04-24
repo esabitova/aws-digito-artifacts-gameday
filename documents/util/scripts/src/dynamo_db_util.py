@@ -273,56 +273,37 @@ def get_global_secondary_indexes(events: dict, context: dict) -> dict:
     }
 
 
-def update_resource_tags(events: dict, context: dict) -> dict:
+def copy_resource_tags(events: dict, context: dict) -> dict:
     """
-    Returns the list of resource tags of a Dynamo DB table
+    Copied tags of a Dynamo DB table to a target one
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
     * `Region` - The region to concatenate ARN
     * `Account` - The account to concatenate ARN
-    * `Tags` - The dump of JSON-like list of tags
-    :return: The dictionary that contains a dump of JSON-like list of tags of the updated table
+    :return: The MapList of copied resource Tags
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'Region' not in events:
-        raise KeyError('Requires Region')
-    if 'Account' not in events:
-        raise KeyError('Requires Account')
-    if 'Tags' not in events:
-        raise KeyError('Requires Tags')
-
-    table_name = events['TableName']
-    region = events['Region']
-    account = events['Account']
-    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{table_name}'
-    tags = json.loads(events['Tags'])
-    _update_tags(resource_arn=resource_arn, tags=tags)
-
-    result = list_resource_tags(events=events,
-                                context=context)
-
-    return {
-        "Tags": json.dumps(result['Tags'])
-    }
-
-
-def list_resource_tags(events: dict, context: dict) -> dict:
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
     if 'Region' not in events:
         raise KeyError('Requires Region')
     if 'Account' not in events:
         raise KeyError('Requires Account')
 
-    table_name = events['TableName']
+    source_table_name = events['SourceTableName']
     region = events['Region']
     account = events['Account']
-    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{table_name}'
-    result = _list_tags(resource_arn=resource_arn)
+    resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{source_table_name}'
+    tags = _list_tags(resource_arn=resource_arn)['Tags']
+    if tags:
+        target_table_name = events['TargetTableName']
+        resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{target_table_name}'
+        _update_tags(resource_arn=resource_arn, tags=tags)
 
     return {
-        "Tags": json.dumps(result['Tags'])
+        "Tags": tags
     }
 
 
