@@ -25,4 +25,4 @@ Resources:
       TreatMissingData: missing
     Metadata:
       'AWS::Digito::Monitoring':
-        recommendationId: 'compute:alarm:ebs-burst-balance:2020-12-06'
+        recommendationId: 'ebs:alarm:ebs-burst-balance:2020-12-06'
