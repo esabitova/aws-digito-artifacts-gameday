@@ -18,6 +18,12 @@ def test_update_version_rest_with_provided_deployment_id_same_as_current():
 
 
 @scenario('../features/update_version_rest.feature',
+          'Run document without provided RestDeploymentId')
+def test_update_version_rest_without_provided_deployment_id():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/update_version_rest.feature',
           'Run document without provided RestDeploymentId and without available deployments for update')
 def test_update_version_rest_without_provided_deployment_id_and_without_available_deployments():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
