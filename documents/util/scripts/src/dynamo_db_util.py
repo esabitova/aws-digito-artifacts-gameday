@@ -343,38 +343,36 @@ def copy_active_kinesis_destinations(events: dict, context: dict) -> dict:
     return destinations
 
 
-def update_table_stream(events: dict, context: dict):
+def copy_table_stream_settings(events: dict, context: dict):
     """
     if `StreamEnabled` is True, enabled streaming for the given table according to the given `StreamViewType`
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `StreamEnabled` - The flag that says if Streaming should be enabled
-    * `StreamViewType` - The stream view type
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
     :return: The dictionary that contains 'StreamViewType' and `StreamEnabled` values of the target table
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'StreamEnabled' not in events:
-        raise KeyError('Requires StreamEnabled')
-    if 'StreamViewType' not in events:
-        raise KeyError('Requires StreamViewType')
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
 
-    stream_enabled = events['StreamEnabled']
-    table_name = events['TableName']
+    source_table_name = events['SourceTableName']
+    description = _describe_table(table_name=source_table_name)['Table']
+    stream_enabled = description\
+        .get('StreamSpecification', {})\
+        .get('StreamEnabled', False)
     if stream_enabled:
-        stream_view_type = events['StreamViewType']
+        target_table_name = events['TargetTableName']
+        stream_view_type = description['StreamSpecification']['StreamViewType']
         settings = {
             "StreamSpecification": {
                 "StreamEnabled": stream_enabled,
                 "StreamViewType": stream_view_type
             }
         }
-        result = _update_table(table_name=table_name, **settings)
+        result = _update_table(table_name=target_table_name, **settings)
         specification = result.get('StreamSpecification', {})
-        return {
-            'StreamEnabled': specification.get('StreamEnabled', False),
-            'StreamViewType': specification.get('StreamViewType', '')
-        }
+        return specification
 
 
 def parse_recovery_date_time(events: dict, context: dict) -> dict:

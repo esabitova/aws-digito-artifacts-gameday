@@ -16,7 +16,7 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _
                                                        get_global_table_active_regions,
                                                        parse_recovery_date_time,
                                                        set_up_replication,
-                                                       update_table_stream,
+                                                       copy_table_stream_settings,
                                                        _update_table,
                                                        _enable_kinesis_destinations,
                                                        _update_tags,
@@ -354,12 +354,11 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @parameterized.expand([
         ({}, {}),
-        ({'TableName': 'my_table'}, {}),
-        ({'TableName': 'my_table', 'StreamEnabled': 'StreamEnabled'}, {})
+        ({'SourceTableName': 'my_table'}, {})
     ])
     def test_update_table_stream_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            update_table_stream(events=events, context=context)
+            copy_table_stream_settings(events=events, context=context)
 
     @parameterized.expand([({}, {})])
     def test_parse_recovery_date_time_raises_exception(self, events, context):
@@ -502,26 +501,28 @@ class TestDynamoDbUtil(unittest.TestCase):
            return_value={
                "StreamSpecification": {
                    "StreamEnabled": True,
-                   "StreamViewType": 'NEW_IMAGE'
+                   "StreamViewType": 'NEW_AND_OLD_IMAGES'
                }
            })
-    def test_update_table_stream(self, update_mock):
+    @patch('documents.util.scripts.src.dynamo_db_util._describe_table',
+           return_value=DESCRIBE_TABLE_RESPONCE)
+    def test_copy_table_stream_settings(self, describe_mock, update_mock):
 
-        result = update_table_stream(events={
-            "StreamEnabled": True,
-            "StreamViewType": 'NEW_IMAGE',
-            "TableName": "my_table"
+        result = copy_table_stream_settings(events={
+            "SourceTableName": "my_table",
+            "TargetTableName": "my_table_target"
         }, context={})
 
         self.assertEqual(result['StreamEnabled'], True)
-        self.assertEqual(result['StreamViewType'], 'NEW_IMAGE')
+        self.assertEqual(result['StreamViewType'], 'NEW_AND_OLD_IMAGES')
         expected_input = {
             "StreamSpecification": {
                 "StreamEnabled": True,
-                "StreamViewType": 'NEW_IMAGE'
+                "StreamViewType": 'NEW_AND_OLD_IMAGES'
             }
         }
-        update_mock.assert_called_with(table_name='my_table', **expected_input)
+        describe_mock.assert_called_with(table_name='my_table')
+        update_mock.assert_called_with(table_name='my_table_target', **expected_input)
 
     def test__update_table(self):
 

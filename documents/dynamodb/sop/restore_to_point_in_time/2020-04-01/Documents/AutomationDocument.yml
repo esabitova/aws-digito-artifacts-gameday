@@ -107,42 +107,25 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-  - name: GetSourceDynamoDBTableStream
-    action: aws:executeAwsApi
-    onFailure: Abort
-    inputs:
-      Service: dynamodb
-      Api: DescribeTable
-      TableName: "{{ DynamoDBTableSourceName }}"
-    outputs:
-      - Name: SourceStreamEnabled
-        Selector: "$.Payload.StreamSpecification.StreamEnabled"
-        Type: Boolean
-      - Name: SourceStreamViewType
-        Selector: "$.Payload.StreamSpecification.StreamViewType"
-        Type: String
-  - name: UpdateTargetDynamoDBTableStream
+  - name: CopyDynamoDBTableStreamSettings
     action: aws:executeScript
     outputs:
-      - Name: RecoveryPointDateTime
-        Selector: $.Payload.StreamEnabled
-        Type: Boolean
-      - Name: UseLatestRecoveryPoint
-        Selector: $.Payload.StreamViewType
-        Type: String
+      - Name: CopiedStreamSettings
+        Selector: $.Payload
+        Type: StringMap
     inputs:
       Runtime: python3.6
-      Handler: update_table_stream
+      Handler: copy_table_stream_settings
       InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        StreamEnabled: "{{ GetSourceDynamoDBTableStream.SourceStreamEnabled }}"
-        StreamViewType: "{{ GetSourceDynamoDBTableStream.SourceStreamViewType }}"
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
-        SCRIPT_PLACEHOLDER::dynamo_db_util.update_table_stream
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_table_stream_settings
   - name: WaitTableToBeActiveAfterSteamSet
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
