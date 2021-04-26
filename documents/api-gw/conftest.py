@@ -110,7 +110,7 @@ def delete_dummy_deployment_set(
     gateway_id = extract_param_value(
         input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
     )
-    dummy_deployments: list = extract_param_value(
+    dummy_deployments = extract_param_value(
         input_parameters, "DummyDeployments", resource_manager, ssm_test_cache
     )
     for deployment_id in dummy_deployments:
