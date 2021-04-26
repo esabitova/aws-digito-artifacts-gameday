@@ -10,7 +10,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache cluster params in object "ClusterInfo" in step "before"
+    And cache cluster params includingAZ="False" in object "ClusterInfo" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
@@ -25,7 +25,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache cluster params in object "ClusterInfo" in step "after"
+    And cache cluster params includingAZ="False" in object "ClusterInfo" in step "after"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
@@ -33,7 +33,7 @@ Feature: SSM automation document to recover the database into a known good state
     And delete replaced cluster instances and wait for their removal for "600" seconds
       | ReplacedDBClusterIdentifier                      |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster
+    And delete replaced cluster and wait for cluster deletion for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And sleep for "60" seconds
@@ -48,7 +48,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache cluster params in object "ClusterInfo" in step "before"
+    And cache cluster params includingAZ="False" in object "ClusterInfo" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache earliest restorable time as "EarliestRestorableTime" in "before" step
@@ -66,7 +66,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache cluster params in object "ClusterInfo" in step "after"
+    And cache cluster params includingAZ="False" in object "ClusterInfo" in step "after"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
@@ -74,7 +74,7 @@ Feature: SSM automation document to recover the database into a known good state
     And delete replaced cluster instances and wait for their removal for "600" seconds
       | ReplacedDBClusterIdentifier                      |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster
+    And delete replaced cluster and wait for cluster deletion for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And sleep for "60" seconds

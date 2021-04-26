@@ -1,4 +1,9 @@
+import time
+
+import botocore
 from boto3 import Session
+
+import resource_manager.src.constants as constants
 from .boto3_client_factory import client
 
 
@@ -100,17 +105,37 @@ def get_cluster_instances(session: Session, db_cluster_identifier: str):
     return response['DBInstances']
 
 
-def delete_cluster(session: Session, db_cluster_identifier: str):
+def delete_cluster(session: Session, db_cluster_identifier: str, wait: bool = True, time_to_wait: int = 300):
     """
     Use delete_db_cluster aws method to delete DocDB cluster
     :param session boto3 client session
     :param db_cluster_identifier DocDB cluster ID
+    :param wait waiting for cluster deletion
+    :param time_to_wait time to wait for cluster deletion if wait=True
     """
     docdb_client = client('docdb', session)
     docdb_client.delete_db_cluster(
         DBClusterIdentifier=db_cluster_identifier,
         SkipFinalSnapshot=True
     )
+    if wait:
+        is_cluster_deleted = False
+        start_time = time.time()
+        elapsed_time = time.time() - start_time
+        while not is_cluster_deleted:
+            if elapsed_time > int(time_to_wait):
+                raise TimeoutError(f'Waiting for cluster deletion {db_cluster_identifier} timed out')
+            time.sleep(constants.sleep_time_secs)
+            elapsed_time = time.time() - start_time
+            try:
+                describe_response = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+                is_cluster_deleted = describe_response['DBClusters'] and len(describe_response['DBClusters'][0]) == 0
+            except Exception as error:
+                if isinstance(error, botocore.exceptions.ClientError) and \
+                        error.response['Error']['Code'] == 'DBClusterNotFoundFault':
+                    is_cluster_deleted = True
+                else:
+                    raise error
 
 
 def describe_cluster(session: Session, db_cluster_identifier: str):
@@ -167,3 +192,29 @@ def is_snapshot_available(session: Session, snapshot_identifier: str):
         DBClusterSnapshotIdentifier=snapshot_identifier
     )
     return response['DBClusterSnapshots'][0]['Status'] == 'available'
+
+
+def delete_cluster_instances(session: Session, db_cluster_identifier, wait: bool = True, time_to_wait: int = 300):
+    """
+    Use delete_db_instance aws method to delete cluster instances
+    :param session boto3 client session
+    :param db_cluster_identifier cluster ID
+    :param wait waiting for cluster deletion
+    :param time_to_wait time to wait for cluster deletion if wait=True
+    :return None
+    """
+    docdb_client = client('docdb', session)
+    cluster_members = get_cluster_members(session, db_cluster_identifier)
+    for cluster_member in cluster_members:
+        instance_id = cluster_member['DBInstanceIdentifier']
+        docdb_client.delete_db_instance(DBInstanceIdentifier=instance_id)
+    if wait:
+        start_time = time.time()
+        elapsed_time = time.time() - start_time
+        number_of_cluster_members = len(get_cluster_members(session, db_cluster_identifier))
+        while number_of_cluster_members > 0:
+            if elapsed_time > int(time_to_wait):
+                raise TimeoutError(f'Waiting for instances deletion in cluster {db_cluster_identifier} timed out')
+            time.sleep(constants.sleep_time_secs)
+            number_of_cluster_members = len(get_cluster_members(session, db_cluster_identifier))
+            elapsed_time = time.time() - start_time

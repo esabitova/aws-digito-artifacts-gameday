@@ -7,7 +7,7 @@ Feature: SSM automation document to recover the database into a known good state
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                        | ON_DEMAND    |
       | documents/docdb/sop/restore_from_backup/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-DocDbRestoreFromBackup_2020-09-21" SSM document
-    And cache cluster params in object "ClusterParams" in step "before"
+    And cache cluster params includingAZ="True" in object "ClusterParams" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
@@ -22,7 +22,10 @@ Feature: SSM automation document to recover the database into a known good state
     Then SSM automation document "Digito-DocDbRestoreFromBackup_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache cluster params in object "ClusterParams" in step "after"
+    And wait for instances to be available for "120" seconds
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    And cache cluster params includingAZ="True" in object "ClusterParams" in step "after"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
@@ -33,7 +36,7 @@ Feature: SSM automation document to recover the database into a known good state
     And delete replaced cluster instances and wait for their removal for "600" seconds
       | ReplacedDBClusterIdentifier                      |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster
+    And delete replaced cluster and wait for cluster deletion for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And delete cluster snapshot
@@ -44,7 +47,7 @@ Feature: SSM automation document to recover the database into a known good state
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    |
       | documents/docdb/sop/restore_from_backup/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-DocDbRestoreFromBackup_2020-09-21" SSM document
-    And cache cluster params in object "ClusterParams" in step "before"
+    And cache cluster params includingAZ="True" in object "ClusterParams" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
@@ -59,7 +62,10 @@ Feature: SSM automation document to recover the database into a known good state
     Then SSM automation document "Digito-DocDbRestoreFromBackup_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache cluster params in object "ClusterParams" in step "after"
+    And wait for instances to be available for "120" seconds
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    And cache cluster params includingAZ="True" in object "ClusterParams" in step "after"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
@@ -70,7 +76,7 @@ Feature: SSM automation document to recover the database into a known good state
     And delete replaced cluster instances and wait for their removal for "600" seconds
       | ReplacedDBClusterIdentifier                      |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster
+    And delete replaced cluster and wait for cluster deletion for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And delete cluster snapshot

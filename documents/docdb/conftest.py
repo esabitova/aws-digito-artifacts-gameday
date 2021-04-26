@@ -21,7 +21,8 @@ cache_az_expression = 'cache az in property "{cache_property}" in step "{step_ke
                       '\n{input_parameters}'
 cache_cluster_az_expression = 'cache one of cluster azs in property "{cache_property}" in step "{step_key}"' \
                               '\n{input_parameters}'
-cache_cluster_params_expression = 'cache cluster params in object "{cache_property}" in step "{step_key}"' \
+cache_cluster_params_expression = 'cache cluster params includingAZ="{with_az}" in object "{cache_property}"' \
+                                  ' in step "{step_key}"' \
                                   '\n{input_parameters}'
 assert_azs_expression = 'assert instance AZ value "{actual_property}" at "{step_key_for_actual}" is one of ' \
                         'cluster AZs' \
@@ -31,7 +32,8 @@ remove_instance_expression = 'delete created instance and wait for instance dele
 cache_replica_id_expression = 'cache replica instance identifier as "{cache_property}" at step "{step_key}"' \
                               '\n{input_parameters}'
 assert_primary_instance_expression = 'assert if the cluster member is the primary instance\n{input_parameters}'
-delete_cluster_expression = 'delete replaced cluster\n{input_parameters}'
+delete_cluster_expression = 'delete replaced cluster and wait for cluster deletion for "{time_to_wait}" seconds' \
+                            '\n{input_parameters}'
 delete_cluster_instances_expression = 'delete replaced cluster instances and wait for their removal for ' \
                                       '"{time_to_wait}" seconds\n{input_parameters}'
 wait_for_instances_availability_expression = 'wait for instances to be available for "{time_to_wait}" seconds' \
@@ -95,7 +97,7 @@ def cache_random_cluster_az(
 @given(parsers.parse(cache_cluster_params_expression))
 @then(parsers.parse(cache_cluster_params_expression))
 def cache_cluster_info(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_manager, ssm_test_cache, boto3_session, with_az: str, cache_property, step_key, input_parameters
 ):
     cluster_id = extract_param_value(
         input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
@@ -107,6 +109,8 @@ def cache_cluster_info(
         'Engine': cluster_info.get('Engine'),
         'VpcSecurityGroups': cluster_info.get('VpcSecurityGroups'),
     }
+    if with_az == "True":
+        cache_value['AvailabilityZones'] = cluster_info.get('AvailabilityZones')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, cache_value)
 
 
@@ -144,25 +148,6 @@ def create_snapshot(
         elapsed_time = time.time() - start_time
     put_to_ssm_test_cache(ssm_test_cache, "before", "SnapshotId", snapshot_id)
     return True
-
-
-@given(parsers.parse(cache_cluster_params_expression))
-@then(parsers.parse(cache_cluster_params_expression))
-def cache_cluster_params(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
-):
-    cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
-    )
-    cluster_info = docdb_utils.describe_cluster(boto3_session, cluster_id)
-    cache_value = {
-        'AvailabilityZones': cluster_info.get('AvailabilityZones'),
-        'DBClusterIdentifier': cluster_info.get('DBClusterIdentifier'),
-        'DBSubnetGroup': cluster_info.get('DBSubnetGroup'),
-        'Engine': cluster_info.get('Engine'),
-        'VpcSecurityGroups': cluster_info.get('VpcSecurityGroups'),
-    }
-    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, cache_value)
 
 
 @then(parsers.parse(assert_azs_expression))
@@ -306,31 +291,20 @@ def delete_replaced_cluster_instances(
         input_parameters, "ReplacedDBClusterIdentifier", resource_manager, ssm_test_cache
     )
     replaced_cluster_id = cluster_id + "-replaced"
-    cluster_members = docdb_utils.get_cluster_members(boto3_session, replaced_cluster_id)
-    for cluster_member in cluster_members:
-        instance_id = cluster_member['DBInstanceIdentifier']
-        docdb_utils.delete_instance(boto3_session, instance_id)
-    start_time = time.time()
-    elapsed_time = time.time() - start_time
-    number_of_cluster_members = len(docdb_utils.get_cluster_members(boto3_session, replaced_cluster_id))
-    while number_of_cluster_members > 0:
-        if elapsed_time > int(time_to_wait):
-            raise Exception(f'Waiting for instances in cluster {replaced_cluster_id} timed out')
-        time.sleep(constants.sleep_time_secs)
-        number_of_cluster_members = len(docdb_utils.get_cluster_members(boto3_session, replaced_cluster_id))
-        elapsed_time = time.time() - start_time
+    docdb_utils.delete_cluster_instances(boto3_session, replaced_cluster_id, True, time_to_wait)
     return True
 
 
 @then(parsers.parse(delete_cluster_expression))
 def delete_replaced_cluster(
-        resource_manager, ssm_test_cache, boto3_session, input_parameters
+        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     cluster_id = extract_param_value(
         input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
     )
     replaced_cluster_id = cluster_id + "-replaced"
-    docdb_utils.delete_cluster(boto3_session, replaced_cluster_id)
+    docdb_utils.delete_cluster(boto3_session, replaced_cluster_id, True, time_to_wait)
+    return True
 
 
 @then(parsers.parse(delete_snapshot_expression))
