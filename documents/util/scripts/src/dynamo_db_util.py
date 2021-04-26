@@ -1,4 +1,3 @@
-import json
 import logging
 from datetime import datetime
 import time
@@ -318,46 +317,30 @@ def copy_time_to_live(events: dict, context: dict) -> dict:
     }
 
 
-def add_kinesis_destinations(events: dict, context: dict) -> dict:
-    """
-    Adds Kinesis Data Stream destinations to the given table settings
-    :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `Destinations` - The JSON dump of Kinesis Destinations with ARNs of KDS and Statuses
-    :return: The dictionary that contains 'KinesisDestinations' with a JSON dump of ARNs and statuses
-    """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'Destinations' not in events:
-        raise KeyError('Requires Destinations')
-    table_name = events['TableName']
-    destinations = json.loads(events['Destinations'])
-    logging.info(f'table:{table_name};kinesis destinations: {destinations}')
-    for d in destinations:
-        _enable_kinesis_destinations(table_name=table_name, kds_arn=d['StreamArn'])
-
-    return get_active_kinesis_destinations(events=events,
-                                           context=context)
-
-
-def get_active_kinesis_destinations(events: dict, context: dict) -> dict:
+def copy_active_kinesis_destinations(events: dict, context: dict) -> dict:
     """
     Returns information about Kinesis Data Stream destinations of the given Dynamo DB table
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    :return: The dictionary that contains 'KinesisDestinations' with a JSON dump of ARNs and statuses
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
+    :return: The list of Kinesis Data Stream ARNs
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    ACTIVE_STATUSES = ['ACTIVE', 'ENABLING']
-    table_name = events['TableName']
-    kinesis_destinations = _describe_kinesis_destinations(table_name=table_name)
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
 
-    return {
-        "KinesisDestinations":
-        json.dumps([d for d in kinesis_destinations['KinesisDataStreamDestinations']
-                   if d['DestinationStatus'] in ACTIVE_STATUSES])
-    }
+    ACTIVE_STATUSES = ['ACTIVE', 'ENABLING']
+    source_table_name = events['SourceTableName']
+    target_table_name = events['TargetTableName']
+    kinesis_destinations = _describe_kinesis_destinations(table_name=source_table_name)
+    destinations = [d['StreamArn'] for d in kinesis_destinations['KinesisDataStreamDestinations']
+                    if d['DestinationStatus'] in ACTIVE_STATUSES]
+
+    for d in destinations:
+        _enable_kinesis_destinations(table_name=target_table_name, kds_arn=d)
+
+    return destinations
 
 
 def update_table_stream(events: dict, context: dict):

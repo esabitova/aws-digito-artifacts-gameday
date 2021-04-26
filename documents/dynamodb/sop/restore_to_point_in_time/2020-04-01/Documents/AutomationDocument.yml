@@ -143,7 +143,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
         SCRIPT_PLACEHOLDER::dynamo_db_util.update_table_stream
-
   - name: WaitTableToBeActiveAfterSteamSet
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
@@ -155,43 +154,25 @@ mainSteps:
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"
-  - name: GetSourceDynamoDBTableKinesisDestination
+  - name: CopyDynamoDBTableKinesisDestination
     action: aws:executeScript
     outputs:
-      - Name: SourceKinesisDestinations
-        Selector: $.Payload.KinesisDestinations
-        Type: String
+      - Name: CopiedKinesisDestinations
+        Selector: $.Payload
+        Type: StringList
     inputs:
       Runtime: python3.6
-      Handler: get_active_kinesis_destinations
+      Handler: copy_active_kinesis_destinations
       InputPayload:
-        TableName: "{{ DynamoDBTableSourceName }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
-
-        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
-        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
-  - name: AddTargetDynamoDBTableKinesisDestination
-    action: aws:executeScript
-    outputs:
-      - Name: TargetKinesisDestinations
-        Selector: $.Payload.KinesisDestinations
-        Type: String
-    inputs:
-      Runtime: python3.6
-      Handler: add_kinesis_destinations
-      InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        Destinations: "{{ GetSourceDynamoDBTableKinesisDestination.SourceKinesisDestinations }}"
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
         SCRIPT_PLACEHOLDER::dynamo_db_util._enable_kinesis_destinations
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_active_kinesis_destinations
-        SCRIPT_PLACEHOLDER::dynamo_db_util.add_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_active_kinesis_destinations
   - name: CopyDynamoDBTableTimeToLive
     action: aws:executeScript
     outputs:
@@ -278,7 +259,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
         SCRIPT_PLACEHOLDER::auto_scaling_util.copy_scaling_targets
-
   - name: SwitchAlarmsToTargetTable
     action: aws:executeScript
     outputs:

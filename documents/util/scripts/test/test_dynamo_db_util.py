@@ -1,5 +1,4 @@
 
-import json
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, call, patch
@@ -12,7 +11,7 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _
                                                        _describe_table,
                                                        _get_global_table_all_regions,
                                                        _parse_date_time,
-                                                       get_active_kinesis_destinations,
+                                                       copy_active_kinesis_destinations,
                                                        _get_global_secondary_indexes,
                                                        get_global_table_active_regions,
                                                        parse_recovery_date_time,
@@ -20,7 +19,6 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _
                                                        update_table_stream,
                                                        _update_table,
                                                        _enable_kinesis_destinations,
-                                                       add_kinesis_destinations,
                                                        _update_tags,
                                                        _list_tags,
                                                        copy_resource_tags,
@@ -348,18 +346,11 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @parameterized.expand([
         ({}, {}),
-        ({'TableName': 'my_table'}, {})
+        ({'SourceTableName': 'my_table'}, {})
     ])
-    def test_add_kinesis_destinations_raises_exception(self, events, context):
+    def test_copy_active_kinesis_destinations_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            add_kinesis_destinations(events=events, context=context)
-
-    @parameterized.expand([
-        ({}, {})
-    ])
-    def test_get_active_kinesis_destinations_raises_exception(self, events, context):
-        with self.assertRaises(KeyError):
-            get_active_kinesis_destinations(events=events, context=context)
+            copy_active_kinesis_destinations(events=events, context=context)
 
     @parameterized.expand([
         ({}, {}),
@@ -551,52 +542,24 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.dynamo_db_util._describe_kinesis_destinations',
            return_value=DESCRIBE_KINESIS_DESTINATIONS_RESPONSE)
-    def test_get_active_kinesis_destinations(self, get_destination_mock):
-        result = get_active_kinesis_destinations(events={
-            "TableName": "my_table"
+    @patch('documents.util.scripts.src.dynamo_db_util._enable_kinesis_destinations',
+           return_value=DESCRIBE_KINESIS_DESTINATIONS_RESPONSE)
+    def test_copy_active_kinesis_destinations(self, enable_mock, get_destination_mock):
+        result = copy_active_kinesis_destinations(events={
+            "SourceTableName": "my_table",
+            "TargetTableName": "my_table_target"
         }, context={})
 
-        expected_output = {
-            "KinesisDestinations": json.dumps([{
-                "StreamArn": "TestStreamArn1",
-                "DestinationStatus": 'ENABLING',
-                "DestinationStatusDescription": 'Description'
-            }])
-        }
+        expected_output = ["TestStreamArn1"]
         self.assertEqual(result, expected_output)
         get_destination_mock.assert_called_with(table_name='my_table')
+        enable_mock.assert_has_calls([call(table_name='my_table_target', kds_arn='TestStreamArn1')])
 
     def test__enable_kinesis_destinations(self):
 
         result = _enable_kinesis_destinations(table_name="my_table", kds_arn='arn')
 
         self.assertEqual(result, ENABLE_KINESIS_DESTINATIONS_RESPONSE)
-
-    @patch('documents.util.scripts.src.dynamo_db_util._enable_kinesis_destinations',
-           return_value=DESCRIBE_KINESIS_DESTINATIONS_RESPONSE)
-    def test_add_kinesis_destinations(self, enable_mock):
-        active_destinations = [{
-            "StreamArn": "TestStreamArn1",
-            "DestinationStatus": 'ENABLING',
-            "DestinationStatusDescription": 'Description'
-        }]
-
-        result = add_kinesis_destinations(events={
-            "TableName": "my_table",
-            "Destinations": json.dumps(active_destinations)
-        }, context={})
-
-        expected_output = {
-            "KinesisDestinations": json.dumps([{
-                "StreamArn": "TestStreamArn1",
-                "DestinationStatus": 'ENABLING',
-                "DestinationStatusDescription": 'Description'
-            }])
-        }
-
-        # TODO: check for multiple calls
-        self.assertEqual(result, expected_output)
-        enable_mock.assert_called_with(table_name='my_table', kds_arn='TestStreamArn1')
 
     def test__update_time_to_live(self):
 
