@@ -175,8 +175,8 @@ def find_deployment_id_for_update(events: dict, context: dict) -> dict:
 
     deployment_items = get_deployments(gateway_id, 500)['items']
     if len(deployment_items) == 1 and deployment_items[0]['id'] == current_deployment_id:
-        raise ValueError(f'There are no deployments found to apply in RestApiGateway ID: {gateway_id},\
-        except current deployment ID: {current_deployment_id}')
+        raise ValueError(f'There are no deployments found to apply in RestApiGateway ID: {gateway_id}, '
+                         f'except current deployment ID: {current_deployment_id}')
 
     current_deployment_creation_date = get_deployment(gateway_id, current_deployment_id)['createdDate']
     deployment_items.sort(key=lambda x: x['createdDate'], reverse=True)
@@ -185,8 +185,8 @@ def find_deployment_id_for_update(events: dict, context: dict) -> dict:
             output['DeploymentIdToApply'] = item['id']
             return output
 
-    raise ValueError(f'Could not find any existing deployment which has createdDate less than current deployment ID: \
-      {current_deployment_id}, with createdDate: {current_deployment_creation_date}')
+    raise ValueError(f'Could not find any existing deployment which has createdDate less than current deployment ID: '
+                     f'{current_deployment_id}, with createdDate: {current_deployment_creation_date}')
 
 
 def update_deployment(events: dict, context: dict) -> dict:
