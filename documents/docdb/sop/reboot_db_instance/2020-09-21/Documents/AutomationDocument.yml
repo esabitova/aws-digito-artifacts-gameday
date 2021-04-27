@@ -18,6 +18,8 @@
 description: 'SOP - Reboot DB Instance'
 schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
+outputs:
+  - OutputRecoveryTime.RecoveryTime
 
 parameters:
   DBClusterIdentifier:
@@ -35,6 +37,19 @@ parameters:
     default: ''
 
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: RebootDbInstance
     action: aws:executeAwsApi
     description: Reboot DB instance
@@ -56,3 +71,18 @@ mainSteps:
       PropertySelector: '$.DBInstances..DBInstanceStatus'
       DesiredValues:
         - available
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

@@ -5,7 +5,7 @@
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
-  "tag": "compute:alarm:ebs-burst-balance:2020-12-06",
+  "tag": "ebs:alarm:ebs-burst-balance:2020-12-06",
   "failureType": "SOFTWARE,HARDWARE",
   "minorVersion": "001"
 }

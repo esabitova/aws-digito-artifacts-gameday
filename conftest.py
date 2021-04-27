@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+import re
 from datetime import timedelta, datetime
 import random
 import string
@@ -30,9 +31,10 @@ from resource_manager.src.util.sts_utils import assume_role_session
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.ssm_utils import send_step_approval
-
 from resource_manager.src.alarm_manager import AlarmManager
 from publisher.src.alarm_document_parser import AlarmDocumentParser
+from resource_manager.src.util.enums.operator import Operator
+from resource_manager.src.util.cw_util import wait_for_metric_data_point
 
 
 def pytest_addoption(parser):
@@ -557,9 +559,8 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str,
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')
 
+
 # Alarm
-
-
 @given(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
 @when(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
 @then(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
@@ -608,3 +609,54 @@ def verify_alarm_metrics_exist(alarm_manager):
     raise TimeoutError(f'After {wait_sec} the following alarms metrics have no data: {alarms_missing_data}'
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')
+
+
+@when(parse('wait "{metric_name}" metric point "{operator}" to "{expected_datapoint}" "{metric_unit}"\n{input_params}'))
+@then(parse('wait "{metric_name}" metric point "{operator}" to "{expected_datapoint}" "{metric_unit}"\n{input_params}'))
+def wait_for_metric_datapoint(metric_name, operator, expected_datapoint, cfn_output_params,
+                              input_params, ssm_test_cache, metric_unit, boto3_session):
+    """
+    Asserts if particular metric reached desired point.
+    :param expected_datapoint The expected metric point
+    :param cfn_output_params The cfn output parameters from resource manager
+    :param input_params The input parameters from step definition
+    :param ssm_test_cache The test cache
+    :param boto3_session The boto3 session
+    :param metric_name The metric name to assert
+    :param metric_unit The metric unit
+    :param operator The operator to use for assertion
+    """
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    input_param_row = params[0]
+    start_time = input_param_row.pop('StartTime')
+    # It is possible end time is not given
+    end_time = input_param_row.pop('EndTime') if input_param_row.get('EndTime') else None
+    metric_namespace = input_param_row.pop('Namespace')
+    metric_period = int(input_param_row.pop('MetricPeriod'))
+    metric_dimensions = input_param_row
+    wait_for_metric_data_point(session=boto3_session,
+                               name=metric_name,
+                               datapoint_threshold=float(expected_datapoint),
+                               operator=Operator.from_string(operator),
+                               start_time_utc=start_time,
+                               end_time_utc=end_time,
+                               namespace=metric_namespace,
+                               period=metric_period,
+                               dimensions=metric_dimensions,
+                               unit=metric_unit)
+
+
+@when(parse('cache ssm step execution interval\n{input_params}'))
+@then(parse('cache ssm step execution interval\n{input_params}'))
+def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_test_cache):
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    input_param_row = params[0]
+    execution_id = input_param_row.get('ExecutionId')
+    step_name = input_param_row.get('StepName')
+    if not execution_id or not step_name:
+        raise Exception('Parameters [ExecutionId] and [StepName] should be presented.')
+    exec_start, exec_end = get_ssm_step_interval(boto3_session, execution_id, step_name)
+    execution_id_ref = parse_str_table(input_params).rows[0]['ExecutionId']
+    ssm_execution_id = re.search(r'SsmExecutionId>\d+', execution_id_ref).group().split('>')[1]
+    ssm_test_cache['SsmStepExecutionInterval'] = {ssm_execution_id: {step_name: {'StartTime': exec_start,
+                                                                                 'EndTime': exec_end}}}
