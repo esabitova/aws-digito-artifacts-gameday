@@ -106,6 +106,6 @@ def assert_https_status_code_200(response: dict, error_message: str) -> None:
         raise AssertionError(f'{error_message} Response is: {response}')
 
 
-def assert_https_status_code(code: int, response: dict, error_message: str) -> None:
+def assert_https_status_code_less_or_equal(code: int, response: dict, error_message: str) -> None:
     if not response['ResponseMetadata']['HTTPStatusCode'] <= code:
         raise AssertionError(f'{error_message} Response is: {response}')

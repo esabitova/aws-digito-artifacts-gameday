@@ -1,7 +1,7 @@
 from boto3 import Session
 
 from .boto3_client_factory import client
-from .common_test_utils import assert_https_status_code_200, assert_https_status_code
+from .common_test_utils import assert_https_status_code_200, assert_https_status_code_less_or_equal
 
 
 def create_deployment(session: Session, gateway_id: str, description: str = '') -> dict:
@@ -14,8 +14,8 @@ def create_deployment(session: Session, gateway_id: str, description: str = '') 
     """
     apigw_client = client('apigateway', session)
     response = apigw_client.create_deployment(restApiId=gateway_id, description=description)
-    assert_https_status_code(201, response, f'Failed to create deployment: {description}, '
-                                            f'restApiId: {gateway_id}')
+    assert_https_status_code_less_or_equal(201, response, f'Failed to create deployment: {description}, '
+                                                          f'restApiId: {gateway_id}')
     return response
 
 
@@ -29,8 +29,8 @@ def delete_deployment(session: Session, gateway_id: str, deployment_id: str) -> 
     """
     apigw_client = client('apigateway', session)
     response = apigw_client.delete_deployment(restApiId=gateway_id, deploymentId=deployment_id)
-    assert_https_status_code(202, response, f'Failed to delete deploymentId: {deployment_id}, '
-                                            f'restApiId: {gateway_id}')
+    assert_https_status_code_less_or_equal(202, response, f'Failed to delete deploymentId: {deployment_id}, '
+                                                          f'restApiId: {gateway_id}')
     return True
 
 
