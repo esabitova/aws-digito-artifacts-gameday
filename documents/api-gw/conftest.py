@@ -86,12 +86,8 @@ def create_dummy_deployment_set(
 def delete_dummy_deployment(
         resource_manager, ssm_test_cache, boto3_session, input_parameters
 ):
-    gateway_id = extract_param_value(
-        input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
-    )
-    deployment_id = extract_param_value(
-        input_parameters, "RestDeploymentId", resource_manager, ssm_test_cache
-    )
+    gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
+    deployment_id = extract_param_value(input_parameters, "RestDeploymentId", resource_manager, ssm_test_cache)
     apigw_util.delete_deployment(boto3_session, gateway_id, deployment_id)
     return True
 
