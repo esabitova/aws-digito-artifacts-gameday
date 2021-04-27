@@ -7,7 +7,7 @@ from resource_manager.src.util.dynamo_db_utils import (
     add_global_table_and_wait_for_active, add_kinesis_destinations,
     drop_and_wait_dynamo_db_table_if_exists,
     get_earliest_recovery_point_in_time,
-    remove_global_table_and_wait_for_active, update_time_to_live)
+    remove_global_table_and_wait_for_active, update_time_to_live, wait_table_to_be_active)
 
 
 @given(parsers.parse('cache table property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
@@ -21,6 +21,22 @@ def cache_table_property(resource_manager, ssm_test_cache, boto3_session, json_p
     response = dynamodb_client.describe_table(TableName=table_name_value)
     target_value = jsonpath_ng.parse(json_path).find(response)[0].value
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, target_value)
+
+
+@given(parsers.parse("wait table {table_name_ref} to be active "
+                     "for {wait_sec} seconds with interval {delay_sec} seconds"))
+def wait_table_to_be_active_for_x_seconds(ssm_test_cache,
+                                          resource_manager,
+                                          boto3_session,
+                                          table_name_ref,
+                                          wait_sec,
+                                          delay_sec):
+    cf_output = resource_manager.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    wait_table_to_be_active(table_name=table_name,
+                            boto3_session=boto3_session,
+                            wait_sec=int(wait_sec),
+                            delay_sec=int(delay_sec))
 
 
 @given(parsers.parse("drop Dynamo DB table with the name {table_name_ref} and wait "

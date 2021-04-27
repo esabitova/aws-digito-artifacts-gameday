@@ -16,10 +16,10 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoreFromPointInTime
+Description: Role for SSM Digito-RestoreToPointInTime_2020-04-01
 Outputs:
   DigitoRestoreFromPointInTimeAssumeRole:
-    Description: DigitoRestoreFromPointInTime Automation Assume Role ARN
+    Description: Digito-RestoreToPointInTime_2020-04-01 Automation Assume Role ARN
     Value: !GetAtt DigitoRestoreFromPointInTimeAssumeRole.Arn
 Resources:
   DigitoRestoreFromPointInTimeAssumeRole:
@@ -69,6 +69,14 @@ Resources:
               - "cloudwatch:PutMetricAlarm"
               - "dynamodb:CreateTableReplica"
               - "dynamodb:CreateTable"
+              - 'ssm:GetParameters'
+              - 'ssm:DescribeInstanceInformation'
+              - 'ssm:SendCommand'
+              - 'ssm:ListCommands'
+              - 'ssm:ListCommandInvocations'
+              - 'ssm:GetAutomationExecution'
+              - 'ssm:StartAutomationExecution'
+              - "iam:PassRole"
 
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

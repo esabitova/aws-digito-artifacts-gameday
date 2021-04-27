@@ -54,6 +54,35 @@ def _describe_continuous_backups(table_name: str, boto3_session: Session) -> dic
                                    delegate=lambda x: x.describe_continuous_backups(TableName=table_name))
 
 
+def wait_table_to_be_active(table_name: str,
+                            wait_sec: int,
+                            delay_sec: int,
+                            boto3_session: Session) -> None:
+    """
+    Waits until the table became active
+    :param table_name: The table name
+    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param boto3_session: The boto3 session
+    """
+
+    start = time.time()
+    elapsed = 0
+    status = ''
+    while elapsed < wait_sec:
+        description = _describe_table(table_name=table_name, boto3_session=boto3_session)
+        status = description['Table'].get('TableStatus', '')
+        log.info(f'The current table status: {status}. Table:{table_name}')
+        if status == 'ACTIVE':
+            return
+
+        end = time.time()
+        elapsed = end - start
+        time.sleep(delay_sec)
+
+    raise TimeoutError(f'Timeout waiting for table `{table_name}` to be active. '
+                       f'Elapsed:{elapsed};The latest State:{status}')
+
+
 def _check_if_table_deleted(table_name: str, boto3_session: Session) -> bool:
     """
     Checks if the table is deleted

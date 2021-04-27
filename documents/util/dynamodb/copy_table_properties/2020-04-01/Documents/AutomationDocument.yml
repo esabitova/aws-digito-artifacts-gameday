@@ -1,0 +1,231 @@
+description: "Restore To Point In Time SOP"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  DynamoDBTableSourceName:
+    type: String
+    description: (Required) The DynamoDB Table Source Name.
+  DynamoDBTableTargetName:
+    type: String
+    description: (Required) The DynamoDB Table Target Name.
+  DynamoDBSourceTableAlarmNames:
+    type: StringList
+    description: (Optional) The DynamoDB Source Table Name Alarm Names.
+    default:
+      - "non-existing-alarm"
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: CopyDynamoDBTableStreamSettings
+    action: aws:executeScript
+    outputs:
+      - Name: CopiedStreamSettings
+        Selector: $.Payload
+        Type: StringMap
+    inputs:
+      Runtime: python3.6
+      Handler: copy_table_stream_settings
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_table_stream_settings
+  - name: WaitTableToBeActiveAfterSteamSet
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{DynamoDBTableTargetName}}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
+  - name: CopyDynamoDBTableKinesisDestination
+    action: aws:executeScript
+    outputs:
+      - Name: CopiedKinesisDestinations
+        Selector: $.Payload
+        Type: StringList
+    inputs:
+      Runtime: python3.6
+      Handler: copy_active_kinesis_destinations
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util._enable_kinesis_destinations
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_active_kinesis_destinations
+  - name: CopyDynamoDBTableTimeToLive
+    action: aws:executeScript
+    outputs:
+      - Name: TargetTTLCopied
+        Selector: $.Payload.TTLCopied
+        Type: Boolean
+      - Name: TargetTTLAttribute
+        Selector: $.Payload.TTLAttribute
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: copy_time_to_live
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_time_to_live
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_time_to_live
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_time_to_live
+  - name: CopyDynamoDBTableTags
+    action: aws:executeScript
+    outputs:
+      - Name: CopiedTags
+        Selector: $.Payload.Tags
+        Type: MapList
+    inputs:
+      Runtime: python3.6
+      Handler: copy_resource_tags
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+        Region: "{{ global:REGION }}"
+        Account: "{{ global:ACCOUNT_ID }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_tags
+        SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_resource_tags
+  - name: CopyDynamoDBTableContributorInsights
+    action: aws:executeScript
+    outputs:
+      - Name: CopiedTableContributorInsightsStatus
+        Selector: $.Payload.CopiedTableContributorInsightsStatus
+        Type: String
+      - Name: CopiedIndexesContributorInsightsStatus
+        Selector: $.Payload.CopiedIndexesContributorInsightsStatus
+        Type: MapList
+    inputs:
+      Runtime: python3.6
+      Handler: copy_contributor_insights_settings
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_secondary_indexes
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_contributor_insights
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_contributor_insights
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_contributor_insights_settings
+  - name: CopyScalingTargets
+    action: aws:executeScript
+    outputs:
+      - Name: CopiedScalingTargets
+        Selector: $.Payload
+        Type: MapList
+    inputs:
+      Runtime: python3.6
+      Handler: copy_scaling_targets
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::auto_scaling_util.imports
+
+        SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
+        SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
+        SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
+        SCRIPT_PLACEHOLDER::auto_scaling_util.copy_scaling_targets
+  - name: SwitchAlarmsToTargetTable
+    action: aws:executeScript
+    outputs:
+      - Name: AlarmsChanged
+        Selector: $.Payload.AlarmsChanged
+        Type: Integer
+    inputs:
+      Runtime: python3.6
+      Handler: copy_put_alarms_for_dynamo_db_table
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+        DynamoDBSourceTableAlarmNames: "{{ DynamoDBSourceTableAlarmNames }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util._execute_boto3_cloudwatch
+        SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
+        SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
+        SCRIPT_PLACEHOLDER::cloudwatch_util.copy_put_alarms_for_dynamo_db_table
+  - name: GetGlobalTableRegions
+    action: aws:executeScript
+    outputs:
+      - Name: GlobalTableRegions
+        Selector: $.Payload.GlobalTableRegions
+        Type: StringList
+    inputs:
+      Runtime: python3.6
+      Handler: get_global_table_active_regions
+      InputPayload:
+        TableName: "{{ DynamoDBTableSourceName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
+        SCRIPT_PLACEHOLDER::dynamo_db_util.get_global_table_active_regions
+  - name: SetUpReplication
+    action: aws:executeScript
+    outputs:
+      - Name: GlobalTableRegionsAdded
+        Selector: $.Payload.GlobalTableRegionsAdded
+        Type: StringList
+    inputs:
+      Runtime: python3.6
+      Handler: set_up_replication
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        GlobalTableRegions: "{{ GetGlobalTableRegions.GlobalTableRegions }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util.set_up_replication
+  - name: WaitActiveStatusOfReplication
+    action: aws:executeScript
+    outputs:
+      - Name: GlobalTableRegionsAdded
+        Selector: $.Payload.GlobalTableRegionsAdded
+        Type: StringList
+    inputs:
+      Runtime: python3.6
+      Handler: wait_replication_status_in_all_regions
+      InputPayload:
+        TableName: "{{ DynamoDBTableTargetName }}"
+        ReplicasRegionsToWait: "{{ GetGlobalTableRegions.GlobalTableRegions }}"
+        WaitTimeoutSeconds: 600
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
+        SCRIPT_PLACEHOLDER::dynamo_db_util.get_global_table_active_regions
+        SCRIPT_PLACEHOLDER::dynamo_db_util.wait_replication_status_in_all_regions

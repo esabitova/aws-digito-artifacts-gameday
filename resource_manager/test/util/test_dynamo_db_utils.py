@@ -9,7 +9,7 @@ from resource_manager.src.util.dynamo_db_utils import (
     _execute_boto3_dynamodb, _update_table, add_kinesis_destinations,
     remove_global_table_and_wait_for_active, try_remove_replica,
     update_time_to_live, add_global_table_and_wait_for_active,
-    get_earliest_recovery_point_in_time, drop_and_wait_dynamo_db_table_if_exists)
+    get_earliest_recovery_point_in_time, drop_and_wait_dynamo_db_table_if_exists, wait_table_to_be_active)
 
 GENERIC_SUCCESS_RESULT = {
     "ResponseMetadata": {
@@ -229,6 +229,29 @@ class TestDynamoDbUtil(unittest.TestCase):
                                      )
 
         self.assertEqual(result, UPDATE_TTL_RESPONSE)
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           return_value={'Table': {'TableStatus:': 'CREATING'}})
+    def test_wait_table_to_be_active_timeout(self, describe_mock):
+        with self.assertRaises(TimeoutError):
+            wait_table_to_be_active(boto3_session=self.session_mock,
+                                    table_name="my_table",
+                                    wait_sec=1,
+                                    delay_sec=1)
+
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         table_name="my_table")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           return_value={'Table': {'TableStatus': 'ACTIVE'}})
+    def test_wait_table_to_be_active(self, describe_mock):
+        wait_table_to_be_active(boto3_session=self.session_mock,
+                                table_name="my_table",
+                                wait_sec=1,
+                                delay_sec=1)
+
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         table_name="my_table")
 
     def test_add_kinesis_destinations(self):
         result = add_kinesis_destinations(boto3_session=self.session_mock,
