@@ -25,6 +25,9 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+outputs:
+  - "ParseRecoveryPointDateTime.UseLatestRecoveryPoint"
+  - "ParseRecoveryPointDateTime.RecoveryPointDateTime"
 mainSteps:
   - name: verifyDynamoDBTableTargetStatus
     action: aws:assertAwsResourceProperty
