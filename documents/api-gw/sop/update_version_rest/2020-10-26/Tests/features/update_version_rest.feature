@@ -51,6 +51,7 @@ Feature: SSM automation document to update REST API deployment
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
+
   Scenario: Run document without provided RestDeploymentId
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                | ResourceType |

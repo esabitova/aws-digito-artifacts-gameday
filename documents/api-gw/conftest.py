@@ -73,14 +73,11 @@ def create_dummy_deployment_set(
     gateway_id = extract_param_value(
         input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
     )
-
-    counter = 1
-    while counter <= count:
+    for counter in range(1, count + 1):
         deployment_ids.append(
             apigw_util.create_deployment(boto3_session, gateway_id, f'Dummy deployment {counter}')['id']
         )
         sleep(interval)
-        counter += 1
 
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, deployment_ids)
 
