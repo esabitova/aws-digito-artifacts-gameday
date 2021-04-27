@@ -70,9 +70,7 @@ def create_dummy_deployment_set(
     count = int(count)
     interval = int(interval)
     deployment_ids = []
-    gateway_id = extract_param_value(
-        input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
-    )
+    gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     for counter in range(1, count + 1):
         deployment_ids.append(
             apigw_util.create_deployment(boto3_session, gateway_id, f'Dummy deployment {counter}')['id']
@@ -86,7 +84,7 @@ def create_dummy_deployment_set(
 @when(parsers.parse(delete_dummy_deployment_expression))
 @then(parsers.parse(delete_dummy_deployment_expression))
 def delete_dummy_deployment(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_manager, ssm_test_cache, boto3_session, input_parameters
 ):
     gateway_id = extract_param_value(
         input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
@@ -101,15 +99,9 @@ def delete_dummy_deployment(
 @given(parsers.parse(delete_dummy_deployment_set_expression))
 @when(parsers.parse(delete_dummy_deployment_set_expression))
 @then(parsers.parse(delete_dummy_deployment_set_expression))
-def delete_dummy_deployment_set(
-        resource_manager, ssm_test_cache, boto3_session, input_parameters
-):
-    gateway_id = extract_param_value(
-        input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
-    )
-    dummy_deployments = extract_param_value(
-        input_parameters, "DummyDeployments", resource_manager, ssm_test_cache
-    )
+def delete_dummy_deployment_set(resource_manager, ssm_test_cache, boto3_session, input_parameters):
+    gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
+    dummy_deployments = extract_param_value(input_parameters, "DummyDeployments", resource_manager, ssm_test_cache)
     for deployment_id in dummy_deployments:
         apigw_util.delete_deployment(boto3_session, gateway_id, deployment_id)
 
@@ -122,12 +114,8 @@ def delete_dummy_deployment_set(
 def cache_current_stage_deployment_id(
         resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
-    gateway_id = extract_param_value(
-        input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
-    )
-    stage_name = extract_param_value(
-        input_parameters, "RestStageName", resource_manager, ssm_test_cache
-    )
+    gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
+    stage_name = extract_param_value(input_parameters, "RestStageName", resource_manager, ssm_test_cache)
     current_deployment_id = apigw_util.get_stage(boto3_session, gateway_id, stage_name)['deploymentId']
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, current_deployment_id)
 
@@ -141,7 +129,6 @@ def update_current_stage_deployment_id(
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     stage_name = extract_param_value(input_parameters, "RestStageName", resource_manager, ssm_test_cache)
     deployment_id = extract_param_value(input_parameters, "RestDeploymentId", resource_manager, ssm_test_cache)
-
     updated_deployment_id = apigw_util.update_stage_deployment(
         boto3_session, gateway_id, stage_name, deployment_id
     )['deploymentId']
@@ -154,10 +141,10 @@ def update_current_stage_deployment_id(
 def apply_dummy_deployment_to_stage(
         resource_manager, ssm_test_cache, boto3_session, number, cache_property, step_key, input_parameters
 ):
+    number = int(number) - 1
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     stage_name = extract_param_value(input_parameters, "RestStageName", resource_manager, ssm_test_cache)
     dummy_deployments = extract_param_value(input_parameters, "DummyDeployments", resource_manager, ssm_test_cache)
-    number = int(number) - 1
     dummy_deployment_id = dummy_deployments[number]
     previous_deployment_id = dummy_deployments[number - 1]
     apigw_util.update_stage_deployment(boto3_session, gateway_id, stage_name, dummy_deployment_id)

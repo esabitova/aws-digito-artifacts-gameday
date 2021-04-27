@@ -205,7 +205,7 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['OriginalDeploymentId'])
 
-    def test_find_deployment_id_for_update_with_same_id(self):
+    def test_find_deployment_id_for_update_with_provided_deployment_id_same_as_current(self):
         events = {}
         events['RestApiGwId'] = REST_API_GW_ID
         events['RestStageName'] = REST_API_GW_STAGE_NAME
