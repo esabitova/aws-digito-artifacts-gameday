@@ -33,7 +33,7 @@ def _put_metric_alarm(**kwargs):
         delegate=lambda x: x.put_metric_alarm(**kwargs))
 
 
-def copy_put_alarms_for_dynamo_db_table(events, context):
+def copy_alarms_for_dynamo_db_table(events, context):
     if 'SourceTableName' not in events:
         raise KeyError('Requires SourceTableName')
     if 'TargetTableName' not in events:

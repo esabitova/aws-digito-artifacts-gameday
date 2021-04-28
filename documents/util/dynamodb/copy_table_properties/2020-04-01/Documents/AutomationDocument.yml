@@ -159,7 +159,7 @@ mainSteps:
         Type: Integer
     inputs:
       Runtime: python3.6
-      Handler: copy_put_alarms_for_dynamo_db_table
+      Handler: copy_alarms_for_dynamo_db_table
       InputPayload:
         SourceTableName: "{{ DynamoDBTableSourceName }}"
         TargetTableName: "{{ DynamoDBTableTargetName }}"
@@ -170,7 +170,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util._execute_boto3_cloudwatch
         SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
         SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
-        SCRIPT_PLACEHOLDER::cloudwatch_util.copy_put_alarms_for_dynamo_db_table
+        SCRIPT_PLACEHOLDER::cloudwatch_util.copy_alarms_for_dynamo_db_table
   - name: CopyReplicationSetting
     action: aws:executeScript
     outputs:
