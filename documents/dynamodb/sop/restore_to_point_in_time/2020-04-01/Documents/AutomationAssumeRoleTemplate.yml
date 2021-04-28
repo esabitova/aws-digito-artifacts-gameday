@@ -69,6 +69,7 @@ Resources:
               - "cloudwatch:PutMetricAlarm"
               - "dynamodb:CreateTableReplica"
               - "dynamodb:CreateTable"
+              - "dynamodb:DescribeContinuousBackups"
               - 'ssm:GetParameters'
               - 'ssm:DescribeInstanceInformation'
               - 'ssm:SendCommand'

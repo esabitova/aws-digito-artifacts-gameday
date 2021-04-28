@@ -1,7 +1,6 @@
 import logging
-from datetime import datetime
 import time
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, List
 
 import boto3
 
@@ -10,15 +9,6 @@ logger.setLevel(logging.INFO)
 
 ENABLED_INSIGHTS_STATUSES = ['ENABLING', 'ENABLED']
 GLOBAL_TABLE_ACTIVE_STATUSES = ['ACTIVE']
-
-
-def _parse_date_time(date_time_str: str, format: str) -> Union[datetime, None]:
-    if date_time_str.strip():
-        try:
-            return datetime.strptime(date_time_str, format)
-        except ValueError as ve:
-            logger.error(ve)
-    return None
 
 
 def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
@@ -354,28 +344,3 @@ def copy_table_stream_settings(events: dict, context: dict):
         result = _update_table(table_name=target_table_name, **settings)
         specification = result.get('StreamSpecification', {})
         return specification
-
-
-def parse_recovery_date_time(events: dict, context: dict) -> dict:
-    """
-    Tries to parse the given `RecoveryPointDateTime` and returns it back if success
-    :return: The dictionary that indicates if latest availabe recovery point should be used
-    """
-    DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
-
-    if 'RecoveryPointDateTime' not in events:
-        raise KeyError('Requires RecoveryPointDateTime')
-
-    restore_date_time_str = events['RecoveryPointDateTime']
-    restore_date_time = _parse_date_time(date_time_str=restore_date_time_str,
-                                         format=DATETIME_FORMAT)
-    if restore_date_time:
-        return {
-            'RecoveryPointDateTime': datetime.strftime(restore_date_time, DATETIME_FORMAT),
-            'UseLatestRecoveryPoint': False
-        }
-    else:
-        return {
-            'RecoveryPointDateTime': 'None',
-            'UseLatestRecoveryPoint': True
-        }
