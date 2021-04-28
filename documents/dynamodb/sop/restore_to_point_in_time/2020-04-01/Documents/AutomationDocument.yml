@@ -11,8 +11,8 @@ parameters:
   RecoveryPointDateTime:
     type: String
     description: (Optional) The recovery point in time in format YYYY-MM-DDTHH:MM:SSZ
-    allowedPattern: "^None$|^\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d[0-5]\\d|Z)$"
-    default: "None"
+    allowedPattern: "^latest$|^\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d[0-5]\\d|Z)$"
+    default: "latest"
   CopyAllProperties:
     type: Boolean
     description: (Optional) If True copies all the settings from Source table to the restored on
@@ -26,9 +26,20 @@ parameters:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 outputs:
-  - "ParseRecoveryPointDateTime.UseLatestRecoveryPoint"
-  - "ParseRecoveryPointDateTime.RecoveryPointDateTime"
+  - "OutputRecoveryTime.RecoveryTime"
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
   - name: verifyDynamoDBTableTargetStatus
     action: aws:assertAwsResourceProperty
     onFailure: Abort
@@ -122,6 +133,7 @@ mainSteps:
         - NextStep: CopyAllTableProperties
           Variable: "{{CopyAllProperties}}"
           BooleanEquals: true
+      Default: OutputRecoveryTime
   - name: CopyAllTableProperties
     action: 'aws:executeAutomation'
     onFailure: Abort
@@ -132,4 +144,18 @@ mainSteps:
         DynamoDBTableSourceName: '{{DynamoDBTableSourceName}}'
         DynamoDBTableTargetName: '{{DynamoDBTableTargetName}}'
         DynamoDBSourceTableAlarmNames: '{{DynamoDBSourceTableAlarmNames}}'
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
     isEnd: true

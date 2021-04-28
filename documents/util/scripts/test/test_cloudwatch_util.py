@@ -8,7 +8,7 @@ from documents.util.scripts.src.cloudwatch_util import (
     _describe_metric_alarms, describe_metric_alarm_state,
     get_ec2_metric_max_datapoint, get_metric_alarm_threshold_values,
     verify_alarm_triggered, verify_ec2_stress,
-    copy_put_alarms_for_dynamo_db_table)
+    copy_alarms_for_dynamo_db_table)
 from documents.util.scripts.test.test_data_provider import \
     get_instance_ids_by_count
 
@@ -83,9 +83,9 @@ class TestCloudWatchUtil(unittest.TestCase):
            return_value=DESCRIBE_ALARMS_RESPONSE)
     @patch('documents.util.scripts.src.cloudwatch_util._put_metric_alarm',
            return_value=DESCRIBE_ALARMS_RESPONSE)
-    def test_copy_put_alarms_for_dynamo_db_table(self, describe_mock, put_mock):
+    def test_copy_alarms_for_dynamo_db_table(self, describe_mock, put_mock):
 
-        result = copy_put_alarms_for_dynamo_db_table(events={
+        result = copy_alarms_for_dynamo_db_table(events={
             'SourceTableName': 'source_table',
             'TargetTableName': 'target_table',
             'DynamoDBSourceTableAlarmNames':
