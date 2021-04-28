@@ -6,16 +6,7 @@ from unittest.mock import patch
 import pytest
 from dateutil.tz import tzlocal
 
-from documents.util.scripts.src.apigw_util import (
-    assert_https_status_code_200,
-    check_limit_and_period,
-    set_limit_and_period,
-    get_stage,
-    get_deployment,
-    get_deployments,
-    update_deployment,
-    find_deployment_id_for_update
-)
+import documents.util.scripts.src.apigw_util as apigw_util
 
 USAGE_PLAN_ID: str = "jvgy9s"
 USAGE_PLAN_LIMIT = 50000
@@ -185,7 +176,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
-        output = check_limit_and_period(events, None)
+        output = apigw_util.check_limit_and_period(events, None)
         self.assertEqual("ok", output['Result'])
 
     def test_set_limit_and_period(self):
@@ -194,7 +185,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
-        output = set_limit_and_period(events, None)
+        output = apigw_util.set_limit_and_period(events, None)
         self.assertEqual(NEW_USAGE_PLAN_LIMIT, output['Limit'])
         self.assertEqual(NEW_USAGE_PLAN_PERIOD, output['Period'])
 
@@ -204,7 +195,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(KeyError) as exception_info:
-            check_limit_and_period(events, None)
+            apigw_util.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId  in events'))
 
     def test_input2_check_limit_and_period(self):
@@ -213,7 +204,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(KeyError) as exception_info:
-            check_limit_and_period(events, None)
+            apigw_util.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwQuotaLimit  in events'))
 
     def test_input3_check_limit_and_period(self):
@@ -222,7 +213,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
 
         with pytest.raises(KeyError) as exception_info:
-            check_limit_and_period(events, None)
+            apigw_util.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
 
     def test_input1_set_limit_and_period(self):
@@ -231,7 +222,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(KeyError) as exception_info:
-            set_limit_and_period(events, None)
+            apigw_util.set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId  in events'))
 
     def test_input2_set_limit_and_period(self):
@@ -240,7 +231,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(KeyError) as exception_info:
-            set_limit_and_period(events, None)
+            apigw_util.set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwQuotaLimit  in events'))
 
     def test_input3_set_limit_and_period(self):
@@ -249,23 +240,23 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
 
         with pytest.raises(KeyError) as exception_info:
-            set_limit_and_period(events, None)
+            apigw_util.set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
 
     def test_get_deployment(self):
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V2, REST_API_GW_DEPLOYMENT_CREATED_DATE_MORE_THAN_V1
         )
-        output = get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V2)
+        output = apigw_util.get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V2)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['id'])
 
     def test_get_deployments(self):
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_1_deployment()
-        output = get_deployments(REST_API_GW_ID)
+        output = apigw_util.get_deployments(REST_API_GW_ID)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['items'][0]['id'])
 
     def test_get_stage(self):
-        output = get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+        output = apigw_util.get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['deploymentId'])
 
     def test_find_deployment_id_for_update_with_provided_id(self):
@@ -276,7 +267,7 @@ class TestApigwUtil(unittest.TestCase):
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V2, REST_API_GW_DEPLOYMENT_CREATED_DATE_V1
         )
-        output = find_deployment_id_for_update(events, None)
+        output = apigw_util.find_deployment_id_for_update(events, None)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['OriginalDeploymentId'])
 
@@ -287,7 +278,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(ValueError) as exception_info:
-            find_deployment_id_for_update(events, None)
+            apigw_util.find_deployment_id_for_update(events, None)
         self.assertTrue(exception_info.match('Provided deployment ID and current deployment ID should not be the same'))
 
     def test_find_deployment_id_for_update_without_provided_id(self):
@@ -298,7 +289,7 @@ class TestApigwUtil(unittest.TestCase):
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V1, REST_API_GW_DEPLOYMENT_CREATED_DATE_V1
         )
-        output = find_deployment_id_for_update(events, None)
+        output = apigw_util.find_deployment_id_for_update(events, None)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['OriginalDeploymentId'])
 
@@ -309,7 +300,7 @@ class TestApigwUtil(unittest.TestCase):
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_1_deployment()
 
         with pytest.raises(ValueError) as exception_info:
-            find_deployment_id_for_update(events, None)
+            apigw_util.find_deployment_id_for_update(events, None)
         self.assertTrue(exception_info.match(f'There are no deployments found to apply in RestApiGateway ID: '
                                              f'{REST_API_GW_ID}, except current deployment ID: '
                                              f'{REST_API_GW_DEPLOYMENT_ID_V1}'))
@@ -323,7 +314,7 @@ class TestApigwUtil(unittest.TestCase):
             REST_API_GW_DEPLOYMENT_ID_V1, REST_API_GW_DEPLOYMENT_CREATED_DATE_V1
         )
         with pytest.raises(ValueError) as exception_info:
-            find_deployment_id_for_update(events, None)
+            apigw_util.find_deployment_id_for_update(events, None)
         self.assertTrue(exception_info.match(f'Could not find any existing deployment which has createdDate less than '
                                              f'current deployment ID: {REST_API_GW_DEPLOYMENT_ID_V1}'))
 
@@ -332,7 +323,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestApiGwId'] = REST_API_GW_ID
 
         with pytest.raises(KeyError) as exception_info:
-            find_deployment_id_for_update(events, None)
+            apigw_util.find_deployment_id_for_update(events, None)
         self.assertTrue(exception_info.match('Requires RestStageName in events'))
 
     def test_input2_deployment_id_for_update(self):
@@ -340,7 +331,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestStageName'] = REST_API_GW_STAGE_NAME
 
         with pytest.raises(KeyError) as exception_info:
-            find_deployment_id_for_update(events, None)
+            apigw_util.find_deployment_id_for_update(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
 
     def test_update_deployment(self):
@@ -349,7 +340,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestStageName'] = REST_API_GW_STAGE_NAME
         events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V2
 
-        output = update_deployment(events, None)
+        output = apigw_util.update_deployment(events, None)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdNewValue'])
 
     def test_input1_update_deployment(self):
@@ -358,7 +349,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestStageName'] = REST_API_GW_STAGE_NAME
 
         with pytest.raises(KeyError) as exception_info:
-            update_deployment(events, None)
+            apigw_util.update_deployment(events, None)
         self.assertTrue(exception_info.match('Requires RestDeploymentId in events'))
 
     def test_input2_update_deployment(self):
@@ -367,7 +358,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(KeyError) as exception_info:
-            update_deployment(events, None)
+            apigw_util.update_deployment(events, None)
         self.assertTrue(exception_info.match('Requires RestStageName in events'))
 
     def test_input3_update_deployment(self):
@@ -376,7 +367,7 @@ class TestApigwUtil(unittest.TestCase):
         events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(KeyError) as exception_info:
-            update_deployment(events, None)
+            apigw_util.update_deployment(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
 
 
@@ -407,7 +398,7 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(ValueError) as exception_info:
-            check_limit_and_period(events, None)
+            apigw_util.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Failed to get usage plan limit and period'))
 
     def test_error_set_limit_and_period(self):
@@ -417,30 +408,30 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(ValueError) as exception_info:
-            set_limit_and_period(events, None)
+            apigw_util.set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Failed to update usage plan limit and period'))
 
     def test_error_https_status_code_200(self):
         with pytest.raises(ValueError) as exception_info:
-            assert_https_status_code_200(get_sample_https_status_code_403_response(), 'Error message')
+            apigw_util.assert_https_status_code_200(get_sample_https_status_code_403_response(), 'Error message')
         self.assertTrue(exception_info.match('Error message'))
 
     def test_error_get_deployment(self):
         with pytest.raises(ValueError) as exception_info:
-            get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
+            apigw_util.get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
         self.assertTrue(exception_info.match(f'Failed to perform get_deployment with restApiId: {REST_API_GW_ID} '
                                              f'and deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
     def test_error_get_deployments(self):
         with pytest.raises(ValueError) as exception_info:
-            get_deployments(REST_API_GW_ID)
+            apigw_util.get_deployments(REST_API_GW_ID)
         self.assertTrue(exception_info.match(f'Failed to perform get_deployments with restApiId: {REST_API_GW_ID} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
     def test_error_get_stage(self):
         with pytest.raises(ValueError) as exception_info:
-            get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+            apigw_util.get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
         self.assertTrue(exception_info.match(f'Failed to perform get_stage with restApiId: {REST_API_GW_ID} '
                                              f'and stageName: {REST_API_GW_STAGE_NAME} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
@@ -452,7 +443,7 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
 
         with pytest.raises(ValueError) as exception_info:
-            update_deployment(events, None)
+            apigw_util.update_deployment(events, None)
         self.assertTrue(exception_info.match(f'Failed to perform update_stage with restApiId: {REST_API_GW_ID}, '
                                              f'stageName: {REST_API_GW_STAGE_NAME} and '
                                              f'deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1} '
@@ -481,5 +472,5 @@ class TestApigwUtilAssertionExceptions(unittest.TestCase):
         events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
 
         with pytest.raises(AssertionError) as exception_info:
-            check_limit_and_period(events, None)
+            apigw_util.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('.*'))
