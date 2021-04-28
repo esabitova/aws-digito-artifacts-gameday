@@ -1,10 +1,10 @@
-from publisher.src.test_rules_validator import TestRulesValidator
-from publisher.src.sop_rules_validator import SopRulesValidator
+from publisher.src.test_rules_validator import RulesValidatorForTestDocument
+from publisher.src.sop_rules_validator import RulesValidatorForSopDocument
 
 
 class DocumentValidator:
-    test_rules_validator = TestRulesValidator()
-    sop_rules_validator = SopRulesValidator()
+    test_rules_validator = RulesValidatorForTestDocument()
+    sop_rules_validator = RulesValidatorForSopDocument()
 
     def validate_document(self, document, file_path):
         failure_messages = []

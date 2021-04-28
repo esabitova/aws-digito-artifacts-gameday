@@ -4,7 +4,7 @@ from publisher.src.parameter import Parameter
 import publisher.src.ssm_automation_doc_rules as ssm_doc_rules
 
 
-class TestRulesValidator(RulesValidator):
+class RulesValidatorForTestDocument(RulesValidator):
     is_rollback_param = Parameter('IsRollback', 'String', False)
     previous_exec_id_param = Parameter('PreviousExecutionId', 'String', False)
     alarm_red_steps = ['AssertAlarmTriggered', 'AssertAlarmToBeRed']

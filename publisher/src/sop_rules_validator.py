@@ -3,7 +3,7 @@ from publisher.src.rule import Rule
 import publisher.src.ssm_automation_doc_rules as ssm_doc_rules
 
 
-class SopRulesValidator(RulesValidator):
+class RulesValidatorForSopDocument(RulesValidator):
 
     def __init__(self):
         RulesValidator.__init__(self, Rule(
