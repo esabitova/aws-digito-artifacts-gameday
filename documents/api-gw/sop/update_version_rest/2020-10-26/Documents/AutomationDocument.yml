@@ -70,12 +70,12 @@ mainSteps:
         RestStageName: '{{ RestStageName }}'
         RestDeploymentId: '{{ RestDeploymentId }}'
       Script: |-
-        SCRIPT_PLACEHOLDER::apigw_util.imports
-        SCRIPT_PLACEHOLDER::apigw_util.get_stage
-        SCRIPT_PLACEHOLDER::apigw_util.get_deployment
-        SCRIPT_PLACEHOLDER::apigw_util.get_deployments
-        SCRIPT_PLACEHOLDER::apigw_util.assert_https_status_code_200
-        SCRIPT_PLACEHOLDER::apigw_util.find_deployment_id_for_update
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.get_stage
+        SCRIPT_PLACEHOLDER::apigw_utils.get_deployment
+        SCRIPT_PLACEHOLDER::apigw_utils.get_deployments
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.find_deployment_id_for_update
 
   - name: UpdateDeployment
     action: aws:executeScript
@@ -91,9 +91,9 @@ mainSteps:
         RestStageName: '{{ RestStageName }}'
         RestDeploymentId: '{{ FindDeploymentIdForUpdate.RestDeploymentIdToApply }}'
       Script: |-
-        SCRIPT_PLACEHOLDER::apigw_util.imports
-        SCRIPT_PLACEHOLDER::apigw_util.assert_https_status_code_200
-        SCRIPT_PLACEHOLDER::apigw_util.update_deployment
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.update_deployment
 
   - name: OutputRecoveryTime
     action: 'aws:executeScript'

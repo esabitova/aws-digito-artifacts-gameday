@@ -94,8 +94,8 @@ mainSteps:
         RestApiGwQuotaLimit: "{{ RestApiGwQuotaLimit }}"
         RestApiGwQuotaPeriod: "{{ RestApiGwQuotaPeriod }}"
       Script: |-
-        SCRIPT_PLACEHOLDER::apigw_util.imports
-        SCRIPT_PLACEHOLDER::apigw_util.check_limit_and_period
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.check_limit_and_period
     nextStep: SetQuotaConfiguration
   - name: SetQuotaConfiguration
     action: aws:executeScript
@@ -115,8 +115,8 @@ mainSteps:
         RestApiGwQuotaLimit: "{{ RestApiGwQuotaLimit }}"
         RestApiGwQuotaPeriod: "{{ RestApiGwQuotaPeriod }}"
       Script: |-
-        SCRIPT_PLACEHOLDER::apigw_util.imports
-        SCRIPT_PLACEHOLDER::apigw_util.set_limit_and_period
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
     outputs:

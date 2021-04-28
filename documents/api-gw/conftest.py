@@ -3,7 +3,7 @@ from time import sleep
 import jsonpath_ng
 from pytest_bdd import given, parsers, when, then
 
-from resource_manager.src.util import apigw_util as apigw_util
+from resource_manager.src.util import apigw_utils as apigw_utils
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 
@@ -57,7 +57,7 @@ def create_dummy_deployment(
     gateway_id = extract_param_value(
         input_parameters, "RestApiGwId", resource_manager, ssm_test_cache
     )
-    created_deployment_id = apigw_util.create_deployment(boto3_session, gateway_id)['id']
+    created_deployment_id = apigw_utils.create_deployment(boto3_session, gateway_id)['id']
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, created_deployment_id)
 
 
@@ -73,7 +73,7 @@ def create_dummy_deployment_set(
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     for counter in range(1, count + 1):
         deployment_ids.append(
-            apigw_util.create_deployment(boto3_session, gateway_id, f'Dummy deployment {counter}')['id']
+            apigw_utils.create_deployment(boto3_session, gateway_id, f'Dummy deployment {counter}')['id']
         )
         sleep(interval)
 
@@ -88,7 +88,7 @@ def delete_dummy_deployment(
 ):
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     deployment_id = extract_param_value(input_parameters, "RestDeploymentId", resource_manager, ssm_test_cache)
-    apigw_util.delete_deployment(boto3_session, gateway_id, deployment_id)
+    apigw_utils.delete_deployment(boto3_session, gateway_id, deployment_id)
     return True
 
 
@@ -99,7 +99,7 @@ def delete_dummy_deployment_set(resource_manager, ssm_test_cache, boto3_session,
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     dummy_deployments = extract_param_value(input_parameters, "DummyDeployments", resource_manager, ssm_test_cache)
     for deployment_id in dummy_deployments:
-        apigw_util.delete_deployment(boto3_session, gateway_id, deployment_id)
+        apigw_utils.delete_deployment(boto3_session, gateway_id, deployment_id)
 
     return True
 
@@ -112,7 +112,7 @@ def cache_current_stage_deployment_id(
 ):
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     stage_name = extract_param_value(input_parameters, "RestStageName", resource_manager, ssm_test_cache)
-    current_deployment_id = apigw_util.get_stage(boto3_session, gateway_id, stage_name)['deploymentId']
+    current_deployment_id = apigw_utils.get_stage(boto3_session, gateway_id, stage_name)['deploymentId']
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, current_deployment_id)
 
 
@@ -125,7 +125,7 @@ def update_current_stage_deployment_id(
     gateway_id = extract_param_value(input_parameters, "RestApiGwId", resource_manager, ssm_test_cache)
     stage_name = extract_param_value(input_parameters, "RestStageName", resource_manager, ssm_test_cache)
     deployment_id = extract_param_value(input_parameters, "RestDeploymentId", resource_manager, ssm_test_cache)
-    updated_deployment_id = apigw_util.update_stage_deployment(
+    updated_deployment_id = apigw_utils.update_stage_deployment(
         boto3_session, gateway_id, stage_name, deployment_id
     )['deploymentId']
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, updated_deployment_id)
@@ -143,5 +143,5 @@ def apply_dummy_deployment_to_stage(
     dummy_deployments = extract_param_value(input_parameters, "DummyDeployments", resource_manager, ssm_test_cache)
     dummy_deployment_id = dummy_deployments[number]
     previous_deployment_id = dummy_deployments[number - 1]
-    apigw_util.update_stage_deployment(boto3_session, gateway_id, stage_name, dummy_deployment_id)
+    apigw_utils.update_stage_deployment(boto3_session, gateway_id, stage_name, dummy_deployment_id)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, previous_deployment_id)

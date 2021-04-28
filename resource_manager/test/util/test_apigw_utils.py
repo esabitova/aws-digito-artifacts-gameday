@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import resource_manager.src.util.apigw_util as apigw_util
+import resource_manager.src.util.apigw_utils as apigw_utils
 import resource_manager.src.util.boto3_client_factory as client_factory
 
 REST_API_GW_ID = "0djifyccl6"
@@ -64,7 +64,7 @@ class TestApiGwUtil(unittest.TestCase):
 
     def test_create_deployment(self):
         self.mock_apigw.create_deployment.return_value = get_sample_create_deployment_response(201)
-        result = apigw_util.create_deployment(self.session_mock, REST_API_GW_ID, 'Dummy deployment')
+        result = apigw_utils.create_deployment(self.session_mock, REST_API_GW_ID, 'Dummy deployment')
         self.mock_apigw.create_deployment.assert_called_once_with(
             restApiId=REST_API_GW_ID, description='Dummy deployment'
         )
@@ -74,14 +74,14 @@ class TestApiGwUtil(unittest.TestCase):
         self.mock_apigw.create_deployment.return_value = get_sample_create_deployment_response(403)
 
         with pytest.raises(AssertionError) as exception_info:
-            apigw_util.create_deployment(self.session_mock, REST_API_GW_ID, 'Dummy deployment')
+            apigw_utils.create_deployment(self.session_mock, REST_API_GW_ID, 'Dummy deployment')
         self.assertTrue(exception_info.match('Failed to create deployment: Dummy deployment, '
                                              f'restApiId: {REST_API_GW_ID} '
                                              f'Response is: {get_sample_create_deployment_response(403)}'))
 
     def test_delete_deployment(self):
         self.mock_apigw.delete_deployment.return_value = get_sample_create_deployment_response(202)
-        result = apigw_util.delete_deployment(self.session_mock, REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
+        result = apigw_utils.delete_deployment(self.session_mock, REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
         self.mock_apigw.delete_deployment.assert_called_once_with(
             restApiId=REST_API_GW_ID, deploymentId=REST_API_GW_DEPLOYMENT_ID_V1
         )
@@ -91,14 +91,14 @@ class TestApiGwUtil(unittest.TestCase):
         self.mock_apigw.delete_deployment.return_value = get_sample_create_deployment_response(403)
 
         with pytest.raises(AssertionError) as exception_info:
-            apigw_util.delete_deployment(self.session_mock, REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
+            apigw_utils.delete_deployment(self.session_mock, REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
         self.assertTrue(exception_info.match(f'Failed to delete deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1}, '
                                              f'restApiId: {REST_API_GW_ID} '
                                              f'Response is: {get_sample_create_deployment_response(403)}'))
 
     def test_get_stage(self):
         self.mock_apigw.get_stage.return_value = get_sample_get_stage_response(200)
-        result = apigw_util.get_stage(self.session_mock, REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+        result = apigw_utils.get_stage(self.session_mock, REST_API_GW_ID, REST_API_GW_STAGE_NAME)
         self.mock_apigw.get_stage.assert_called_once_with(restApiId=REST_API_GW_ID, stageName=REST_API_GW_STAGE_NAME)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, result['deploymentId'])
 
@@ -106,14 +106,14 @@ class TestApiGwUtil(unittest.TestCase):
         self.mock_apigw.get_stage.return_value = get_sample_get_stage_response(403)
 
         with pytest.raises(AssertionError) as exception_info:
-            apigw_util.get_stage(self.session_mock, REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+            apigw_utils.get_stage(self.session_mock, REST_API_GW_ID, REST_API_GW_STAGE_NAME)
         self.assertTrue(exception_info.match(f'Failed to perform get_stage with restApiId: {REST_API_GW_ID} '
                                              f'and stageName: {REST_API_GW_STAGE_NAME} '
                                              f'Response is: {get_sample_get_stage_response(403)}'))
 
     def test_update_stage_deployment(self):
         self.mock_apigw.update_stage.return_value = get_sample_update_stage_response(200)
-        result = apigw_util.update_stage_deployment(
+        result = apigw_utils.update_stage_deployment(
             self.session_mock, REST_API_GW_ID, REST_API_GW_STAGE_NAME, REST_API_GW_DEPLOYMENT_ID_V1
         )
         self.mock_apigw.update_stage.assert_called_once_with(
@@ -133,7 +133,7 @@ class TestApiGwUtil(unittest.TestCase):
         self.mock_apigw.update_stage.return_value = get_sample_update_stage_response(403)
 
         with pytest.raises(AssertionError) as exception_info:
-            apigw_util.update_stage_deployment(
+            apigw_utils.update_stage_deployment(
                 self.session_mock, REST_API_GW_ID, REST_API_GW_STAGE_NAME, REST_API_GW_DEPLOYMENT_ID_V1
             )
         self.assertTrue(exception_info.match(f'Failed to perform update_stage with restApiId: {REST_API_GW_ID}, '
