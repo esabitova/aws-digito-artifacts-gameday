@@ -171,42 +171,26 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
         SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
         SCRIPT_PLACEHOLDER::cloudwatch_util.copy_put_alarms_for_dynamo_db_table
-  - name: GetGlobalTableRegions
+  - name: CopyReplicationSetting
     action: aws:executeScript
     outputs:
-      - Name: GlobalTableRegions
-        Selector: $.Payload.GlobalTableRegions
+      - Name: CopiedGlobalTableRegions
+        Selector: $.Payload
         Type: StringList
     inputs:
       Runtime: python3.6
-      Handler: get_global_table_active_regions
+      Handler: copy_global_table_settings
       InputPayload:
-        TableName: "{{ DynamoDBTableSourceName }}"
-      Script: |-
-        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
-
-        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
-        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
-        SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_global_table_active_regions
-  - name: SetUpReplication
-    action: aws:executeScript
-    outputs:
-      - Name: GlobalTableRegionsAdded
-        Selector: $.Payload.GlobalTableRegionsAdded
-        Type: StringList
-    inputs:
-      Runtime: python3.6
-      Handler: set_up_replication
-      InputPayload:
-        TableName: "{{ DynamoDBTableTargetName }}"
-        GlobalTableRegions: "{{ GetGlobalTableRegions.GlobalTableRegions }}"
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_table
-        SCRIPT_PLACEHOLDER::dynamo_db_util.set_up_replication
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
+        SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_global_table_settings
   - name: WaitActiveStatusOfReplication
     action: aws:executeScript
     outputs:
@@ -218,7 +202,7 @@ mainSteps:
       Handler: wait_replication_status_in_all_regions
       InputPayload:
         TableName: "{{ DynamoDBTableTargetName }}"
-        ReplicasRegionsToWait: "{{ GetGlobalTableRegions.GlobalTableRegions }}"
+        ReplicasRegionsToWait: "{{ CopyReplicationSetting.CopiedGlobalTableRegions }}"
         WaitTimeoutSeconds: 600
       Script: |-
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports

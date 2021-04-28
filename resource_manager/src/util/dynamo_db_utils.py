@@ -187,7 +187,7 @@ def remove_global_table_and_wait_for_active(table_name: str,
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
         replicas = description['Table'].get('Replicas', [])
         all_deleted = replicas == []
-        log.info(f'Replica deletion status: {all_deleted}. Replicas:{replicas}')
+        log.info(f'Replica deletion status `{table_name}`: {all_deleted}. Replicas:{replicas}')
         if all_deleted:
             return
 
@@ -222,20 +222,21 @@ def add_global_table_and_wait_for_active(table_name: str,
     latest_table_status = []
     while elapsed < wait_sec:
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
-        log.info(description)
+        replicas = description['Table'].get('Replicas', [])
+        log.info(f'Table `{table_name}` replicas:{replicas}')
+        if len(replicas) > 0:
+            latest_replica_statuses = [r['ReplicaStatus']
+                                       for r in replicas
+                                       if r['RegionName'] in global_table_regions]
+            all_active = all([s == 'ACTIVE'
+                              for s in latest_replica_statuses])
 
-        latest_replica_statuses = [r['ReplicaStatus']
-                                   for r in description['Table'].get('Replicas', [])
-                                   if r['RegionName'] in global_table_regions]
-        all_active = all([s == 'ACTIVE'
-                          for s in latest_replica_statuses])
-
-        latest_table_status = description['Table']['TableStatus']
-        table_active = latest_table_status == 'ACTIVE'
-        log.info(f'Current status of table and replica. Replicas is active={all_active}; '
-                 f'Table is active={table_active}')
-        if all_active and table_active:
-            return
+            latest_table_status = description['Table']['TableStatus']
+            table_active = latest_table_status == 'ACTIVE'
+            log.info(f'Current status of table and replica. Replicas is active={all_active}; '
+                     f'Table is active={table_active}')
+            if all_active and table_active:
+                return
 
         end = time.time()
         elapsed = end - start

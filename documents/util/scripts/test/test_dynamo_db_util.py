@@ -13,9 +13,8 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _
                                                        _parse_date_time,
                                                        copy_active_kinesis_destinations,
                                                        _get_global_secondary_indexes,
-                                                       get_global_table_active_regions,
                                                        parse_recovery_date_time,
-                                                       set_up_replication,
+                                                       copy_global_table_settings,
                                                        copy_table_stream_settings,
                                                        _update_table,
                                                        _enable_kinesis_destinations,
@@ -287,18 +286,13 @@ class TestDynamoDbUtil(unittest.TestCase):
         with self.assertRaises(ValueError):
             _execute_boto3_dynamodb(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-    @parameterized.expand([({}, {})])
-    def test_get_global_table_active_regions_raises_exception(self, events, context):
-        with self.assertRaises(KeyError):
-            get_global_table_active_regions(events=events, context={})
-
     @parameterized.expand([
         ({}, {}),
-        ({'TableName': 'my_table'}, {})
+        ({'SourceTableName': 'my_table'}, {})
     ])
-    def test_set_up_replication_raises_exception(self, events, context):
+    def test_copy_global_table_settings_raises_exception(self, events, context):
         with self.assertRaises(KeyError):
-            set_up_replication(events=events, context=context)
+            copy_global_table_settings(events=events, context=context)
 
     @parameterized.expand([
         ({}, {}),
@@ -438,21 +432,6 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('documents.util.scripts.src.dynamo_db_util._update_table',
            return_value={})
-    def test_set_up_replication(self, update_mock):
-        events = {
-            "TableName": 'my_table',
-            "GlobalTableRegions": ['ap-southeast-1']
-        }
-        result = set_up_replication(events=events, context={})
-
-        self.assertEqual(result['GlobalTableRegionsAdded'], ['ap-southeast-1'])
-
-        update_mock.assert_called_with(table_name='my_table',
-                                       ReplicaUpdates=[{
-                                           'Create': {
-                                               'RegionName': 'ap-southeast-1'
-                                           }}])
-
     @patch('documents.util.scripts.src.dynamo_db_util._get_global_table_all_regions',
            return_value=[
                {
@@ -461,15 +440,22 @@ class TestDynamoDbUtil(unittest.TestCase):
                    "ReplicaStatusDescription": ""
                }
            ])
-    def test_get_global_table_active_regions(self, describe_mock):
+    def test_copy_global_table_settings(self, describe_mock, update_mock):
         events = {
-            "TableName": 'my_table'
+            "SourceTableName": 'my_table',
+            "TargetTableName": 'my_table_target',
+            "GlobalTableRegions": ['ap-southeast-1']
         }
-        result = get_global_table_active_regions(events=events, context={})
+        result = copy_global_table_settings(events=events, context={})
 
-        self.assertEqual(result['GlobalTableRegions'], ['ap-southeast-1'])
+        self.assertEqual(result, ['ap-southeast-1'])
 
         describe_mock.assert_called_with(table_name='my_table')
+        update_mock.assert_called_with(table_name='my_table_target',
+                                       ReplicaUpdates=[{
+                                           'Create': {
+                                               'RegionName': 'ap-southeast-1'
+                                           }}])
 
     @patch('documents.util.scripts.src.dynamo_db_util._parse_date_time',
            return_value=datetime(2021, 1, 1, 4, 0, 0))

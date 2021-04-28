@@ -102,49 +102,30 @@ def _get_global_table_all_regions(table_name: str) -> List[dict]:
     return replicas
 
 
-def get_global_table_active_regions(events: dict, context: dict) -> dict:
-    """
-    Returns list of replicas of the given table
-    :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `GlobalTableRegions` - The list of regions where replicas should be established
-    :return: The dictionary that contains list of regions where replicas set up where status is Active
-    """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-
-    table_name: str = events['TableName']
-    replicas = _get_global_table_all_regions(table_name=table_name)
-
-    return{
-        'GlobalTableRegions': [r['RegionName']
-                               for r in replicas
-                               if r['ReplicaStatus'] in GLOBAL_TABLE_ACTIVE_STATUSES]
-    }
-
-
-def set_up_replication(events: dict, context: dict) -> dict:
+def copy_global_table_settings(events: dict, context: dict) -> dict:
     """
     Sets up replicas in the given regions
     :param events: The dictionary that supposed to have the following keys:
-    * `TableName` - The table name
-    * `GlobalTableRegions` - The list of regions where replicas should be established
-    :return: The dictionary that contains list of regions where replicas set up
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
+    :return: The list of regions where replicas copied
     """
-    if 'TableName' not in events:
-        raise KeyError('Requires TableName')
-    if 'GlobalTableRegions' not in events:
-        raise KeyError('Requires GlobalTableRegions')
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
 
-    table_name: str = events['TableName']
-    global_table_regions: str = events.get('GlobalTableRegions', [])
-    if global_table_regions:
-        _update_table(table_name=table_name, ReplicaUpdates=[
-            {'Create': {'RegionName': region}} for region in global_table_regions])
+    source_table_name: str = events['SourceTableName']
+    target_table_name: str = events['TargetTableName']
+    global_table_all_regions = _get_global_table_all_regions(table_name=source_table_name)
+    global_table_active_regions: str = [r['RegionName']
+                                        for r in global_table_all_regions
+                                        if r['ReplicaStatus'] in GLOBAL_TABLE_ACTIVE_STATUSES]
+    if global_table_active_regions:
+        _update_table(table_name=target_table_name, ReplicaUpdates=[
+            {'Create': {'RegionName': region}} for region in global_table_active_regions])
 
-    return{
-        'GlobalTableRegionsAdded': global_table_regions
-    }
+    return global_table_active_regions
 
 
 def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
