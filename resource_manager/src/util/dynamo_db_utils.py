@@ -224,7 +224,7 @@ def add_global_table_and_wait_for_active(table_name: str,
         description = _describe_table(table_name=table_name, boto3_session=boto3_session)
         replicas = description['Table'].get('Replicas', [])
         log.info(f'Table `{table_name}` replicas:{replicas}')
-        if len(replicas) > 0:
+        if replicas:
             latest_replica_statuses = [r['ReplicaStatus']
                                        for r in replicas
                                        if r['RegionName'] in global_table_regions]

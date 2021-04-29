@@ -19,10 +19,9 @@ parameters:
     default: True
   DynamoDBSourceTableAlarmNames:
     type: StringList
-    description: (Optional) The DynamoDB Source Table Name Alarm Names.
+    description: (Optional) The DynamoDB Source Table Alarm Names (only metric alarms based on metrics with AWS/DynamoDB namespace)
     maxItems: 10
-    default:
-      - "non-existing-alarm"
+    default: []
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
@@ -83,7 +82,7 @@ mainSteps:
       Api: RestoreTableToPointInTime
       SourceTableName: "{{ DynamoDBTableSourceName }}"
       TargetTableName: "{{ DynamoDBTableTargetName }}"
-      UseLatestRestorableTime: True # Restore the table to the latest possible time. LatestRestorableDateTime is typically 5 minutes before the current time.
+      UseLatestRestorableTime: True
     outputs:
       - Name: RecoveryPoint
         Selector: "$.TableDescription.RestoreSummary.RestoreDateTime"

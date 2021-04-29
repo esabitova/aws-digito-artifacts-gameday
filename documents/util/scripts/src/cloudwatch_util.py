@@ -43,8 +43,8 @@ def copy_alarms_for_dynamo_db_table(events, context):
 
     source_table_name: str = events['SourceTableName']
     target_table_name: str = events['TargetTableName']
-    alarms_names_to_change: str = events.get('DynamoDBSourceTableAlarmNames', [])
-    source_alarms = _describe_metric_alarms(alarm_names=alarms_names_to_change)
+    alarms_names: str = events.get('DynamoDBSourceTableAlarmNames', [])
+    source_alarms = _describe_metric_alarms(alarm_names=alarms_names)
 
     alarms_copied_count: int = 0
 

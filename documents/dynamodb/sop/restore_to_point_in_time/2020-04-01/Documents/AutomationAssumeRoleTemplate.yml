@@ -54,7 +54,6 @@ Resources:
               - "dynamodb:DeleteItem"
               - "dynamodb:BatchWriteItem"
               - "dynamodb:UpdateTable"
-              - "dynamodb:UpdateContinuousBackups"
               - "dynamodb:DescribeKinesisStreamingDestination"
               - "dynamodb:EnableKinesisStreamingDestination"
               - "dynamodb:DescribeTimeToLive"
@@ -71,10 +70,6 @@ Resources:
               - "dynamodb:CreateTable"
               - "dynamodb:DescribeContinuousBackups"
               - 'ssm:GetParameters'
-              - 'ssm:DescribeInstanceInformation'
-              - 'ssm:SendCommand'
-              - 'ssm:ListCommands'
-              - 'ssm:ListCommandInvocations'
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
               - "iam:PassRole"
