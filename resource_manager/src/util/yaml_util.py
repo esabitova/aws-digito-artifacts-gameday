@@ -1,4 +1,5 @@
-from cfn_tools import load_yaml
+import hashlib
+from cfn_tools import load_yaml, dump_yaml
 from cfn_tools.odict import ODict
 
 
@@ -22,6 +23,35 @@ def file_loads_yaml(file_path):
     finally:
         if file:
             file.close()
+
+
+def file_dump_yaml(file_path: str) -> str:
+    """
+    Returns yaml formatted content for given file path.
+    :param file_path: The file path
+    :return: The yaml formatted content
+    """
+    return dump_yaml(file_loads_yaml(file_path))
+
+
+def get_yaml_file_sha1_hash(file_path: str) -> str:
+    """
+    Returns sha1 hash for given yaml file.
+    :param file_path: The yaml file path
+    :return: The sha1 hash
+    """
+    content = file_dump_yaml(file_path)
+    return hashlib.sha1(content.encode()).hexdigest()
+
+
+def get_yaml_content_sha1_hash(file_content: str) -> str:
+    """
+    Returns sha1 hash for given yaml file content.
+    :param file_content: The  yaml content
+    :return: The sha1 hash
+    """
+    content = dump_yaml(file_content)
+    return hashlib.sha1(content.encode()).hexdigest()
 
 
 def is_equal(obj_1: ODict, obj_2: ODict):
