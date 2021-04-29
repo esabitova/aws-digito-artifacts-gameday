@@ -238,9 +238,47 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: !Ref VPCCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         - Key: Name
           Value: EFSMountTargetVPC
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: EFSMountTargetVPCInternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: EFSMountTargetVPC
+      InternetGatewayId:
+        Ref: InternetGateway
+  IGWRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: EFSMountTargetVPC
+      Tags:
+        - Key: Name
+          Value: EFSMountTargetVPC-IGWRoute
+  IGWRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: IGWRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+  IGWSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: EFSMountTargetSubnet
+      RouteTableId:
+        Ref: IGWRouteTable
   EFSMountTargetSubnet:
     Type: AWS::EC2::Subnet
     Properties:
@@ -277,6 +315,7 @@ Resources:
     Properties:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonElasticFileSystemsUtils
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -314,6 +353,9 @@ Resources:
       InstanceType: !Ref InstanceType
       IamInstanceProfile:
         Ref: CloudWatchPutMetricsInstanceProfile
+      Tags:
+        - Key: Name
+          Value: EFS-Ec2Instance
       NetworkInterfaces:
         - AssociatePublicIpAddress: "true"
           DeviceIndex: "0"
@@ -324,11 +366,11 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash
-          sudo wget  https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
-          /usr/bin/python3.7 /tmp/get-pip.py
+          yum install -y nfs-utils amazon-efs-utils
+          wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py
+          /usr/bin/env python3 /tmp/get-pip.py
           /usr/local/bin/pip3 install botocore
           /opt/aws/bin/cfn-init -v --stack ${AWS::StackId} --resource Ec2Instance --region  ${AWS::Region} --configsets default
-          /opt/aws/bin/cfn-signal -e 0 --stack ${AWS::StackId} --resource Ec2Instance --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -336,10 +378,6 @@ Resources:
             - setup
             - mount
         setup:
-          packages:
-            yum:
-              nfs-utils: []
-              amazon-efs-utils: []
           commands:
             01_createdir:
               command: !Sub "mkdir -p ${MountPoint}"

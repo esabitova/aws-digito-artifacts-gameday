@@ -177,13 +177,12 @@ class TestAlarmManager(unittest.TestCase):
             'AWS/EC2': {"Datapoints": [{"Timestamp": "2020", "SampleCount": 4}]},
             'AWS/ApplicationELB': {"Datapoints": []},
         }).get(request.get("Namespace"))
-        expected_alarm_name = f'single_alarm_doc-{self.unique_prefix}'
+        expected_alarm_name = f'single-alarm-doc-{self.unique_prefix}'
 
         # Test:
         missing_data = self.alarm_manager.collect_alarms_without_data()
-
-        assert len(missing_data) == 1 and \
-            missing_data[expected_alarm_name]['UnHealthyHostCountAlarm']['metric_namespace'] == "AWS/ApplicationELB"
+        assert list(missing_data.keys()) == [expected_alarm_name]
+        assert missing_data[expected_alarm_name]['UnHealthyHostCountAlarm']['metric_namespace'] == "AWS/ApplicationELB"
 
     def test_collect_alarms_without_data_failure(self):
         self.cfn_helper_mock.describe_cf_stack.return_value = {

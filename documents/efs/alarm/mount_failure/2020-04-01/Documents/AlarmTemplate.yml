@@ -11,17 +11,17 @@ Resources:
           DefaultValue: "0"
           MetricNamespace: "EFSMounts"
           MetricName: 'MountFailures'
-    MountFailureAlarm:
-      AlarmName: ${AlarmName}
+  MountFailureAlarm:
       Type: "AWS::CloudWatch::Alarm"
       Properties:
+        AlarmName: ${AlarmName}
         AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
         ActionsEnabled: false
         MetricName: 'MountFailures'
         Namespace: EFSMounts
         Statistic: Maximum
         Period: 60
-        EvaluationPeriods: 5
+        EvaluationPeriods: 1
         DatapointsToAlarm: 1
         Threshold: 0
         ComparisonOperator: GreaterThanThreshold

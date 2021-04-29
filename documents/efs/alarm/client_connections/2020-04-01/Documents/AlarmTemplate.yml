@@ -18,7 +18,7 @@ Resources:
               MetricName: ClientConnections
               Namespace: AWS/EFS
               Dimensions:
-                - Name: EFS
+                - Name: FileSystemId
                   Value: ${FileSystem}
             Period: 60
             Stat: Average
