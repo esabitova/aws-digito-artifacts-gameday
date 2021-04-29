@@ -47,6 +47,7 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
+    And sleep for "60" seconds
     And cache visibility timeout as "VisibilityTimeout" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |

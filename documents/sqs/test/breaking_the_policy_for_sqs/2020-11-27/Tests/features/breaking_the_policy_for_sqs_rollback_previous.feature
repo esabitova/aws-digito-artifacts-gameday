@@ -50,7 +50,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
 
-    And send messages for "300" seconds ignoring access denied
+    And send messages for "600" seconds ignoring access denied until "5" sent successfully
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And Wait for alarm to be in state "OK" for "50" seconds

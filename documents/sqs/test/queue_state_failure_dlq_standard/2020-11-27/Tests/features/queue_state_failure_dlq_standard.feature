@@ -33,6 +33,7 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     When SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
     And cache visibility timeout as "VisibilityTimeout" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

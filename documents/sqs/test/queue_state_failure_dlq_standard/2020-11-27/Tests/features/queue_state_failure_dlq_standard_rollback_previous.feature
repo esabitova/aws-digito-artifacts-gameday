@@ -47,6 +47,7 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
+    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessagesDLQ" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |

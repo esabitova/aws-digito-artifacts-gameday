@@ -277,7 +277,10 @@ def receive_messages_by_events(events: dict, context: dict) -> dict:
             received_dlq_messages = receive_messages(dlq_url, 10, 20)
             if received_dlq_messages and len(received_dlq_messages) > 0:
                 logger.debug(f'DLQ has {len(received_dlq_messages)} messages')
-                return {"Messages": received_messages}
+                return {
+                    "NumberOfReadMessages": len(received_messages),
+                    "NumberOfDLQMessages": len(received_dlq_messages)
+                }
             else:
                 logger.debug('Messages not found in DLQ')
         else:
@@ -337,8 +340,14 @@ def transfer_messages(events: dict, context: dict) -> dict:
             min((number_of_messages_to_transfer - number_of_messages_received_from_source),
                 messages_transfer_batch_size)
 
-        received_messages: Optional[List[dict]] = receive_messages(source_queue_url,
-                                                                   messages_transfer_batch_size_for_each_call, 5)
+        received_messages: Optional[List[dict]] = receive_messages(
+            source_queue_url, messages_transfer_batch_size_for_each_call, 5
+        )
+        if not received_messages:
+            logger.debug('Received no messages from source, repeating')
+            now = int(time.time())
+            continue
+
         number_of_messages_received_from_source += len(received_messages)
 
         messages_to_send: List[dict] = []

@@ -77,25 +77,27 @@ def send_messages_until_access_denied(boto3_session, queue_url, time_to_wait):
     raise Exception('Sending messages timed out, expected access denied error')
 
 
-def send_messages_until_timeout(boto3_session, queue_url, time_to_wait):
+def send_messages_until_success(boto3_session, queue_url, time_to_wait, number_of_messages):
     """
-    Keep sending messages until time to wait is reached
+    Keep sending messages until number of messages sent or time to wait is reached
     Ignore access denied error, raise error in any other case
     :param boto3_session boto3 client session
     :param queue_url The URL of the queue
     :param time_to_wait Time in seconds to keep sending
+    :param number_of_messages Number of successful sends required
     """
     time_to_wait = int(time_to_wait)
+    number_of_messages = int(number_of_messages)
     start_time = time.time()
     elapsed_time = 0
-    any_messages_sent = False
-    while elapsed_time < time_to_wait:
+    messages_sent = 0
+    while elapsed_time < time_to_wait and messages_sent < number_of_messages:
         try:
             send_message_to_standard_queue(
                 boto3_session, queue_url, 'This is message',
                 {'test_attribute_name_1': {'StringValue': 'test_attribute_value_1', 'DataType': 'String'}}
             )
-            any_messages_sent = True
+            messages_sent += 1
         except ClientError as error:
             if error.response['Error']['Code'] == 'AccessDenied':
                 logging.info('Message sending failed due to access denied, continue sending')
@@ -103,8 +105,9 @@ def send_messages_until_timeout(boto3_session, queue_url, time_to_wait):
                 raise error
         time.sleep(20)
         elapsed_time = time.time() - start_time
-    if not any_messages_sent:
+    if messages_sent == 0:
         raise Exception('No messages were sent before timeout')
+    logging.info(f'Sent {messages_sent} messages')
 
 
 def get_number_of_messages(boto3_session: Session, queue_url: str):

@@ -729,11 +729,9 @@ class TestSqsUtil(unittest.TestCase):
         self.sqs_client_mock.get_queue_attributes.side_effect = INVALID_ATTRIBUTE_NAME_ERROR
         self.sqs_client_mock.delete_message_batch.side_effect = \
             [{'Successful': [DELETE_MESSAGE_BATCH_RESPONSE['Successful'][0]]},
-             {'Successful': []},
              {'Successful': [DELETE_MESSAGE_BATCH_RESPONSE['Successful'][1]]}]
         self.sqs_client_mock.send_message_batch.side_effect = \
             [{'Successful': [SEND_MESSAGE_BATCH_RESPONSE['Successful'][0]]},
-             {'Successful': []},
              {'Successful': [SEND_MESSAGE_BATCH_RESPONSE['Successful'][1]]}]
         actual_response = transfer_messages(events, None)
         self.assertIsNotNone(actual_response)
@@ -754,12 +752,10 @@ class TestSqsUtil(unittest.TestCase):
         )
         self.sqs_client_mock.send_message_batch.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[0]]),
-            call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[]),
             call(QueueUrl=SQS_STANDARD_DEST_QUEUE_URL, Entries=[MESSAGES_TO_SEND_TO_STANDARD[1]])
         ])
         self.sqs_client_mock.delete_message_batch.assert_has_calls([
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[0]]),
-            call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[]),
             call(QueueUrl=SQS_STANDARD_QUEUE_URL, Entries=[DELETE_MESSAGE_ENTRIES[1]])
         ])
 
