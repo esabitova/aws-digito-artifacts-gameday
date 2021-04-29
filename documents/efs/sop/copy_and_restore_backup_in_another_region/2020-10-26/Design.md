@@ -51,7 +51,7 @@ No.
 * Description: (Required) IAM role ARN with AWSBackupServiceRolePolicyForRestores policy used to start the restore job.
 * Type: String
 
-### `RegionName`
+### `DestinationRegionName`
 
 * Description: (Required) The destination region Name.
 * Type: String
@@ -61,9 +61,14 @@ No.
 * Description: (Required) The name of the source backup vault to copy from.
 * Type: String
 
-### `BackupVaultDestinationName`
+### `RecoveryPointArn`
 
-* Description: (Required) The name of the destination backup vault to copy to.
+* Description: (Required) The Recovery Point Arn to restore.
+* Type: String
+
+### `BackupVaultDestinationArn`
+
+* Description: (Required) The ARN of the destination backup vault to copy to.
 * Type: String
 
 ### `AutomationAssumeRole`
@@ -85,18 +90,6 @@ No.
     * Explanation:
         * Call [DescribeFileSystems](https://docs.aws.amazon.com/efs/latest/ug/API_DescribeFileSystems.html) from `efs`
         * Output filesystem's ARN and metadata
-1. `GetLatestRecoveryPointARN`
-    * Type: aws:executeAwsApi
-    * Inputs:
-        * `BackupVaultName`: Name of the source backup vault name (BackupVaultSourceName)
-        * `ByResourceArn`: ARN of the EFS volume (GetFileSystemMetadata.FileSystemArn)
-    * Outputs:
-        * `RecoveryPointArn`: Latest recovery point ARN
-    * Explanation:
-        * List available recovery points by
-          calling [ListRecoveryPointsByBackupVault](https://docs.aws.amazon.com/aws-backup/latest/devguide/API_ListRecoveryPointsByBackupVault.html)
-          from `backup` service
-        * Get ARN of the latest recovery point
 1. `RecordStartTime`
    * Type: aws:executeScript
    * Outputs:
@@ -109,7 +102,7 @@ No.
         * `IamRoleArn`: IAM role used to copy a backup (CopyJobIAMRoleArn)
         * `SourceBackupVaultName`: Name of the source backup vault name (BackupVaultSourceName)
         * `DestinationBackupVaultArn`: ARN of the destination backup
-          vault (`arn:aws:backup:{{RegionName}}:{{global:ACCOUNT_ID}}:backup-vault:{{BackupVaultDestinationName}}`)
+          vault (`arn:aws:backup:{{DestinationRegionName}}:{{global:ACCOUNT_ID}}:backup-vault:{{BackupVaultDestinationName}}`)
         * `RecoveryPointArn`: Recovery point ARN
         * `IdempotencyToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
     * Outputs:
@@ -123,8 +116,6 @@ No.
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
         * `CopyJobId`: ID of the created copy job
-    * Outputs:
-        * `DestinationRecoveryPointArn`: ARN of the copied recovery point
     * Explanation:
         * Call [DescribeCopyJob](https://docs.aws.amazon.com/aws-backup/latest/devguide/API_DescribeCopyJob.html)
           from `backup` service

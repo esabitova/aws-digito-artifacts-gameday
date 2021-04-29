@@ -3,6 +3,7 @@ from pytest_bdd import (
 )
 import jsonpath_ng
 import logging
+import uuid
 from resource_manager.src.util.param_utils import parse_param_values_from_table
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 import resource_manager.src.util.backup_utils as backup_utils
@@ -42,6 +43,17 @@ def cache_number_of_recovery_points(
     logger.info(f'{len(recovery_points)} recovery points found for efs_id:{efs_id} '
                 f'in {backup_vault_name} {step_key} SSM')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, len(recovery_points))
+
+
+@given(parsers.parse('create a backup vault in region as "{cache_property}" "{step_key}" SSM automation execution'
+                     '\n{input_parameters}'))
+def create_backup_vault_in_region(
+        resource_manager, boto3_session, ssm_test_cache, cache_property, step_key, input_parameters):
+    backup_vault_name = f"dest-{uuid.uuid4()}"
+    region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
+    backup_client = boto3_session.client('backup', region_name=region)
+    backup_vault_arn = backup_client.create_backup_vault(BackupVaultName=backup_vault_name)['BackupVaultArn']
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, backup_vault_arn)
 
 
 @then(parsers.parse('assert EFS fs exists\n{input_parameters}'))

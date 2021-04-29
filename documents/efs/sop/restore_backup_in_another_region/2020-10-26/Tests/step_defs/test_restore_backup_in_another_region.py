@@ -5,6 +5,7 @@ from pytest_bdd import (
     scenario,
     given,
     then,
+    when,
     parsers
 )
 import logging
@@ -12,7 +13,7 @@ import resource_manager.src.util.backup_utils as backup_utils
 
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.iam_utils import get_role_by_name
-from resource_manager.src.util.efs_utils import describe_filesystem
+from resource_manager.src.util.efs_utils import describe_filesystem, delete_filesystem
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,8 @@ def cache_recovery_point_arn(resource_manager, boto3_session, ssm_test_cache,
 
 @given(parsers.parse('cache different region name as "{cache_property}" "{step_key}" '
                      'SSM automation execution'))
+@when(parsers.parse('cache different region name as "{cache_property}" "{step_key}" '
+                    'SSM automation execution'))
 def cache_different_region(boto3_session, ssm_test_cache,
                            cache_property, step_key):
 
@@ -64,8 +67,22 @@ def cache_different_region(boto3_session, ssm_test_cache,
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, destination_region)
 
 
-@then(parsers.parse('tear down created recovery points and jobs\n{input_parameters}'))
-def tear_down(resource_manager, boto3_session, ssm_test_cache, input_parameters):
+@then(parsers.parse('tear down created recovery point\n{input_parameters}'))
+def teardown_recovery_point(resource_manager, boto3_session, ssm_test_cache, input_parameters):
+    logger.info(f"ssm_test_cache:{ssm_test_cache}")
     recovery_point_arn = extract_param_value(input_parameters, 'RecoveryPointArn', resource_manager, ssm_test_cache)
     backup_vault_name = extract_param_value(input_parameters, 'BackupVaultName', resource_manager, ssm_test_cache)
     backup_utils.delete_recovery_point(boto3_session, recovery_point_arn, backup_vault_name, wait=True)
+
+
+@then(parsers.parse('tear down backup vault\n{input_parameters}'))
+def teardown_backup_vault(resource_manager, boto3_session, ssm_test_cache, input_parameters):
+    backup_vault_arn = extract_param_value(input_parameters, 'BackupVaultName', resource_manager, ssm_test_cache)
+    backup_utils.delete_backup_vault(boto3_session, backup_vault_arn)
+
+
+@then(parsers.parse('tear down filesystem by ARN\n{input_parameters}'))
+def teardown_fs_by_arn(resource_manager, boto3_session, ssm_test_cache, input_parameters):
+    fs_arn = extract_param_value(input_parameters, 'FileSystemARN', resource_manager, ssm_test_cache)
+    fs_id = fs_arn.split(':')[-1].split('/')[-1]
+    delete_filesystem(boto3_session, fs_id)

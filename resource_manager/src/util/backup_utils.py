@@ -1,4 +1,4 @@
-from boto3 import Session
+import boto3
 from .boto3_client_factory import client
 import logging
 import time
@@ -6,7 +6,7 @@ import time
 logger = logging.getLogger(__name__)
 
 
-def run_backup(session: Session,
+def run_backup(session: boto3.Session,
                resource_arn: str,
                iam_role_arn: str,
                backup_vault_name: str,
@@ -45,7 +45,7 @@ def run_backup(session: Session,
     return response['RecoveryPointArn']
 
 
-def get_recovery_point(session: Session, backup_vault_name: str, resource_type: str):
+def get_recovery_point(session: boto3.Session, backup_vault_name: str, resource_type: str):
     """
     Returns first available completed backup job recovery point
     :param session boto3 client session
@@ -65,7 +65,8 @@ def get_recovery_point(session: Session, backup_vault_name: str, resource_type: 
     raise Exception(f'No recovery points found for {resource_type} in {backup_vault_name}')
 
 
-def get_recovery_points(session: Session, backup_vault_name: str, resource_type: str = None, resource_arn: str = None):
+def get_recovery_points(session: boto3.Session, backup_vault_name: str, resource_type: str = None,
+                        resource_arn: str = None):
     """
     Returns all backup job recovery points
     :param session boto3 client session
@@ -86,11 +87,11 @@ def get_recovery_points(session: Session, backup_vault_name: str, resource_type:
     return response['RecoveryPoints']
 
 
-def delete_recovery_point(session: Session, recovery_point_arn: str, backup_vault_name: str,
+def delete_recovery_point(session: boto3.Session, recovery_point_arn: str, backup_vault_name: str,
                           wait: bool = False,
                           wait_timeout: int = 600):
     """
-    Returns restore job description property value
+    Deletes recovery point by its ARN
     :param session boto3 client session
     :param recovery_point_arn recovery job arn
     :param backup_vault_name backup vault name
@@ -115,3 +116,22 @@ def delete_recovery_point(session: Session, recovery_point_arn: str, backup_vaul
             except backup_client.exceptions.ResourceNotFoundException:
                 logger.info(f'Recovery point {recovery_point_arn.split(":")[-1]} successfully removed')
                 break
+
+
+def delete_backup_vault(session: boto3.Session, backup_vault_name: str, region: str = None,):
+    """
+    RDeletes backup vault by its name in a specified region
+    :param session boto3 client session
+    :param backup_vault_name backup vault name
+    :param region Name of region to look for backup vault, if None, use current region
+    """
+
+    logger.info(f'Backup vault {backup_vault_name} is deleting')
+
+    if region:
+        backup_client = boto3.client('backup', region_name=region)
+    else:
+        backup_client = client('backup', session)
+    backup_client.delete_backup_vault(
+        BackupVaultName='string'
+    )

@@ -25,13 +25,22 @@ parameters:
   RecoveryPointArn:
     type: String
     description: (Required) The Recovery Point Arn to restore.
-  JobIAMRoleArn:
+  CopyJobIAMRoleArn:
     type: String
-    description: (Required) IAM role ARN with AWSBackupServiceRolePolicyForBackup and AWSBackupServiceRolePolicyForRestores policies used to create the target recovery point.
+    description: (Required) IAM role ARN with AWSBackupServiceRolePolicyForBackup policy used to start the copy job.
+  RestoreJobIAMRoleArn:
+    type: String
+    description: (Required) IAM role ARN with AWSBackupServiceRolePolicyForRestores policy used to start the restore job.
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  DestinationRegion:
+  BackupVaultSourceName:
+    type: String
+    description: (Required) The name of the source backup vault to copy from.
+  BackupVaultDestinationArn:
+    type: String
+    description: (Required) The name of the source backup vault to copy to.
+  DestinationRegionName:
     type: String
     description: (Required) The region name to restore backup into
 mainSteps:
@@ -65,6 +74,46 @@ mainSteps:
       - Name: StartTime
         Selector: $.Payload
         Type: String
+  - name: CreateCopyJob
+    action: aws:executeScript
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: copy_backup_in_region
+      Script: |-
+        SCRIPT_PLACEHOLDER::backup_util.imports
+        SCRIPT_PLACEHOLDER::backup_util.copy_backup_in_region
+      InputPayload:
+        IamRoleArn: "{{ CopyJobIAMRoleArn }}"
+        RecoveryPointArn: "{{ RecoveryPointArn }}"
+        SourceBackupVaultName: "{{BackupVaultSourceName}}"
+        DestinationBackupVaultArn: "{{BackupVaultDestinationArn}}"
+        IdempotencyToken: "{{ global:DATE_TIME }}"
+    outputs:
+      - Name: CopyJobId
+        Selector: "$.Payload.CopyJobId"
+        Type: String
+  - name: VerifyCopyJobStatus
+    action: aws:waitForAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: backup
+      Api: DescribeCopyJob
+      CopyJobId: "{{ CreateCopyJob.CopyJobId }}"
+      PropertySelector: "$.CopyJob.State"
+      DesiredValues:
+        - "COMPLETED"
+  - name: GetDestinationRecoveryPointArn
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: backup
+      Api: DescribeCopyJob
+      CopyJobId: "{{ CreateCopyJob.CopyJobId }}"
+    outputs:
+      - Name: DestinationRecoveryPointArn
+        Selector: "$.CopyJob.DestinationRecoveryPointArn"
+        Type: String
   - name: RestoreBackupJob
     action: aws:executeScript
     onFailure: Abort
@@ -75,10 +124,10 @@ mainSteps:
         SCRIPT_PLACEHOLDER::backup_util.imports
         SCRIPT_PLACEHOLDER::backup_util.restore_backup_in_region
       InputPayload:
-        IamRoleArn: "{{ JobIAMRoleArn }}"
-        RecoveryPointArn: "{{ RecoveryPointArn }}"
+        IamRoleArn: "{{ RestoreJobIAMRoleArn }}"
+        RecoveryPointArn: "{{ GetDestinationRecoveryPointArn.DestinationRecoveryPointArn }}"
         IdempotencyToken: "{{ global:DATE_TIME }}"
-        Region: "{{ DestinationRegion }}"
+        Region: "{{ DestinationRegionName }}"
         ResourceType: "EFS"
         Metadata:
           file-system-id: "{{ FileSystemID }}"
@@ -88,18 +137,24 @@ mainSteps:
           CreationToken: "{{ global:DATE_TIME }}"
     outputs:
       - Name: RestoreJobId
-        Selector: "$.RestoreJobId"
+        Selector: "$.Payload.RestoreJobId"
         Type: String
   - name: VerifyRestoreJobStatus
-    action: aws:waitForAwsResourceProperty
+    action: aws:executeScript
     onFailure: Abort
     inputs:
-      Service: backup
-      Api: DescribeRestoreJob
-      RestoreJobId: "{{ RestoreBackupJob.RestoreJobId }}"
-      PropertySelector: "$.Status"
-      DesiredValues:
-        - "COMPLETED"
+      Runtime: python3.7
+      Handler: wait_restore_job_in_region
+      Script: |-
+        SCRIPT_PLACEHOLDER::backup_util.imports
+        SCRIPT_PLACEHOLDER::backup_util.wait_restore_job_in_region
+      InputPayload:
+        RestoreJobId: "{{ RestoreBackupJob.RestoreJobId }}"
+        Region: "{{ DestinationRegionName }}"
+    outputs:
+      - Name: RestoredFSArn
+        Selector: "$.Payload.CreatedResourceArn"
+        Type: String
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
     onFailure: Abort
@@ -117,4 +172,6 @@ mainSteps:
         StartTime: '{{ RecordStartTime.StartTime }}'
 outputs:
   - RestoreBackupJob.RestoreJobId
+  - GetDestinationRecoveryPointArn.DestinationRecoveryPointArn
   - OutputRecoveryTime.RecoveryTime
+  - VerifyRestoreJobStatus.RestoredFSArn

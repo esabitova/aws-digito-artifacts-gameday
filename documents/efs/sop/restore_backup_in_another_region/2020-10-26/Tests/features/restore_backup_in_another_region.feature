@@ -2,26 +2,36 @@
 Feature: SSM automation document to restore backup in another region
 
   Scenario: Restore backup in another region
-    Given cache different region name as "DestinationRegionName" "before" SSM automation execution
-    And the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                          | ResourceType | DestinationRegion                       |
-      | resource_manager/cloud_formation_templates/EFSTemplate.yml                                               | ON_DEMAND    | {{cache:before>DestinationRegionName}}  |
-      | documents/efs/sop/restore_backup_in_another_region/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  | |
+
+    Given  the cloud formation templates as integration test resources
+      | CfnTemplatePath                                                                                          | ResourceType |
+      | resource_manager/cloud_formation_templates/EFSTemplate.yml                                               | ON_DEMAND    |
+      | documents/efs/sop/restore_backup_in_another_region/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreBackup_2020-10-26" SSM document
+    And cache different region name as "DestinationRegionName" "before" SSM automation execution
+    And create a backup vault in region as "DestinationVaultArn" "before" SSM automation execution
+      | RegionName                             |
+      | {{cache:before>DestinationRegionName}} |
     And cache number of recovery points as "NumberOfRecoveryPoints" "before" SSM automation execution
       | BackupVaultName                                       | FileSystemID                      |
-      | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |
+      | {{cfn-output:EFSTemplate>BackupVaultSourceName}}      | {{cfn-output:EFSTemplate>EFSID}}  |
     And cache recovery point arn as "RecoveryPointArn" "before" SSM automation execution
-      | FileSystemID                     | BackupVaultName                                        |
-      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}}  |
+      | FileSystemID                     | BackupVaultName                                  |
+      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultSourceName}} |
     And SSM automation document "Digito-RestoreBackup_2020-10-26" executed
-      | FileSystemID                     | JobIAMRoleArn                            | RecoveryPointArn                  | AutomationAssumeRole                                                      | DestinationRegion                      |
-      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>JobIAMRoleArn}} | {{cache:before>RecoveryPointArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreBackupAssumeRole}} | {{cache:before>DestinationRegionName}} |
+      | FileSystemID                     | CopyJobIAMRoleArn                        | RestoreJobIAMRoleArn                     | BackupVaultSourceName                            | BackupVaultDestinationArn            | RecoveryPointArn                  | AutomationAssumeRole                                                      | DestinationRegionName                  |
+      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>JobIAMRoleArn}} | {{cfn-output:EFSTemplate>JobIAMRoleArn}} | {{cfn-output:EFSTemplate>BackupVaultSourceName}} | {{cache:before>DestinationVaultArn}} | {{cache:before>RecoveryPointArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreBackupAssumeRole}} | {{cache:before>DestinationRegionName}} |
 
     When SSM automation document "Digito-RestoreBackup_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache execution output value of "RestoreBackupJob.RestoreJobId" as "RestoreJobId" after SSM automation execution
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And cache execution output value of "GetDestinationRecoveryPointArn.DestinationRecoveryPointArn" as "DestinationRecoveryPointArn" after SSM automation execution
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And cache execution output value of "VerifyRestoreJobStatus.RestoredFSArn" as "RestoredFSArn" after SSM automation execution
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache restore job property "$.Status" as "RestoreJobStatus" "after" SSM automation execution
@@ -35,9 +45,18 @@ Feature: SSM automation document to restore backup in another region
     And assert EFS fs exists
       | FileSystemARN                  |
       | {{cache:after>RestoredEFSARN}} |
-    And tear down created recovery points and jobs
+    And tear down created recovery point
       | RecoveryPointArn                  |  BackupVaultName                                      |
-      | {{cache:before>RecoveryPointArn}} | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} |
+      | {{cache:before>RecoveryPointArn}} | {{cfn-output:EFSTemplate>BackupVaultSourceName}}      |
+    And tear down created recovery point
+      | RecoveryPointArn                             |  BackupVaultName                                     |
+      | {{cache:after>DestinationRecoveryPointArn}}  | {{cfn-output:EFSTemplate>BackupVaultSourceName}}     |
+    And tear down backup vault
+      | VaultArn                              |
+      | {{cache:before>DestinationVaultArn}}  |
+    And tear down filesystem by ARN
+      | FileSystemARN                       |
+      | {{cache:after>DestinationVaultArn}} |
     And cache number of recovery points as "NumberOfRecoveryPoints" "after" SSM automation execution
       | BackupVaultName                                       | FileSystemID                      |
       | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |
