@@ -52,15 +52,16 @@ def send_messages_until_access_denied(resource_manager, ssm_test_cache, boto3_se
     sqs_utils.send_messages_until_access_denied(boto3_session, queue_url, time_to_wait)
 
 
-@when(parsers.parse('send messages for "{time_to_wait}" seconds ignoring access denied\n{input_parameters}'))
-def send_messages_until_timeout_ignore_access_denied(
-        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+@when(parsers.parse('send messages for "{time_to_wait}" seconds ignoring access denied until "{number_of_messages}" '
+                    'sent successfully\n{input_parameters}'))
+def send_messages_until_success_ignore_access_denied(
+        resource_manager, ssm_test_cache, boto3_session, time_to_wait, number_of_messages, input_parameters
 ):
     """
-    Keep sending messages to queue and ignore access denied error
+    Keep sending messages to queue and ignore access denied error until min number is sent
     """
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
-    sqs_utils.send_messages_until_timeout(boto3_session, queue_url, time_to_wait)
+    sqs_utils.send_messages_until_success(boto3_session, queue_url, time_to_wait, number_of_messages)
 
 
 @given(parsers.parse('cache number of messages in queue as "{cache_property}" "{step_key}" SSM '

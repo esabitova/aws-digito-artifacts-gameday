@@ -140,10 +140,28 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: GetNumberOfMessagesToMoveForPreviousExecution
+        - NextStep: GetDLQVisibilityTimeout
           Variable: "{{ GetInputsFromPreviousExecution.MoveMessagesFromDeadLetterQueue }}"
           EqualsIgnoreCase: '{{ MoveMessagesFromDeadLetterQueue }}'
     isEnd: true
+
+  - name: GetDLQVisibilityTimeout
+    action: aws:executeAwsApi
+    outputs:
+      - Name: VisibilityTimeout
+        Selector: '$.Attributes.VisibilityTimeout'
+        Type: String
+    inputs:
+      Service: sqs
+      Api: GetQueueAttributes
+      AttributeNames:
+        - VisibilityTimeout
+      QueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
+
+  - name: WaitForDLQVisibilityTimeout
+    action: 'aws:sleep'
+    inputs:
+      Duration: 'PT{{ GetDLQVisibilityTimeout.VisibilityTimeout }}S'
 
   - name: GetNumberOfMessagesToMoveForPreviousExecution
     action: aws:executeAwsApi
@@ -255,7 +273,7 @@ mainSteps:
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 120
+    maxAttempts: 240
     timeoutSeconds: 5
     onFailure: step:RollbackCurrentExecution
     inputs:

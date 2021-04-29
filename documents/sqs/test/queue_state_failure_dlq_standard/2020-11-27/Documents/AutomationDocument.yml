@@ -110,7 +110,6 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
 
-
   - name: RollbackPreviousExecutionQueueAttributes
     action: aws:executeAwsApi
     inputs:
@@ -120,6 +119,24 @@ mainSteps:
       Attributes:
         VisibilityTimeout: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.VisibilityTimeout }}'
         RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
+
+  - name: GetDLQVisibilityTimeout
+    action: aws:executeAwsApi
+    outputs:
+      - Name: VisibilityTimeout
+        Selector: '$.Attributes.VisibilityTimeout'
+        Type: String
+    inputs:
+      Service: sqs
+      Api: GetQueueAttributes
+      AttributeNames:
+        - VisibilityTimeout
+      QueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
+
+  - name: WaitForDLQVisibilityTimeout
+    action: aws:sleep
+    inputs:
+      Duration: 'PT{{ GetDLQVisibilityTimeout.VisibilityTimeout }}S'
 
   - name: GetNumberOfMessagesToMoveForPreviousExecution
     action: aws:executeAwsApi
@@ -232,7 +249,7 @@ mainSteps:
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     onFailure: step:GetDeadLetterQueueUrl
-    maxAttempts: 120
+    maxAttempts: 240
     timeoutSeconds: 5
     inputs:
       Service: cloudwatch

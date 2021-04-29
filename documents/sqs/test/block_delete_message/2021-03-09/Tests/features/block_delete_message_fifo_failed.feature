@@ -25,7 +25,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When send "5" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "10" seconds
+    And sleep for "5" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -37,7 +37,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | {{cache:SsmExecutionId>1}} |
 
     # Don't send messages to keep alarm OK and fail
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "600" seconds
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1200" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "RollbackCurrentExecution" in status "Success" for "1000" seconds

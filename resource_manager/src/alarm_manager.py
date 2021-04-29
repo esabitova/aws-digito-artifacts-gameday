@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import timedelta, datetime
 from concurrent.futures import ThreadPoolExecutor
 from cfn_tools import load_yaml
@@ -22,7 +23,7 @@ class AlarmManager:
 
     def deploy_alarm(self, name, raw, cfn_input_params):
         content = load_yaml(raw)
-        stack_name = f'{name}-{self.unique_suffix}'
+        stack_name = f'{re.sub(r"[^-a-zA-Z0-9]","-",name)}-{self.unique_suffix}'
         s3_url = self.s3_helper.upload_file(f'alarm_templates/{name}.yml', content)
         self.deployed_stacks[stack_name] = content
         self.cfn_helper.deploy_cf_stack(s3_url,

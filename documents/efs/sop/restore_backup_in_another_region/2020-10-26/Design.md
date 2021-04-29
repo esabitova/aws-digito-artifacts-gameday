@@ -79,16 +79,16 @@ No.
     * Type: aws:executeScript
     * Inputs:
         * `InputPayload`:
-           * `RecoveryPointArn`: ARN for recovery point
-           * `IamRoleArn`: IAM role used to restore backup (RestoreJobIamRoleArn)
-           * `IdempotencyToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
-           * `Metadata`:
-               * `file-system-id`: EFS volume id (FileSystemID)
-               * `Encrypted`: Is file system encrypted (GetFileSystemMetadata.Encrypted)
-               * `KmsKeyId`: KMS key ID to encrypt file system (GetFileSystemMetadata.KmsKeyId)
-               * `PerformanceMode`: Throughput mode of the file system (GetFileSystemMetadata.PerformanceMode)
-               * `newFileSystem`: Restore to a new EFS volume ("true")
-               * `CreationToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
+            * `RecoveryPointArn`: ARN for recovery point
+            * `IamRoleArn`: IAM role used to restore backup (RestoreJobIamRoleArn)
+            * `IdempotencyToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
+            * `Metadata`:
+                * `file-system-id`: EFS volume id (FileSystemID)
+                * `Encrypted`: Is file system encrypted (GetFileSystemMetadata.Encrypted)
+                * `KmsKeyId`: KMS key ID to encrypt file system (GetFileSystemMetadata.KmsKeyId)
+                * `PerformanceMode`: Throughput mode of the file system (GetFileSystemMetadata.PerformanceMode)
+                * `newFileSystem`: Restore to a new EFS volume ("true")
+                * `CreationToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
     * Outputs:
         * `RestoreJobId`: ID of the started job
     * Explanation:
@@ -120,7 +120,3 @@ No.
 * `RestoreBackupJob.RestoreJobId`: ID of the restore job
 * `OutputRestoreTime.RecoveryTime`: Recovery process duration
 * `VerifyRestoreJobStatus.RecoveryPointArn`: Recovery point ARN
-
-
- 
-
