@@ -1,0 +1,106 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Changes Usage Plan limit and period of REST API GW"
+schemaVersion: "0.3"
+assumeRole: "{{AutomationAssumeRole}}"
+parameters:
+  RestApiGwUsagePlanId:
+    type: String
+    description: (Required) The Id of the usage plan to be modified.
+  RestApiGwQuotaLimit:
+    type: String
+    description: (Required) New limit in requests/period
+  RestApiGwQuotaPeriod:
+    type: String
+    description: (Required) DAY/WEEK/MONTH
+  ForceExecution:
+    type: String
+    description: (Required) True/False
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+outputs:
+  - "SetQuotaConfiguration.RestApiGwQuotaLimitNewValue"
+  - "SetQuotaConfiguration.RestApiGwQuotaPeriodNewValue"
+  - "ValidateInputs.RestApiGwQuotaLimitOriginalValue"
+  - "ValidateInputs.RestApiGwQuotaPeriodOriginalValue"
+  - "ValidateInputs.RestApiGwQuotaLimit"
+  - "ValidateInputs.RestApiGwQuotaPeriod"
+mainSteps:
+  - name: CheckIfForceExecutionIsSet
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: SetQuotaConfiguration
+          Variable: "{{ForceExecution}}"
+          StringEquals: "True"
+        - NextStep: ValidateInputs
+          Variable: "{{ForceExecution}}"
+          StringEquals: "False"
+      Default:
+        SetQuotaConfiguration
+  - name: ValidateInputs
+    description: Gets quota limits for given Usage Plan of REST API GW
+    action: aws:executeScript
+    outputs:
+      - Name: Result
+        Selector: "$.Payload.Result"
+        Type: "String"
+      - Name: RestApiGwQuotaLimitOriginalValue
+        Selector: "$.Payload.OriginalLimit"
+        Type: "Integer"
+      - Name: RestApiGwQuotaPeriodOriginalValue
+        Selector: "$.Payload.OriginalPeriod"
+        Type: "String"
+      - Name: RestApiGwQuotaLimit
+        Selector: "$.Payload.NewLimit"
+        Type: "String"
+      - Name: RestApiGwQuotaPeriod
+        Selector: "$.Payload.NewPeriod"
+        Type: "String"
+    inputs:
+      Runtime: "python3.7"
+      Handler: "check_limit_and_period"
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwQuotaLimit: "{{ RestApiGwQuotaLimit }}"
+        RestApiGwQuotaPeriod: "{{ RestApiGwQuotaPeriod }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_util.imports
+        SCRIPT_PLACEHOLDER::apigw_util.check_limit_and_period
+    nextStep: SetQuotaConfiguration
+  - name: SetQuotaConfiguration
+    action: aws:executeScript
+    description: Updates quota limits for given Usage Plan of REST API GW
+    outputs:
+      - Name: RestApiGwQuotaLimitNewValue
+        Selector: "$.Payload.Limit"
+        Type: "Integer"
+      - Name: RestApiGwQuotaPeriodNewValue
+        Selector: "$.Payload.Period"
+        Type: "String"
+    inputs:
+      Runtime: "python3.7"
+      Handler: "set_limit_and_period"
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwQuotaLimit: "{{ RestApiGwQuotaLimit }}"
+        RestApiGwQuotaPeriod: "{{ RestApiGwQuotaPeriod }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_util.imports
+        SCRIPT_PLACEHOLDER::apigw_util.set_limit_and_period
