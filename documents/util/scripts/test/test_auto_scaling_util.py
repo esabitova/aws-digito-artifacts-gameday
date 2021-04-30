@@ -22,7 +22,7 @@ DESCRIBE_SCALABLE_TARGETS_RESPONSE = {
             "MaxCapacity": 5,
             "MinCapacity": 1,
             "ResourceId": "table/my_table",
-            "RoleARN": "string",
+            "RoleARN": "my_role_arn",
             "ScalableDimension": "dimension",
             "ServiceNamespace": "dynamodb",
             "SuspendedState": {
@@ -78,7 +78,8 @@ class TestAutoScalingUtil(unittest.TestCase):
         result = _register_scalable_target(table_name='my_table',
                                            dimension='my_dimension',
                                            max_cap=5,
-                                           min_cap=1)
+                                           min_cap=1,
+                                           role_arn="arn")
 
         self.application_autoscaling_client_mock\
             .register_scalable_target\
@@ -86,7 +87,8 @@ class TestAutoScalingUtil(unittest.TestCase):
                                 ScalableDimension='my_dimension',
                                 MaxCapacity=5,
                                 MinCapacity=1,
-                                ResourceId='table/my_table')
+                                ResourceId='table/my_table',
+                                RoleARN='arn')
         self.assertEquals(result, DESCRIBE_SCALABLE_TARGETS_RESPONSE)
 
     @patch('documents.util.scripts.src.auto_scaling_util._describe_scalable_targets',
@@ -100,9 +102,11 @@ class TestAutoScalingUtil(unittest.TestCase):
         }
         result = copy_scaling_targets(events=events, context={})
 
-        self.assertEqual(result, [{"ScalableDimension": "dimension", "MinCapacity": 1, "MaxCapacity": 5}])
+        self.assertEqual(result, [{"ScalableDimension": "dimension", "MinCapacity": 1,
+                         "MaxCapacity": 5, 'RoleARN': 'my_role_arn'}])
         describe_mock.assert_called_with(table_name='my_table')
         register_mock.assert_called_with(table_name='my_table_target',
                                          dimension='dimension',
                                          max_cap=5,
-                                         min_cap=1)
+                                         min_cap=1,
+                                         role_arn='my_role_arn')
