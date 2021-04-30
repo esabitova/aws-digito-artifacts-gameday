@@ -1,4 +1,5 @@
 import boto3
+from botocore.exceptions import ClientError
 from .boto3_client_factory import client
 import logging
 import time
@@ -62,7 +63,9 @@ def get_recovery_point(session: boto3.Session, backup_vault_name: str, resource_
             if recovery_point['Status'] == 'COMPLETED':
                 return recovery_point['RecoveryPointArn']
     logger.info(f'No recovery points found for {resource_type} in {backup_vault_name}')
-    raise Exception(f'No recovery points found for {resource_type} in {backup_vault_name}')
+    raise AttributeError(
+        f'No recovery points found for {resource_type} in {backup_vault_name}'
+    )
 
 
 def get_recovery_points(session: boto3.Session, backup_vault_name: str, resource_type: str = None,
@@ -110,6 +113,7 @@ def delete_recovery_point(session: boto3.Session, recovery_point_arn: str, backu
         RecoveryPointArn=recovery_point_arn
     )
     if wait:
+        is_successful = False
         timeout_timestamp = time.time() + int(wait_timeout)
         while time.time() < timeout_timestamp:
             try:
@@ -118,9 +122,14 @@ def delete_recovery_point(session: boto3.Session, recovery_point_arn: str, backu
                     RecoveryPointArn=recovery_point_arn
                 )
                 time.sleep(5)
-            except backup_client.exceptions.ResourceNotFoundException:
+            except ClientError:
                 logger.info(f'Recovery point {recovery_point_arn.split(":")[-1]} successfully removed')
+                is_successful = True
                 break
+        if not is_successful:
+            raise TimeoutError(f'Recovery point \'{recovery_point_arn.split(":")[-1]}\' wasn\'t removed during timeout')
+        else:
+            return True
 
 
 def delete_backup_vault(session: boto3.Session, backup_vault_name: str, region: str = None):

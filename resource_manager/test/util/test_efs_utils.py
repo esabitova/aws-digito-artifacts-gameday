@@ -3,7 +3,9 @@ import pytest
 from unittest.mock import MagicMock
 import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.efs_utils as efs_utils
-from documents.util.scripts.test.test_data_provider import get_sample_describe_file_systems_response
+from documents.util.scripts.test.test_data_provider import \
+    ACCOUNT_ID, \
+    get_sample_describe_file_systems_response
 
 
 @pytest.mark.unit_test
@@ -27,10 +29,19 @@ class TestEfsUtil(unittest.TestCase):
         fs_id = "TestFsID"
         mock_describe_fs_result = \
             {'FileSystems': [{
-                "FileSystemArn": "arn:aws:elasticfilesystem:eu-south-1:435978235099:file-system/TestFsID"
+                "FileSystemArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/{fs_id}"
             }]}
         self.mock_efs_service.describe_file_systems.return_value = get_sample_describe_file_systems_response(fs_id)
         result = efs_utils.describe_filesystem(self.session_mock, fs_id)
         self.mock_efs_service.describe_file_systems.assert_called_once_with(FileSystemId=fs_id)
         self.assertEqual(result['FileSystems'][0]['FileSystemArn'],
                          mock_describe_fs_result['FileSystems'][0]['FileSystemArn'])
+
+    def test_delete_filesystem(self):
+        fs_id = "TestFsID"
+        self.mock_efs_service. \
+            delete_file_system. \
+            return_value = None
+        efs_utils.delete_filesystem(self.session_mock, fs_id)
+        self.mock_efs_service.delete_file_system. \
+            assert_called_once_with(FileSystemId=fs_id)

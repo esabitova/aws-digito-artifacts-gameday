@@ -345,10 +345,10 @@ def get_instance_ids_by_count(count):
 # EFS
 def get_sample_describe_file_systems_response(fs_id):
     return {'FileSystems': [{
-        "OwnerId": "435978235099",
+        "OwnerId": ACCOUNT_ID,
         "CreationToken": "2021-04-13_14.17.16",
         "FileSystemId": fs_id,
-        "FileSystemArn": "arn:aws:elasticfilesystem:eu-south-1:435978235099:file-system/" + fs_id,
+        "FileSystemArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/{fs_id}",
         "CreationTime": "2021-04-13T17:27:17+03:00",
         "LifeCycleState": "available",
         "NumberOfMountTargets": 0,
@@ -404,13 +404,85 @@ def get_sample_efs_recovery_points_by_backup_vault(backup_vault_name):
                 "BackupSizeInBytes": 0,
                 "EncryptionKeyArn": f"arn:aws:kms:eu-south-1:{ACCOUNT_ID}:key/TestKeyId",
                 "IsEncrypted": True
+            },
+            {
+                "RecoveryPointArn": BACKUP_COMPLETED_RECOVERY_ARN,
+                "backup_vault_name": backup_vault_name,
+                "BackupVaultArn": f"arn:aws:backup:eu-south-1:{ACCOUNT_ID}:backup-vault:" + backup_vault_name,
+                "ResourceArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/fs-fb67d43e",
+                "ResourceType": "EFS2",
+                "IamRoleArn": f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/AWSBackupDefaultServiceRole",
+                "Status": "COMPLETED",
+                "CreationDate": "2021-04-16T10:47:48.679000+03:00",
+                "CompletionDate": "2021-04-16T10:47:55.851000+03:00",
+                "BackupSizeInBytes": 0,
+                "EncryptionKeyArn": f"arn:aws:kms:eu-south-1:{ACCOUNT_ID}:key/TestKeyId",
+                "IsEncrypted": True
             }
         ]
     }
 
 
-# IAM
+def get_sample_describe_recovery_point(backup_vault_name):
+    return {
+        "RecoveryPointArn": BACKUP_COMPLETED_RECOVERY_ARN,
+        "BackupVaultName": backup_vault_name,
+        "BackupVaultArn": f"arn:aws:backup:eu-south-1:{ACCOUNT_ID}:backup-vault:{backup_vault_name}",
+        "ResourceArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/fs-a0270c11",
+        "ResourceType": "EFS",
+        "IamRoleArn": f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/AWSBackupDefaultServiceRole",
+        "Status": "COMPLETED",
+        "CreationDate": "2021-04-30T16:33:05.222000+03:00",
+        "CompletionDate": "2021-04-30T16:33:13.125000+03:00",
+        "BackupSizeInBytes": 0,
+        "EncryptionKeyArn": f"arn:aws:kms:eu-south-1:{ACCOUNT_ID}:key/041fc455-d081-48a3-82c4-9ffbd576bb89",
+        "IsEncrypted": True,
+        "StorageClass": "WARM"
+    }
 
+
+def get_sample_recovery_points_by_backup_vault_with_efs2resource(backup_vault_name):
+    return {
+        "RecoveryPoints": [
+            {
+                "RecoveryPointArn": BACKUP_COMPLETED_RECOVERY_ARN,
+                "backup_vault_name": backup_vault_name,
+                "BackupVaultArn": f"arn:aws:backup:eu-south-1:{ACCOUNT_ID}:backup-vault:{backup_vault_name}",
+                "ResourceArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/fs-fb67d43e",
+                "ResourceType": "EFS2",
+                "IamRoleArn": f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/AWSBackupDefaultServiceRole",
+                "Status": "COMPLETED",
+                "CreationDate": "2021-04-16T10:47:48.679000+03:00",
+                "CompletionDate": "2021-04-16T10:47:55.851000+03:00",
+                "BackupSizeInBytes": 0,
+                "EncryptionKeyArn": f"arn:aws:kms:eu-south-1:{ACCOUNT_ID}:key/TestKeyId",
+                "IsEncrypted": True
+            }
+        ]
+    }
+
+
+def get_sample_describe_backup_job(backup_vault_name, state):
+    return {
+        "AccountId": ACCOUNT_ID,
+        "BackupJobId": "TestID",
+        "BackupVaultName": backup_vault_name,
+        "BackupVaultArn": f"arn:aws:backup:eu-south-1:{ACCOUNT_ID}:backup-vault:{backup_vault_name}",
+        "RecoveryPointArn": f"arn:aws:backup:eu-south-1:{ACCOUNT_ID}:recovery-point:RecoveryID",
+        "ResourceArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/fs-a40ebd61",
+        "CreationDate": "2021-04-30T17:22:39.174000+03:00",
+        "CompletionDate": "2021-04-30T17:22:46.734000+03:00",
+        "State": state,
+        "PercentDone": "100.0",
+        "BackupSizeInBytes": 0,
+        "IamRoleArn": f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/AWSBackupDefaultServiceRole",
+        "ResourceType": "EFS",
+        "BytesTransferred": 0,
+        "StartBy": "2021-05-01T01:22:39.174000+03:00"
+    }
+
+
+# IAM
 def get_sample_role(role_name):
     return {
         "Role": {

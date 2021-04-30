@@ -20,7 +20,11 @@ def cache_backup_value(cfn_output_params, resource_manager, ssm_test_cache, boto
     restore_job_id = parse_param_values_from_table(input_parameters, {
         'cache': ssm_test_cache,
         'cfn-output': cfn_output_params})[0].get('RestoreJobId')
-    region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
+    region = None
+    try:
+        region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
+    except KeyError:
+        pass
     if region:
         backup_client = boto3.client('backup', region_name=region)
     else:
@@ -67,5 +71,5 @@ def efs_fs_exists(resource_manager, boto3_session, ssm_test_cache, input_paramet
         split(':')[-1].split('/')[-1]
     try:
         describe_filesystem(boto3_session, efs_id)['FileSystems'][0]['FileSystemArn']
-    except boto3_session.client('backup').exceptions.FileSystemNotFound:
+    except boto3_session.client('backup').exceptions.ResourceNotFoundException:
         raise AssertionError(f'FileSystem with ID {efs_id} doesn\'t exist after restore')
