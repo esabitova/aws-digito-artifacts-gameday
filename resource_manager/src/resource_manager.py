@@ -137,7 +137,8 @@ class ResourceManager:
                             merged_roles = self._merge_assume_roles(existing_assume_roles, passed_assume_role)
                             if not yaml_util.is_equal(merged_roles, existing_assume_roles) or \
                                     resource.status == ResourceModel.Status.FAILED.name:
-                                resource = self._update_resource(i, cfn_template_path, resource)
+
+                                resource = self._update_resource(i, cfn_template_path, merged_roles, resource)
                                 if resource is not None:
                                     return resource
                             else:
@@ -150,7 +151,8 @@ class ResourceManager:
                             if resource.cf_template_sha1 != cfn_template_sha1 \
                                     or resource.cf_input_parameters_sha1 != cfn_params_sha1 \
                                     or resource.status == ResourceModel.Status.FAILED.name:
-                                resource = self._update_resource(i, cfn_template_path, resource)
+                                cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
+                                resource = self._update_resource(i, cfn_template_path, cfn_content, resource)
                                 if resource is not None:
                                     return resource
                             else:
@@ -275,16 +277,16 @@ class ResourceManager:
         logging.info("Pool size for [%s] template: %d", cfn_template_name, pool_size)
         return pool_size
 
-    def _update_resource(self, index: int, cfn_template_path: str, resource: ResourceModel):
+    def _update_resource(self, index: int, cfn_template_path: str, cfn_content: dict, resource: ResourceModel):
         """
         Updates resource for given cloud formation template.
-        :param index The cloud formation template resource index (should not exceed pool_size limit.)
-        :param cfn_template_path The cloud formation template path
-        :parma resource The resource to be updated
+        :param index: The cloud formation template resource index (should not exceed pool_size limit.)
+        :param cfn_template_path: The cloud formation template path
+        :param cfn_content: The cloud formation content
+        :parma resource: The resource to be updated
         :return The updated cloud formation resource
         """
         try:
-            cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
             resource_type = ResourceManager.ResourceType.from_string(resource.type)
             cfn_input_params = self._get_cfn_input_parameters(cfn_template_path)
