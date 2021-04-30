@@ -1,0 +1,11 @@
+{
+  "displayName": "Client connection number is too high",
+  "description": "Alarm by Digito that reports when client connection number deviation is over the specified threshold",
+  "alarmName": "Digito-HighClientConnections_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "efs:alarm:client_connections:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

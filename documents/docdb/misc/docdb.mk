@@ -25,7 +25,7 @@ test: test_linter
 	cd ../../../ && \
 	source venv/bin/activate && \
 	export AWS_PROFILE=${AWS_PROFILE}; python3 -m pytest --count=${TEST_COUNT} --workers ${TEST_WORKERS} --pool_size ${TEST_POOL_SIZE} \
-		${TEST_TARGETS} --keep_test_resources --run_integration_tests -m ${SERVICE} --aws_profile ${AWS_PROFILE} && \
+		${TEST_TARGETS} --keep_test_resources --run_integration_tests --distributed_mode -m ${SERVICE} --aws_profile ${AWS_PROFILE} && \
 	deactivate
 
 

@@ -2,8 +2,8 @@
 api-gw:sop:update_version_rest:2020-10-26
 
 ## Intent
-The scripts accepts given deployment id and applies it on the given stage. If deployment id is not set, the script tries to find previous deployment (by creation date) and applies it on the stage. 
-
+The script accepts given deployment id and applies it on the given stage. If deployment id is not set, the script tries
+to find previous deployment (by creation date) and applies it on the stage.
 
 ## Type
 Software Outage SOP
@@ -16,7 +16,7 @@ Medium
 
 ## Permission required for AutomationAssumeRole
 * apigateway:GET
-* apigateway:PUT
+* apigateway:PATCH
 
 ## Supports Rollback
 No.
@@ -37,7 +37,7 @@ No.
 
 ## Details
 
-1. `FindPreviousDeploymentIfNotProvided`
+1. `FindDeploymentIdForUpdate`
     * Type: aws:executeScript
     * Inputs:
         * `RestApiGwId`
@@ -55,25 +55,29 @@ No.
             * Return `.deploymentId` as `originalDeploymentId`
         * If `RestDeploymentId` is provided
           * Validate if provided deployment id and rest ip add up:
-            * Execute [get_deployment](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.get_deployment):
-              * Parameters:
-                * `restApiId`=`RestApiGwId`
-                * `deploymentId`=`RestDeploymentId`
-            * If no error and a record is returned, then return `RestDeploymentId` as an output and skip further actions of the current step. Otherwise throw an error.
+              *
+              Execute [get_deployment](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.get_deployment):
+                  * Parameters:
+                      * `restApiId`=`RestApiGwId`
+                      * `deploymentId`=`RestDeploymentId`
+              * If no error and a record is returned, then return `RestDeploymentId` as an output and skip further
+                actions of the current step. Otherwise, throw an error.
         * If `RestDeploymentId` is **NOT** provided, 
           * Get details of the current deployment:
             * Execute [get_deployment](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.get_deployment):
-              * Parameters:
-                * `restApiId`=`RestApiGwId`
-                * `deploymentId`=`originalDeploymentId`
-              * Return `.createdDate` as `currentDeploymentCreationDate`
+                * Parameters:
+                    * `restApiId`=`RestApiGwId`
+                    * `deploymentId`=`originalDeploymentId`
+                * Return `.createdDate` as `c~~~~urrentDeploymentCreationDate`
           * Determine previous deployment based on creation date:
             * Execute [get_deployments](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.get_deployments):
-              * Parameters:
-                * `restApiId`=`RestApiGwId`
-                * `position`=`take from the previous run of the current method`
-                * `limit`=500
-              * Iterate over `.items` collection and fine the latest deployment where `.items[].creationDate` less than `currentDeploymentCreationDate`. If found, return as `previousDeploymentId`, otherwise throw an error
+                * Parameters:
+                    * `restApiId`=`RestApiGwId`
+                    * `position`=`take from the previous run of the current method`
+                    * `limit`=500
+                * Iterate over `.items` collection and find the latest deployment where `.items[].creationDate` less
+                  than `currentDeploymentCreationDate`. If found, return as `previousDeploymentId`, otherwise throw an
+                  error
 1. `ChangeDeployment`
     * Type: aws:executeScript
     * Inputs:
@@ -86,10 +90,12 @@ No.
           * Parameters:
             * `restApiId`=`RestApiGwId`
             * `stageName`=`RestStageName`
-            * `patchOperations`=`op='replace',path='/deploymentId',value='<FindPreviousDeploymentIfNotProvided.RestDeploymentIdToApply>'`
+            * `patchOperations`
+              =`op='replace',path='/deploymentId',value='<FindDeploymentIdForUpdate.RestDeploymentIdToApply>'`
           * Return `.deploymentId`
 
 ## Outputs
-* `FindPreviousDeploymentIfNotProvided.RestDeploymentIdOriginalValue`
-* `FindPreviousDeploymentIfNotProvided.RestDeploymentIdToApply`
+
+* `FindDeploymentIdForUpdate.RestDeploymentIdOriginalValue`
+* `FindDeploymentIdForUpdate.RestDeploymentIdToApply`
 * `ChangeDeployment.RestDeploymentIdNewValue`

@@ -36,9 +36,69 @@ def trigger_lambda(lambda_arn: str, payload: dict,
                                          InvocationType=invocation_type.name,
                                          Payload=bytes(payload, 'utf-8'))
     status_code = int(invoke_result['ResponseMetadata']['HTTPStatusCode'])
-    if not status_code >= 200 and status_code <= 300:
+    if not (200 <= status_code <= 300):
         log.error(invoke_result)
         raise ValueError('Failed to invoke lambda')
 
     payload = invoke_result['Payload'].read()
     return payload
+
+
+def get_function_concurrency(lambda_arn: str, session: Session):
+    """
+    Calls AWS API to get the value of concurrent executions parameter of given Lambda
+
+    :param lambda_arn: The ARN of Lambda Function
+    :param session The boto3 session
+    :return: The metadata of response
+    """
+    lambda_client = client('lambda', session)
+    response = lambda_client.get_function_concurrency(
+        FunctionName=lambda_arn
+    )
+    return response['ReservedConcurrentExecutions']
+
+
+def delete_function_concurrency(lambda_arn: str, session: Session):
+    """
+    Calls AWS API to delete concurrency of given Lambda
+
+    :param lambda_arn: The ARN of Lambda Function
+    :param session The boto3 session
+    :return: None
+    """
+    lambda_client = client('lambda', session)
+    lambda_client.delete_function_concurrency(
+        FunctionName=lambda_arn
+    )
+
+
+def get_function_provisioned_concurrency(lambda_arn: str, qualifier: str, session: Session):
+    """
+    Calls AWS API to get the value of provisioned concurrency parameter of given Lambda
+    :param lambda_arn: The ARN of Lambda Function
+    :param qualifier: version number or alias name
+    :param session The boto3 session
+    :return: The metadata of response
+    """
+    lambda_client = client('lambda', session)
+    response = lambda_client.get_provisioned_concurrency_config(
+        FunctionName=lambda_arn,
+        Qualifier=qualifier
+    )
+    return response.get('AllocatedProvisionedConcurrentExecutions')
+
+
+def delete_function_provisioned_concurrency_config(lambda_arn: str, qualifier: str, session: Session):
+    """
+    Calls AWS API to delete provisioned concurrency parameter of given Lambda
+    :param lambda_arn: The ARN of Lambda Function
+    :param qualifier: version number or alias name
+    :param session The boto3 session
+    :return: The metadata of response
+    """
+    lambda_client = client('lambda', session)
+    lambda_client.delete_provisioned_concurrency_config(
+        FunctionName=lambda_arn,
+        Qualifier=qualifier
+    )

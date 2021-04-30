@@ -22,6 +22,7 @@ outputs:
   - BackupDbInstancesMetadata.BackupDbClusterInstancesCountValue
   - BackupDbClusterInstancesCount.DbClusterInstancesNumber
   - VerifyCurrentInstancesCount.CurrentInstancesNumber
+  - OutputRecoveryTime.RecoveryTime
 parameters:
   DBClusterIdentifier:
     type: String
@@ -32,12 +33,24 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: >-
-      (Optional) The ARN of the role that allows Automation to perform
+      (Required) The ARN of the role that allows Automation to perform
       the actions on your behalf. If no role is specified, Systems Manager Automation
       uses your IAM permissions to run this document.
-    default: ''
 
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: BackupDbInstancesMetadata
     action: aws:executeAwsApi
     description: Backup current DbClusterInstances value
@@ -124,3 +137,18 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::docdb_util.imports
         SCRIPT_PLACEHOLDER::docdb_util.verify_cluster_instances
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

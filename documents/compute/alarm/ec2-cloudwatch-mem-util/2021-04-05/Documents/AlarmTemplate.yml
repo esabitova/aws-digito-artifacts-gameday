@@ -10,7 +10,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when memory utilization is anomalous with band width ', ${Threshold}] ]
-      AlarmName: EC2HighMemUtilizationAlarm
+      AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       EvaluationPeriods: 3
       DatapointsToAlarm: 3
@@ -30,3 +30,4 @@ Resources:
                   Value: '${InstanceId}'
             Period: 60
             Stat: Maximum
+            Unit: Percent

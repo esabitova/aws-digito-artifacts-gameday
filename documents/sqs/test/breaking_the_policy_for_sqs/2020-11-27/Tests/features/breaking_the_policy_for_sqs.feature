@@ -28,12 +28,12 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
 
     # Once sending messages stops it may take up to 2 mins to update alarm
     # This step should not be reached if access denied error was not caught
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "Success" for "200" seconds
+    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "Success" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
     # Keep sending more messages ignoring access denied errors until policy propagates and SSM execution finishes
-    And send messages for "300" seconds ignoring access denied
+    And send messages for "600" seconds ignoring access denied until "5" sent successfully
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 

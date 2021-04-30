@@ -55,7 +55,7 @@ class TestSSMUtils(unittest.TestCase):
             ]
         }}
         actual_start_time, actual_end_time = ssm_utils.get_ssm_step_interval(self.session_mock, execution_id, step_name)
-        self.assertIsNotNone(actual_end_time)
+        self.assertIsNone(actual_end_time)
         self.assertEqual(datetime.utcfromtimestamp(expected_start_time.timestamp()), actual_start_time)
         self.mock_ssm_service.get_automation_execution.assert_called_once_with(AutomationExecutionId=execution_id)
 

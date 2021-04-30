@@ -25,7 +25,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When send "5" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "10" seconds
+    And sleep for "5" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |

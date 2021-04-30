@@ -26,8 +26,8 @@ Feature: SSM automation document to restore backup in another region
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache execution output value of "RestoreBackupJob.RestoreJobId" as "RestoreJobId" after SSM automation execution
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
+      | ExecutionId                | RegionName                             |
+      | {{cache:SsmExecutionId>1}} | {{cache:before>DestinationRegionName}} |
     And cache execution output value of "GetDestinationRecoveryPointArn.DestinationRecoveryPointArn" as "DestinationRecoveryPointArn" after SSM automation execution
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -49,14 +49,14 @@ Feature: SSM automation document to restore backup in another region
       | RecoveryPointArn                  |  BackupVaultName                                      |
       | {{cache:before>RecoveryPointArn}} | {{cfn-output:EFSTemplate>BackupVaultSourceName}}      |
     And tear down created recovery point
-      | RecoveryPointArn                             |  BackupVaultName                                     |
-      | {{cache:after>DestinationRecoveryPointArn}}  | {{cfn-output:EFSTemplate>BackupVaultSourceName}}     |
+      | RecoveryPointArn                             |  BackupVaultArn                       | RegionName                             |
+      | {{cache:after>DestinationRecoveryPointArn}}  |  {{cache:before>DestinationVaultArn}} | {{cache:before>DestinationRegionName}} |
     And tear down backup vault
-      | VaultArn                              |
-      | {{cache:before>DestinationVaultArn}}  |
+      | VaultArn                              | RegionName                             |
+      | {{cache:before>DestinationVaultArn}}  | {{cache:before>DestinationRegionName}} |
     And tear down filesystem by ARN
-      | FileSystemARN                       |
-      | {{cache:after>DestinationVaultArn}} |
+      | FileSystemARN                        | RegionName                             |
+      | {{cache:after>DestinationVaultArn}}  | {{cache:before>DestinationRegionName}} |
     And cache number of recovery points as "NumberOfRecoveryPoints" "after" SSM automation execution
       | BackupVaultName                                       | FileSystemID                      |
       | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |

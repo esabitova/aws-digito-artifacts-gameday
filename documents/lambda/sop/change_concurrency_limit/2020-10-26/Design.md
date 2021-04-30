@@ -20,6 +20,7 @@ Medium
 * lambda:PutFunctionConcurrency
 * servicequotas:ListAWSDefaultServiceQuotas
 * servicequotas:ListServiceQuotas
+* servicequotas:GetAWSDefaultServiceQuota
 
 ## Supports Rollback
 No
@@ -39,8 +40,7 @@ No
 ## Details of SSM Document steps:
 1. `CheckConcurrentExecutionsQuota`
     * Type: aws:executeScript
-    * Inputs:
-        * `LambdaARN`
+    * Inputs: none
     * Outputs:
         * `ConcurrentExecutionsQuota`: The current concurrency quota for Region-Account combination
     * Explanation:
@@ -48,13 +48,14 @@ No
           * Parameter:ServiceCode='lambda'
           * In output search for Quotas[].QuotaCode='L-B99A9384' (the code returned from AWS CLI: `aws service-quotas list-aws-default-service-quotas --service-code lambda`)
           * Take `Quotas[].Value` as an output
-        * If the value from previois steps was not found, get the default value of the quota using [get_aws_default_service_quota](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/service-quotas.html#ServiceQuotas.Client.get_aws_default_service_quota)
+        * If the value from previous steps was not found, get the default value of the quota using [get_aws_default_service_quota](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/service-quotas.html#ServiceQuotas.Client.get_aws_default_service_quota)
           * Parameter:ServiceCode='lambda'
           * Parameter:QuotaCode='L-B99A9384'
           * Take `Quota.Value` as an output
-1. `CalculateTotalReservedConcurrencyOfExistingLambas`
+1. `CalculateTotalReservedConcurrencyOfExistingLambdas`
     * Type: aws:executeScript
-    * Inputs: none
+    * Inputs: 
+       * `LambdaARN`
     * Outputs:
         * `TotalReservedConcurrency`: Returns total reserved concurrency
     * Explanation:
@@ -65,16 +66,16 @@ No
     * Type: aws:executeScript
     * Inputs:
       * `CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota`
-      * `CalculateTotalReservedConcurrencyOfExistingLambas.TotalReservedConcurrency`
+      * `CalculateTotalReservedConcurrencyOfExistingLambdas.TotalReservedConcurrency`
       * `NewReservedConcurrentExecutions`
     * Outputs:
         * `CanSetReservedConcurrency`: Returns if it's possible to set given value of `NewReservedConcurrentExecutions`
         * `MaximumPossibleReservedConcurrency`: Returns maximum possible value of reserved concurrency
     * Explanation:
         * `MinimumUnreservedConcurrency`=100. From [the documentation](https://docs.aws.amazon.com/lambda/latest/dg/configuration-concurrency.html): "You can reserve up to the Unreserved account concurrency value that is shown, minus 100 for functions that don't have reserved concurrency."
-        * Calculate `CanSetReservedConcurrency` as `(CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota- CalculateTotalReservedConcurrencyOfExistingLambas.TotalReservedConcurrency - NewReservedConcurrentExecutions - MinimumUnreservedConcurrency) > 0`
+        * Calculate `CanSetReservedConcurrency` as `(CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota- CalculateTotalReservedConcurrencyOfExistingLambdas.TotalReservedConcurrency - NewReservedConcurrentExecutions - MinimumUnreservedConcurrency) > 0`
         * if `CanSetReservedConcurrency` is `False` fail the script with human-readable error that contains `CheckFeasibility.MaximumPossibleReservedConcurrency` value and recommendations
-        * Calculate `MaximumPossibleReservedConcurrency` as `CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota- CalculateTotalReservedConcurrencyOfExistingLambas.TotalReservedConcurrency - MinimumUnreservedConcurrency`
+        * Calculate `MaximumPossibleReservedConcurrency` as `CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota- CalculateTotalReservedConcurrencyOfExistingLambdas.TotalReservedConcurrency - MinimumUnreservedConcurrency`
 1. `SetReservedConcurrentExecutions`
     * Type: aws:executeScript
     * Inputs:
@@ -82,7 +83,7 @@ No
         * `NewReservedConcurrentExecutions`
         * `CheckFeasibility.MaximumPossibleReservedConcurrency`
     * Outputs:
-        * `ReservedConcurrencyLeft`: The maximum value of Reserved Concurrency that be spread across other Lamba functions
+        * `ReservedConcurrencyLeft`: The maximum value of Reserved Concurrency that be spread across other Lambda functions
         * `NewReservedConcurrencyValue`: The new reserved concurrency value for the give Lambda function
     * Explanation:
         * Set `NewReservedConcurrentExecutions` using  [put_function_concurrency](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.put_function_concurrency). Parameters:
@@ -93,6 +94,6 @@ No
 
 ## Outputs
 * `CheckFeasibility.MaximumPossibleReservedConcurrency`: Returns maximum possible value of reserved concurrency before the script being executed
-* `SetReservedConcurrentExecutions.ReservedConcurrencyLeft`: The maximum value of Reserved Concurrency that be spread across other Lamba functions
+* `SetReservedConcurrentExecutions.ReservedConcurrencyLeft`: The maximum value of Reserved Concurrency that be spread across other Lambda functions
 * `SetReservedConcurrentExecutions.NewReservedConcurrencyValue`: The new reserved concurrency value for the give Lambda function
 * `CheckConcurrentExecutionsQuota.ConcurrentExecutionsQuota`: The current concurrency quota assigned for the AWS Account

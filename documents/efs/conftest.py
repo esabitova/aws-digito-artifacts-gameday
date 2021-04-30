@@ -4,6 +4,7 @@ from pytest_bdd import (
 import jsonpath_ng
 import logging
 import uuid
+import boto3
 from resource_manager.src.util.param_utils import parse_param_values_from_table
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 import resource_manager.src.util.backup_utils as backup_utils
@@ -14,12 +15,16 @@ logger = logging.getLogger(__name__)
 
 @when(parsers.parse('cache restore job property "{json_path}" as "{cache_property}" '
                     '"{step_key}" SSM automation execution\n{input_parameters}'))
-def cache_backup_value(cfn_output_params, ssm_test_cache, boto3_session, json_path, cache_property, step_key,
-                       input_parameters):
+def cache_backup_value(cfn_output_params, resource_manager, ssm_test_cache, boto3_session, json_path, cache_property,
+                       step_key, input_parameters):
     restore_job_id = parse_param_values_from_table(input_parameters, {
         'cache': ssm_test_cache,
         'cfn-output': cfn_output_params})[0].get('RestoreJobId')
-    backup_client = boto3_session.client('backup')
+    region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
+    if region:
+        backup_client = boto3.client('backup', region_name=region)
+    else:
+        backup_client = boto3_session.client('backup')
     if restore_job_id:
         response = backup_client.describe_restore_job(RestoreJobId=restore_job_id)
         target_value = jsonpath_ng.parse(json_path).find(response)[0].value

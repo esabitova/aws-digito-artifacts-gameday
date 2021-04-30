@@ -13,7 +13,7 @@ def parse_param_values_from_table(data_table, param_containers):
     for data_row in parse_str_table(data_table).rows:
         param_row = {}
         for param_name, value_ref in data_row.items():
-            param_row[param_name] = str(parse_param_value(value_ref, param_containers))
+            param_row[param_name] = parse_param_value(value_ref, param_containers)
         parameters.append(param_row)
     return parameters
 
@@ -52,7 +52,8 @@ def _get_param_value(param_container, param_val_ref):
     for i in range(len(params)):
         value = value.get(params[i])
         if value is None:
-            raise Exception("Parameter reference with name [{}] does not exist.".format(param_val_ref))
+            raise Exception("Parameter reference with name [{}] does not exist. container {} keys are: [{}]".
+                            format(param_val_ref, params[0], ','.join(param_container.keys())))
     return value
 
 

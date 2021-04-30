@@ -140,7 +140,7 @@ mainSteps:
         Policy: '{{ GetPolicyWithDenyOnDeleteMessageAction.Policy }}'
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 100
+    maxAttempts: 200
     timeoutSeconds: 5
     onFailure: step:RollbackCurrentExecution
     inputs:

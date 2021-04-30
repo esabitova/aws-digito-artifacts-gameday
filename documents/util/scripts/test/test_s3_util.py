@@ -138,8 +138,8 @@ def list_object_versions_paginated_side_effect(Bucket, Prefix='', MaxKeys=None):
 
 
 def list_objects_v2_paginated_side_effect(Bucket):
-    # Imitate some working time
-    time.sleep(1)
+    # Why would you want a test to take time?
+    # time.sleep(1)
     if Bucket == S3_EMPTY_BUCKET:
         return [{
             'Contents': []

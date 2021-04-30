@@ -89,17 +89,22 @@ def get_recovery_points(session: boto3.Session, backup_vault_name: str, resource
 
 def delete_recovery_point(session: boto3.Session, recovery_point_arn: str, backup_vault_name: str,
                           wait: bool = False,
-                          wait_timeout: int = 600):
+                          wait_timeout: int = 600,
+                          region: str = None):
     """
     Deletes recovery point by its ARN
     :param session boto3 client session
-    :param recovery_point_arn recovery job arn
+    :param recovery_point_arn recovery point arn
     :param backup_vault_name backup vault name
-    :param wait True if you want to wait until backup is COMPLETED
-    :param wait_timeout timeout in seconds on waiting for backup completion
+    :param wait True if you want to wait until delete is completed
+    :param wait_timeout timeout in seconds on waiting for delete completion
+    :param region Name of region to look for backup vault, if None, use current region
     """
-    backup_client = client('backup', session)
     logger.info(f'Recovery point {recovery_point_arn.split(":")[-1]} is deleting')
+    if region:
+        backup_client = boto3.client('backup', region_name=region)
+    else:
+        backup_client = client('backup', session)
     backup_client.delete_recovery_point(
         BackupVaultName=backup_vault_name,
         RecoveryPointArn=recovery_point_arn
@@ -118,20 +123,22 @@ def delete_recovery_point(session: boto3.Session, recovery_point_arn: str, backu
                 break
 
 
-def delete_backup_vault(session: boto3.Session, backup_vault_name: str, region: str = None,):
+def delete_backup_vault(session: boto3.Session, backup_vault_name: str, region: str = None):
     """
-    RDeletes backup vault by its name in a specified region
+    Deletes backup vault by its name in a specified region
     :param session boto3 client session
     :param backup_vault_name backup vault name
     :param region Name of region to look for backup vault, if None, use current region
     """
-
     logger.info(f'Backup vault {backup_vault_name} is deleting')
 
     if region:
         backup_client = boto3.client('backup', region_name=region)
     else:
         backup_client = client('backup', session)
-    backup_client.delete_backup_vault(
-        BackupVaultName='string'
+
+    response = backup_client.delete_backup_vault(
+        BackupVaultName=backup_vault_name
     )
+
+    return response

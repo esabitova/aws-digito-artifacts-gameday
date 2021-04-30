@@ -1,8 +1,11 @@
 import unittest
+from unittest.mock import MagicMock, call
+
 import pytest
-import resource_manager.src.util.docdb_utils as docdb_utils
+from botocore.exceptions import ClientError
+
 import resource_manager.src.util.boto3_client_factory as client_factory
-from unittest.mock import MagicMock
+import resource_manager.src.util.docdb_utils as docdb_utils
 from documents.util.scripts.test.test_docdb_util import DOCDB_CLUSTER_ID, DOCDB_INSTANCE_ID, \
     get_docdb_instances_side_effect, get_cluster_azs_side_effect, get_docdb_instances_with_status_side_effect
 
@@ -16,7 +19,7 @@ class TestDocDBUtil(unittest.TestCase):
         self.client_side_effect_map = {
             'docdb': self.mock_docdb_service
         }
-        self.session_mock.client.side_effect = lambda service_name, config=None:\
+        self.session_mock.client.side_effect = lambda service_name, config=None: \
             self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
@@ -126,13 +129,39 @@ class TestDocDBUtil(unittest.TestCase):
         ])
         self.assertEqual(result, api_value_mock['DBInstances'])
 
-    def test_delete_cluster(self):
+    def test_delete_cluster_db_cluster_not_found_fault(self):
+        self.mock_docdb_service.describe_db_clusters.side_effect = \
+            ClientError({'Error': {'Code': 'DBClusterNotFoundFault'}}, "")
         result = docdb_utils.delete_cluster(self.session_mock, DOCDB_CLUSTER_ID)
         self.mock_docdb_service.delete_db_cluster.assert_called_once_with(
             DBClusterIdentifier=DOCDB_CLUSTER_ID,
             SkipFinalSnapshot=True
         )
         self.assertEqual(None, result)
+
+    def test_delete_cluster_with_wait(self):
+        cluster_members = [
+            {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1-non-existing'},
+            {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2-non-existing'}
+        ]
+        self.mock_docdb_service.describe_db_clusters.return_value = {
+            'DBClusters': [{'DBClusterMembers': cluster_members}]
+        }
+        self.assertRaises(TimeoutError, docdb_utils.delete_cluster,
+                          self.session_mock, DOCDB_CLUSTER_ID, True, 5)
+        self.mock_docdb_service.delete_db_cluster.assert_called_once_with(
+            DBClusterIdentifier=DOCDB_CLUSTER_ID,
+            SkipFinalSnapshot=True
+        )
+
+    def test_delete_cluster_exception(self):
+        self.mock_docdb_service.describe_db_clusters.return_value = {}
+        self.assertRaises(Exception, docdb_utils.delete_cluster, self.session_mock, DOCDB_CLUSTER_ID, True, 1)
+        self.mock_docdb_service.delete_db_cluster.assert_called_once_with(
+            DBClusterIdentifier=DOCDB_CLUSTER_ID,
+            SkipFinalSnapshot=True
+        )
+        self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
 
     def test_describe_cluster(self):
         cluster = {
@@ -204,3 +233,65 @@ class TestDocDBUtil(unittest.TestCase):
             DBClusterSnapshotIdentifier=snapshot_id
         )
         self.assertEqual(False, result)
+
+    def test_delete_cluster_instances_without_wait(self):
+        cluster_members = [
+            {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1'},
+            {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2'}
+        ]
+        self.mock_docdb_service.describe_db_clusters.return_value = {
+            'DBClusters': [{'DBClusterMembers': cluster_members}]
+        }
+        calls = [
+            call(DBInstanceIdentifier='instance1'),
+            call(DBInstanceIdentifier='instance2')
+        ]
+        docdb_utils.delete_cluster_instances(self.session_mock, DOCDB_CLUSTER_ID, False)
+        self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+        self.mock_docdb_service.delete_db_instance.assert_has_calls(calls)
+
+    def test_delete_cluster_instances_with_wait(self):
+        cluster_members = [
+            {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1'},
+            {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2'}
+        ]
+        self.mock_docdb_service.describe_db_clusters.side_effect = [{
+            'DBClusters': [{'DBClusterMembers': cluster_members}]
+        }, {
+            'DBClusters': [{
+                'DBClusterMembers': []
+            }]
+        }]
+        delete_calls = [
+            call(DBInstanceIdentifier='instance1'),
+            call(DBInstanceIdentifier='instance2')
+        ]
+        describe_calls = [
+            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
+            call(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+        ]
+        docdb_utils.delete_cluster_instances(self.session_mock, DOCDB_CLUSTER_ID, True, 1)
+        self.mock_docdb_service.describe_db_clusters.assert_has_calls(describe_calls)
+        self.mock_docdb_service.delete_db_instance.assert_has_calls(delete_calls)
+
+    def test_delete_cluster_instances_exception(self):
+        cluster_members = [
+            {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1'},
+            {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2'}
+        ]
+        self.mock_docdb_service.describe_db_clusters.side_effect = [{
+            'DBClusters': [{'DBClusterMembers': cluster_members}]
+        }, {
+            'DBClusters': [{'DBClusterMembers': cluster_members}]
+        }]
+        delete_calls = [
+            call(DBInstanceIdentifier='instance1'),
+            call(DBInstanceIdentifier='instance2')
+        ]
+        describe_calls = [
+            call(DBClusterIdentifier=DOCDB_CLUSTER_ID),
+            call(DBClusterIdentifier=DOCDB_CLUSTER_ID)
+        ]
+        self.assertRaises(Exception, docdb_utils.delete_cluster_instances, self.session_mock, DOCDB_CLUSTER_ID, True, 1)
+        self.mock_docdb_service.describe_db_clusters.assert_has_calls(describe_calls)
+        self.mock_docdb_service.delete_db_instance.assert_has_calls(delete_calls)

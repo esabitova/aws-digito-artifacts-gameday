@@ -37,14 +37,13 @@ parameters:
   DBInstanceClass:
     type: 'String'
     default: 'db.t3.medium'
-    description: 'Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region'
+    description: '(Optional) Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region'
   AutomationAssumeRole:
     type: String
     description: >-
-      (Optional) The ARN of the role that allows Automation to perform
+      (Required) The ARN of the role that allows Automation to perform
       the actions on your behalf. If no role is specified, Systems Manager Automation
       uses your IAM permissions to run this document.
-    default: ''
 
 mainSteps:
   - name: RecordStartTime

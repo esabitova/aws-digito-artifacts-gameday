@@ -28,9 +28,8 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: >-
-      (Optional) The ARN of the role that allows Automation to perform the
+      (Required) The ARN of the role that allows Automation to perform the
       actions on your behalf.
-    default: ''
 mainSteps:
   - name: AssertNotRebooting
     action: aws:assertAwsResourceProperty

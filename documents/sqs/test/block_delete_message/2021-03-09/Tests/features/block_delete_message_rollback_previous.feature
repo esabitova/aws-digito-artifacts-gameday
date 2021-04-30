@@ -15,7 +15,6 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     # Only one PurgeQueue operation is allowed every 60 seconds.
     When sleep for "60" seconds
-    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -26,7 +25,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When send "5" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "10" seconds
+    And sleep for "5" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

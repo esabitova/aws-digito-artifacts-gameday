@@ -19,10 +19,12 @@ Feature: SSM automation document EC2 CPU stress testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    Then sleep for "120" seconds
-    And assert "cpu_usage_user" metric point "greaterOrEqual" than "88" percent(s)
-      |ExecutionId               |StepName    | InstanceId                                        |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>1}}|RunCpuStress|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|cpu-total|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName    |
+      |{{cache:SsmExecutionId>1}}|RunCpuStress|
+    And wait "cpu_usage_user" metric point "MORE_OR_EQUAL" to "88" "Percent"
+      |StartTime                                                  |EndTime                                                  |InstanceId                                        |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>1>RunCpuStress>StartTime}}|{{cache:SsmStepExecutionInterval>1>RunCpuStress>EndTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|cpu-total|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation CPU stress on EC2 instance with rollback
     Given the cached input parameters
@@ -38,16 +40,17 @@ Feature: SSM automation document EC2 CPU stress testing
     When SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" executed
       |InstanceId                                         |AutomationAssumeRole                                                                |CpuUtilizationAlarmName                             |CpuLoadPercentage          |Duration                |
       |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighCpuLoadInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2CpuAlarm}}|{{cache:CpuLoadPercentage}}|{{cache:StressDuration}}|
-    # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer, sometimes shorter. Need to find better way to verify CPU injection.
-    # https://issues.amazon.com/issues/Digito-1742
-    Then sleep for "180" seconds
 
-    When assert "cpu_usage_user" metric point "greaterOrEqual" than "88" percent(s)
-      |ExecutionId               |StepName    | InstanceId                                        |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>1}}|RunCpuStress|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|cpu-total|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
-    Then assert SSM automation document step "RunCpuStress" execution in status "InProgress"
-      |ExecutionId               |
-      |{{cache:SsmExecutionId>1}}|
+    Then Wait for the SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution is on step "RunCpuStress" in status "InProgress" for "600" seconds
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And cache ssm step execution interval
+      |ExecutionId               |StepName    |
+      |{{cache:SsmExecutionId>1}}|RunCpuStress|
+
+    Then wait "cpu_usage_user" metric point "MORE_OR_EQUAL" to "88" "Percent"
+      |StartTime                                                  | InstanceId                                        |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>1>RunCpuStress>StartTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|cpu-total|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
     # Terminating SSM automation to replicate real scenario when service performs termination before executing document rollback steps.
     And terminate "Digito-SimulateHighCpuLoadInEc2_2020-07-28" SSM automation document
       |ExecutionId               |
@@ -62,13 +65,10 @@ Feature: SSM automation document EC2 CPU stress testing
     And SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>2}}|
-    # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer, sometimes shorter. Need to find better way to verify CPU injection.
-    # https://issues.amazon.com/issues/Digito-1742
-    Then sleep for "180" seconds
-    And assert "cpu_usage_user" metric point "less" than "5" percent(s)
-      |ExecutionId               |StepName                   |InstanceId                                         |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>2}}|KillStressCommandOnRollback|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
-
-
-
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName                   |
+      |{{cache:SsmExecutionId>2}}|KillStressCommandOnRollback|
+    And wait "cpu_usage_user" metric point "LESS_OR_EQUAL" to "5" "Percent"
+      |StartTime                                                                 |InstanceId                                         |ImageId                                         |InstanceType          |cpu      |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>2>KillStressCommandOnRollback>StartTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|cpu-total|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|

@@ -1,0 +1,29 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  ClientConnectionsAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: ${AlarmName}
+      AlarmDescription:
+        Fn::Join: ['', ['Alarm by Digito that reports when client connections deviation is over ', ${Threshold} ]]
+      ActionsEnabled: false
+      Metrics:
+        - Expression:
+            Fn::Join: ['', ["ANOMALY_DETECTION_BAND(m1,", ${Threshold}, ")"]]
+          Id: ad1
+        - Id: m1
+          MetricStat:
+            Metric:
+              MetricName: ClientConnections
+              Namespace: AWS/EFS
+              Dimensions:
+                - Name: FileSystemId
+                  Value: ${FileSystem}
+            Period: 60
+            Stat: Average
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      ThresholdMetricId: ad1
+      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      TreatMissingData: missing

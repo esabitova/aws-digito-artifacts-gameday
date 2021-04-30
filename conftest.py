@@ -1,8 +1,10 @@
 import logging
 import time
 import uuid
+import re
 from datetime import timedelta, datetime
-
+import random
+import string
 import boto3
 import pytest
 from botocore.exceptions import ClientError
@@ -29,6 +31,10 @@ from resource_manager.src.util.sts_utils import assume_role_session
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.ssm_utils import send_step_approval
+from resource_manager.src.alarm_manager import AlarmManager
+from publisher.src.alarm_document_parser import AlarmDocumentParser
+from resource_manager.src.util.enums.operator import Operator
+from resource_manager.src.util.cw_util import wait_for_metric_data_point
 from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
 
 
@@ -59,6 +65,10 @@ def pytest_addoption(parser):
                      help="Flag to run integration tests in distributed mode "
                           "(multi session/machines targeting same AWS account). "
                           "NOTE: Flag should be used only for CI/CD pipeline, not for personal usage.")
+    parser.addoption("--target_service",
+                     action="store",
+                     help="If specified, style validator would be run only against documents for this service. "
+                          "The default behavior being that it would be run for all existing services")
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -124,6 +134,11 @@ def pytest_sessionfinish(session, exitstatus):
             # NOTE: We don't want to call this when running tests on multiple machines (sessions). Since resources
             # may still be in use by other machines (sessions).
             rm.destroy_all_resources()
+
+
+@pytest.fixture(scope='session')
+def target_service(request):
+    return request.config.option.target_service
 
 
 @pytest.fixture(scope='session')
@@ -214,6 +229,20 @@ def ssm_test_cache():
     '''
     cache = dict()
     return cache
+
+
+@pytest.fixture
+def alarm_manager(boto3_session):
+    """
+    Container for alarms deployed during a test. Alarms created during a test
+    are destroyed at the end of the test.
+    """
+    cfn_helper = CloudFormationTemplate(boto3_session)
+    s3_helper = S3(boto3_session)
+    unique_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    manager = AlarmManager(unique_suffix, boto3_session, cfn_helper, s3_helper)
+    yield manager
+    manager.destroy_deployed_alarms()
 
 
 def get_boto3_session(aws_profile):
@@ -319,7 +348,7 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
 
 
 wait_for_execution_step_with_params_description = \
-    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '\
+    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" ' \
     'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'
 
 
@@ -506,13 +535,13 @@ def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state
 
 @given(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
              'check every {delay_sec} seconds'))
-def wait_until_alarm_green(resource_manager,
-                           boto3_session: boto3.Session,
-                           alarm_name_ref: str,
-                           wait_sec: str,
-                           delay_sec: str):
-    cf_output = resource_manager.get_cfn_output_params()
-    alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cf_output})
+@then(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+            'check every {delay_sec} seconds'))
+def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str,
+                           cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
+
+    alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
+                                                    'cache': ssm_test_cache})
     alarm_state = AlarmState.INSUFFICIENT_DATA
     wait_sec = int(wait_sec)
     delay_sec = int(delay_sec)
@@ -540,3 +569,105 @@ def wait_until_alarm_green(resource_manager,
     raise TimeoutError(f'After {wait_sec} alarm {alarm_name} is in {alarm_state} state;'
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')
+
+
+# Alarm
+@given(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
+@when(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
+@then(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
+def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
+                                    alarm_manager, ssm_test_cache, cfn_output_params):
+    input_params = {name : parse_param_value(val, {'cache': ssm_test_cache,
+                                                   'cfn-output': cfn_output_params})
+                    for name, val in
+                    parse_str_table(input_parameters_table).rows[0].items()}
+    alarm_name = alarm_reference_id.split(':')[2]
+    raw_alarm_document = AlarmDocumentParser.from_reference_id(alarm_reference_id)
+    variables = raw_alarm_document.get_variables()
+
+    alarm_document = raw_alarm_document.replace_variables(**input_params)
+
+    if alarm_document.get_variables():
+        raise Exception(f'Test must provide values to the following variables: '
+                        f'{str(list(alarm_document.get_variables()))}'
+                        f'referenceId: {alarm_reference_id}'
+                        f'path: {AlarmDocumentParser.get_document_directory(alarm_reference_id)}')
+
+    alarm_manager.deploy_alarm(alarm_name,
+                               alarm_document.get_content(),
+                               {k: v for k, v in input_params.items()
+                                if k not in variables})
+
+
+@then(parse('assert metrics for all alarms are populated'))
+def verify_alarm_metrics_exist(alarm_manager):
+    wait_sec = int(300)
+    delay_sec = int(15)
+    elapsed = 0
+    iteration = 1
+    while elapsed < wait_sec:
+        start = time.time()
+        alarms_missing_data = alarm_manager.collect_alarms_without_data()
+        if not alarms_missing_data:
+            return  # All alarms have data
+        logging.info(f'#{iteration}; Alarms missing data: {alarms_missing_data} '
+                     f'Elapsed: {elapsed} sec;')
+        time.sleep(delay_sec)
+        end = time.time()
+        elapsed += (end - start)
+        iteration += 1
+
+    raise TimeoutError(f'After {wait_sec} the following alarms metrics have no data: {alarms_missing_data}'
+                       f'Elapsed: {elapsed} sec;'
+                       f'{iteration} iterations;')
+
+
+@when(parse('wait "{metric_name}" metric point "{operator}" to "{expected_datapoint}" "{metric_unit}"\n{input_params}'))
+@then(parse('wait "{metric_name}" metric point "{operator}" to "{expected_datapoint}" "{metric_unit}"\n{input_params}'))
+def wait_for_metric_datapoint(metric_name, operator, expected_datapoint, cfn_output_params,
+                              input_params, ssm_test_cache, metric_unit, boto3_session):
+    """
+    Asserts if particular metric reached desired point.
+    :param expected_datapoint The expected metric point
+    :param cfn_output_params The cfn output parameters from resource manager
+    :param input_params The input parameters from step definition
+    :param ssm_test_cache The test cache
+    :param boto3_session The boto3 session
+    :param metric_name The metric name to assert
+    :param metric_unit The metric unit
+    :param operator The operator to use for assertion
+    """
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    input_param_row = params[0]
+    start_time = input_param_row.pop('StartTime')
+    # It is possible end time is not given
+    end_time = input_param_row.pop('EndTime') if input_param_row.get('EndTime') else None
+    metric_namespace = input_param_row.pop('Namespace')
+    metric_period = int(input_param_row.pop('MetricPeriod'))
+    metric_dimensions = input_param_row
+    wait_for_metric_data_point(session=boto3_session,
+                               name=metric_name,
+                               datapoint_threshold=float(expected_datapoint),
+                               operator=Operator.from_string(operator),
+                               start_time_utc=start_time,
+                               end_time_utc=end_time,
+                               namespace=metric_namespace,
+                               period=metric_period,
+                               dimensions=metric_dimensions,
+                               unit=metric_unit)
+
+
+@when(parse('cache ssm step execution interval\n{input_params}'))
+@then(parse('cache ssm step execution interval\n{input_params}'))
+def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_test_cache):
+    params = parse_param_values_from_table(input_params, {'cfn-output': cfn_output_params, 'cache': ssm_test_cache})
+    input_param_row = params[0]
+    execution_id = input_param_row.get('ExecutionId')
+    step_name = input_param_row.get('StepName')
+    if not execution_id or not step_name:
+        raise Exception('Parameters [ExecutionId] and [StepName] should be presented.')
+    exec_start, exec_end = get_ssm_step_interval(boto3_session, execution_id, step_name)
+    execution_id_ref = parse_str_table(input_params).rows[0]['ExecutionId']
+    ssm_execution_id = re.search(r'SsmExecutionId>\d+', execution_id_ref).group().split('>')[1]
+    ssm_test_cache['SsmStepExecutionInterval'] = {ssm_execution_id: {step_name: {'StartTime': exec_start,
+                                                                                 'EndTime': exec_end}}}

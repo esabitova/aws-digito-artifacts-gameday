@@ -1,0 +1,11 @@
+{
+  "displayName": "Drainedb burst balance",
+  "description": "Reports when drained burst balance is below threshold",
+  "alarmName": "Digito-DrainedBurstBalance_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "ebs:alarm:ebs-burst-balance:2020-12-06",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}

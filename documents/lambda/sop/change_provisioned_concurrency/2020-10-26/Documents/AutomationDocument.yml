@@ -1,0 +1,61 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Changes Provisioned Concurrency of Lambda Function"
+schemaVersion: "0.3"
+assumeRole: "{{AutomationAssumeRole}}"
+parameters:
+  LambdaARN:
+    type: String
+    description: (Required) The ARN of the Lambda function.
+  ProvisionedConcurrentExecutions:
+    type: Integer
+    description: (Required) New ProvisionedConcurrency value.
+  LambdaQualifier:
+    type: String
+    description: (Required) The version number or alias name
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+outputs:
+  - "PutProvisionedConcurrencyConfig.NewValueOfProvisionedConcurrency"
+mainSteps:
+  - name: PutProvisionedConcurrencyConfig
+    action: aws:executeAwsApi
+    description: Updates provisioned concurrency for the given Lambda
+    inputs:
+      Service: lambda
+      Api: PutProvisionedConcurrencyConfig
+      FunctionName: '{{ LambdaARN }}'
+      ProvisionedConcurrentExecutions: '{{ ProvisionedConcurrentExecutions }}'
+      Qualifier: '{{ LambdaQualifier }}'
+    outputs:
+      - Name: NewValueOfProvisionedConcurrency
+        Selector: $.RequestedProvisionedConcurrentExecutions
+        Type: Integer
+
+  - name: GetProvisionedConcurrencyConfig
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: lambda
+      Api: GetProvisionedConcurrencyConfig
+      FunctionName: '{{ LambdaARN }}'
+      Qualifier: '{{ LambdaQualifier }}'
+      PropertySelector: '$.Status'
+      DesiredValues:
+        - READY

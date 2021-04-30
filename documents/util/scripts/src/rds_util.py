@@ -1,6 +1,6 @@
 import boto3
 from datetime import datetime, timezone
-from time import sleep
+import time
 from botocore.config import Config
 
 
@@ -56,7 +56,7 @@ def wait_cluster_failover_completed(events, context):
     current_writer_id = _parse_writer_id(clusters)
     status = clusters['DBClusters'][0]['Status']
     while current_writer_id == events['WriterId'] or status != 'available':
-        sleep(5)
+        time.sleep(5)
         clusters = rds.describe_db_clusters(DBClusterIdentifier=events['ClusterId'])
         current_writer_id = _parse_writer_id(clusters)
         status = clusters['DBClusters'][0]['Status']

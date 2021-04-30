@@ -43,3 +43,10 @@ metadata_attrs_map = {
     "sop": sop_meta_required_attrs,
     "alarm": alarm_meta_required_attrs
 }
+
+metadata_valid_values_map = {
+    "risk": ["SMALL", "MEDIUM", "HIGH"],
+    "failureType": ["REGION", "AZ", "HARDWARE", "SOFTWARE"],
+    "documentType": ["Automation", "Command"],
+    "documentFormat": ["YAML", "JSON"]
+}

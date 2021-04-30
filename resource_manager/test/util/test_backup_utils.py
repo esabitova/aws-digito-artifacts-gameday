@@ -82,3 +82,23 @@ class TestBackupUtil(unittest.TestCase):
         self.mock_backup_service.list_recovery_points_by_backup_vault. \
             assert_called_once_with(BackupVaultName=backup_vault_name, ByResourceArn='test')
         self.assertEqual(result, [])
+
+    def test_delete_backup_vault(self):
+        backup_vault_name = BACKUP_VAULT_NAME
+        self.mock_backup_service. \
+            delete_backup_vault. \
+            return_value = None
+        backup_utils.delete_backup_vault(self.session_mock, backup_vault_name)
+        # not getting except ???
+        self.mock_backup_service.delete_backup_vault. \
+            assert_called_once_with(BackupVaultName=backup_vault_name)
+
+    # def test_delete_recovery_point(self):
+    #     backup_vault_name = BACKUP_VAULT_NAME
+    #     recovery_point_arn = BACKUP_COMPLETED_RECOVERY_ARN
+    #     self.mock_backup_service. \
+    #         delete_recovery_point. \
+    #         return_value = None
+    #     backup_utils.delete_recovery_point(self.session_mock, backup_vault_name)
+    #     self.mock_backup_service.delete_recovery_point. \
+    #         assert_called_once_with(BackupVaultName=backup_vault_name)

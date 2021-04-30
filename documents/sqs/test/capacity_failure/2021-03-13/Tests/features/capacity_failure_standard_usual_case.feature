@@ -18,13 +18,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | QueueUrl                                       | AutomationAssumeRole                                                           | SentMessageSizeAlarmName                                     |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeStandardQueueAlarm}} |
 
-    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "Success" for "600" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Success"
+    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
@@ -32,5 +26,4 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     Then assert "NumberOfMessages" at "before" became equal to "NumberOfMessages" at "after"
-    And assert "NumberOfMessages" at "after-send" became not equal to "NumberOfMessages" at "before"
     And assert "NumberOfMessages" at "after" became equal to "0"
