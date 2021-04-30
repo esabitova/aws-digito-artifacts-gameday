@@ -105,7 +105,7 @@ def delete_recovery_point(session: boto3.Session, recovery_point_arn: str, backu
     """
     logger.info(f'Recovery point {recovery_point_arn.split(":")[-1]} is deleting')
     if region:
-        backup_client = boto3.client('backup', region_name=region)
+        backup_client = session.client('backup', region_name=region)
     else:
         backup_client = client('backup', session)
     backup_client.delete_recovery_point(
@@ -142,7 +142,7 @@ def delete_backup_vault(session: boto3.Session, backup_vault_name: str, region: 
     logger.info(f'Backup vault {backup_vault_name} is deleting')
 
     if region:
-        backup_client = boto3.client('backup', region_name=region)
+        backup_client = session.client('backup', region_name=region)
     else:
         backup_client = client('backup', session)
 

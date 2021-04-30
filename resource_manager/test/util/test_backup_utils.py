@@ -185,26 +185,19 @@ class TestBackupUtil(unittest.TestCase):
         self.mock_backup_service.delete_backup_vault. \
             assert_called_once_with(BackupVaultName=backup_vault_name)
 
-    # def test_delete_backup_vault_in_region(self):
-    #     backup_vault_name = BACKUP_VAULT_NAME
-    #     region = 'eu-south-1'
-    #     self.session_mock_region = MagicMock()
-    #     self.mock_backup_service_region = MagicMock()
-    #     self.client_side_effect_map_region = {
-    #         'backup': self.mock_backup_service_region
-    #     }
-    #     self.session_mock_region.client.side_effect = lambda service_name, region_name=region: \
-    #         self.client_side_effect_map_region.get(service_name)
-    #
-    #     self.mock_backup_service_region = MagicMock()
-    #     self.mock_backup_service_region. \
-    #         delete_backup_vault. \
-    #         return_value = None
-    #     backup_utils.delete_backup_vault(self.session_mock_region, backup_vault_name, region=region)
-    #     self.mock_backup_service_region.client. \
-    #         assert_called_once_with('backup', region_name=region)
-    #     self.mock_backup_service_region.delete_backup_vault. \
-    #         assert_called_once_with(BackupVaultName=backup_vault_name)
+    def test_delete_backup_vault_in_region(self):
+        backup_vault_name = BACKUP_VAULT_NAME
+        region = 'eu-west-1'
+        self.mock_backup_service. \
+            delete_backup_vault. \
+            return_value = None
+        self.session_mock.client.side_effect = lambda service_name, region_name=region: \
+            self.client_side_effect_map.get(service_name)
+        backup_utils.delete_backup_vault(self.session_mock, backup_vault_name, region=region)
+        self.session_mock.client. \
+            assert_called_once_with('backup', region_name=region)
+        self.mock_backup_service.delete_backup_vault. \
+            assert_called_once_with(BackupVaultName=backup_vault_name)
 
     def test_delete_recovery_point(self):
         backup_vault_name = BACKUP_VAULT_NAME
@@ -215,6 +208,22 @@ class TestBackupUtil(unittest.TestCase):
         backup_utils.delete_recovery_point(self.session_mock,
                                            backup_vault_name=backup_vault_name,
                                            recovery_point_arn=recovery_point_arn)
+        self.mock_backup_service.delete_recovery_point. \
+            assert_called_once_with(BackupVaultName=backup_vault_name, RecoveryPointArn=recovery_point_arn)
+
+    def test_delete_recovery_point_in_region(self):
+        backup_vault_name = BACKUP_VAULT_NAME
+        recovery_point_arn = BACKUP_COMPLETED_RECOVERY_ARN
+        region = 'eu-west-1'
+        self.mock_backup_service. \
+            delete_recovery_point. \
+            return_value = None
+        self.session_mock.client.side_effect = lambda service_name, region_name=region: \
+            self.client_side_effect_map.get(service_name)
+        backup_utils.delete_recovery_point(self.session_mock,
+                                           backup_vault_name=backup_vault_name,
+                                           recovery_point_arn=recovery_point_arn,
+                                           region=region)
         self.mock_backup_service.delete_recovery_point. \
             assert_called_once_with(BackupVaultName=backup_vault_name, RecoveryPointArn=recovery_point_arn)
 

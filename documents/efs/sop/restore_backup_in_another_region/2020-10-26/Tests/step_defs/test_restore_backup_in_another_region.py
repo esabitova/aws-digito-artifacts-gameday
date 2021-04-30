@@ -71,8 +71,23 @@ def cache_different_region(boto3_session, ssm_test_cache,
 def teardown_recovery_point(resource_manager, boto3_session, ssm_test_cache, input_parameters):
     logger.info(f"ssm_test_cache:{ssm_test_cache}")
     recovery_point_arn = extract_param_value(input_parameters, 'RecoveryPointArn', resource_manager, ssm_test_cache)
-    region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
-    backup_vault_name = extract_param_value(input_parameters, 'BackupVaultName', resource_manager, ssm_test_cache)
+    region = None
+    backup_vault_name = ""
+    try:
+        region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
+    except KeyError:
+        pass
+    try:
+        backup_vault_name = extract_param_value(input_parameters, 'BackupVaultName', resource_manager, ssm_test_cache)
+    except KeyError:
+        pass
+    try:
+        backup_vault_arn = extract_param_value(input_parameters, 'BackupVaultArn', resource_manager, ssm_test_cache)
+        backup_vault_name = backup_vault_arn.split(':')[-1]
+    except KeyError:
+        pass
+    if not backup_vault_name:
+        raise AssertionError('Backup vault name is not specified for a recovery point tear down')
     backup_utils.delete_recovery_point(boto3_session, recovery_point_arn, backup_vault_name, wait=True, region=region)
 
 

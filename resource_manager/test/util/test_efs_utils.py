@@ -37,11 +37,38 @@ class TestEfsUtil(unittest.TestCase):
         self.assertEqual(result['FileSystems'][0]['FileSystemArn'],
                          mock_describe_fs_result['FileSystems'][0]['FileSystemArn'])
 
+    def test_describe_filesystem_region(self):
+        fs_id = "TestFsID"
+        region = 'eu-south-1'
+        mock_describe_fs_result = \
+            {'FileSystems': [{
+                "FileSystemArn": f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/{fs_id}"
+            }]}
+        self.session_mock.client.side_effect = lambda service_name, region_name=region: \
+            self.client_side_effect_map.get(service_name)
+        self.mock_efs_service.describe_file_systems.return_value = get_sample_describe_file_systems_response(fs_id)
+        result = efs_utils.describe_filesystem(self.session_mock, fs_id, region=region)
+        self.mock_efs_service.describe_file_systems.assert_called_once_with(FileSystemId=fs_id)
+        self.assertEqual(result['FileSystems'][0]['FileSystemArn'],
+                         mock_describe_fs_result['FileSystems'][0]['FileSystemArn'])
+
     def test_delete_filesystem(self):
         fs_id = "TestFsID"
         self.mock_efs_service. \
             delete_file_system. \
             return_value = None
         efs_utils.delete_filesystem(self.session_mock, fs_id)
+        self.mock_efs_service.delete_file_system. \
+            assert_called_once_with(FileSystemId=fs_id)
+
+    def test_delete_filesystem_region(self):
+        fs_id = "TestFsID"
+        region = 'eu-south-1'
+        self.mock_efs_service. \
+            delete_file_system. \
+            return_value = None
+        self.session_mock.client.side_effect = lambda service_name, region_name=region: \
+            self.client_side_effect_map.get(service_name)
+        efs_utils.delete_filesystem(self.session_mock, fs_id, region=region)
         self.mock_efs_service.delete_file_system. \
             assert_called_once_with(FileSystemId=fs_id)

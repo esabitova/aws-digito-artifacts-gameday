@@ -40,8 +40,8 @@ Feature: SSM automation document to restore backup in another region
 
     Then assert "RestoreJobStatus" at "after" became equal to "COMPLETED"
     And assert EFS fs exists
-      | FileSystemARN                  |
-      | {{cache:after>RestoredFSArn}} |
+      | FileSystemARN                 | RegionName                             |
+      | {{cache:after>RestoredFSArn}} | {{cache:before>DestinationRegionName}} |
     And tear down created recovery point
       | RecoveryPointArn                  |  BackupVaultName                                      |
       | {{cache:before>RecoveryPointArn}} | {{cfn-output:EFSTemplate>BackupVaultSourceName}}      |
