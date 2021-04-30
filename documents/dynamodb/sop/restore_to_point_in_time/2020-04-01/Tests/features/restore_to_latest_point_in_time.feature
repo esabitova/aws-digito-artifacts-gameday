@@ -56,7 +56,7 @@ Feature: SSM automation document to restore the database from point in time.
       | TargetTableToRestoreName |
       | TargetTableToRestore     |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
-    And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
+    And wait table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                                      | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
@@ -81,7 +81,7 @@ Feature: SSM automation document to restore the database from point in time.
       | TargetTableToRestoreName |
       | TargetTableToRestore     |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
-    And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
+    And wait table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                                      | DynamoDBTableTargetName            | AutomationAssumeRole                                                               | DynamoDBSourceTableAlarmNames |
       | {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} | WriteThrottleEvents           |
@@ -101,7 +101,7 @@ Feature: SSM automation document to restore the database from point in time.
       | TargetTableToRestoreName |
       | TargetTableToRestore     |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
-    And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
+    And wait table {{cfn-output:DynamoDBTemplateWithIndex>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                                | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplateWithIndex>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
@@ -123,7 +123,7 @@ Feature: SSM automation document to restore the database from point in time.
       | TargetTableToRestoreName |
       | TargetTableToRestore     |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
-    And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
+    And wait table {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                                                      | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
@@ -145,7 +145,7 @@ Feature: SSM automation document to restore the database from point in time.
       | TargetTableToRestoreName |
       | TargetTableToRestore     |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
-    And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
+    And wait table {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                                 | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
@@ -173,9 +173,6 @@ Feature: SSM automation document to restore the database from point in time.
       | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
     Then SSM automation document "Digito-RestoreToPointInTime_2020-04-01" execution in status "Success"
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And Wait for the SSM automation document "Digito-RestoreToPointInTime_2020-04-01" execution is on step "CopyDynamoDBTableKinesisDestination" in status "Success" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds

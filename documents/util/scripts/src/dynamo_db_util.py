@@ -12,6 +12,11 @@ GLOBAL_TABLE_ACTIVE_STATUSES = ['ACTIVE']
 
 
 def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
+    """
+    Executes the given delegate with dynamodb client parameter
+    :param delegate: The delegate to execute (with boto3 function)
+    :return: The output of the given function
+    """
     dynamo_db_client = boto3.client('dynamodb')
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -21,32 +26,65 @@ def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
 
 
 def _describe_kinesis_destinations(table_name: str) -> dict:
+    """
+    Describes the current kinesis destination of the given table
+    :param table_name: The table name
+    :return: The dictionary of kinesis destination settings
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
 
 
 def _list_tags(resource_arn: str) -> dict:
+    """
+    Lists tags
+    :param table_name: The table name
+    :return: The MapList of tags
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.list_tags_of_resource(ResourceArn=resource_arn))
 
 
 def _update_tags(resource_arn: str, tags: List[dict]) -> dict:
+    """
+    Updates tags
+    :param table_name: The table name
+    :param tags: The MapList of tags
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.tag_resource(ResourceArn=resource_arn, Tags=tags))
 
 
 def _enable_kinesis_destinations(table_name: str, kds_arn: str) -> dict:
+    """
+    Enabled kinesis destination
+    :param table_name: The table name
+    :param kds_arn: The Kinesis Data Stream ARN
+    :return: The dictionary of kinesis destinations
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
                                                                   StreamArn=kds_arn))
 
 
 def _describe_time_to_live(table_name: str) -> dict:
+    """
+    Describes TTL
+    :param table_name: The table name
+    :return: The dictionary of TTL description
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_time_to_live(TableName=table_name))
 
 
 def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str) -> dict:
+    """
+    Updates TTL
+    :param table_name: The table name
+    :param is_enabled: The flag to enabled TTL
+    :param attribute_name: The attribute of data to check TTL
+    :return: The dictionary of TTL update response
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_time_to_live(TableName=table_name,
                                                  TimeToLiveSpecification={
@@ -56,11 +94,22 @@ def _update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str)
 
 
 def _update_table(table_name: str, **kwargs) -> dict:
+    """
+    Describes the given dynamodb table
+    :param table_name: The table name
+    :param kwargs: The arguments of `update_table` boto3 call
+    :return: The dictionary of table description properties
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_table(TableName=table_name, **kwargs))
 
 
 def _describe_table(table_name: str) -> dict:
+    """
+    Describes the given dynamodb table
+    :param table_name: The table name
+    :return: The dictionary of table description properties
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_table(TableName=table_name))
 

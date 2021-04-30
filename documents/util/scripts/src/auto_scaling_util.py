@@ -31,13 +31,15 @@ def _describe_scalable_targets(table_name: str) -> dict:
                                                        ResourceIds=[f'table/{table_name}']))
 
 
-def _register_scalable_target(table_name: str, dimension: str, min_cap: int, max_cap: int) -> dict:
+def _register_scalable_target(table_name: str, dimension: str,
+                              min_cap: int, max_cap: int, role_arn: str) -> dict:
     """
     Describes scalable targets
     :param table_name: The table name
     :param dimension: The dimension
     :param min_cap: The minimum of scaling target
     :param max_cap: The maximum of scaling target
+    :param role_arn: The autoscaling role ARN
     :return: The response of AWS API
     """
     return _execute_boto3_auto_scaling(
@@ -45,12 +47,13 @@ def _register_scalable_target(table_name: str, dimension: str, min_cap: int, max
                                                       ScalableDimension=dimension,
                                                       MinCapacity=min_cap,
                                                       MaxCapacity=max_cap,
+                                                      RoleARN=role_arn,
                                                       ResourceId=f'table/{table_name}'))
 
 
 def copy_scaling_targets(events: dict, context: dict) -> dict:
     """
-    Returns scalable targets
+    Copy scaling targets settings from source table and applies to the target one
     :param events: The dictionary that supposed to have the following keys:
     * `SourceTableName` - The source table name
     * `TargetTableName` - The target table name
@@ -67,11 +70,13 @@ def copy_scaling_targets(events: dict, context: dict) -> dict:
 
     scaling_targets = [{'ScalableDimension': x['ScalableDimension'],
                         'MinCapacity':int(x["MinCapacity"]),
-                        'MaxCapacity':int(x["MaxCapacity"])} for x in table_result.get('ScalableTargets', [])]
+                        'MaxCapacity':int(x["MaxCapacity"]),
+                        'RoleARN':x['RoleARN']} for x in table_result.get('ScalableTargets', [])]
     for x in scaling_targets:
         _register_scalable_target(table_name=target_table_name,
                                   dimension=x['ScalableDimension'],
                                   min_cap=int(x["MinCapacity"]),
-                                  max_cap=int(x["MaxCapacity"]))
+                                  max_cap=int(x["MaxCapacity"]),
+                                  role_arn=x['RoleARN'])
 
     return scaling_targets
