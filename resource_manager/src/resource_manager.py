@@ -56,6 +56,8 @@ class ResourceManager:
         :param resource_type The resource type (ASSUME_ROLE, DEDICATED, ON_DEMAND).
         :param cf_input_params CF stack input parameters.
         """
+        if self.cfn_templates.get(cfn_template_path):
+            raise Exception(f'Duplicated cfn template for path [{cfn_template_path}].')
         self.cfn_templates[cfn_template_path] = {'input_params': cf_input_params, 'type': resource_type}
 
     def get_cfn_output_params(self):
@@ -120,7 +122,7 @@ class ResourceManager:
             cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
             resources = ResourceModel.query(cfn_template_name)
             for i in range(pool_size):
-                resource = self._filter_resource_by_index(resources, i)
+                resource = self._filter_resource_by_index_and_type(resources, i, resource_type)
                 try:
                     if resource is None:
                         resource = self._create_resource(i, pool_size, cfn_template_path, resource_type)
@@ -130,38 +132,41 @@ class ResourceManager:
                     # give a try to update resource so that testing session is not terminated.
                     elif resource.status == ResourceModel.Status.AVAILABLE.name or \
                             resource.status == ResourceModel.Status.FAILED.name:
+                        cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
+
                         # In case if resource type is ASSUME_ROLE
                         if resource.type == ResourceManager.ResourceType.ASSUME_ROLE.name:
-                            passed_assume_role = yaml_util.file_loads_yaml(cfn_template_path)
                             existing_assume_roles = self._get_s3_cfn_content(config.ssm_assume_role_cfn_s3_path)
-                            merged_roles = self._merge_assume_roles(existing_assume_roles, passed_assume_role)
+                            merged_roles = self._merge_assume_roles(existing_assume_roles, cfn_content)
                             if not yaml_util.is_equal(merged_roles, existing_assume_roles) or \
                                     resource.status == ResourceModel.Status.FAILED.name:
-
                                 resource = self._update_resource(i, cfn_template_path, merged_roles, resource)
                                 if resource is not None:
                                     return resource
                             else:
                                 return resource
-                            # In case if resource type is ON_DEMAND
-                        elif resource.type == ResourceManager.ResourceType.ON_DEMAND.name:
+                        else:
                             cfn_template_sha1 = yaml_util.get_yaml_file_sha1_hash(cfn_template_path)
                             cfn_params = self._get_cfn_input_parameters(cfn_template_path)
                             cfn_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_params)
+
                             if resource.cf_template_sha1 != cfn_template_sha1 \
                                     or resource.cf_input_parameters_sha1 != cfn_params_sha1 \
                                     or resource.status == ResourceModel.Status.FAILED.name:
-                                cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
                                 resource = self._update_resource(i, cfn_template_path, cfn_content, resource)
                                 if resource is not None:
                                     return resource
-                            else:
+                            # In case if resource type is ON_DEMAND
+                            elif resource.type == ResourceManager.ResourceType.ON_DEMAND.name:
                                 resource.leased_times = resource.leased_times + 1
                                 resource.status = ResourceModel.Status.LEASED.name
                                 resource.leased_on = datetime.now()
                                 resource.updated_on = datetime.now()
                                 resource.test_session_id = self.test_session_id
                                 resource.save()
+                                return resource
+                            # In case if resource type is SHARED
+                            else:
                                 return resource
                 except PutError:
                     # In case if object already exist, do nothing
@@ -182,7 +187,8 @@ class ResourceManager:
         logging.error(err_message)
         raise Exception(err_message)
 
-    def _filter_resource_by_index(self, resources, index):
+    def _filter_resource_by_index_and_type(self, resources: [], index: int,
+                                           resource_type: ResourceType) -> ResourceModel:
         """
         Filters list of resources by given index.
         :param resources The list of given resources to filter
@@ -190,7 +196,7 @@ class ResourceManager:
         """
         if resources is not None:
             for resource in resources:
-                if resource.cf_stack_index == index:
+                if resource.cf_stack_index == index and resource.type == resource_type.name:
                     return resource
         return None
 
@@ -377,8 +383,7 @@ class ResourceManager:
         cf_output_params = self.cfn_helper.deploy_cf_stack(cfn_template_s3_url,
                                                            cfn_stack_name,
                                                            **cfn_input_params)
-        resource.status = ResourceModel.Status.AVAILABLE.name if \
-            resource_type == ResourceManager.ResourceType.ASSUME_ROLE else ResourceModel.Status.LEASED.name
+
         resource.cf_template_url = cfn_template_s3_url
         resource.leased_times = resource.leased_times + 1
         resource.cf_input_parameters = cfn_input_params
@@ -386,7 +391,10 @@ class ResourceManager:
         resource.cf_output_parameters = cf_output_params
         resource.test_session_id = self.test_session_id
         resource.cf_template_sha1 = cfn_content_sha1
-
+        if resource_type == ResourceManager.ResourceType.ON_DEMAND:
+            resource.status = ResourceModel.Status.LEASED.name
+        else:
+            resource.status = ResourceModel.Status.AVAILABLE.name
         resource.save()
         return resource
 
