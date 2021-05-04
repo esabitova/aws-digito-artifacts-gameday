@@ -60,11 +60,6 @@ style_validator:
     python -m pytest -m style_validator --no-cov && \
     deactivate
 
-metadata_validator:
-	source venv/bin/activate && \
-    python -m pytest -m metadata_validator --no-cov && \
-    deactivate
-
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles
 linter_and_unit_test: test_linter unit_test
 
