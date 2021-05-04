@@ -270,7 +270,7 @@ class ResourceManager:
         :return The pool size
         """
         pool_size = 1
-        if resource_type == ResourceManager.ResourceType.ASSUME_ROLE:
+        if resource_type != ResourceManager.ResourceType.ON_DEMAND:
             return pool_size
         elif self.custom_pool_size and self.custom_pool_size.get(cfn_template_name):
             pool_size = self.custom_pool_size.get(cfn_template_name)

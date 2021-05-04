@@ -205,7 +205,7 @@ Configuration based on cloud formation template names mapped to number which rep
 * If running 3 tests in parallel which are using resources defined in template “RdsAuroraFailoverTestTemplate” maximum 3 cloud formation stack copies will be created for given template. 
 * If running 5 or more tests in parallel which are using resources defined in template “RdsAuroraFailoverTestTemplate” maximum 3 cloud formation stack copies will be created for given template. 
 * If running 1 test which is using resources defined in template “RdsAuroraFailoverTestTemplate” only 1 cloud formation stack copy will be created for given template. 
-* SHARED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/on_demand/```. Old cloud formation templates will be migrated to this folder. 
+* ON_DEMAND cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/on_demand/```. Old cloud formation templates will be migrated to this folder. 
 
 <b>NOTE:</b> only one test at a time will use one stack resource. So that there will be no cases when multiple tests are manipulating same resources (AWS services).
 ```
