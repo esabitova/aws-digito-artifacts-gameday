@@ -18,10 +18,14 @@ Feature: SSM automation document EC2 memory stress testing
     And SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    # TODO(semiond): When targeting 90% memory load CW reporting ~25  bellow target, investigate: https://issues.amazon.com/issues/Digito-1767
-    Then assert "mem_used_percent" metric point "greaterOrEqual" than "60" percent(s)
-      |ExecutionId               |StepName       | InstanceId                                        |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>1}}|RunMemoryStress|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
+
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName       |
+      |{{cache:SsmExecutionId>1}}|RunMemoryStress|
+    # TODO(semiond): When targeting 90% memory load CW reporting ~35  bellow target, investigate: https://issues.amazon.com/issues/Digito-1767
+    And wait "mem_used_percent" metric point "MORE_OR_EQUAL" to "60" "Percent"
+      |StartTime                                                     |EndTime                                                     |InstanceId                                         |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>1>RunMemoryStress>StartTime}}|{{cache:SsmStepExecutionInterval>1>RunMemoryStress>EndTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation memory stress on EC2 instance with rollback
@@ -38,16 +42,18 @@ Feature: SSM automation document EC2 memory stress testing
     When SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" executed
       |InstanceId                                         |AutomationAssumeRole                                                                   |MemoryUtilizationAlarmName                             |MemoryLoadPercentage          |Duration                |
       |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2MemoryAlarm}}|{{cache:MemoryLoadPercentage}}|{{cache:StressDuration}}|
-    # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer (~5 mins), sometimes shorter. Need to find better way to verify CPU injection.
-    # https://issues.amazon.com/issues/Digito-1742
-    Then sleep for "120" seconds
 
-    When assert "mem_used_percent" metric point "greaterOrEqual" than "60" percent(s)
-      |ExecutionId               |StepName       | InstanceId                                        |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>1}}|RunMemoryStress|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
-    Then assert SSM automation document step "RunMemoryStress" execution in status "InProgress"
-      |ExecutionId               |
-      |{{cache:SsmExecutionId>1}}|
+    Then Wait for the SSM automation document "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" execution is on step "RunMemoryStress" in status "InProgress" for "600" seconds
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And cache ssm step execution interval
+      |ExecutionId               |StepName    |
+      |{{cache:SsmExecutionId>1}}|RunMemoryStress|
+
+    # TODO(semiond): When targeting 90% memory load CW reporting ~35  bellow target, investigate: https://issues.amazon.com/issues/Digito-1767
+    Then wait "mem_used_percent" metric point "MORE_OR_EQUAL" to "60" "Percent"
+      |StartTime                                                     | InstanceId                                        |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>1>RunMemoryStress>StartTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
     # Terminating SSM automation to replicate real scenario when service performs termination before executing document rollback steps.
     And terminate "Digito-SimulateHighMemoryLoadInEc2_2020-07-28" SSM automation document
       |ExecutionId               |
@@ -62,9 +68,11 @@ Feature: SSM automation document EC2 memory stress testing
     And SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>2}}|
-    # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer (~5 mins), sometimes shorter. Need to find better way to verify CPU injection.
-    # https://issues.amazon.com/issues/Digito-1742
-    Then sleep for "180" seconds
-    And assert "mem_used_percent" metric point "less" than "10" percent(s)
-      |ExecutionId               |StepName                   |InstanceId                                         |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>2}}|KillStressCommandOnRollback|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
+
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName                   |
+      |{{cache:SsmExecutionId>2}}|KillStressCommandOnRollback|
+
+    And wait "mem_used_percent" metric point "LESS_OR_EQUAL" to "10" "Percent"
+      |StartTime                                                                 |InstanceId                                         |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>2>KillStressCommandOnRollback>StartTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|

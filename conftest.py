@@ -577,8 +577,8 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str,
 @then(parse('alarm "{alarm_reference_id}" is installed\n{input_parameters_table}'))
 def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
                                     alarm_manager, ssm_test_cache, cfn_output_params):
-    input_params = {name : parse_param_value(val, {'cache': ssm_test_cache,
-                                                   'cfn-output': cfn_output_params})
+    input_params = {name: parse_param_value(val, {'cache': ssm_test_cache,
+                                                  'cfn-output': cfn_output_params})
                     for name, val in
                     parse_str_table(input_parameters_table).rows[0].items()}
     alarm_name = alarm_reference_id.split(':')[2]

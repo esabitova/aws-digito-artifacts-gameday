@@ -31,17 +31,15 @@ parameters:
       (Required) The ARN of the role that allows Automation to perform the
       actions on your behalf.
 mainSteps:
-  - name: AssertNotRebooting
+  - name: AssertInstanceInAvailableState
     action: aws:assertAwsResourceProperty
-    isCritical: false
-    onFailure: step:RebootDbInstance
-    nextStep: WaitForAvailableState
+    onFailure: Abort
     inputs:
       Service: rds
       Api: DescribeDBInstances
       DBInstanceIdentifier: "{{DbInstanceId}}"
       PropertySelector: "$.DBInstances[0].DBInstanceStatus"
-      DesiredValues: ["rebooting"]
+      DesiredValues: ["available"]
   - name: RebootDbInstance
     action: aws:executeAwsApi
     inputs:

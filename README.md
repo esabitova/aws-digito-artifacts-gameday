@@ -205,7 +205,19 @@ Configuration based on cloud formation template names mapped to number which rep
 * If running 3 tests in parallel which are using resources defined in template “RdsAuroraFailoverTestTemplate” maximum 3 cloud formation stack copies will be created for given template. 
 * If running 5 or more tests in parallel which are using resources defined in template “RdsAuroraFailoverTestTemplate” maximum 3 cloud formation stack copies will be created for given template. 
 * If running 1 test which is using resources defined in template “RdsAuroraFailoverTestTemplate” only 1 cloud formation stack copy will be created for given template. 
+* SHARED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/on_demand/```. Old cloud formation templates will be migrated to this folder. 
+
 <b>NOTE:</b> only one test at a time will use one stack resource. So that there will be no cases when multiple tests are manipulating same resources (AWS services).
+```
+Given the cloud formation templates as integration test resources
+      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|AllocatedStorage|
+      |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|               1|
+```
+<b>File location:</b>.../AwsDigitoArtifactsGameday/documents/rds/test/force_aurora_failover/2020-04-01/Tests/features/aurora_failover_cluster.feature
+
+<b>ASSUME_ROLE</b> type of CFN template resource:
+* Only single copy of stack will be created which will contain all assume roles CFN templates given in test scenarios. 
+* Here is no risk of that multiple tests will use same assume role stack. It is ok if multiple tests will use same ASSUME_ROLE at the same time (No need isolation).
 ```
 Given the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|AllocatedStorage|
@@ -213,15 +225,13 @@ Given the cloud formation templates as integration test resources
 ```
 <b>File location:</b>.../AwsDigitoArtifactsGameday/documents/rds/test/force_aurora_failover/2020-04-01/Tests/features/aurora_failover_cluster.feature
 
-<b>ASSUME_ROLE</b> type of CFN template resource:
-* Only single copy of stack will be created which will contain all assume roles CFN templates given in test scenario. 
-* Here is not risk of that multiple tests will use same assume role stack. It is ok if multiple tests will use same ASSUME_ROLE at the same time (No need isolation).
-```
-Given the cloud formation templates as integration test resources
-      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|AllocatedStorage|
-      |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|               1|
-```
-<b>File location:</b>.../AwsDigitoArtifactsGameday/documents/rds/test/force_aurora_failover/2020-04-01/Tests/features/aurora_failover_cluster.feature
+<b>SHARED</b> type of CFN template resource:
+* Single copy of given cloud formation template stack will be created for every template. 
+* All tests can use same stack of given cloud formation template at the same time (when running in parallel). 
+* SHARED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/shared/```
+
+<b>NOTE:</b> Make your own best judgement when to create cloud formation template as SHARED. 
+# TODO (semiond): add example
 
 Pool size configuration content given bellow:
 ```
@@ -466,8 +476,6 @@ Coming soon...
 
 # TODO List
 * https://issues.amazon.com/issues/Digito-2023 - [SSM Testing Framework] Investigate possibility reduce pool size with deleting stacks
-* https://issues.amazon.com/issues/Digito-1203 - [SSM Testing Framework] Implement logic to replace create/update resource for not matching template parameters
-* https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination
-* https://issues.amazon.com/issues/Digito-1207 - [SSM Testing Framework] Digito-AuroraFailoverCluster.yml SSM document need to be fixed to wait for failover completed 
+* https://issues.amazon.com/issues/Digito-1204 - [SSM Testing Framework] Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination 
 * https://issues.amazon.com/issues/Digito-1208 - [SSM Testing Framework] Investigate possibility to generate tests based on SSM document content
 
