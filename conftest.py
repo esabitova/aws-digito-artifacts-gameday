@@ -35,6 +35,7 @@ from resource_manager.src.alarm_manager import AlarmManager
 from publisher.src.alarm_document_parser import AlarmDocumentParser
 from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
+from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
 
 
 def pytest_addoption(parser):
@@ -508,6 +509,16 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
     param_value = parse_param_value(value, {'cache': ssm_test_cache})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
+
+
+@when(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
+            '\n{input_parameters}'))
+def cache_execution_output_value(ssm_test_cache, boto3_session, target_property, cache_property, input_parameters):
+    execution_id = parse_param_values_from_table(input_parameters, {
+        'cache': ssm_test_cache,
+        'cfn-output': cfn_output_params})[0].get('ExecutionId')
+    target_property_value = get_ssm_execution_output_value(boto3_session, execution_id, target_property)
+    put_to_ssm_test_cache(ssm_test_cache, "after", cache_property, target_property_value)
 
 
 @when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
