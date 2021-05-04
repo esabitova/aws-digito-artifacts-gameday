@@ -105,5 +105,6 @@ def wait_restore_job_in_region(events, context):
         elif response.get('Status') in ['ABORTED', 'FAILED']:
             raise AssertionError(f"Restore job resulted with {response.get('Status')} status")
         time.sleep(20)
-
+    if not result:
+        raise TimeoutError(f"Restore job couldn't be completed within {wait_timeout} seconds")
     return result
