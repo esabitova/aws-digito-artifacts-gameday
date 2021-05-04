@@ -21,8 +21,7 @@ Feature: SSM automation document to create backup of EFS
     Then assert RecoveryPoint fs exists and correct
       | RecoveryPointArn                  |  BackupVaultName                                      | FileSystemId                     |
       | {{cache:after>RecoveryPointArn}}  |  {{cfn-output:EFSTemplate>BackupVaultSourceName}}     | {{cfn-output:EFSTemplate>EFSID}} |
-#    And tear down created recovery point
-#      | RecoveryPointArn                             |  BackupVaultArn                       |
-#      | {{cache:after>DestinationRecoveryPointArn}}  |  {{cache:before>DestinationVaultArn}} |
+    And tear down created recovery point
+      | RecoveryPointArn                  |  BackupVaultName                                  |
+      | {{cache:after>RecoveryPointArn}}  |  {{cfn-output:EFSTemplate>BackupVaultSourceName}} |
 
-    # TODO: teardown
