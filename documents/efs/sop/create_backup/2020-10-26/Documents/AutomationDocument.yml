@@ -86,7 +86,7 @@ mainSteps:
       Api: DescribeBackupJob
       BackupJobId: '{{ CreateBackupJob.BackupJobId }}'
       PropertySelector: '$.State'
-      DesiredValues: [ 'COMPLETED' ]
+      DesiredValues: ['COMPLETED']
 
   - name: OutputRecoveryTime
     action: 'aws:executeScript'

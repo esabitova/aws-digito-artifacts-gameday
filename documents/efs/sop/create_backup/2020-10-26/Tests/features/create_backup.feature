@@ -13,3 +13,6 @@ Feature: SSM automation document to create backup of EFS
     And SSM automation document "Digito-CreateEfsBackup_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+
+    # TODO: check that backup exists
+    # TODO: teardown
