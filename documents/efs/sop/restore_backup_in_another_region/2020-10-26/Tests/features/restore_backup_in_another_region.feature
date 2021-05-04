@@ -12,9 +12,6 @@ Feature: SSM automation document to restore backup in another region
     And create a backup vault in region as "DestinationVaultArn" "before" SSM automation execution
       | RegionName                             |
       | {{cache:before>DestinationRegionName}} |
-    And cache number of recovery points as "NumberOfRecoveryPoints" "before" SSM automation execution
-      | BackupVaultName                                       | FileSystemID                      |
-      | {{cfn-output:EFSTemplate>BackupVaultSourceName}}      | {{cfn-output:EFSTemplate>EFSID}}  |
     And cache recovery point arn as "RecoveryPointArn" "before" SSM automation execution
       | FileSystemID                     | BackupVaultName                                  |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>BackupVaultSourceName}} |
@@ -49,12 +46,8 @@ Feature: SSM automation document to restore backup in another region
       | RecoveryPointArn                             |  BackupVaultArn                       | RegionName                             |
       | {{cache:after>DestinationRecoveryPointArn}}  |  {{cache:before>DestinationVaultArn}} | {{cache:before>DestinationRegionName}} |
     And tear down backup vault
-      | VaultArn                              | RegionName                             |
+      | BackupVaultArn                        | RegionName                             |
       | {{cache:before>DestinationVaultArn}}  | {{cache:before>DestinationRegionName}} |
     And tear down filesystem by ARN
-      | FileSystemARN                        | RegionName                             |
-      | {{cache:after>DestinationVaultArn}}  | {{cache:before>DestinationRegionName}} |
-    And cache number of recovery points as "NumberOfRecoveryPoints" "after" SSM automation execution
-      | BackupVaultName                                       | FileSystemID                      |
-      | {{cfn-output:EFSTemplate>BackupVaultDestinationName}} | {{cfn-output:EFSTemplate>EFSID}}  |
-    And assert "NumberOfRecoveryPoints" at "before" became equal to "NumberOfRecoveryPoints" at "after"
+      | FileSystemARN                 | RegionName                             |
+      | {{cache:after>RestoredFSArn}} | {{cache:before>DestinationRegionName}} |

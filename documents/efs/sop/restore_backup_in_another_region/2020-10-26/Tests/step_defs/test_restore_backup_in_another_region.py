@@ -101,6 +101,11 @@ def teardown_backup_vault(resource_manager, boto3_session, ssm_test_cache, input
 
 @then(parsers.parse('tear down filesystem by ARN\n{input_parameters}'))
 def teardown_fs_by_arn(resource_manager, boto3_session, ssm_test_cache, input_parameters):
+    region = None
+    try:
+        region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
+    except KeyError:
+        pass
     fs_arn = extract_param_value(input_parameters, 'FileSystemARN', resource_manager, ssm_test_cache)
     fs_id = fs_arn.split(':')[-1].split('/')[-1]
-    delete_filesystem(boto3_session, fs_id)
+    delete_filesystem(boto3_session, fs_id, region=region)
