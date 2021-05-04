@@ -40,7 +40,6 @@ test_linter:
 	echo "↑ the number of found errors" && \
 	deactivate
 
-
 # Execute unit tests
 unit_test:
 	# If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
@@ -62,4 +61,3 @@ style_validator:
 
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles
 linter_and_unit_test: test_linter unit_test
-
