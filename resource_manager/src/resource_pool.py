@@ -14,9 +14,9 @@ from datetime import datetime
 from enum import Enum
 
 
-class ResourceManager:
+class ResourcePool:
     """
-    Resource Manager to deploy/access/destroy resources created using Cloud Formation for SSM automation document tests.
+    Resource Pool to deploy/access/destroy resources created using Cloud Formation for SSM automation document tests.
     """
 
     class ResourceType(Enum):
@@ -27,7 +27,7 @@ class ResourceManager:
 
         @staticmethod
         def from_string(resource_type):
-            for rt in ResourceManager.ResourceType:
+            for rt in ResourcePool.ResourceType:
                 if rt.name == resource_type:
                     return rt
             raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
@@ -75,7 +75,7 @@ class ResourceManager:
         resources = self.pull_resources()
         parameters = {}
         for resource in resources:
-            resource_type = ResourceManager.ResourceType.from_string(resource.type)
+            resource_type = ResourcePool.ResourceType.from_string(resource.type)
             template_file_name = self._get_cfn_template_file_name(resource.cf_template_name, resource_type)
             cfn_output_parameters = resource.attribute_values.get('cf_output_parameters')
             if cfn_output_parameters is not None:
@@ -114,7 +114,7 @@ class ResourceManager:
         :param resource_type The type of the resource.
         :return: The available resources
         """
-        # TODO: Implement logic to handle DEDICATED/ON_DEMAND resource creation/termination:
+        # TODO: Implement logic to handle DEDICATED resource creation/termination:
         # https://issues.amazon.com/issues/Digito-1204
         logging.info('Pulling resources for [{}] template'.format(cfn_template_path))
         waited_time_sec = 0
@@ -135,7 +135,7 @@ class ResourceManager:
                         cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
 
                         # In case if resource type is ASSUME_ROLE
-                        if resource.type == ResourceManager.ResourceType.ASSUME_ROLE.name:
+                        if resource.type == ResourcePool.ResourceType.ASSUME_ROLE.name:
                             existing_assume_roles = self._get_s3_cfn_content(config.ssm_assume_role_cfn_s3_path)
                             merged_roles = self._merge_assume_roles(existing_assume_roles, cfn_content)
                             if not yaml_util.is_equal(merged_roles, existing_assume_roles) or \
@@ -157,7 +157,7 @@ class ResourceManager:
                                 if resource is not None:
                                     return resource
                             # In case if resource type is ON_DEMAND
-                            elif resource.type == ResourceManager.ResourceType.ON_DEMAND.name:
+                            elif resource.type == ResourcePool.ResourceType.ON_DEMAND.name:
                                 resource.leased_times = resource.leased_times + 1
                                 resource.status = ResourceModel.Status.LEASED.name
                                 resource.leased_on = datetime.now()
@@ -206,7 +206,7 @@ class ResourceManager:
         """
         logging.info("Releasing test resources.")
         for resource in self.cfn_resources.values():
-            if resource.type != ResourceManager.ResourceType.ASSUME_ROLE.name:
+            if resource.type != ResourcePool.ResourceType.ASSUME_ROLE.name:
                 ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
     def fix_stalled_resources(self):
@@ -221,7 +221,8 @@ class ResourceManager:
                 if resource.status == ResourceModel.Status.LEASED.name:
                     ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
                 # If resource was not fully created/updated because of failure or cancellation
-                elif resource.status != ResourceModel.Status.AVAILABLE.name:
+                elif resource.status != ResourceModel.Status.AVAILABLE.name and \
+                        resource.status != ResourceModel.Status.FAILED.name:
                     logging.info('Deleting resource for stack name [{}] in status [{}].'.format(resource.cf_stack_name,
                                                                                                 resource.status))
                     resource.delete()
@@ -242,7 +243,7 @@ class ResourceManager:
         with ThreadPoolExecutor(max_workers=10) as t_executor:
             for index in range(resource_count):
                 resource = resources[index]
-                t_executor.submit(ResourceManager._delete_cf_stack, resource, self.cfn_helper)
+                t_executor.submit(ResourcePool._delete_cf_stack, resource, self.cfn_helper)
 
         # Deleting tables
         logging.info("Deleting DDB table [%s].", ResourceModel.Meta.table_name)
@@ -270,7 +271,7 @@ class ResourceManager:
         :return The pool size
         """
         pool_size = 1
-        if resource_type != ResourceManager.ResourceType.ON_DEMAND:
+        if resource_type != ResourcePool.ResourceType.ON_DEMAND:
             return pool_size
         elif self.custom_pool_size and self.custom_pool_size.get(cfn_template_name):
             pool_size = self.custom_pool_size.get(cfn_template_name)
@@ -294,7 +295,7 @@ class ResourceManager:
         """
         try:
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
-            resource_type = ResourceManager.ResourceType.from_string(resource.type)
+            resource_type = ResourcePool.ResourceType.from_string(resource.type)
             cfn_input_params = self._get_cfn_input_parameters(cfn_template_path)
             cfn_input_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
             cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
@@ -391,7 +392,7 @@ class ResourceManager:
         resource.cf_output_parameters = cf_output_params
         resource.test_session_id = self.test_session_id
         resource.cf_template_sha1 = cfn_content_sha1
-        if resource_type == ResourceManager.ResourceType.ON_DEMAND:
+        if resource_type == ResourcePool.ResourceType.ON_DEMAND:
             resource.status = ResourceModel.Status.LEASED.name
         else:
             resource.status = ResourceModel.Status.AVAILABLE.name
@@ -407,7 +408,7 @@ class ResourceManager:
         :return The template name used in DDB based on resource type.
         """
         return config.ssm_assume_role_cfn_s3_path if \
-            resource_type == ResourceManager.ResourceType.ASSUME_ROLE else cfn_template_path
+            resource_type == ResourcePool.ResourceType.ASSUME_ROLE else cfn_template_path
 
     def _get_s3_cfn_content(self, cfn_template_path: str):
         """
@@ -455,7 +456,7 @@ class ResourceManager:
         :param cfn_template_path The cloud formation template path
         :return The cloud formation file name with no extension.
         """
-        if resource_type != ResourceManager.ResourceType.ASSUME_ROLE and not os.path.isfile(cfn_template_path):
+        if resource_type != ResourcePool.ResourceType.ASSUME_ROLE and not os.path.isfile(cfn_template_path):
             raise FileNotFoundError('Cloud formation template with name [{}] does not exist.'.format(cfn_template_path))
         base_name = os.path.basename(cfn_template_path)
         (file_name, ext) = os.path.splitext(base_name)

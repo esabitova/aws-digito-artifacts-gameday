@@ -139,6 +139,32 @@ Script: |-
 * Add 2 optional parameters IsRollback and PreviousExecutionId
 * Execution should branch based on IsRollback
 * Example : documents/compute/test/ec2-network_unavailable/2020-07-23/Documents/AutomationDocument.yml
+* Add a step to TriggerRollback to start rollback execution when execution is cancelled
+```yaml
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true
+
+```
+* All steps after(including) the failure injection or where initial state of resource is changed need to have an onCancel and onFailure definition to TriggerRollback step
+```yaml
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+```
 * Please include rollback test in cucumber too with following steps, example: documents/compute/test/ec2-network_unavailable/2020-07-23/Tests/features/ec2_network_unavailable.feature -
 ```
 Start execution in normal mode
@@ -303,7 +329,7 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
         for key, value in cfn_params_row.items():
             if len(value) > 0:
                 cf_input_params[key] = value
-        rm_resource_type = ResourceManager.ResourceType.from_string(resource_type)
+        rm_resource_type = ResourcePool.ResourceType.from_string(resource_type)
         resource_manager.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 ```
@@ -313,17 +339,17 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
 Generic “given“ step implementation which executes SSM automation. Before execution it pulls available resources which will be used by SSM automation from resource manager [resource_manager.get_cfn_output_params()]. 
 ```
 @given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
-def execute_ssm_automation(ssm_document, ssm_document_name, resource_manager, ssm_test_cache, ssm_input_parameters):
+def execute_ssm_automation(ssm_document, ssm_document_name, resource_pool, ssm_test_cache, ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_document_name The SSM document name
-    :param resource_manager The resource manager object to manipulate with testing resources
+    :param resource_pool The resource manager object to manipulate with testing resources
     :param ssm_test_cache The custom test cache
     :param ssm_input_parameters The SSM execution input parameters
     :return The SSM automation execution id
     """
-    cfn_output = resource_manager.get_cfn_output_params()
+    cfn_output = resource_pool.get_cfn_output_params()
     parameters = ssm_document.parse_input_parameters(cfn_output, ssm_test_cache, ssm_input_parameters)
     return ssm_document.execute(ssm_document_name, parameters)
 ```
@@ -445,12 +471,16 @@ Here is a need to have a tool to manipulate integration test resources without e
 * Fix integration test resources in case of failures (not implemented yet)
 For this purpose we have cerated tool which you can execute using following command:
 > python3.8 resource_manager/src/resource_tool.py -t <template_name_a, tempolate_name_b> -c <command>
-* -c, --command (required): Command to perform against cloud formation resources for given template names (DESTROY | PRINT_EXISTING).
+* -c, --command (required): Command to perform against cloud formation resources for given template names (DESTROY | DESTROY_ALL | LIST).
   * DESTROY - destroys resources by given template names (--cfn_templates)
+  * DESTROY_ALL - destroys all resources, not need to provide template name
   * LIST - lists templates which are deployed with associated stacks  
 * -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).
 * -p, --aws_profile (optional): AWS profile name for boto3 session creation.
 NOTE: More information about how to use this tool you can execure command: ```python3.8 resource_manager/src/resource_tool.py --help``` 
+#### Permissions
+In order to execute tool you will have to configure AWS profile on which you would like to execute this resource tool, more about AWS profiles you can find here:
+* https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_profiles.html
 
 # Design.md writing guidelines
 ## High-level users flow
@@ -478,7 +508,7 @@ Coming soon...
 * Include a test for normal execution path.
 * If document supports isRollback and previousExecutionId, include a test for rollback execution path.
   * The test for rollback should start the first document execution and wait for a document execution to be in a specific step where failure has been already injected and we are waiting for alarm to be RED.
-  * Terminate first execution at this point and start a new execution with same parameter as first execution and isRollback set to true and passing previous execution id.
+  * Terminate first execution at this point. This should start a new execution with same parameter as first execution and isRollback set to true and passing previous execution id.
   * The test must validate that rollback execution was successful and the resource returns to original state before document execution.
 * Run test twice with --keep_test_resources flag enabled. This is to ensure test restores resources to their original state and same resource can be used for testing again.
 * [AFTER 15 April] Include a test to verify all branches in execution - for example, verifying onFailure condition for a step where applicable. For example, we expect alarm to go red after injecting failure. If alarm does not go red within time, verify that we rollback current execution by jumping to step defined in onFailure.

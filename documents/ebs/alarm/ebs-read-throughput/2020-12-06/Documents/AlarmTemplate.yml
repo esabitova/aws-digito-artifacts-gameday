@@ -3,7 +3,7 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  VolumeReadBytes:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

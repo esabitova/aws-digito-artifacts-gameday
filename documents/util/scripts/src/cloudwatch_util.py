@@ -101,17 +101,23 @@ def verify_alarm_triggered(events, context):
     """
     Verify if alarm triggered
     """
-    if 'AlarmName' not in events or 'DurationInMinutes' not in events:
-        raise KeyError('Requires AlarmName, DurationInMinutes in events')
+    if 'AlarmName' not in events or ('DurationInMinutes' not in events and 'DurationInSeconds' not in events):
+        raise KeyError('Requires AlarmName and either DurationInMinutes or DurationInSeconds in events')
+
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     cw = boto3.client('cloudwatch', config=config)
+
+    if 'DurationInMinutes' in events:
+        start_date = datetime.now() - timedelta(minutes=int(events['DurationInMinutes']))
+    else:
+        start_date = datetime.now() - timedelta(seconds=int(events['DurationInSeconds']))
+
     response = cw.describe_alarm_history(
         AlarmName=events['AlarmName'],
         HistoryItemType='StateUpdate',
         MaxRecords=2,
         ScanBy='TimestampDescending',
-        StartDate=datetime.now() - timedelta(minutes=int(events['DurationInMinutes']))
-    )
+        StartDate=start_date)
 
     for alarm_history_item in response['AlarmHistoryItems']:
         if alarm_history_item['HistorySummary'] == "Alarm updated from OK to ALARM":

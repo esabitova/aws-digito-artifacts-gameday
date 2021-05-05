@@ -57,7 +57,7 @@ class TestPublishDocuments(unittest.TestCase):
 
     def test_alarm_document_reference_id_ctor(self):
         under_test = AlarmDocumentParser.from_reference_id('compute:alarm:asg-cpu-util:2020-07-13')
-        assert under_test.get_variables() == set(["AlarmName", "Threshold", "AutoScalingGroupName"])
+        assert under_test.get_variables() == set(["AlarmName", "AlarmLogicalId", "Threshold", "AutoScalingGroupName"])
 
     def test_alarm_document_replace_variables(self):
         under_test = AlarmDocumentParser(

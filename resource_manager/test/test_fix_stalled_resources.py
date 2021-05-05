@@ -1,7 +1,7 @@
 import boto3
 import unittest
 import pytest
-from resource_manager.src.resource_manager import ResourceManager
+from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.s3 import S3
 
@@ -13,6 +13,6 @@ class TestFixIntegTestStalledResources(unittest.TestCase):
         boto3_session = boto3.Session(profile_name='default')
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict(), None)
+        rm = ResourcePool(cfn_helper, s3_helper, dict(), None)
         rm.init_ddb_tables(boto3_session)
         rm.fix_stalled_resources()

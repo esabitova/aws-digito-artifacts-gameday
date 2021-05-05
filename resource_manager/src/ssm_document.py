@@ -120,6 +120,21 @@ class SsmDocument:
             parameters[param] = [str(value)]
         return parameters
 
+    def get_step_output(self, execution_id, step_name, output_key):
+        """
+        Returns SSM document step output for given execution id, step name and output key.
+        :param execution_id: The SSM document execution id
+        :param step_name: The step name
+        :param output_key: Output key
+        :return: The SSM document execution status
+        """
+        execution = self.ssm_client.get_automation_execution(
+            AutomationExecutionId=execution_id
+        )
+        step_executions = execution['AutomationExecution']['StepExecutions']
+        step = self._get_step_by_name(step_executions, step_name)
+        return step['Outputs'][output_key][0]
+
     def _get_execution_status(self, execution_id, document_name):
         """
         Returns SSM document execution status for given execution id.

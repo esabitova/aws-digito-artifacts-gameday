@@ -6,7 +6,7 @@ import random
 import string
 import boto3
 import pytest
-from datetime import timedelta, datetime
+from datetime import datetime
 from botocore.exceptions import ClientError
 from pytest import ExitCode
 from pytest_bdd import (
@@ -19,7 +19,7 @@ from sttable import parse_str_table
 from publisher.src.publish_documents import PublishDocuments
 from publisher.src.alarm_document_parser import AlarmDocumentParser
 from resource_manager.src.cloud_formation import CloudFormationTemplate
-from resource_manager.src.resource_manager import ResourceManager
+from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
@@ -95,7 +95,7 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict(), None)
+        rm = ResourcePool(cfn_helper, s3_helper, dict(), None)
         rm.init_ddb_tables(boto3_session)
         # Distributed mode is considered mode when we executing integration tests on multiple testing sessions/machines
         # and targeting same AWS account resources, in this case we should not perform resource fixing, since it
@@ -122,7 +122,7 @@ def pytest_sessionfinish(session, exitstatus):
         boto3_session = get_boto3_session(session.config.option.aws_profile)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourceManager(cfn_helper, s3_helper, dict(), test_session_id)
+        rm = ResourcePool(cfn_helper, s3_helper, dict(), test_session_id)
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
@@ -141,11 +141,11 @@ def target_service(request):
 
 @pytest.fixture(scope='session')
 def boto3_session(request):
-    """
+    '''
     Creates session for given profile name. More about how to configure AWS profile:
     https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
     :param request The pytest request object
-    """
+    '''
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
         return get_boto3_session(request.config.option.aws_profile)
@@ -153,18 +153,18 @@ def boto3_session(request):
 
 
 @pytest.fixture(scope='function')
-def cfn_output_params(resource_manager):
+def cfn_output_params(resource_pool):
     """
     Fixture for cfn_output_params from resource manager.
-    :param resource_manager The resource manager
+    :param resource_pool The resource manager
     """
-    return resource_manager.get_cfn_output_params()
+    return resource_pool.get_cfn_output_params()
 
 
 @pytest.fixture(scope='function')
-def resource_manager(request, boto3_session):
+def resource_pool(request, boto3_session):
     """
-    Creates ResourceManager fixture for every test case.
+    Creates ResourcePool fixture for every test case.
     :param request: The pytest request object
     :param boto3_session The boto3 session
     :return: The resource manager fixture
@@ -173,7 +173,7 @@ def resource_manager(request, boto3_session):
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
-    rm = ResourceManager(cfn_helper, s3_helper, custom_pool_size, test_session_id)
+    rm = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id)
     yield rm
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
@@ -265,12 +265,12 @@ def publish_ssm_document(boto3_session, ssm_document_name):
 
 
 @given(parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
-def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_test_cache):
+def set_up_cfn_template_resources(resource_pool, cfn_input_parameters, ssm_test_cache):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    :param resource_manager: The resource manager which will take care of managing given template deployment
+    :param resource_pool: The resource pool which will take care of managing given template deployment
     and providing resources for tests
     :param cfn_input_parameters: The table of parameters as input for cloud formation template
     :param ssm_test_cache The custom test cache
@@ -286,8 +286,8 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters, ssm_te
             if len(param_val_ref) > 0:
                 value = parse_param_value(param_val_ref, {'cache': ssm_test_cache})
                 cf_input_params[param] = str(value)
-        rm_resource_type = ResourceManager.ResourceType.from_string(resource_type)
-        resource_manager.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
+        rm_resource_type = ResourcePool.ResourceType.from_string(resource_type)
+        resource_pool.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
@@ -305,6 +305,11 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
     parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
     execution_id = ssm_document.execute(ssm_document_name, parameters)
 
+    _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache)
+    return execution_id
+
+
+def _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache):
     # Caching automation execution ids to be able to use them in test as parameter references in data tables
     # |ExecutionId               | <- parameters name can be anything
     # |{{cache:SsmExecutionId>1}}| <- cache execution id reference. Number '1' refers to sequence of executions in test.
@@ -316,7 +321,6 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
         sequence_number = str(len(cached_execution) + 1)
         cached_execution[sequence_number] = execution_id
         ssm_test_cache[exec_cache_key] = cached_execution
-    return execution_id
 
 
 @given(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
@@ -398,14 +402,6 @@ def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ss
     ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
 
 
-@when(parse('SSM automation document "{ssm_document_name}" executed with rollback\n{ssm_input_parameters}'))
-def execute_ssm_with_rollback(ssm_document_name, ssm_input_parameters, ssm_test_cache, cfn_output_params, ssm_document):
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
-    execution_id = ssm_document.execute(ssm_document_name, parameters)
-    ssm_test_cache['SsmRollbackExecutionId'] = execution_id
-    return execution_id
-
-
 @given(parse('sleep for "{seconds}" seconds'))
 @when(parse('sleep for "{seconds}" seconds'))
 @then(parse('sleep for "{seconds}" seconds'))
@@ -444,8 +440,7 @@ def assert_utilization(metric_name, operator, exp_perc, cfn_output_params, input
     metric_period = int(input_param_row.pop('MetricPeriod'))
 
     exec_start, exec_end = get_ssm_step_interval(boto3_session, exec_id, step_name)
-    # We need to include metric period to metric start time to have latest metrics
-    exec_start = exec_start + timedelta(seconds=metric_period)
+
     act_perc = get_ec2_metric_max_datapoint(boto3_session, exec_start, datetime.utcnow(),
                                             metric_namespace, metric_name, input_param_row, metric_period)
     if operator == 'greaterOrEqual':
@@ -507,6 +502,15 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
     param_value = parse_param_value(value, {'cache': ssm_test_cache})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
+
+
+@then(parse('cache rollback execution id\n{input_parameters}'))
+def cache_rollback_execution_id(ssm_document, ssm_test_cache, input_parameters):
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
+                                                                  'cfn-output': cfn_output_params})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    _put_ssm_execution_id_in_test_cache(ssm_document.get_step_output(
+        ssm_execution_id, 'TriggerRollback', 'RollbackExecutionId'), ssm_test_cache)
 
 
 @when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))

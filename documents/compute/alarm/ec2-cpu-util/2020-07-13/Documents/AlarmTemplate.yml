@@ -9,7 +9,7 @@ Resources:
       MetricName: CPUUtilization
       Namespace: AWS/EC2
       Stat: Average
-  CpuUtilizationAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

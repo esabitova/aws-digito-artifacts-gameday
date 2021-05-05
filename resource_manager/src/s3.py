@@ -7,7 +7,7 @@ from .util.boto3_client_factory import client, resource
 
 class S3:
     """
-    Class to manipulate with S3 ResourceManager created buckets/files.
+    Class to manipulate with S3 ResourcePool created buckets/files.
     """
     def __init__(self, boto3_session):
         self.session = boto3_session
