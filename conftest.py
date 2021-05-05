@@ -2,11 +2,11 @@ import logging
 import time
 import uuid
 import re
-from datetime import timedelta, datetime
 import random
 import string
 import boto3
 import pytest
+from datetime import timedelta, datetime
 from botocore.exceptions import ClientError
 from pytest import ExitCode
 from pytest_bdd import (
@@ -16,8 +16,8 @@ from pytest_bdd import (
 )
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
-
 from publisher.src.publish_documents import PublishDocuments
+from publisher.src.alarm_document_parser import AlarmDocumentParser
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.resource_manager import ResourceManager
 from resource_manager.src.s3 import S3
@@ -32,7 +32,6 @@ from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.ssm_utils import send_step_approval
 from resource_manager.src.alarm_manager import AlarmManager
-from publisher.src.alarm_document_parser import AlarmDocumentParser
 from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
 
@@ -142,11 +141,11 @@ def target_service(request):
 
 @pytest.fixture(scope='session')
 def boto3_session(request):
-    '''
+    """
     Creates session for given profile name. More about how to configure AWS profile:
     https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
     :param request The pytest request object
-    '''
+    """
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
         return get_boto3_session(request.config.option.aws_profile)

@@ -1,6 +1,7 @@
 import logging
 from botocore.exceptions import ClientError
 from cfn_tools import dump_yaml
+from .constants import s3_bucket_name_pattern
 from .util.boto3_client_factory import client, resource
 
 
@@ -76,7 +77,7 @@ class S3:
         """
         account_id = self._get_account_id()
         region_name = self.session.region_name
-        return 'ssm-test-resources-{}-{}'.format(account_id, region_name)
+        return s3_bucket_name_pattern.replace('<account_id>', account_id).replace('<region_name>', region_name)
 
     def delete_bucket(self, bucket_name):
         """

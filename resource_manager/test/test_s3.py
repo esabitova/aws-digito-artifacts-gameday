@@ -1,6 +1,7 @@
 import unittest
 import pytest
 import resource_manager.src.util.boto3_client_factory as client_factory
+from resource_manager.src.constants import s3_bucket_name_pattern
 from unittest.mock import MagicMock
 from resource_manager.src.s3 import S3
 
@@ -12,8 +13,8 @@ class TestS3(unittest.TestCase):
         self.s3_existing_test_key = 's3_existing_test_key'
         self.mock_region_name = 'test_aws_region'
         self.mock_aws_account = 'test_aws_account_id'
-        self.mock_s3_bucket_name = 'ssm-test-resources-{}-{}'.format(self.mock_aws_account,
-                                                                     self.mock_region_name)
+        self.mock_s3_bucket_name = s3_bucket_name_pattern.replace('<account_id>', self.mock_aws_account)\
+            .replace('<region_name>', self.mock_region_name)
 
         self.mock_file_name = 'test-file-name'
         self.mock_file_url = 'https://{}.s3.{}.amazonaws.com/{}'.format(self.mock_s3_bucket_name,

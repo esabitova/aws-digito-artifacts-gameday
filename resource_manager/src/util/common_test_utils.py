@@ -1,7 +1,5 @@
 import random
-
 from sttable import parse_str_table
-
 from resource_manager.src.util import param_utils as param_utils
 
 
