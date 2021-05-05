@@ -58,7 +58,7 @@ def get_recovery_point(session: boto3.Session, backup_vault_name: str, resource_
         BackupVaultName=backup_vault_name,
         ByResourceType=resource_type
     )
-    if len(response['RecoveryPoints']) > 0:
+    if response['RecoveryPoints']:
         for recovery_point in response['RecoveryPoints']:
             if recovery_point['Status'] == 'COMPLETED':
                 return recovery_point['RecoveryPointArn']
@@ -84,7 +84,7 @@ def get_recovery_points(session: boto3.Session, backup_vault_name: str, resource
     if resource_arn:
         kwargs['ByResourceArn'] = resource_arn
     response = backup_client.list_recovery_points_by_backup_vault(**kwargs)
-    if len(response['RecoveryPoints']) == 0:
+    if not response['RecoveryPoints']:
         logger.info(f'No recovery points found for resource_type:{resource_type} '
                     f'resource_arn:{resource_arn} in {backup_vault_name}')
     return response['RecoveryPoints']
