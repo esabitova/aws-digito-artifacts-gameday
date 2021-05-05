@@ -65,6 +65,9 @@ Outputs:
   MountFailureAlarmName:
     Description: Mount Failure Alarm Name
     Value: !Ref  MountFailureAlarm
+  InstanceId:
+    Description: EC2 Instance Id
+    Value: !Ref Ec2Instance
 Mappings:
   AWSInstanceType2Arch:
     t1.micro:
@@ -389,9 +392,15 @@ Resources:
             01_mount:
               command: !Sub
                 - 'mount -t efs ${FileSystemId}:/ ${MountPoint}'
-                - {MountPoint: !Ref MountPoint, FileSystemId: !Ref FileSystem, MountTargetIp: !GetAtt EFSMountTarget.IpAddress}
+                - {MountPoint: !Ref MountPoint, FileSystemId: !Ref FileSystem}
             02_permissions:
-              command: !Sub "chown ec2-user:ec2-user ${MountPoint}"
+              command: !Sub
+                - "chown ec2-user:ec2-user ${MountPoint}"
+                - {MountPoint: !Ref MountPoint }
+            03_fstab:
+              command: !Sub
+                - echo "${FileSystemId}:/  ${MountPoint} efs _netdev,noresvport,tls,iam  0 0 " >> /etc/fstab
+                - {MountPoint: !Ref MountPoint, FileSystemId: !Ref FileSystem }
   EFSMountTargetSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

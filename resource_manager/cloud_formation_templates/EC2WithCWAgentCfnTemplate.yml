@@ -31,9 +31,6 @@ Outputs:
   ImageId:
      Description: EC2 Instance AMI
      Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
-  AlarmTopicArn:
-    Description: SNSAlarmTopic Arn
-    Value: !Ref SNSAlarmTopic
 Parameters:
   InstanceType:
     Description: EC2 instance type (https://aws.amazon.com/ec2/instance-types)
@@ -371,25 +368,6 @@ Resources:
       ResourceSignal:
         Count: 1
         Timeout: "PT15M"
-  SNSAlarmTopic:
-    Type: AWS::SNS::Topic
-  SNSAlarmTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      PolicyDocument:
-        Version: 2008-10-17
-        Id: TopicPolicyId
-        Statement:
-          - Sid: AllowSelfAccess
-            Effect: Allow
-            Principal:
-              AWS:
-                - !Ref AWS::AccountId
-            Action:
-              - SNS:Publish
-            Resource: !Ref SNSAlarmTopic
-      Topics:
-        - !Ref SNSAlarmTopic
   EC2CpuAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -411,7 +389,6 @@ Resources:
           Value: !Ref InstanceType
         - Name: cpu
           Value: cpu-total
-
   EC2MemoryAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

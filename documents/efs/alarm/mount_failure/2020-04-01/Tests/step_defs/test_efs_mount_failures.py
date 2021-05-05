@@ -4,8 +4,8 @@ from pytest_bdd import (
 )
 
 
-@scenario('../features/efs_client_connections_anomaly.feature',
+@scenario('../features/efs_mount_failures.feature',
           'Lease EFS from resource manager and test attach an alarm from Document')
-def test_efs_client_connections_alarm():
+def test_efs_mount_failures_alarm():
     """Lease EFS from resource manager and test attach an alarm from Document"""
     pass

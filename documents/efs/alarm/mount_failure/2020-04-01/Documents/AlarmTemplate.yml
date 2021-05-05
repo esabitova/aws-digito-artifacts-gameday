@@ -1,5 +1,8 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
 Resources:
   MountFailureMetric:
     Type: AWS::Logs::MetricFilter
@@ -16,7 +19,8 @@ Resources:
       Properties:
         AlarmName: ${AlarmName}
         AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
-        ActionsEnabled: false
+        AlarmActions:
+          - Ref: SNSTopicARN
         MetricName: 'MountFailures'
         Namespace: EFSMounts
         Statistic: Maximum
