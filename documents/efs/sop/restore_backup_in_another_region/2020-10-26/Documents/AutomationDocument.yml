@@ -39,11 +39,24 @@ parameters:
     description: (Required) The name of the source backup vault to copy from.
   BackupVaultDestinationArn:
     type: String
-    description: (Required) The name of the source backup vault to copy to.
+    description: (Required) The name of the destination backup vault to copy to.
   DestinationRegionName:
     type: String
     description: (Required) The region name to restore backup into
 mainSteps:
+  - name: RecordStartTime
+    action: aws:executeScript
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
   - name: GetFileSystemMetadata
     action: aws:executeAwsApi
     onFailure: Abort
@@ -60,19 +73,6 @@ mainSteps:
         Type: String
       - Name: PerformanceMode
         Selector: "$.FileSystems[0].PerformanceMode"
-        Type: String
-  - name: RecordStartTime
-    action: aws:executeScript
-    onFailure: Abort
-    inputs:
-      Runtime: python3.7
-      Handler: start_time
-      Script: |-
-        SCRIPT_PLACEHOLDER::common_util.imports
-        SCRIPT_PLACEHOLDER::common_util.start_time
-    outputs:
-      - Name: StartTime
-        Selector: $.Payload
         Type: String
   - name: CreateCopyJob
     action: aws:executeScript

@@ -18,11 +18,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for SSM RestoreBackup
 Outputs:
-  DigitoRestoreBackupAssumeRole:
+  DigitoEFSRestoreBackupAssumeRole:
     Description: DigitoRestoreBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoreBackupAssumeRole.Arn
+    Value: !GetAtt DigitoEFSRestoreBackupAssumeRole.Arn
 Resources:
-  DigitoRestoreBackupAssumeRole:
+  DigitoEFSRestoreBackupAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreBackupAssumePolicy:
+  DigitoEFSRestoreBackupAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoRestoreBackupAssumePolicy"
+      PolicyName: "DigitoEFSRestoreBackupAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -57,4 +57,4 @@ Resources:
               - "logs:DescribeLogStreams"
               - "iam:PassRole"
       Roles:
-        - Ref: DigitoRestoreBackupAssumeRole
+        - Ref: DigitoEFSRestoreBackupAssumeRole

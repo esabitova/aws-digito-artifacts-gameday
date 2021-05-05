@@ -1,13 +1,14 @@
-from pytest_bdd import (
-    parsers, when, given, then
-)
 import jsonpath_ng
 import logging
 import uuid
-import boto3
+import resource_manager.src.util.backup_utils as backup_utils
+
+from pytest_bdd import (
+    parsers, when, given, then
+)
+from botocore.exceptions import ClientError
 from resource_manager.src.util.param_utils import parse_param_values_from_table
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
-import resource_manager.src.util.backup_utils as backup_utils
 from resource_manager.src.util.efs_utils import describe_filesystem
 
 logger = logging.getLogger(__name__)
@@ -25,11 +26,11 @@ def cache_backup_value(cfn_output_params, resource_manager, ssm_test_cache, boto
         region = extract_param_value(input_parameters, 'RegionName', resource_manager, ssm_test_cache)
     except KeyError:
         pass
-    if region:
-        backup_client = boto3.client('backup', region_name=region)
-    else:
-        backup_client = boto3_session.client('backup')
     if restore_job_id:
+        if region:
+            backup_client = boto3_session.client('backup', region_name=region)
+        else:
+            backup_client = boto3_session.client('backup')
         response = backup_client.describe_restore_job(RestoreJobId=restore_job_id)
         target_value = jsonpath_ng.parse(json_path).find(response)[0].value
         put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, target_value)
@@ -76,5 +77,5 @@ def efs_fs_exists(resource_manager, boto3_session, ssm_test_cache, input_paramet
         pass
     try:
         describe_filesystem(boto3_session, efs_id, region=region)['FileSystems'][0]['FileSystemArn']
-    except boto3_session.client('efs').exceptions.ResourceNotFoundException:
+    except ClientError:
         raise AssertionError(f'FileSystem with ID {efs_id} doesn\'t exist after restore')
