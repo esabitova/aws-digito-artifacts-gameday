@@ -9,7 +9,7 @@ Resources:
       MetricName: DatabaseConnections
       Namespace: AWS/RDS
       Stat: Maximum
-  ConnectionSpikeAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

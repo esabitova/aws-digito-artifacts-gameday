@@ -3,7 +3,7 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  ThrottlesAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

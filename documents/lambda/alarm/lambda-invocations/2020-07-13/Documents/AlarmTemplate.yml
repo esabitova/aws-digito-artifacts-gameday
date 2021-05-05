@@ -9,7 +9,7 @@ Resources:
       MetricName: Invocations
       Namespace: AWS/Lambda
       Stat: Sum
-  InvocationsAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

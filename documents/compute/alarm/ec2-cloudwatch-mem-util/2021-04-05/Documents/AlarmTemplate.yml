@@ -3,7 +3,7 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  EC2HighMemUtilizationAlarm:
+  ${AlarmLogicalId}:
     Type: AWS::CloudWatch::Alarm
     Properties:
       AlarmActions:
