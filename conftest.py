@@ -309,6 +309,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, s
     _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache)
     return execution_id
 
+
 def _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache):
     # Caching automation execution ids to be able to use them in test as parameter references in data tables
     # |ExecutionId               | <- parameters name can be anything
@@ -321,6 +322,7 @@ def _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache):
         sequence_number = str(len(cached_execution) + 1)
         cached_execution[sequence_number] = execution_id
         ssm_test_cache[exec_cache_key] = cached_execution
+
 
 @given(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
              '\n{input_parameters}'))
