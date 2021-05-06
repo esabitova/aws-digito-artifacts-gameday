@@ -7,6 +7,9 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-BreakingThePolicyForSQS_2020-11-27" SSM document
+    And cache queue url as "QueueUrl" "before" SSM automation execution for teardown
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -35,7 +38,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | {{cache:SsmExecutionId>1}} |
 
     # Check policy
-    When Wait for alarm to be in state "ALARM" for "150" seconds
+    When Wait for alarm to be in state "ALARM" for "600" seconds
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
     And cache policy as "Policy" "after-terminate" SSM automation execution
@@ -60,11 +63,6 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And cache policy as "Policy" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-
-    And purge the queue
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
 
     Then assert "Policy" at "before" became not equal to "Policy" at "after-terminate"
     And assert "Policy" at "before" became equal to "Policy" at "after"

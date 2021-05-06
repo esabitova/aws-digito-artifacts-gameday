@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime
 
+import pytest
+import time
 from pytest_bdd import (
     given,
     parsers, when, then
@@ -110,3 +112,23 @@ def cache_redrive_policy(resource_manager, ssm_test_cache, boto3_session, cache_
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
     redrive_policy = sqs_utils.get_queue_attribute(boto3_session, queue_url, 'RedrivePolicy')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, redrive_policy)
+
+
+@pytest.fixture(scope='function')
+def queue_for_teardown(boto3_session, ssm_test_cache):
+    yield
+    queue_url = ssm_test_cache['before']['QueueUrl']
+    sqs_client = boto3_session.client('sqs')
+    logging.info('Purging the queue for teardown')
+    sqs_client.purge_queue(QueueUrl=queue_url)
+    logging.info('Sleeping for 60 secs after queue purge for teardown')
+    time.sleep(60)
+
+
+@given(parsers.parse('cache queue url as "{cache_property}" "{step_key}" SSM automation execution for teardown'
+                     '\n{input_parameters}'))
+def cache_queue_url(
+    resource_manager, ssm_test_cache, queue_for_teardown, cache_property, step_key, input_parameters
+):
+    queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_manager, ssm_test_cache)
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, queue_url)
