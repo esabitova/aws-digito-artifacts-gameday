@@ -138,6 +138,32 @@ Script: |-
 * Add 2 optional parameters IsRollback and PreviousExecutionId
 * Execution should branch based on IsRollback
 * Example : documents/compute/test/ec2-network_unavailable/2020-07-23/Documents/AutomationDocument.yml
+* Add a step to TriggerRollback to start rollback execution when execution is cancelled
+```yaml
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true
+
+```
+* All steps after(including) the failure injection or where initial state of resource is changed need to have an onCancel and onFailure definition to TriggerRollback step
+```yaml
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+```
 * Please include rollback test in cucumber too with following steps, example: documents/compute/test/ec2-network_unavailable/2020-07-23/Tests/features/ec2_network_unavailable.feature -
 ```
 Start execution in normal mode
@@ -205,7 +231,7 @@ Configuration based on cloud formation template names mapped to number which rep
 * If running 3 tests in parallel which are using resources defined in template “RdsAuroraFailoverTestTemplate” maximum 3 cloud formation stack copies will be created for given template. 
 * If running 5 or more tests in parallel which are using resources defined in template “RdsAuroraFailoverTestTemplate” maximum 3 cloud formation stack copies will be created for given template. 
 * If running 1 test which is using resources defined in template “RdsAuroraFailoverTestTemplate” only 1 cloud formation stack copy will be created for given template. 
-* SHARED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/on_demand/```. Old cloud formation templates will be migrated to this folder. 
+* ON_DEMAND cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/on_demand/```. Old cloud formation templates will be migrated to this folder. 
 
 <b>NOTE:</b> only one test at a time will use one stack resource. So that there will be no cases when multiple tests are manipulating same resources (AWS services).
 ```
@@ -463,7 +489,7 @@ Coming soon...
 * Include a test for normal execution path.
 * If document supports isRollback and previousExecutionId, include a test for rollback execution path.
   * The test for rollback should start the first document execution and wait for a document execution to be in a specific step where failure has been already injected and we are waiting for alarm to be RED.
-  * Terminate first execution at this point and start a new execution with same parameter as first execution and isRollback set to true and passing previous execution id.
+  * Terminate first execution at this point. This should start a new execution with same parameter as first execution and isRollback set to true and passing previous execution id.
   * The test must validate that rollback execution was successful and the resource returns to original state before document execution.
 * Run test twice with --keep_test_resources flag enabled. This is to ensure test restores resources to their original state and same resource can be used for testing again.
 * [AFTER 15 April] Include a test to verify all branches in execution - for example, verifying onFailure condition for a step where applicable. For example, we expect alarm to go red after injecting failure. If alarm does not go red within time, verify that we rollback current execution by jumping to step defined in onFailure.

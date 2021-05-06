@@ -11,7 +11,7 @@ Resources:
           DefaultValue: "0"
           MetricNamespace: "EFSMounts"
           MetricName: 'MountFailures'
-  MountFailureAlarm:
+  ${AlarmLogicalId}:
       Type: "AWS::CloudWatch::Alarm"
       Properties:
         AlarmName: ${AlarmName}

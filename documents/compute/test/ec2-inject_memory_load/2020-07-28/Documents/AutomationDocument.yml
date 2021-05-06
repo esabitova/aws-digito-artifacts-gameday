@@ -28,18 +28,18 @@ parameters:
   MemoryUtilizationAlarmName:
     type: String
     description: (Required) EC2 CPUUtilization alarm which should be triggerred
-  Duration:
+  DurationSeconds:
     type: String
-    description: (Optional) The duration of the attack in seconds (default/recommended 120)
-    default: '120'
-  Vm:
+    description: (Optional) The duration of the attack in seconds (default/recommended 300)
+    default: '300'
+  Workers:
     type: String
     description: (Optional) Number of VM memory stressors
     default: '1'
   MemoryLoadPercentage:
     type: String
-    description: (Optional) The EC2 instance memory load percentage (default 1%)
-    default: '1'
+    description: (Optional) The EC2 instance memory load percentage (default 50%)
+    default: '50'
   IsRollback:
     type: String
     description: (Optional) Provide true to terminate stress testing
@@ -53,34 +53,52 @@ mainSteps:
     action: 'aws:branch'
     inputs:
       Choices:
-        - NextStep: RunMemoryStress
+        - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
       Default: GetPreviousExecutionInstanceIds
-  - name: RunMemoryStress
-    action: aws:runCommand
-    maxAttempts: 3
-    onFailure: step:KillStressCommand
-    inputs:
-      DocumentName: Digito-RunMemoryStress_2020-07-28
-      InstanceIds:
-        - '{{InstanceId}}'
-      Parameters:
-        MemoryLoadPercentage: '{{ MemoryLoadPercentage }}'
-        Vm: '{{Vm}}'
-        Duration: '{{Duration}}'
-  - name: AssertAlarmToBeRed
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
-    onFailure: step:KillStressCommand
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:assertAwsResourceProperty
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
         - "{{MemoryUtilizationAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["ALARM"]
+      DesiredValues: ["OK"]
+  - name: RunMemoryStress
+    action: aws:runCommand
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+    inputs:
+      DocumentName: AWSFIS-Run-Memory-Stress
+      InstanceIds:
+        - '{{InstanceId}}'
+      Parameters:
+        Percent: '{{ MemoryLoadPercentage }}'
+        Workers: '{{Workers}}'
+        DurationSeconds: '{{DurationSeconds}}'
+  - name: AssertAlarmTriggered
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: verify_alarm_triggered
+      InputPayload:
+        AlarmName: '{{MemoryUtilizationAlarmName}}'
+        DurationInSeconds: '{{DurationSeconds}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{MemoryUtilizationAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
     isEnd: true
   - name: GetPreviousExecutionInstanceIds
     action: 'aws:executeScript'
@@ -124,15 +142,20 @@ mainSteps:
       InstanceIds:
           - '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
     isEnd: true
-  - name: KillStressCommand
-    action: aws:runCommand
-    maxAttempts: 3
+  - name: TriggerRollback
+    action: 'aws:executeScript'
     onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
     inputs:
-      DocumentName: Digito-KillStressCommand_2020-07-28
-      InstanceIds:
-        - '{{InstanceId}}'
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
     isEnd: true
-
-
-

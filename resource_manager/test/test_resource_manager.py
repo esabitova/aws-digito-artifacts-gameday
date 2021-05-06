@@ -483,14 +483,14 @@ class TestResourceManager(unittest.TestCase):
     def test_resource_type_from_string_fail(self):
         self.assertRaises(Exception, ResourceManager.ResourceType.from_string, 'NOT_SUPPORTED')
 
-    def test_get_resource_pool_size_custom_success(self):
+    def test_get_resource_pool_size_on_demand_custom_success(self):
         expected_pool_size = 10
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
         rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
-    def test_get_resource_pool_size_custom_override_config_success(self):
+    def test_get_resource_pool_size_on_demand_custom_override_config_success(self):
         expected_pool_size = 10
         config.pool_size['TesTemplateA'] = 5
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
@@ -498,12 +498,28 @@ class TestResourceManager(unittest.TestCase):
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
-    def test_get_resource_pool_size_config_success(self):
+    def test_get_resource_pool_size_on_demand_config_success(self):
         expected_pool_size = 6
         custom_pool_size = dict()
         config.pool_size['TesTemplateA'] = expected_pool_size
         rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ON_DEMAND)
+        self.assertEqual(actual_pool_size, expected_pool_size)
+
+    def test_get_resource_pool_size_shared_config_success(self):
+        expected_pool_size = 1
+        custom_pool_size = dict()
+        config.pool_size['TesTemplateA'] = 6
+        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.SHARED)
+        self.assertEqual(actual_pool_size, expected_pool_size)
+
+    def test_get_resource_pool_size_assume_role_config_success(self):
+        expected_pool_size = 1
+        custom_pool_size = dict()
+        config.pool_size['TesTemplateA'] = 6
+        rm = ResourceManager(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceManager.ResourceType.ASSUME_ROLE)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
     def test_add_cfn_template_duplicate_cfn_fail(self):

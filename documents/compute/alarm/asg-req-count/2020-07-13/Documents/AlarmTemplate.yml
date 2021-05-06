@@ -9,7 +9,7 @@ Resources:
       MetricName: RequestCountPerTarget
       Namespace: AWS/ApplicationELB
       Stat: Average
-  AbnormalRequestPerTargetAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

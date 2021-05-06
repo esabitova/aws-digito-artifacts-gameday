@@ -3,7 +3,7 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  ErrorsCountAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

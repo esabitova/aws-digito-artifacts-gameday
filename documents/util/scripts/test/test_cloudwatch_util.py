@@ -120,7 +120,7 @@ class TestCloudWatchUtil(unittest.TestCase):
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)
         self.assertEqual(dp, 0.0)
 
-    def test_verify_alarm_triggered_success(self):
+    def test_verify_alarm_triggered_duration_minutes_success(self):
         self.cw_mock.describe_alarm_history.return_value = {
             'AlarmHistoryItems': [
                 {'HistorySummary': 'Alarm updated from OK to ALARM'},
@@ -131,6 +131,20 @@ class TestCloudWatchUtil(unittest.TestCase):
         events = {}
         events['AlarmName'] = 'AlarmName'
         events['DurationInMinutes'] = '1'
+
+        verify_alarm_triggered(events, None)
+
+    def test_verify_alarm_triggered_duration_seconds_success(self):
+        self.cw_mock.describe_alarm_history.return_value = {
+            'AlarmHistoryItems': [
+                {'HistorySummary': 'Alarm updated from OK to ALARM'},
+                {'HistorySummary': 'Alarm updated from ALARM to OK'}
+            ]
+        }
+
+        events = {}
+        events['AlarmName'] = 'AlarmName'
+        events['DurationInSeconds'] = '60'
 
         verify_alarm_triggered(events, None)
 

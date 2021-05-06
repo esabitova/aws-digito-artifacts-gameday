@@ -7,6 +7,7 @@ import urllib3
 from dateutil.tz import tzutc
 
 AUTOMATION_EXECUTION_ID = '123e4567-e89b-12d3-a456-426614174000'
+ROLLBACK_EXECUTION_ID = '987e4567-e89b-12d3-a456-426614174000'
 STEP_NAME = 'StepName'
 MISSING_STEP_NAME = 'MissingStepName'
 INSTANCE_ID = 'i-12345'
@@ -43,6 +44,8 @@ VPC_ID = 'vpc-12345'
 PUBLIC_SUBNET_ID = 'subnet-public'
 INSTANCE_REFRESH_ID = 'refresh-id'
 AZ_USW2A = 'us-west-2a'
+SSM_EXECUTION_DOCUMENT_NAME = 'DocumentName'
+SSM_EXECUTION_DOCUMENT_VERSION = 'DocumentVersion'
 SSM_EXECUTION_PARAMETER_1 = 'AutomationAssumeRole'
 SSM_EXECUTION_PARAMETER_1_VALUE = \
     [f'arn:aws:iam::{ACCOUNT_ID}:role/AutomationAssumeRoleTempl-DigitoSQSCapacityFailure-PK7O48UEHKGL']
@@ -91,6 +94,8 @@ def get_sample_ssm_execution_response():
     step_execution['ExecutionEndTime'] = EXECUTION_END_TIME
 
     automation_execution = {}
+    automation_execution['DocumentName'] = SSM_EXECUTION_DOCUMENT_NAME
+    automation_execution['DocumentVersion'] = SSM_EXECUTION_DOCUMENT_VERSION
     automation_execution['StepExecutions'] = [step_execution]
     automation_execution['AutomationExecutionId'] = AUTOMATION_EXECUTION_ID
     automation_execution['Parameters'] = {
@@ -103,6 +108,13 @@ def get_sample_ssm_execution_response():
     ssm_execution_response['AutomationExecution'] = automation_execution
 
     return ssm_execution_response
+
+
+def get_sample_start_ssm_execution_response():
+    ssm_start_execution_response = {}
+    ssm_start_execution_response['AutomationExecutionId'] = ROLLBACK_EXECUTION_ID
+
+    return ssm_start_execution_response
 
 
 def get_sample_route_table_response():
