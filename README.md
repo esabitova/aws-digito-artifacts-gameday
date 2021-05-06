@@ -69,6 +69,46 @@ python3.8 publisher/src/publish_documents.py --region us-west-2 --file-name ec2-
 * Util Documents -- Util documents can be either command or automation document. It would have same folder hierarchy and
  requirements as Test document above.
 
+## Artifact Generator
+For adding a new test or SOP, please use the artifact generator script. The script requests for certain inputs and
+generates skeleton of the AutomationDocument, AutomationAssumeRole and the metadata.json for the test or SOP. You can
+then make the required updates to the generated files.
+
+Sample execution:
+```
+> python3.8 artifact_generator/src/generate_artifacts.py
+Enter service name (ex - api-gw):
+sqs
+Is this a test or a sop (test/sop)?:
+test
+Enter test name (ex - restore_from_backup):
+block_delete_message
+Enter date in YYYY-MM-DD format if in the past, else we default to current date:
+
+Creating target folder path [/workplace/aws-digito-artifacts-gameday/documents/sqs/test/block_delete_message/2021-05-06/Documents]
+Enter display name:
+Test - Block sqs:DeleteMessage
+Enter description:
+Test behavior when messages are not deleted from a specific queue
+Enter a name for the primary resource ID input parameter (ex: QueueUrl, DatabaseIdentifier):
+QueueUrl
+Enter failure type(s) as a comma-separated list (one or more of REGION,AZ,HARDWARE,SOFTWARE):
+SOFTWARE
+Enter risk (SMALL/MEDIUM/HIGH):
+HIGH
+Does test support rollback (yes/no)?
+yes
+Does test support synthetic alarm (yes/no)?
+no
+Enter alarm name prefix - this will appear in the automation input as <Prefix>AlarmName (ex: CpuUtilizationAlarmName
+SQSUserError
+Enter ID for recommended alarm (ex - compute:alarm:asg-cpu-util:2020-07-13)
+sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26
+
+Creating artifacts under [/workplace/aws-digito-artifacts-gameday/documents/sqs/test/block_delete_message/2021-05-06/Documents]
+Successfully created artifacts. Please update them as required.
+```
+
 ## Metadata File
 Example:
 ````
@@ -159,9 +199,9 @@ Script: |-
     isEnd: true
 
 ```
-* All steps after(including) the failure injection or where initial state of resource is changed need to have an onCancel and onFailure definition to TriggerRollback step
+* All steps after(including) the failure injection or where initial state of resource is changed need to have an onCancel definition to TriggerRollback step and an onFailure definition to either go to the correct rollback step or go to the TriggerRollback step in case a rollback step is not present (ex - in case of command execution)
 ```yaml
-    onFailure: step:TriggerRollback
+    onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
 ```
 * Please include rollback test in cucumber too with following steps, example: documents/compute/test/ec2-network_unavailable/2020-07-23/Tests/features/ec2_network_unavailable.feature -
