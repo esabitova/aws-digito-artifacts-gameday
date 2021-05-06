@@ -3,7 +3,7 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  OverUtilizedCPUAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:

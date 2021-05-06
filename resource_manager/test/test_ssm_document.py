@@ -6,6 +6,8 @@ from resource_manager.src.ssm_document import SsmDocument
 from documents.util.scripts.test.mock_sleep import MockSleep
 
 SSM_EXECUTION_ID = '123456'
+SSM_OUTPUT_KEY = 'RollbackExecutionId'
+SSM_OUTPUT_VALUE = '654321'
 SSM_DOCUMENT_NAME = 'document-name'
 SSM_STEP_NAME = 'test-step'
 
@@ -14,7 +16,14 @@ def prepare_execution_description(step_name, status):
     return {
         'AutomationExecution':
             {
-                'StepExecutions': [{'StepStatus': status, 'StepName': step_name, 'StepExecutionId': '11111'}],
+                'StepExecutions': [{
+                    'StepStatus': status,
+                    'StepName': step_name,
+                    'StepExecutionId': '11111',
+                    'Outputs': {
+                        SSM_OUTPUT_KEY: [SSM_OUTPUT_VALUE]
+                    }
+                }],
                 'AutomationExecutionStatus': status
             }
     }
@@ -163,3 +172,9 @@ class TestSsmDocument(unittest.TestCase):
             SSM_EXECUTION_ID, SSM_DOCUMENT_NAME, SSM_STEP_NAME, 10
         )
         self.assertEqual("WaitTimedOut", status)
+
+    def test_get_step_output(self):
+        self.mock_ssm.get_automation_execution.return_value = prepare_execution_description(SSM_STEP_NAME, 'Success')
+
+        output = self.ssm_document.get_step_output(SSM_EXECUTION_ID, SSM_STEP_NAME, SSM_OUTPUT_KEY)
+        self.assertEqual(SSM_OUTPUT_VALUE, output)

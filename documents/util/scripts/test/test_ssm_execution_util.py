@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from documents.util.scripts.src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations, \
-    get_inputs_from_ssm_execution
+    get_inputs_from_ssm_execution, start_rollback_execution
 from documents.util.scripts.test import test_data_provider
 
 
@@ -20,6 +20,8 @@ class TestSsmExecutionUtil(unittest.TestCase):
         }
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ssm.get_automation_execution.return_value = test_data_provider.get_sample_ssm_execution_response()
+        self.mock_ssm.start_automation_execution.return_value = test_data_provider.\
+            get_sample_start_ssm_execution_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -102,3 +104,18 @@ class TestSsmExecutionUtil(unittest.TestCase):
                          actual_output[test_data_provider.SSM_EXECUTION_PARAMETER_2])
         self.assertEqual(test_data_provider.SSM_EXECUTION_PARAMETER_3_VALUE,
                          actual_output[test_data_provider.SSM_EXECUTION_PARAMETER_3])
+
+    def test_start_rollback_execution(self):
+        events = {
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+        }
+        actual_output = start_rollback_execution(events, None)
+        self.assertEqual(test_data_provider.ROLLBACK_EXECUTION_ID,
+                         actual_output['RollbackExecutionId'])
+        self.mock_ssm.start_automation_execution.assert_called_once()
+
+    def test_start_rollback_execution_empty_execution_id(self):
+        events = {
+            'ExecutionId': ''
+        }
+        self.assertRaises(KeyError, start_rollback_execution, events, None)
