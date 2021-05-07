@@ -49,9 +49,11 @@ Resources:
               - 'ssm:ListCommandInvocations'
               - 'ssm:DescribeInstanceInformation'
               - 'ssm:GetAutomationExecution'
+              - 'ssm:StartAutomationExecution'
               - 'ssm:CancelCommand'
               - 'cloudwatch:DescribeAlarmHistory'
               - 'cloudwatch:DescribeAlarms'
               - 'ec2:RebootInstances'
+              - 'iam:PassRole'
       Roles:
         - Ref: DigitoSimulateNetworkUnavailableInEc2AssumeRole

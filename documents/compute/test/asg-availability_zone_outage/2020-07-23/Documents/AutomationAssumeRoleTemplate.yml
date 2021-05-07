@@ -53,5 +53,8 @@ Resources:
               - 'ec2:TerminateInstances'
               - 'ec2:DescribeInstanceStatus'
               - 'cloudwatch:DescribeAlarms'
+              - 'ssm:GetAutomationExecution'
+              - 'ssm:StartAutomationExecution'
+              - 'iam:PassRole'
       Roles:
         - Ref: DigitoSimulateAzOutageInAsgAssumeRole

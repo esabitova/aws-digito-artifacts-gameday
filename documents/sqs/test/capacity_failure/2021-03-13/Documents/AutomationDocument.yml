@@ -109,6 +109,8 @@ mainSteps:
 
   - name: SendCapacityFailureMessage
     action: aws:executeScript
+    onFailure: 'step:RollbackCurrentExecution'
+    onCancel: 'step:TriggerRollback'
     outputs:
       - Name: MessageId
         Selector: $.Payload.MessageId
@@ -128,7 +130,8 @@ mainSteps:
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
     timeoutSeconds: 300
-    onFailure: step:RollbackCurrentExecution
+    onFailure: 'step:RollbackCurrentExecution'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -139,6 +142,7 @@ mainSteps:
 
   - name: RollbackCurrentExecution
     action: aws:executeScript
+    onCancel: 'step:TriggerRollback'
     inputs:
       Runtime: python3.6
       Handler: delete_message_by_id
@@ -162,4 +166,21 @@ mainSteps:
         - "{{SentMessageSizeAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
+    isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
     isEnd: true

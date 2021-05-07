@@ -242,7 +242,8 @@ mainSteps:
 
   - name: SetQueueAttributes
     action: aws:executeAwsApi
-    onFailure: step:RollbackCurrentExecution
+    onFailure: 'step:RollbackCurrentExecution'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: sqs
       Api: SetQueueAttributes
@@ -253,7 +254,8 @@ mainSteps:
 
   - name: ReadMessage
     action: aws:executeScript
-    onFailure: step:RollbackCurrentExecution
+    onFailure: 'step:RollbackCurrentExecution'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Runtime: python3.7
       Handler: receive_messages_by_events
@@ -275,7 +277,8 @@ mainSteps:
     action: aws:waitForAwsResourceProperty
     maxAttempts: 240
     timeoutSeconds: 5
-    onFailure: step:RollbackCurrentExecution
+    onFailure: 'step:RollbackCurrentExecution'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -286,6 +289,7 @@ mainSteps:
 
   - name: RollbackCurrentExecution
     action: aws:executeAwsApi
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: sqs
       Api: SetQueueAttributes
@@ -296,6 +300,7 @@ mainSteps:
 
   - name: CheckIsMoveMessagesFromDeadLetterQueue
     action: aws:branch
+    onCancel: 'step:TriggerRollback'
     inputs:
       Choices:
         - NextStep: GetDeadLetterQueueUrl
@@ -305,6 +310,7 @@ mainSteps:
 
   - name: GetDeadLetterQueueUrl
     action: aws:executeScript
+    onCancel: 'step:TriggerRollback'
     outputs:
       - Name: QueueUrl
         Selector: $.Payload.QueueUrl
@@ -320,12 +326,14 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
 
   - name: SleepBeforeGetNumberOfMessagesToMove
+    onCancel: 'step:TriggerRollback'
     action: "aws:sleep"
     inputs:
       Duration: "PT60S"
 
   - name: GetNumberOfMessagesToMove
     action: aws:executeAwsApi
+    onCancel: 'step:TriggerRollback'
     outputs:
       - Name: ApproximateNumberOfMessages
         Selector: '$.Attributes.ApproximateNumberOfMessages'
@@ -339,6 +347,7 @@ mainSteps:
 
   - name: MoveMessages
     action: aws:executeAutomation
+    onCancel: 'step:TriggerRollback'
     maxAttempts: 3
     timeoutSeconds: 600
     onFailure: Abort
@@ -361,4 +370,21 @@ mainSteps:
         - "{{ DeadLetterQueueAlarmName }}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
+    isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

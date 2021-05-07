@@ -33,7 +33,15 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     Then terminate "Digito-BreakingThePolicyForSQS_2020-11-27" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    When SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Cancelled"
+
+    And cache policy as "Policy" "after-terminate" SSM automation execution
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+
+    And Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+    And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Cancelled"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
@@ -41,15 +49,12 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     When Wait for alarm to be in state "ALARM" for "600" seconds
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
-    And cache policy as "Policy" "after-terminate" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     # Run rollback
-    And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
-      | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                | IsRollback | PreviousExecutionId        |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} | true       | {{cache:SsmExecutionId>1}} |
-    And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+    When SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
 

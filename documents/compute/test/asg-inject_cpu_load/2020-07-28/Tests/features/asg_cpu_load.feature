@@ -19,10 +19,12 @@ Feature: SSM automation document ASG CPU stress testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    Then sleep for "120" seconds
-    And assert "CPUUtilization" metric point "greaterOrEqual" than "88" percent(s)
-      |ExecutionId               |StepName    |AutoScalingGroupName                              |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>1}}|RunCpuStress|{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName    |
+      |{{cache:SsmExecutionId>1}}|RunCpuStress|
+    And wait "CPUUtilization" metric point "MORE_OR_EQUAL" to "88" "Percent"
+      |StartTime                                                  |AutoScalingGroupName                              |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>1>RunCpuStress>StartTime}}|{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation CPU stress on ASG instances with rollback
     Given the cached input parameters
@@ -39,36 +41,42 @@ Feature: SSM automation document ASG CPU stress testing
     When SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" executed
       |AutoScalingGroupName                               |AutomationAssumeRole                                                                |CpuUtilizationAlarmName                                 |CpuLoadPercentage          |Duration                |PercentageOfInstances          |ExpectedRecoveryTime          |
       |{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighCpuLoadInAsgAssumeRole}}|{{cfn-output:AsgCfnTemplate>AsgCpuUtilizationAlarmName}}|{{cache:CpuLoadPercentage}}|{{cache:StressDuration}}|{{cache:PercentageOfInstances}}|{{cache:ExpectedRecoveryTime}}|
-    # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer, sometimes shorter. Need to find better way to verify CPU injection.
-    # https://issues.amazon.com/issues/Digito-1742
-    Then sleep for "180" seconds
-    And assert "CPUUtilization" metric point "greaterOrEqual" than "88" percent(s)
-      |ExecutionId               |StepName    |AutoScalingGroupName                              |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>1}}|RunCpuStress|{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
-    Then assert SSM automation document step "RunCpuStress" execution in status "InProgress"
+    Then Wait for the SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" execution is on step "RunCpuStress" in status "InProgress" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
+
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName    |
+      |{{cache:SsmExecutionId>1}}|RunCpuStress|
+    And wait "CPUUtilization" metric point "MORE_OR_EQUAL" to "88" "Percent"
+      |StartTime                                                  |AutoScalingGroupName                              |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>1>RunCpuStress>StartTime}}|{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
+
     # Terminating SSM automation to replicate real scenario when service performs termination before executing document rollback steps.
     And terminate "Digito-SimulateHighCpuLoadInAsg_2020-07-28" SSM automation document
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" execution in status "Cancelled"
+    Then Wait for the SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    And SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" executed
-      |AutoScalingGroupName                               |AutomationAssumeRole                                                                |IsRollback|PreviousExecutionId       |CpuUtilizationAlarmName|
-      |{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighCpuLoadInAsgAssumeRole}}|true      |{{cache:SsmExecutionId>1}}|dummy-alarm-name       |
+
+    Then SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" execution in status "Cancelled"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
     And SSM automation document "Digito-SimulateHighCpuLoadInAsg_2020-07-28" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>2}}|
-    # TODO(semiond): Sleeping in order to wait for CloudWatch metrics to be available, sometimes it takes longer, sometimes shorter. Need to find better way to verify CPU injection.
-    # https://issues.amazon.com/issues/Digito-1742
-    Then sleep for "180" seconds
-    And assert "CPUUtilization" metric point "less" than "5" percent(s)
-      |ExecutionId               |StepName                   |AutoScalingGroupName                              |Namespace               |MetricPeriod          |
-      |{{cache:SsmExecutionId>2}}|KillStressCommandOnRollback|{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
-
-
+    Then cache ssm step execution interval
+      |ExecutionId               |StepName                   |
+      |{{cache:SsmExecutionId>2}}|KillStressCommandOnRollback|
+    And wait "CPUUtilization" metric point "LESS_OR_EQUAL" to "5" "Percent"
+      |StartTime                                                                 |AutoScalingGroupName                              |Namespace               |MetricPeriod          |
+      |{{cache:SsmStepExecutionInterval>2>KillStressCommandOnRollback>StartTime}}|{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|

@@ -170,7 +170,8 @@ mainSteps:
 
   - name: DeleteRoute
     action: aws:executeScript
-    onFailure: step:RollbackCurrent
+    onFailure: 'step:RollbackCurrent'
+    onCancel: 'step:TriggerRollback'
     outputs:
       - Name: UpdatedValue
         Selector: $.Payload.Response
@@ -194,7 +195,8 @@ mainSteps:
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
     timeoutSeconds: 600
-    onFailure: step:RollbackCurrent
+    onFailure: 'step:RollbackCurrent'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -205,6 +207,7 @@ mainSteps:
 
   - name: RollbackCurrent
     action: aws:executeScript
+    onCancel: 'step:TriggerRollback'
     outputs:
       - Name: RestoredValue
         Selector: $.Payload.Response
@@ -236,4 +239,21 @@ mainSteps:
         - "{{BytesOutToSourceAlarm}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
+    isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
     isEnd: true

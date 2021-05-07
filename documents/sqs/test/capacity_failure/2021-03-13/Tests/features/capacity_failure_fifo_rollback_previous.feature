@@ -25,13 +25,16 @@ Feature: SSM automation document to test SQS message size get close to threshold
     Then terminate "Digito-SQSCapacityFailure_2021-03-13" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Cancelled"
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
+    Then Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+    Then SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Cancelled"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
 
     # Wait until alarm goes on
     When Wait for alarm to be in state "ALARM" for "300" seconds
@@ -39,10 +42,10 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
 
     # Rollback previous
-    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" executed
-      | QueueUrl                                   | AutomationAssumeRole                                                           | SentMessageSizeAlarmName                                 | IsRollback | PreviousExecutionId        |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} | true       | {{cache:SsmExecutionId>1}} |
-    And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Success"
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And sleep for "60" seconds

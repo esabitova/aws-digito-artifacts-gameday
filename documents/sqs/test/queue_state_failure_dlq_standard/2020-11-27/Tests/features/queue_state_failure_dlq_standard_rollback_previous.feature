@@ -36,15 +36,18 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     Then terminate "Digito-QueueStateFailureDlqStandard_2020-11-27" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    Then Wait for the SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution in status "Cancelled"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    When SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" executed
-      | QueueUrl                                       | AutomationAssumeRole                                                                     | DeadLetterQueueAlarmName                                | IsRollback | PreviousExecutionId        |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoQueueStateFailureDlqStandardAssumeRole}} | {{cfn-output:SqsTemplate>DlqMessageStandardQueueAlarm}} | True       | {{cache:SsmExecutionId>1}} |
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
 
-    And SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution in status "Success"
+    When SSM automation document "Digito-QueueStateFailureDlqStandard_2020-11-27" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And sleep for "60" seconds

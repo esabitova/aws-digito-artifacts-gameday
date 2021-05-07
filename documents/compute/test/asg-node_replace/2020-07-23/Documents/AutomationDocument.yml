@@ -60,6 +60,7 @@ mainSteps:
   - name: StartInstanceRefresh
     action: 'aws:executeScript'
     onFailure: Abort
+    onCancel: 'step:TriggerRollback'
     outputs:
       - Name: InstanceRefreshId
         Selector: $.Payload.InstanceRefreshId
@@ -77,6 +78,7 @@ mainSteps:
   - name: WaitForRefreshToFinish
     action: 'aws:executeScript'
     onFailure: 'step:CancelInstanceRefresh'
+    onCancel: 'step:TriggerRollback'
     maxAttempts: 10
     timeoutSeconds: 900
     outputs:
@@ -118,4 +120,21 @@ mainSteps:
         SCRIPT_PLACEHOLDER::asg_util.imports
 
         SCRIPT_PLACEHOLDER::asg_util.cancel_instance_refresh
+    isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
     isEnd: true

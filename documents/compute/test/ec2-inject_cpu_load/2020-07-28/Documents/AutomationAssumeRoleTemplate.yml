@@ -50,6 +50,7 @@ Resources:
               - 'ssm:ListCommandInvocations'
               - 'ssm:DescribeInstanceInformation'
               - 'ssm:GetAutomationExecution'
+              - 'ssm:StartAutomationExecution'
               - 'ssm:CancelCommand'
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
