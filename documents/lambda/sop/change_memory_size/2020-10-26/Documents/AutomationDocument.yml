@@ -30,7 +30,21 @@ parameters:
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 outputs:
   - "SetMemorySize.NewMemorySizeValue"
+  - "OutputRecoveryTime.RecoveryTime"
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: SetMemorySize
     action: aws:executeAwsApi
     description: Updates memory size for the given Lambda
@@ -43,3 +57,19 @@ mainSteps:
       - Name: NewMemorySizeValue
         Selector: $.MemorySize
         Type: Integer
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
+

@@ -11,11 +11,8 @@ Feature: SSM automation document to change memory size of the given Lambda Funct
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
     And the cached input parameters
-      | NewMemorySize |
-      | 10240         |
-    And the cached input parameters
-      | BeforeMemorySize |
-      | 2000             |
+      | NewMemorySize | BeforeMemorySize |
+      | 10240         | 2000             |
     And cache constant value {{cache:NewMemorySize}} as "ExpectedMemorySize" "before" SSM automation execution
     And SSM automation document "Digito-ChangeMemorySize_2020-10-26" executed
       | LambdaARN                               | NewMemorySizeValue      | AutomationAssumeRole                                                                  |
@@ -23,6 +20,9 @@ Feature: SSM automation document to change memory size of the given Lambda Funct
     When SSM automation document "Digito-ChangeMemorySize_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And wait for lambda memory size to have a new value for "120" seconds
+      | LambdaARN                               | MemorySize              |
+      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cache:NewMemorySize}} |
     And cache value of memory size as "ActualMemorySize" at the lambda "after" SSM automation execution
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
@@ -34,3 +34,10 @@ Feature: SSM automation document to change memory size of the given Lambda Funct
     And SSM automation document "Digito-ChangeMemorySize_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And wait for lambda memory size to have a new value for "120" seconds
+      | LambdaARN                               | MemorySize                 |
+      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cache:BeforeMemorySize}} |
+    And cache value of memory size as "RevertedMemorySize" at the lambda "after" SSM automation execution
+      | LambdaARN                               |
+      | {{cfn-output:LambdaTemplate>LambdaARN}} |
+    And assert "OldMemorySize" at "before" became equal to "RevertedMemorySize" at "after"
