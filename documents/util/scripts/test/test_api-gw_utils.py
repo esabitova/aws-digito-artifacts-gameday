@@ -4,16 +4,19 @@ from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
+from botocore.config import Config
 from dateutil.tz import tzlocal
 
 import documents.util.scripts.src.apigw_utils as apigw_utils
 
+BOTO3_CONFIG: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+
 USAGE_PLAN_ID: str = "jvgy9s"
 USAGE_PLAN_LIMIT = 50000
 USAGE_PLAN_PERIOD: str = "WEEK"
-NEW_USAGE_PLAN_LIMIT = 50000
+NEW_USAGE_PLAN_QUOTA_LIMIT = 50000
 NEW_HUGECHANGE_USAGE_PLAN_LIMIT = 5000
-NEW_USAGE_PLAN_PERIOD: str = "WEEK"
+NEW_USAGE_PLAN_QUOTA_PERIOD: str = "WEEK"
 
 REST_API_GW_ID: str = "0djifyccl6"
 REST_API_GW_STAGE_NAME: str = "DummyStage"
@@ -23,18 +26,23 @@ REST_API_GW_DEPLOYMENT_CREATED_DATE_V1: datetime = datetime.datetime(2021, 4, 21
 REST_API_GW_DEPLOYMENT_CREATED_DATE_LESS_THAN_V1: datetime = datetime.datetime(2021, 4, 21, 18, 7, 10, tzinfo=tzlocal())
 REST_API_GW_DEPLOYMENT_CREATED_DATE_MORE_THAN_V1: datetime = datetime.datetime(2021, 4, 21, 18, 9, 10, tzinfo=tzlocal())
 
+QUOTA_SERVICE_CODE: str = 'apigateway'
+QUOTA_RATE_LIMIT: float = 10000.0
+QUOTA_RATE_LIMIT_CODE: str = 'L-8A5B8E43'
+QUOTA_BURST_LIMIT: float = 5000.0
+QUOTA_BURST_LIMIT_CODE: str = 'L-CDF5615A'
 
-def get_sample_get_usage_plan_response():
-    response = {
-        "quota": {
-            "limit": USAGE_PLAN_LIMIT,
-            "period": USAGE_PLAN_PERIOD
-        },
-        "ResponseMetadata": {
-            "HTTPStatusCode": 200
-        }
-    }
-    return response
+USAGE_PLAN_THROTTLE_RATE_LIMIT: float = 100.0
+NEW_THROTTLE_RATE_LIMIT: float = 80.0
+LESS_THROTTLE_RATE_LIMIT: float = 49.0
+MORE_THROTTLE_RATE_LIMIT: float = 151.0
+HUGE_THROTTLE_RATE_LIMIT: float = 11000.0
+
+USAGE_PLAN_THROTTLE_BURST_LIMIT: int = 100
+NEW_THROTTLE_BURST_LIMIT: int = 80
+LESS_THROTTLE_BURST_LIMIT: int = 49
+MORE_THROTTLE_BURST_LIMIT: int = 151
+HUGE_THROTTLE_BURST_LIMIT: int = 6000
 
 
 def get_sample_https_status_code_403_response():
@@ -46,15 +54,60 @@ def get_sample_https_status_code_403_response():
     return response
 
 
-def get_sample_update_usage_plan_response():
+def get_sample_get_usage_plan_response():
     response = {
-        "quota": {
-            "limit": NEW_USAGE_PLAN_LIMIT,
-            "period": NEW_USAGE_PLAN_PERIOD
-        },
         "ResponseMetadata": {
             "HTTPStatusCode": 200
-        }
+        },
+        "quota": {
+            "limit": USAGE_PLAN_LIMIT,
+            "period": USAGE_PLAN_PERIOD
+        },
+        "throttle": {
+            "burstLimit": USAGE_PLAN_THROTTLE_BURST_LIMIT,
+            "rateLimit": USAGE_PLAN_THROTTLE_RATE_LIMIT
+        },
+        "apiStages": [
+            {
+                "apiId": REST_API_GW_ID,
+                "stage": REST_API_GW_STAGE_NAME,
+                "throttle": {
+                    "*/*": {
+                        "burstLimit": USAGE_PLAN_THROTTLE_BURST_LIMIT,
+                        "rateLimit": USAGE_PLAN_THROTTLE_RATE_LIMIT
+                    }
+                }
+            }
+        ]
+    }
+    return response
+
+
+def get_sample_update_usage_plan_response():
+    response = {
+        "ResponseMetadata": {
+            "HTTPStatusCode": 200
+        },
+        "quota": {
+            "limit": NEW_USAGE_PLAN_QUOTA_LIMIT,
+            "period": NEW_USAGE_PLAN_QUOTA_PERIOD
+        },
+        "throttle": {
+            "burstLimit": NEW_THROTTLE_BURST_LIMIT,
+            "rateLimit": NEW_THROTTLE_RATE_LIMIT
+        },
+        "apiStages": [
+            {
+                "apiId": REST_API_GW_ID,
+                "stage": REST_API_GW_STAGE_NAME,
+                "throttle": {
+                    "*/*": {
+                        "burstLimit": NEW_THROTTLE_BURST_LIMIT,
+                        "rateLimit": NEW_THROTTLE_RATE_LIMIT
+                    }
+                }
+            }
+        ]
     }
     return response
 
@@ -152,14 +205,38 @@ def get_sample_get_deployments_response_with_6_deployments():
     return response
 
 
+def get_sample_get_service_quota_response(quota_code: str, limit: float):
+    response = {
+        "ResponseMetadata": {
+            "HTTPStatusCode": 200
+        },
+        'Quota': {
+            'ServiceCode': QUOTA_SERVICE_CODE,
+            'QuotaCode': quota_code,
+            'Value': limit
+        }
+    }
+    return response
+
+
+def get_sample_get_service_quota_response_side_effect():
+    response = [
+        get_sample_get_service_quota_response(QUOTA_RATE_LIMIT_CODE, QUOTA_RATE_LIMIT),
+        get_sample_get_service_quota_response(QUOTA_BURST_LIMIT_CODE, QUOTA_BURST_LIMIT)
+    ]
+    return response
+
+
 @pytest.mark.unit_test
 class TestApigwUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
         self.mock_apigw = MagicMock()
+        self.mock_service_quotas = MagicMock()
         self.side_effect_map = {
-            'apigateway': self.mock_apigw
+            'apigateway': self.mock_apigw,
+            'service-quotas': self.mock_service_quotas
         }
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_apigw.get_usage_plan.return_value = get_sample_get_usage_plan_response()
@@ -171,132 +248,102 @@ class TestApigwUtil(unittest.TestCase):
         self.patcher.stop()
 
     def test_check_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
 
         output = apigw_utils.check_limit_and_period(events, None)
+        self.assertIsNotNone(output)
         self.assertEqual("ok", output['Result'])
 
     def test_set_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
 
         output = apigw_utils.set_limit_and_period(events, None)
-        self.assertEqual(NEW_USAGE_PLAN_LIMIT, output['Limit'])
-        self.assertEqual(NEW_USAGE_PLAN_PERIOD, output['Period'])
-
-    def test_input1_check_limit_and_period(self):
-        events = {}
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.check_limit_and_period(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId  in events'))
-
-    def test_input2_check_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.check_limit_and_period(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwQuotaLimit  in events'))
-
-    def test_input3_check_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.check_limit_and_period(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
-
-    def test_input1_set_limit_and_period(self):
-        events = {}
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.set_limit_and_period(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId  in events'))
-
-    def test_input2_set_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.set_limit_and_period(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwQuotaLimit  in events'))
-
-    def test_input3_set_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.set_limit_and_period(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
+        self.assertIsNotNone(output)
+        self.assertEqual(NEW_USAGE_PLAN_QUOTA_LIMIT, output['Limit'])
+        self.assertEqual(NEW_USAGE_PLAN_QUOTA_PERIOD, output['Period'])
 
     def test_get_deployment(self):
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V2, REST_API_GW_DEPLOYMENT_CREATED_DATE_MORE_THAN_V1
         )
         output = apigw_utils.get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V2)
+        self.mock_apigw.get_deployment.assert_called_with(
+            restApiId=REST_API_GW_ID,
+            deploymentId=REST_API_GW_DEPLOYMENT_ID_V2
+        )
+        self.assertIsNotNone(output)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['id'])
 
     def test_get_deployments(self):
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_1_deployment()
         output = apigw_utils.get_deployments(REST_API_GW_ID)
+        self.mock_apigw.get_deployments.assert_called_with(
+            restApiId=REST_API_GW_ID,
+            limit=25
+        )
+        self.assertIsNotNone(output)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['items'][0]['id'])
 
     def test_get_stage(self):
         output = apigw_utils.get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+        self.mock_apigw.get_stage.assert_called_with(
+            restApiId=REST_API_GW_ID,
+            stageName=REST_API_GW_STAGE_NAME
+        )
+        self.assertIsNotNone(output)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['deploymentId'])
 
     def test_find_deployment_id_for_update_with_provided_id(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V2
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME,
+            'RestDeploymentId': REST_API_GW_DEPLOYMENT_ID_V2
+        }
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V2, REST_API_GW_DEPLOYMENT_CREATED_DATE_V1
         )
         output = apigw_utils.find_deployment_id_for_update(events, None)
+        self.assertIsNotNone(output)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['OriginalDeploymentId'])
 
     def test_find_deployment_id_for_update_with_provided_deployment_id_same_as_current(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
-
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME,
+            'RestDeploymentId': REST_API_GW_DEPLOYMENT_ID_V1
+        }
         with pytest.raises(ValueError) as exception_info:
             apigw_utils.find_deployment_id_for_update(events, None)
         self.assertTrue(exception_info.match('Provided deployment ID and current deployment ID should not be the same'))
 
     def test_find_deployment_id_for_update_without_provided_id(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME
+        }
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_6_deployments()
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V1, REST_API_GW_DEPLOYMENT_CREATED_DATE_V1
         )
         output = apigw_utils.find_deployment_id_for_update(events, None)
+        self.assertIsNotNone(output)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdToApply'])
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['OriginalDeploymentId'])
 
     def test_find_deployment_id_for_update_without_provided_deployment_id_and_without_available_deployments(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME
+        }
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_1_deployment()
 
         with pytest.raises(ValueError) as exception_info:
@@ -306,9 +353,10 @@ class TestApigwUtil(unittest.TestCase):
                                              f'{REST_API_GW_DEPLOYMENT_ID_V1}'))
 
     def test_find_deployment_id_for_update_without_provided_deployment_id_and_without_previous_deployments(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME
+        }
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_2_deployments()
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V1, REST_API_GW_DEPLOYMENT_CREATED_DATE_V1
@@ -318,57 +366,207 @@ class TestApigwUtil(unittest.TestCase):
         self.assertTrue(exception_info.match(f'Could not find any existing deployment which has createdDate less than '
                                              f'current deployment ID: {REST_API_GW_DEPLOYMENT_ID_V1}'))
 
-    def test_input1_deployment_id_for_update(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.find_deployment_id_for_update(events, None)
-        self.assertTrue(exception_info.match('Requires RestStageName in events'))
-
-    def test_input2_deployment_id_for_update(self):
-        events = {}
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
-
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.find_deployment_id_for_update(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
-
     def test_update_deployment(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V2
-
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME,
+            'RestDeploymentId': REST_API_GW_DEPLOYMENT_ID_V2
+        }
         output = apigw_utils.update_deployment(events, None)
+        self.mock_apigw.update_stage.assert_called_with(
+            restApiId=REST_API_GW_ID,
+            stageName=REST_API_GW_STAGE_NAME,
+            patchOperations=[
+                {
+                    'op': 'replace',
+                    'path': '/deploymentId',
+                    'value': REST_API_GW_DEPLOYMENT_ID_V2,
+                },
+            ]
+        )
+        self.assertIsNotNone(output)
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V2, output['DeploymentIdNewValue'])
 
-    def test_input1_update_deployment(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
+    def test_get_service_quota(self):
+        self.mock_service_quotas.get_service_quota.return_value = get_sample_get_service_quota_response(
+            QUOTA_RATE_LIMIT_CODE,
+            QUOTA_RATE_LIMIT
+        )
+        output = apigw_utils.get_service_quota(BOTO3_CONFIG, QUOTA_SERVICE_CODE, QUOTA_RATE_LIMIT_CODE)
+        self.mock_service_quotas.get_service_quota.assert_called_with(
+            ServiceCode=QUOTA_SERVICE_CODE,
+            QuotaCode=QUOTA_RATE_LIMIT_CODE
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(QUOTA_RATE_LIMIT, output['Quota']['Value'])
 
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.update_deployment(events, None)
-        self.assertTrue(exception_info.match('Requires RestDeploymentId in events'))
+    def test_get_usage_plan(self):
+        output = apigw_utils.get_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['throttle']['rateLimit'])
+        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['throttle']['burstLimit'])
 
-    def test_input2_update_deployment(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
+    def test_update_usage_plan(self):
+        output = apigw_utils.update_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID, [])
+        self.mock_apigw.update_usage_plan.assert_called_with(
+            usagePlanId=USAGE_PLAN_ID,
+            patchOperations=[]
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['throttle']['rateLimit'])
+        self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['throttle']['burstLimit'])
 
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.update_deployment(events, None)
-        self.assertTrue(exception_info.match('Requires RestStageName in events'))
+    def test_validate_throttling_config_with_provided_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID
+        }
+        output = apigw_utils.validate_throttling_config(events, None)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['OriginalRateLimit'])
+        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['OriginalBurstLimit'])
 
-    def test_input3_update_deployment(self):
-        events = {}
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
+    def test_validate_throttling_config_without_provided_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        output = apigw_utils.validate_throttling_config(events, None)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['OriginalRateLimit'])
+        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['OriginalBurstLimit'])
 
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.update_deployment(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+    def test_validate_throttling_config_with_new_rate_limit_increased_more_than_50_percent(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': MORE_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Rate limit is going to be changed more than 50%, please use smaller'
+                                             ' increments or use ForceExecution parameter to disable validation'))
+
+    def test_validate_throttling_config_with_new_rate_limit_decreased_more_than_50_percent(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': LESS_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Rate limit is going to be changed more than 50%, please use smaller'
+                                             ' increments or use ForceExecution parameter to disable validation'))
+
+    def test_validate_throttling_config_with_new_burst_limit_increased_more_than_50_percent(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': MORE_THROTTLE_BURST_LIMIT
+        }
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Burst rate limit is going to be changed more than 50%, please use smaller'
+                                             ' increments or use ForceExecution parameter to disable validation'))
+
+    def test_validate_throttling_config_with_new_burst_limit_decreased_more_than_50_percent(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': LESS_THROTTLE_BURST_LIMIT
+        }
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Burst rate limit is going to be changed more than 50%, please use smaller'
+                                             ' increments or use ForceExecution parameter to disable validation'))
+
+    def test_set_throttling_config_with_provided_stage_name(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        output = apigw_utils.set_throttling_config(events, None)
+        self.mock_apigw.update_usage_plan.assert_called_with(
+            usagePlanId=USAGE_PLAN_ID,
+            patchOperations=[
+                {
+                    'op': 'replace',
+                    'path': f'/apiStages/{REST_API_GW_ID}:{REST_API_GW_STAGE_NAME}/throttle/*/*/rateLimit',
+                    'value': str(NEW_THROTTLE_RATE_LIMIT)
+                },
+                {
+                    'op': 'replace',
+                    'path': f'/apiStages/{REST_API_GW_ID}:{REST_API_GW_STAGE_NAME}/throttle/*/*/burstLimit',
+                    'value': str(NEW_THROTTLE_BURST_LIMIT)
+                }
+            ]
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
+    def test_set_throttling_config_without_provided_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        output = apigw_utils.set_throttling_config(events, None)
+        self.mock_apigw.update_usage_plan.assert_called_with(
+            usagePlanId=USAGE_PLAN_ID,
+            patchOperations=[
+                {
+                    'op': 'replace',
+                    'path': '/throttle/rateLimit',
+                    'value': str(NEW_THROTTLE_RATE_LIMIT)
+                },
+                {
+                    'op': 'replace',
+                    'path': '/throttle/burstLimit',
+                    'value': str(NEW_THROTTLE_BURST_LIMIT)
+                }
+            ]
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
+    def test_set_throttling_config_with_huge_rate_limit(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': HUGE_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match(f'Given value of RestApiGwThrottlingRate: {HUGE_THROTTLE_RATE_LIMIT}, '
+                                             f'can not be more than service quota Throttle rate: {QUOTA_RATE_LIMIT}'))
+
+    def test_set_throttling_config_with_huge_burst_limit(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': HUGE_THROTTLE_BURST_LIMIT
+        }
+        self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match(f'Given value of RestApiGwThrottlingBurst: {HUGE_THROTTLE_BURST_LIMIT}, '
+                                             f'can not be more than service quota Throttle burst rate: '
+                                             f'{QUOTA_BURST_LIMIT}'))
 
 
 @pytest.mark.unit_test
@@ -377,8 +575,10 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
         self.mock_apigw = MagicMock()
+        self.mock_service_quotas = MagicMock()
         self.side_effect_map = {
-            'apigateway': self.mock_apigw
+            'apigateway': self.mock_apigw,
+            'service-quotas': self.mock_service_quotas
         }
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_apigw.get_usage_plan.return_value = get_sample_https_status_code_403_response()
@@ -387,26 +587,27 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
         self.mock_apigw.get_deployments.return_value = get_sample_https_status_code_403_response()
         self.mock_apigw.get_stage.return_value = get_sample_https_status_code_403_response()
         self.mock_apigw.update_stage.return_value = get_sample_https_status_code_403_response()
+        self.mock_service_quotas.get_service_quota.return_value = get_sample_https_status_code_403_response()
 
     def tearDown(self):
         self.patcher.stop()
 
     def test_error_check_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
-
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
         with pytest.raises(ValueError) as exception_info:
             apigw_utils.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Failed to get usage plan limit and period'))
 
     def test_error_set_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
-
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
         with pytest.raises(ValueError) as exception_info:
             apigw_utils.set_limit_and_period(events, None)
         self.assertTrue(exception_info.match('Failed to update usage plan limit and period'))
@@ -437,16 +638,35 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
     def test_error_update_deployment(self):
-        events = {}
-        events['RestApiGwId'] = REST_API_GW_ID
-        events['RestStageName'] = REST_API_GW_STAGE_NAME
-        events['RestDeploymentId'] = REST_API_GW_DEPLOYMENT_ID_V1
-
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME,
+            'RestDeploymentId': REST_API_GW_DEPLOYMENT_ID_V1
+        }
         with pytest.raises(ValueError) as exception_info:
             apigw_utils.update_deployment(events, None)
         self.assertTrue(exception_info.match(f'Failed to perform update_stage with restApiId: {REST_API_GW_ID}, '
                                              f'stageName: {REST_API_GW_STAGE_NAME} and '
                                              f'deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1} '
+                                             f'Response is: {get_sample_https_status_code_403_response()}'))
+
+    def test_error_get_service_quota(self):
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.get_service_quota(BOTO3_CONFIG, QUOTA_SERVICE_CODE, QUOTA_RATE_LIMIT_CODE)
+        self.assertTrue(exception_info.match(f'Failed to perform get_service_quota with '
+                                             f'ServiceCode: {QUOTA_SERVICE_CODE} and '
+                                             f'QuotaCode: {QUOTA_RATE_LIMIT_CODE}'))
+
+    def test_error_get_usage_plan(self):
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.get_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID)
+        self.assertTrue(exception_info.match(f'Failed to get usage plan with id {USAGE_PLAN_ID} '
+                                             f'Response is: {get_sample_https_status_code_403_response()}'))
+
+    def test_error_update_usage_plan(self):
+        with pytest.raises(ValueError) as exception_info:
+            apigw_utils.update_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID, [])
+        self.assertTrue(exception_info.match(f'Failed to update usage plan with id {USAGE_PLAN_ID} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
 
@@ -466,11 +686,216 @@ class TestApigwUtilAssertionExceptions(unittest.TestCase):
         self.patcher.stop()
 
     def test_error_check_limit_and_period(self):
-        events = {}
-        events['RestApiGwUsagePlanId'] = USAGE_PLAN_ID
-        events['RestApiGwQuotaLimit'] = NEW_HUGECHANGE_USAGE_PLAN_LIMIT
-        events['RestApiGwQuotaPeriod'] = NEW_USAGE_PLAN_PERIOD
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_HUGECHANGE_USAGE_PLAN_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
 
         with pytest.raises(AssertionError) as exception_info:
             apigw_utils.check_limit_and_period(events, None)
         self.assertTrue(exception_info.match('.*'))
+
+
+@pytest.mark.unit_test
+class TestApigwUtilKeyExceptions(unittest.TestCase):
+    def test_check_limit_and_period_error_input_1(self):
+        events = {
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.check_limit_and_period(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId  in events'))
+
+    def test_check_limit_and_period_error_input_2(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.check_limit_and_period(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwQuotaLimit  in events'))
+
+    def test_check_limit_and_period_error_input_3(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.check_limit_and_period(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
+
+    def test_set_limit_and_period_error_input_1(self):
+        events = {
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_limit_and_period(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId  in events'))
+
+    def test_set_limit_and_period_error_input_2(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_limit_and_period(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwQuotaLimit  in events'))
+
+    def test_set_limit_and_period_error_input_3(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_limit_and_period(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwQuotaPeriod  in events'))
+
+    def test_find_deployment_id_for_update_error_input_1(self):
+        events = {'RestApiGwId': REST_API_GW_ID}
+
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.find_deployment_id_for_update(events, None)
+        self.assertTrue(exception_info.match('Requires RestStageName in events'))
+
+    def test_find_deployment_id_for_update_error_input_2(self):
+        events = {'RestStageName': REST_API_GW_STAGE_NAME}
+
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.find_deployment_id_for_update(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
+    def test_update_deployment_error_input_1(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.update_deployment(events, None)
+        self.assertTrue(exception_info.match('Requires RestDeploymentId in events'))
+
+    def test_update_deployment_error_input_2(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestDeploymentId': REST_API_GW_DEPLOYMENT_ID_V1
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.update_deployment(events, None)
+        self.assertTrue(exception_info.match('Requires RestStageName in events'))
+
+    def test_update_deployment_error_input_3(self):
+        events = {
+            'RestStageName': REST_API_GW_STAGE_NAME,
+            'RestDeploymentId': REST_API_GW_DEPLOYMENT_ID_V1
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.update_deployment(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
+    def test_set_throttling_config_error_input_1(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
+    def test_set_throttling_config_error_input_2(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': ''
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match('RestApiGwId should not be empty'))
+
+    def test_set_throttling_config_error_input_3(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId in events'))
+
+    def test_set_throttling_config_error_input_4(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwThrottlingRate in events'))
+
+    def test_set_throttling_config_error_input_5(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.set_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwThrottlingBurst in events'))
+
+    def test_validate_throttling_config_error_input_1(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
+    def test_validate_throttling_config_error_input_2(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': ''
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('RestApiGwId should not be empty'))
+
+    def test_validate_throttling_config_error_input_3(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId in events'))
+
+    def test_validate_throttling_config_error_input_4(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwThrottlingRate in events'))
+
+    def test_validate_throttling_config_error_input_5(self):
+        events = {
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwThrottlingBurst in events'))

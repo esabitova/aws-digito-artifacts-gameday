@@ -47,7 +47,7 @@ def check_limit_and_period(events, context):
 
     log.debug(evaluation_message)
 
-    if (abs(converted_current_limit - converted_new_limit) > converted_current_limit * 0.5):
+    if abs(converted_current_limit - converted_new_limit) > converted_current_limit * 0.5:
         result = 'warning'
         exception = """Warning: The quota is going to be increased on more than 50%.
                     Please use smaller increments or use ForceExecution=True
@@ -118,6 +118,14 @@ def assert_https_status_code_200(response: dict, error_message: str) -> None:
         raise ValueError(f'{error_message} Response is: {response}')
 
 
+def get_service_quota(config: object, service_code: str, quota_code: str) -> dict:
+    client = boto3.client('service-quotas', config=config)
+    response = client.get_service_quota(ServiceCode=service_code, QuotaCode=quota_code)
+    assert_https_status_code_200(response, f'Failed to perform get_service_quota with '
+                                           f'ServiceCode: {service_code} and QuotaCode: {quota_code}')
+    return response
+
+
 def get_deployment(gateway_id: str, deployment_id: str) -> dict:
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     client = boto3.client('apigateway', config=config)
@@ -127,7 +135,7 @@ def get_deployment(gateway_id: str, deployment_id: str) -> dict:
     return response
 
 
-def get_deployments(gateway_id: str, limit: int = 25, position: str = '') -> dict:
+def get_deployments(gateway_id: str, limit: int = 25, position: str = None) -> dict:
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     client = boto3.client('apigateway', config=config)
     if not position:
@@ -145,6 +153,20 @@ def get_stage(gateway_id: str, stage_name: str) -> dict:
     response = client.get_stage(restApiId=gateway_id, stageName=stage_name)
     assert_https_status_code_200(response, f'Failed to perform get_stage with '
                                            f'restApiId: {gateway_id} and stageName: {stage_name}')
+    return response
+
+
+def get_usage_plan(config: object, usage_plan_id: str) -> dict:
+    client = boto3.client('apigateway', config=config)
+    response = client.get_usage_plan(usagePlanId=usage_plan_id)
+    assert_https_status_code_200(response, f'Failed to get usage plan with id {usage_plan_id}')
+    return response
+
+
+def update_usage_plan(config: object, usage_plan_id: str, patch_operations: list) -> dict:
+    client = boto3.client('apigateway', config=config)
+    response = client.update_usage_plan(usagePlanId=usage_plan_id, patchOperations=patch_operations)
+    assert_https_status_code_200(response, f'Failed to update usage plan with id {usage_plan_id}')
     return response
 
 
@@ -224,3 +246,123 @@ def update_deployment(events: dict, context: dict) -> dict:
 
     return {'DeploymentIdNewValue': response['deploymentId'],
             'StageName': response['stageName']}
+
+
+def validate_throttling_config(events: dict, context: dict) -> dict:
+    if 'RestApiGwUsagePlanId' not in events:
+        raise KeyError('Requires RestApiGwUsagePlanId in events')
+
+    if 'RestApiGwThrottlingRate' not in events:
+        raise KeyError('Requires RestApiGwThrottlingRate in events')
+
+    if 'RestApiGwThrottlingBurst' not in events:
+        raise KeyError('Requires RestApiGwThrottlingBurst in events')
+
+    if 'RestApiGwStageName' in events and events['RestApiGwStageName']:
+        if 'RestApiGwId' not in events:
+            raise KeyError('Requires RestApiGwId in events')
+        if not events['RestApiGwId']:
+            raise KeyError('RestApiGwId should not be empty')
+
+    usage_plan_id: str = events['RestApiGwUsagePlanId']
+    new_rate_limit: float = float(events['RestApiGwThrottlingRate'])
+    new_burst_limit: int = int(events['RestApiGwThrottlingBurst'])
+    gateway_id: str = events.get('RestApiGwId')
+    stage_name: str = events.get('RestApiGwStageName')
+    resource_path: str = events.get('RestApiGwResourcePath', '*')
+    http_method: str = events.get('RestApiGwHttpMethod', '*')
+
+    boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    current_usage_plan: dict = get_usage_plan(boto3_config, usage_plan_id)
+
+    if stage_name:
+        for stage in current_usage_plan['apiStages']:
+            if stage['apiId'] == gateway_id and stage['stage'] == stage_name:
+                original_rate_limit = stage['throttle'][f'{resource_path}/{http_method}']['rateLimit']
+                original_burst_limit = stage['throttle'][f'{resource_path}/{http_method}']['burstLimit']
+    else:
+        original_rate_limit: float = current_usage_plan['throttle']['rateLimit']
+        original_burst_limit: int = current_usage_plan['throttle']['burstLimit']
+
+    if abs(new_burst_limit - original_burst_limit) > original_burst_limit * 0.5:
+        raise ValueError('Burst rate limit is going to be changed more than 50%, please use smaller increments or use '
+                         'ForceExecution parameter to disable validation')
+
+    if abs(new_rate_limit - original_rate_limit) > original_rate_limit * 0.5:
+        raise ValueError('Rate limit is going to be changed more than 50%, please use smaller increments or use '
+                         'ForceExecution parameter to disable validation')
+
+    original_rate_limit = int(original_rate_limit)
+
+    return {'OriginalRateLimit': original_rate_limit,
+            'OriginalBurstLimit': original_burst_limit}
+
+
+def set_throttling_config(events: dict, context: dict) -> dict:
+    if 'RestApiGwUsagePlanId' not in events:
+        raise KeyError('Requires RestApiGwUsagePlanId in events')
+
+    if 'RestApiGwThrottlingRate' not in events:
+        raise KeyError('Requires RestApiGwThrottlingRate in events')
+
+    if 'RestApiGwThrottlingBurst' not in events:
+        raise KeyError('Requires RestApiGwThrottlingBurst in events')
+
+    if 'RestApiGwStageName' in events and events['RestApiGwStageName']:
+        if 'RestApiGwId' not in events:
+            raise KeyError('Requires RestApiGwId in events')
+        if not events['RestApiGwId']:
+            raise KeyError('RestApiGwId should not be empty')
+
+    usage_plan_id: str = events['RestApiGwUsagePlanId']
+    new_rate_limit: float = float(events['RestApiGwThrottlingRate'])
+    new_burst_limit: int = int(events['RestApiGwThrottlingBurst'])
+    gateway_id: str = events.get('RestApiGwId')
+    stage_name: str = events.get('RestApiGwStageName')
+    resource_path: str = events.get('RestApiGwResourcePath', '*')
+    http_method: str = events.get('RestApiGwHttpMethod', '*')
+
+    output: dict = {}
+    boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    quota_rate_limit_code: str = 'L-8A5B8E43'
+    quota_burst_limit_code: str = 'L-CDF5615A'
+    patch_operations: list = [
+        {
+            'op': 'replace',
+            'path': '/throttle/rateLimit',
+            'value': str(new_rate_limit)
+        },
+        {
+            'op': 'replace',
+            'path': '/throttle/burstLimit',
+            'value': str(new_burst_limit)
+        }
+    ]
+
+    quota_rate_limit: float = get_service_quota(boto3_config, 'apigateway', quota_rate_limit_code)['Quota']['Value']
+    quota_burst_limit: float = get_service_quota(boto3_config, 'apigateway', quota_burst_limit_code)['Quota']['Value']
+
+    if new_rate_limit > quota_rate_limit:
+        raise ValueError(f'Given value of RestApiGwThrottlingRate: {new_rate_limit}, can not be more than '
+                         f'service quota Throttle rate: {quota_rate_limit}')
+
+    if new_burst_limit > quota_burst_limit:
+        raise ValueError(f'Given value of RestApiGwThrottlingBurst: {new_burst_limit}, can not be more than '
+                         f'service quota Throttle burst rate: {quota_burst_limit}')
+    if stage_name:
+        path: str = f'/apiStages/{gateway_id}:{stage_name}/throttle/{resource_path}/{http_method}'
+        patch_operations[0]['path'], patch_operations[1]['path'] = f'{path}/rateLimit', f'{path}/burstLimit'
+        updated_usage_plan = update_usage_plan(boto3_config, usage_plan_id, patch_operations)
+
+        for stage in updated_usage_plan['apiStages']:
+            if stage['apiId'] == gateway_id and stage['stage'] == stage_name:
+                output['RateLimit'] = stage['throttle'][f'{resource_path}/{http_method}']['rateLimit']
+                output['BurstLimit'] = stage['throttle'][f'{resource_path}/{http_method}']['burstLimit']
+    else:
+        updated_usage_plan = update_usage_plan(boto3_config, usage_plan_id, patch_operations)
+        output['RateLimit'] = updated_usage_plan['throttle']['rateLimit']
+        output['BurstLimit'] = updated_usage_plan['throttle']['burstLimit']
+
+    output['RateLimit'] = int(output['RateLimit'])
+
+    return output
