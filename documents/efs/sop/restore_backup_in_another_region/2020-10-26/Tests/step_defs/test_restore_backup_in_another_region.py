@@ -12,7 +12,6 @@ import logging
 import resource_manager.src.util.backup_utils as backup_utils
 
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
-from resource_manager.src.util.iam_utils import get_role_by_name
 from resource_manager.src.util.efs_utils import describe_filesystem, delete_filesystem
 
 logger = logging.getLogger(__name__)
@@ -29,12 +28,12 @@ def test_restore_backup():
 def cache_recovery_point_arn(resource_manager, boto3_session, ssm_test_cache,
                              cache_property, step_key, input_parameters):
     efs_id = extract_param_value(input_parameters, 'FileSystemID', resource_manager, ssm_test_cache)
+    iam_role_arn = extract_param_value(input_parameters, 'BackupRoleArn', resource_manager, ssm_test_cache)
     backup_vault_name = extract_param_value(input_parameters, 'BackupVaultName', resource_manager, ssm_test_cache)
-    default_iam_role_arn = get_role_by_name(boto3_session, "AWSBackupDefaultServiceRole")['Role']['Arn']
     efs_arn = describe_filesystem(boto3_session, efs_id)['FileSystems'][0]['FileSystemArn']
     recovery_point_arn = backup_utils.run_backup(boto3_session,
                                                  efs_arn,
-                                                 default_iam_role_arn,
+                                                 iam_role_arn,
                                                  backup_vault_name,
                                                  wait=True)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, recovery_point_arn)
