@@ -49,10 +49,10 @@ delete_snapshot_expression = 'delete cluster snapshot'
 @when(parsers.parse(cache_number_of_instances_expression))
 @then(parsers.parse(cache_number_of_instances_expression))
 def cache_number_of_instances(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     number_of_instances = docdb_utils.get_number_of_instances(boto3_session, cluster_id)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, number_of_instances)
@@ -62,10 +62,10 @@ def cache_number_of_instances(
 @when(parsers.parse(cache_az_expression))
 @then(parsers.parse(cache_az_expression))
 def get_instance_az(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
     instance_id = extract_param_value(
-        input_parameters, "DBInstanceIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBInstanceIdentifier", resource_pool, ssm_test_cache
     )
     instance_az = docdb_utils.get_instance_az(boto3_session, instance_id)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, instance_az)
@@ -74,20 +74,20 @@ def get_instance_az(
 @given(parsers.parse(cache_value_expression))
 @when(parsers.parse(cache_value_expression))
 def cache_value(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
     value = extract_param_value(
-        input_parameters, "Value", resource_manager, ssm_test_cache
+        input_parameters, "Value", resource_pool, ssm_test_cache
     )
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, value)
 
 
 @given(parsers.parse(cache_cluster_az_expression))
 def cache_random_cluster_az(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     cluster_azs = docdb_utils.get_cluster_azs(boto3_session, cluster_id)
     az = random.choice(cluster_azs)
@@ -97,10 +97,10 @@ def cache_random_cluster_az(
 @given(parsers.parse(cache_cluster_params_expression))
 @then(parsers.parse(cache_cluster_params_expression))
 def cache_cluster_info(
-        resource_manager, ssm_test_cache, boto3_session, with_az: str, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, with_az: str, cache_property, step_key, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     cluster_info = docdb_utils.describe_cluster(boto3_session, cluster_id)
     cache_value = {
@@ -117,10 +117,10 @@ def cache_cluster_info(
 @given(parsers.parse(cache_earliest_restorable_time_expression))
 @then(parsers.parse(cache_earliest_restorable_time_expression))
 def cache_earliest_restorable_time(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     cluster_info = docdb_utils.describe_cluster(boto3_session, cluster_id)
     restore_date = cluster_info['EarliestRestorableTime'] + datetime.timedelta(minutes=1)
@@ -130,10 +130,10 @@ def cache_earliest_restorable_time(
 
 @given(parsers.parse(create_snapshot_expression))
 def create_snapshot(
-        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     snapshot_id = cluster_id + '-' + datetime.datetime.now().strftime('%m-%d-%Y-%H-%M-%S')
     docdb_utils.create_snapshot(boto3_session, cluster_id, snapshot_id)
@@ -152,10 +152,10 @@ def create_snapshot(
 
 @then(parsers.parse(assert_azs_expression))
 def assert_instance_az_in_cluster_azs(
-        resource_manager, ssm_test_cache, boto3_session, actual_property, step_key_for_actual, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, actual_property, step_key_for_actual, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     cluster_azs = docdb_utils.get_cluster_azs(boto3_session, cluster_id)
     assert ssm_test_cache[step_key_for_actual][actual_property] in cluster_azs
@@ -163,13 +163,13 @@ def assert_instance_az_in_cluster_azs(
 
 @then(parsers.parse(remove_instance_expression))
 def delete_instance_after_test(
-        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     instance_id = extract_param_value(
-        input_parameters, "DBInstanceIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBInstanceIdentifier", resource_pool, ssm_test_cache
     )
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     docdb_utils.delete_instance(boto3_session, instance_id)
     is_instance_deleted = False
@@ -226,10 +226,10 @@ def wait_for_documentdb_with_params(cfn_output_params, time_to_wait, boto3_sessi
 
 @given(parsers.parse(cache_replica_id_expression))
 def cache_replica_identifier(
-        resource_manager, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     cluster_members = docdb_utils.get_cluster_members(boto3_session, cluster_id)
     replica_identifier = cluster_members[0]['DBInstanceIdentifier']
@@ -242,13 +242,13 @@ def cache_replica_identifier(
 
 @then(parsers.parse(assert_primary_instance_expression))
 def assert_is_cluster_member_primary_instance(
-        resource_manager, ssm_test_cache, boto3_session, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     instance_id = extract_param_value(
-        input_parameters, "DBInstanceIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBInstanceIdentifier", resource_pool, ssm_test_cache
     )
     cluster_members = docdb_utils.get_cluster_members(boto3_session, cluster_id)
     is_cluster_writer = False
@@ -260,10 +260,10 @@ def assert_is_cluster_member_primary_instance(
 
 @then(parsers.parse(wait_for_instances_availability_expression))
 def wait_for_instances(
-        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     each_instance_available = False
     start_time = time.time()
@@ -285,10 +285,10 @@ def wait_for_instances(
 
 @then(parsers.parse(delete_cluster_instances_expression))
 def delete_replaced_cluster_instances(
-        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "ReplacedDBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "ReplacedDBClusterIdentifier", resource_pool, ssm_test_cache
     )
     replaced_cluster_id = cluster_id + "-replaced"
     docdb_utils.delete_cluster_instances(boto3_session, replaced_cluster_id, True, time_to_wait)
@@ -297,10 +297,10 @@ def delete_replaced_cluster_instances(
 
 @then(parsers.parse(delete_cluster_expression))
 def delete_replaced_cluster(
-        resource_manager, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
 ):
     cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_manager, ssm_test_cache
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     replaced_cluster_id = cluster_id + "-replaced"
     docdb_utils.delete_cluster(boto3_session, replaced_cluster_id, True, time_to_wait)
@@ -309,7 +309,7 @@ def delete_replaced_cluster(
 
 @then(parsers.parse(delete_snapshot_expression))
 def delete_cluster_snapshot(
-        resource_manager, ssm_test_cache, boto3_session
+        resource_pool, ssm_test_cache, boto3_session
 ):
     snapshot_id = ssm_test_cache["before"]['SnapshotId']
     docdb_utils.delete_snapshot(boto3_session, snapshot_id)

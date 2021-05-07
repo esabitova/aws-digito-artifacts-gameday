@@ -7,6 +7,9 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                           | ON_DEMAND    |
       | documents/sqs/test/breaking_the_policy_for_sqs/2020-11-27/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-BreakingThePolicyForSQS_2020-11-27" SSM document
+    And cache queue url as "QueueUrl" "before" SSM automation execution for teardown
+      | QueueUrl                                       |
+      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -44,10 +47,6 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And purge the queue
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
     And cache policy as "Policy" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

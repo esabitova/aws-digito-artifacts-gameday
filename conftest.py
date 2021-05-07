@@ -34,6 +34,7 @@ from resource_manager.src.util.ssm_utils import send_step_approval
 from resource_manager.src.alarm_manager import AlarmManager
 from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
+from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
 
 
 def pytest_addoption(parser):
@@ -167,19 +168,19 @@ def resource_pool(request, boto3_session):
     Creates ResourcePool fixture for every test case.
     :param request: The pytest request object
     :param boto3_session The boto3 session
-    :return: The resource manager fixture
+    :return: The resource pool fixture
     """
     test_session_id = request.session.config.option.test_session_id
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
-    rm = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id)
-    yield rm
+    rp = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id)
+    yield rp
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
     # released and fixed on 'pytest_sessionfinish'
     if request.session.exitstatus != ExitCode.INTERRUPTED:
-        rm.release_resources()
+        rp.release_resources()
 
 
 @pytest.fixture(scope='function')
@@ -511,6 +512,16 @@ def cache_rollback_execution_id(ssm_document, ssm_test_cache, input_parameters):
     ssm_execution_id = parameters[0].get('ExecutionId')
     _put_ssm_execution_id_in_test_cache(ssm_document.get_step_output(
         ssm_execution_id, 'TriggerRollback', 'RollbackExecutionId'), ssm_test_cache)
+
+
+@when(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
+            '\n{input_parameters}'))
+def cache_execution_output_value(ssm_test_cache, boto3_session, target_property, cache_property, input_parameters):
+    execution_id = parse_param_values_from_table(input_parameters, {
+        'cache': ssm_test_cache,
+        'cfn-output': cfn_output_params})[0].get('ExecutionId')
+    target_property_value = get_ssm_execution_output_value(boto3_session, execution_id, target_property)
+    put_to_ssm_test_cache(ssm_test_cache, "after", cache_property, target_property_value)
 
 
 @when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))

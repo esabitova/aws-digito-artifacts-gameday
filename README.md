@@ -311,12 +311,12 @@ Generic “given“ step implementation which defines resources to be used by in
 
 ```
 @given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
-def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
+def set_up_cfn_template_resources(resource_pool, cfn_input_parameters):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    :param resource_manager: The resource manager which will take care of managing given template deployment and providing reosurces for tests
+    :param resource_pool: The resource pool which will take care of managing given template deployment and providing reosurces for tests
     :param cfn_input_parameters: The table of parameters as input for cloud formation template
     """
     for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
@@ -330,13 +330,13 @@ def set_up_cfn_template_resources(resource_manager, cfn_input_parameters):
             if len(value) > 0:
                 cf_input_params[key] = value
         rm_resource_type = ResourcePool.ResourceType.from_string(resource_type)
-        resource_manager.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
+        resource_pool.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 ```
 <b>File location:</b>.../AwsDigitoArtifactsGameday/conftest.py
 
 ### Common step to execute SSM automation
-Generic “given“ step implementation which executes SSM automation. Before execution it pulls available resources which will be used by SSM automation from resource manager [resource_manager.get_cfn_output_params()]. 
+Generic “given“ step implementation which executes SSM automation. Before execution it pulls available resources which will be used by SSM automation from resource manager [resource_pool.get_cfn_output_params()]. 
 ```
 @given(parsers.parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'), target_fixture='ssm_execution_id')
 def execute_ssm_automation(ssm_document, ssm_document_name, resource_pool, ssm_test_cache, ssm_input_parameters):
@@ -477,7 +477,7 @@ For this purpose we have cerated tool which you can execute using following comm
   * LIST - lists templates which are deployed with associated stacks  
 * -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).
 * -p, --aws_profile (optional): AWS profile name for boto3 session creation.
-NOTE: More information about how to use this tool you can execure command: ```python3.8 resource_manager/src/resource_tool.py --help``` 
+NOTE: More information about how to use this tool you can execure command: ```python3.8 resource_manager/src/tools/resource_tool.py --help``` 
 #### Permissions
 In order to execute tool you will have to configure AWS profile on which you would like to execute this resource tool, more about AWS profiles you can find here:
 * https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_profiles.html

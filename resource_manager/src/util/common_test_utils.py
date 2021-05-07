@@ -3,17 +3,17 @@ from sttable import parse_str_table
 from resource_manager.src.util import param_utils as param_utils
 
 
-def extract_param_value(input_parameters, param_key, resource_manager, ssm_test_cache) -> str:
+def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cache) -> str:
     """
     Extract value of CloudFormation output parameter
     :param input_parameters: the table with input parameters
     :param param_key: the column name in the table with input parameters
-    :param resource_manager: AWS resource manager
+    :param resource_pool: Resource pool
     :param ssm_test_cache: cache
     :return: extracted value of CloudFormation output parameter
     """
     param_val_ref = parse_str_table(input_parameters).rows[0][param_key]
-    cf_output = resource_manager.get_cfn_output_params()
+    cf_output = resource_pool.get_cfn_output_params()
     param_value = param_utils.parse_param_value(param_val_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
     return param_value
 
@@ -47,12 +47,12 @@ def generate_different_value_by_ranges(from_range: int, to_range: int, old_value
     return new_value
 
 
-def generate_and_cache_different_value_by_property_name(resource_manager, ssm_test_cache, old_property, from_range,
+def generate_and_cache_different_value_by_property_name(resource_pool, ssm_test_cache, old_property, from_range,
                                                         to_range, cache_property, cache_key, input_parameters):
     """
     Extract value of property, generate different value that extracted by ranges and put result in cache
     with the key cache_property which should be placed under other key - cache_key
-    :param resource_manager: AWS resource manager
+    :param resource_pool: Resource pool
     :param ssm_test_cache: cache
     :param old_property: CloudFormation output parameter to extract value
     :param from_range: from range
@@ -61,7 +61,7 @@ def generate_and_cache_different_value_by_property_name(resource_manager, ssm_te
     :param cache_property: 2-level cache key
     :param input_parameters: the table with input parameters
     """
-    old_value = extract_param_value(input_parameters, old_property, resource_manager, ssm_test_cache)
+    old_value = extract_param_value(input_parameters, old_property, resource_pool, ssm_test_cache)
     cache_value = generate_different_value_by_ranges(int(from_range), int(to_range), int(old_value))
     put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, cache_value)
 
@@ -81,12 +81,12 @@ def generate_different_value_from_list(input_list: str, old_value: str) -> str:
     return new_value
 
 
-def generate_and_cache_different_list_value_by_property_name(resource_manager, ssm_test_cache, old_property, input_list,
+def generate_and_cache_different_list_value_by_property_name(resource_pool, ssm_test_cache, old_property, input_list,
                                                              cache_property, cache_key, input_parameters):
     """
     Extract value of property, generate different value that extracted by ranges and put result in cache
     with the key cache_property which should be placed under other key - cache_key
-    :param resource_manager: AWS resource manager
+    :param resource_pool: Resource pool
     :param ssm_test_cache: cache
     :param old_property: CloudFormation output parameter to extract value
     :param input_list: comma-separated list to take from
@@ -94,7 +94,7 @@ def generate_and_cache_different_list_value_by_property_name(resource_manager, s
     :param cache_property: 2-level cache key
     :param input_parameters: the table with input parameters
     """
-    old_value = extract_param_value(input_parameters, old_property, resource_manager, ssm_test_cache)
+    old_value = extract_param_value(input_parameters, old_property, resource_pool, ssm_test_cache)
     cache_value = generate_different_value_from_list(input_list, old_value)
     put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, cache_value)
 

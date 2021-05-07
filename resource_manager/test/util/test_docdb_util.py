@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from botocore.exceptions import ClientError
@@ -8,6 +8,7 @@ import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.docdb_utils as docdb_utils
 from documents.util.scripts.test.test_docdb_util import DOCDB_CLUSTER_ID, DOCDB_INSTANCE_ID, \
     get_docdb_instances_side_effect, get_cluster_azs_side_effect, get_docdb_instances_with_status_side_effect
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 
 @pytest.mark.unit_test
@@ -129,7 +130,13 @@ class TestDocDBUtil(unittest.TestCase):
         ])
         self.assertEqual(result, api_value_mock['DBInstances'])
 
-    def test_delete_cluster_db_cluster_not_found_fault(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_cluster_db_cluster_not_found_fault(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_docdb_service.describe_db_clusters.side_effect = \
             ClientError({'Error': {'Code': 'DBClusterNotFoundFault'}}, "")
         result = docdb_utils.delete_cluster(self.session_mock, DOCDB_CLUSTER_ID)
@@ -139,7 +146,13 @@ class TestDocDBUtil(unittest.TestCase):
         )
         self.assertEqual(None, result)
 
-    def test_delete_cluster_with_wait(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_cluster_with_wait(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         cluster_members = [
             {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1-non-existing'},
             {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2-non-existing'}
@@ -154,7 +167,13 @@ class TestDocDBUtil(unittest.TestCase):
             SkipFinalSnapshot=True
         )
 
-    def test_delete_cluster_exception(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_cluster_exception(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         self.mock_docdb_service.describe_db_clusters.return_value = {}
         self.assertRaises(Exception, docdb_utils.delete_cluster, self.session_mock, DOCDB_CLUSTER_ID, True, 1)
         self.mock_docdb_service.delete_db_cluster.assert_called_once_with(
@@ -250,7 +269,13 @@ class TestDocDBUtil(unittest.TestCase):
         self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
         self.mock_docdb_service.delete_db_instance.assert_has_calls(calls)
 
-    def test_delete_cluster_instances_with_wait(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_cluster_instances_with_wait(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         cluster_members = [
             {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1'},
             {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2'}
@@ -274,7 +299,13 @@ class TestDocDBUtil(unittest.TestCase):
         self.mock_docdb_service.describe_db_clusters.assert_has_calls(describe_calls)
         self.mock_docdb_service.delete_db_instance.assert_has_calls(delete_calls)
 
-    def test_delete_cluster_instances_exception(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_cluster_instances_exception(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         cluster_members = [
             {'IsClusterWriter': True, 'DBInstanceIdentifier': 'instance1'},
             {'IsClusterWriter': False, 'DBInstanceIdentifier': 'instance2'}

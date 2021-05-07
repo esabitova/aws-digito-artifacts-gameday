@@ -122,3 +122,30 @@ class TestLambdaUtil(unittest.TestCase):
             FunctionName=LAMBDA_ARN,
             Qualifier=LAMBDA_VERSION
         )
+
+    def test_get_lambda_state(self):
+        state = 'Active'
+        self.mock_lambda.get_function.return_value = {'Configuration': {'State': state}}
+        response = lambda_utils.get_lambda_state(LAMBDA_ARN, self.session_mock)
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=LAMBDA_ARN
+        )
+        self.assertEqual(response, state)
+
+    def test_create_alias(self):
+        alias_name = 'alias_name'
+        lambda_version = '1'
+        lambda_utils.create_alias(LAMBDA_ARN, alias_name, lambda_version, self.session_mock)
+        self.mock_lambda.create_alias.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            Name=alias_name,
+            FunctionVersion=lambda_version
+        )
+
+    def test_delete_alias(self):
+        alias_name = 'alias_name'
+        lambda_utils.delete_alias(LAMBDA_ARN, alias_name, self.session_mock)
+        self.mock_lambda.delete_alias.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            Name=alias_name
+        )

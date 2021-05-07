@@ -232,16 +232,8 @@ Resources:
               Namespace: "AWS/States"
               MetricName: "ExecutionsStarted"
               Dimensions:
-                -
-                  Name: "StateMachineArn"
-                  Value:
-                    !Join [
-                        "",
-                      [
-                        !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
-                        !Ref StateMachine,
-                      ],
-                    ]
+                - Name: "StateMachineArn"
+                  Value: !Ref StateMachine
             Period: 60
             Stat: "Average"
           ReturnData: true
@@ -305,35 +297,25 @@ Resources:
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
       TreatMissingData: "missing"
       Metrics:
-        -
-          Id: "m1"
+        - Id: "m1"
           MetricStat:
             Metric:
               Namespace: "AWS/States"
               MetricName: "ExecutionTime"
               Dimensions:
-                -
-                  Name: "StateMachineArn"
-                  Value:
-                    !Join [
-                        "",
-                      [
-                        !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
-                        !Ref StateMachine,
-                      ],
-                    ]
+                - Name: "StateMachineArn"
+                  Value: !Ref StateMachine
             Period: 60
             Stat: "Average"
           ReturnData: true
-        -
-          Id: "ad1"
+        - Id: "ad1"
           Expression:
             !Join [
                 "",
               [
-                "ANOMALY_DETECTION_BAND(m1, ",
-                !Ref AverageExecutionTimeThreshold,
-                ")",
+                  "ANOMALY_DETECTION_BAND(m1, ",
+                  !Ref AverageExecutionTimeThreshold,
+                  ")",
               ],
             ]
           Label: "ExecutionTime (expected)"
@@ -349,8 +331,7 @@ Resources:
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
       TreatMissingData: "missing"
       Metrics:
-        -
-          Id: "m1"
+        - Id: "m1"
           MetricStat:
             Metric:
               Namespace: "AWS/Lambda"
@@ -361,8 +342,7 @@ Resources:
             Period: 60
             Stat: "Average"
           ReturnData: true
-        -
-          Id: "ad1"
+        - Id: "ad1"
           Expression:
             !Join [
                 "",
@@ -385,8 +365,7 @@ Resources:
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
       TreatMissingData: "missing"
       Metrics:
-        -
-          Id: "m1"
+        - Id: "m1"
           MetricStat:
             Metric:
               Namespace: "AWS/Lambda"
@@ -397,8 +376,7 @@ Resources:
             Period: 60
             Stat: "Average"
           ReturnData: true
-        -
-          Id: "ad1"
+        - Id: "ad1"
           Expression:
             !Join [
                 "",
@@ -421,14 +399,7 @@ Resources:
       Statistic: "Maximum"
       Dimensions:
         - Name: "StateMachineArn"
-          Value:
-            !Join [
-                "",
-              [
-                !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
-                !Ref StateMachine,
-              ],
-            ]
+          Value: !Ref StateMachine
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -445,14 +416,7 @@ Resources:
       Statistic: "Maximum"
       Dimensions:
         - Name: "StateMachineArn"
-          Value:
-            !Join [
-                "",
-              [
-                !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
-                !Ref StateMachine,
-              ],
-            ]
+          Value: !Ref StateMachine
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -469,14 +433,7 @@ Resources:
       Statistic: "Maximum"
       Dimensions:
         - Name: "StateMachineArn"
-          Value:
-            !Join [
-                "",
-              [
-                !Sub "arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine",
-                !Ref StateMachine,
-              ],
-            ]
+          Value: !Ref StateMachine
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -487,7 +444,6 @@ Resources:
     Type: AWS::StepFunctions::StateMachine
     Properties:
       RoleArn: !GetAtt StateMachineRole.Arn
-      StateMachineName: StateMachine
       DefinitionString: |
         {
           "Comment": "A Hello World example of the Amazon States Language using Pass states",

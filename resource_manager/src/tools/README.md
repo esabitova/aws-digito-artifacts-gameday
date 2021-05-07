@@ -12,3 +12,8 @@ For this purpose we have cerated tool which you can execute using following comm
 * -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).
 * -p, --aws_profile (optional): AWS profile name for boto3 session creation.
 NOTE: More information about how to use this tool you can execure command: ```python3.8 resource_manager/src/tools/resource_tool.py --help``` 
+#### Credentials
+In order to execute tool you will have to configure AWS profile on which you would like to execute this resource tool, more about AWS profiles you can find here:
+* https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_profiles.html
+###### Roles
+# TODO (semiond): Add list of permissions.

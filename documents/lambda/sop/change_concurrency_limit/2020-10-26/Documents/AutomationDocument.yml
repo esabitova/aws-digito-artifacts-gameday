@@ -24,6 +24,7 @@ outputs:
   - "CheckFeasibility.MaximumPossibleReservedConcurrency"
   - "SetReservedConcurrentExecutions.ReservedConcurrencyLeft"
   - "SetReservedConcurrentExecutions.NewReservedConcurrencyValue"
+  - "OutputRecoveryTime.RecoveryTime"
 
 parameters:
   LambdaARN:

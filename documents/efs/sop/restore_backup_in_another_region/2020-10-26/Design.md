@@ -4,7 +4,7 @@ efs:sop:restore_backup_in_another_region:2020-10-26
 
 ## Intent
 
-Restore backup in case of software failure or if it's region failure and backup relicated to another region, restore it
+Restore backup in case of software failure or if it's region failure and backup replicated to another region, restore it
 there
 
 ## Type
@@ -79,16 +79,18 @@ No.
     * Type: aws:executeScript
     * Inputs:
         * `InputPayload`:
-            * `RecoveryPointArn`: ARN for recovery point
-            * `IamRoleArn`: IAM role used to restore backup (RestoreJobIamRoleArn)
-            * `IdempotencyToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
-            * `Metadata`:
-                * `file-system-id`: EFS volume id (FileSystemID)
-                * `Encrypted`: Is file system encrypted (GetFileSystemMetadata.Encrypted)
-                * `KmsKeyId`: KMS key ID to encrypt file system (GetFileSystemMetadata.KmsKeyId)
-                * `PerformanceMode`: Throughput mode of the file system (GetFileSystemMetadata.PerformanceMode)
-                * `newFileSystem`: Restore to a new EFS volume ("true")
-                * `CreationToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
+           * `Region`: destination Region Name
+           * `RecoveryPointArn`: ARN for recovery point
+           * `IamRoleArn`: IAM role used to restore backup (RestoreJobIamRoleArn)
+           * `IdempotencyToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
+           * `ResourceType`: constant string 'EFS'
+           * `Metadata`:
+               * `file-system-id`: EFS volume id (FileSystemID)
+               * `Encrypted`: Is file system encrypted (GetFileSystemMetadata.Encrypted)
+               * `KmsKeyId`: KMS key ID to encrypt file system (GetFileSystemMetadata.KmsKeyId)
+               * `PerformanceMode`: Throughput mode of the file system (GetFileSystemMetadata.PerformanceMode)
+               * `newFileSystem`: Restore to a new EFS volume ("true")
+               * `CreationToken`: Unique token (current datetime `{{global:DATE_TIME}}`)
     * Outputs:
         * `RestoreJobId`: ID of the started job
     * Explanation:
@@ -105,7 +107,7 @@ No.
         * Call [DescribeRestoreJob](https://docs.aws.amazon.com/aws-backup/latest/devguide/API_DescribeRestoreJob.html)
           from `backup` service
         * Verify that the restore job has `COMPLETED` status
-1. `OutputRestoreTime`
+1. `OutputRecoveryTime`
     * Type: aws:executeScript
     * Inputs:
         * `InputPayload`:
@@ -118,5 +120,9 @@ No.
 ## Outputs
 
 * `RestoreBackupJob.RestoreJobId`: ID of the restore job
-* `OutputRestoreTime.RecoveryTime`: Recovery process duration
+* `OutputRecoveryTime.RecoveryTime`: Recovery process duration
 * `VerifyRestoreJobStatus.RecoveryPointArn`: Recovery point ARN
+
+
+ 
+

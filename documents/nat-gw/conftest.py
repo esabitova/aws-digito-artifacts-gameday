@@ -11,10 +11,10 @@ from resource_manager.src.util.param_utils import parse_param_value
 
 
 @given(parse('trigger lambda "{lambda_arn_ref}" asynchronously'))
-def trigger_lambda_async(resource_manager,
+def trigger_lambda_async(resource_pool,
                          boto3_session: boto3.Session,
                          lambda_arn_ref: str):
-    cf_output = resource_manager.get_cfn_output_params()
+    cf_output = resource_pool.get_cfn_output_params()
     lambda_arn = parse_param_value(lambda_arn_ref, {'cfn-output': cf_output})
     payload = json.dumps({
         'duration_sec': 720  # 12 minutes
