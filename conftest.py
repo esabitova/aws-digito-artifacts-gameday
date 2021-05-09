@@ -32,7 +32,6 @@ from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.ssm_utils import send_step_approval
 from resource_manager.src.alarm_manager import AlarmManager
-from publisher.src.alarm_document_parser import AlarmDocumentParser
 from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
 from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
@@ -164,6 +163,14 @@ def cfn_output_params(resource_manager):
 
 
 @pytest.fixture(scope='function')
+def cfn_installed_alarms(alarm_manager):
+    """
+    Fixture for cfn_installed_alarms from alarm_manager manager.
+    """
+    return alarm_manager.get_deployed_alarms()
+
+
+@pytest.fixture(scope='function')
 def resource_manager(request, boto3_session):
     """
     Creates ResourceManager fixture for every test case.
@@ -201,6 +208,7 @@ def setup(request, ssm_test_cache, boto3_session):
     :param ssm_test_cache The test cache
     :param boto3_session The boto3 session
     """
+
     def tear_down():
         # Terminating SSM automation execution at the end of each test.
         ssm = boto3_session.client('ssm')
@@ -527,9 +535,11 @@ def cache_execution_output_value(ssm_test_cache, boto3_session, target_property,
 
 @when(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
 @then(parse('Wait for alarm to be in state "{alarm_state}" for "{timeout}" seconds\n{input_parameters}'))
-def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state, timeout, input_parameters):
+def wait_for_alarm(cfn_output_params, cfn_installed_alarms, ssm_test_cache, boto3_session, alarm_state, timeout,
+                   input_parameters):
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
-                                                                  'cfn-output': cfn_output_params})
+                                                                  'cfn-output': cfn_output_params,
+                                                                  'alarm': cfn_installed_alarms})
     alarm_name = parameters[0].get('AlarmName')
     if alarm_name is None:
         raise Exception('Parameter with name [AlarmName] should be provided')
@@ -541,11 +551,11 @@ def wait_for_alarm(cfn_output_params, ssm_test_cache, boto3_session, alarm_state
              'check every {delay_sec} seconds'))
 @then(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
             'check every {delay_sec} seconds'))
-def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str,
+def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, cfn_installed_alarms: dict,
                            cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
-
     alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
-                                                    'cache': ssm_test_cache})
+                                                    'cache': ssm_test_cache,
+                                                    'alarm': cfn_installed_alarms})
     alarm_state = AlarmState.INSUFFICIENT_DATA
     wait_sec = int(wait_sec)
     delay_sec = int(delay_sec)
@@ -585,22 +595,8 @@ def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
                                                   'cfn-output': cfn_output_params})
                     for name, val in
                     parse_str_table(input_parameters_table).rows[0].items()}
-    alarm_name = alarm_reference_id.split(':')[2]
-    raw_alarm_document = AlarmDocumentParser.from_reference_id(alarm_reference_id)
-    variables = raw_alarm_document.get_variables()
 
-    alarm_document = raw_alarm_document.replace_variables(**input_params)
-
-    if alarm_document.get_variables():
-        raise Exception(f'Test must provide values to the following variables: '
-                        f'{str(list(alarm_document.get_variables()))}'
-                        f'referenceId: {alarm_reference_id}'
-                        f'path: {AlarmDocumentParser.get_document_directory(alarm_reference_id)}')
-
-    alarm_manager.deploy_alarm(alarm_name,
-                               alarm_document.get_content(),
-                               {k: v for k, v in input_params.items()
-                                if k not in variables})
+    alarm_manager.deploy_alarm(alarm_reference_id, input_params)
 
 
 @then(parse('assert metrics for all alarms are populated'))

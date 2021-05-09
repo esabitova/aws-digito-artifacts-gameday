@@ -6,7 +6,7 @@ Feature: Alarm Setup - EFS ClientConnections
       |resource_manager/cloud_formation_templates/EFSTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
     When alarm "efs:alarm:client_connections:2020-04-01" is installed
-      | SNSTopicARN                       |FileSystem                       | Threshold | AlarmName           | AlarmLogicalId      |
-      | {{cfn-output:SnsForAlarms>Topic}} |{{cfn-output:EFSTemplate>EFSID}} | 1         | EFSClientConnection | EFSClientConnection |
+      | SNSTopicARN                       |FileSystem                       | Threshold
+      | {{cfn-output:SnsForAlarms>Topic}} |{{cfn-output:EFSTemplate>EFSID}} | 1
     Then assert metrics for all alarms are populated
 

@@ -6,8 +6,8 @@ Feature: Alarm Setup - EFS Mount Failures (Using Metric)
       |resource_manager/cloud_formation_templates/EFSTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
     When alarm "efs:alarm:mount_failure:2020-04-01" is installed
-      | SNSTopicARN                       | AlarmName        | AlarmLogicalId
-      | {{cfn-output:SnsForAlarms>Topic}} | EFSMountFailures | EFSMountFailures
+      | SNSTopicARN                       | Threshold
+      | {{cfn-output:SnsForAlarms>Topic}} | 0
     And ec2 {{cfn-output:EFSTemplate>InstanceId}} is rebooted
     Then assert metrics for all alarms are populated
 
