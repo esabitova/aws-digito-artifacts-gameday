@@ -102,22 +102,6 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session) -> bool:
     return False
 
 
-def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, boto3_session: Session) -> dict:
-    """
-    Updates TLL setting for the given table
-    :param table_name: The table name
-    :param is_enabled: The flag that says if TTL needs to be enabled
-    :param attribute_name: The name of the attribute that will be used to decided on TTL
-    :param boto3_session: The boto3 session
-    """
-    return _execute_boto3_dynamodb(boto3_session=boto3_session,
-                                   delegate=lambda x: x.update_time_to_live(TableName=table_name,
-                                                                            TimeToLiveSpecification={
-                                                                                "Enabled": is_enabled,
-                                                                                "AttributeName": attribute_name
-                                                                            }))
-
-
 def try_remove_replica(table_name: str,
                        global_table_regions: List[str],
                        boto3_session: Session,

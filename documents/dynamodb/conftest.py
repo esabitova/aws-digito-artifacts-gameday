@@ -7,7 +7,7 @@ from resource_manager.src.util.dynamo_db_utils import (
     add_global_table_and_wait_for_active,
     drop_and_wait_dynamo_db_table_if_exists,
     get_earliest_recovery_point_in_time,
-    remove_global_table_and_wait_for_active, update_time_to_live, wait_table_to_be_active)
+    remove_global_table_and_wait_for_active, wait_table_to_be_active)
 
 
 @given(parsers.parse('cache table property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
@@ -69,22 +69,6 @@ def find_valid_recovery_point_in_time(ssm_test_cache,
         get_earliest_recovery_point_in_time(table_name=table_name, boto3_session=boto3_session)
 
     ssm_test_cache[field_name] = str(valid_recovery_point.strftime("%Y-%m-%dT%H:%M:%S%z"))
-
-
-@given(parsers.parse("enable ttl on dynamodb table {table_name_ref} with attribute name {attribute_name_ref}"))
-def enable_tll(ssm_test_cache,
-               resource_manager,
-               boto3_session,
-               table_name_ref,
-               attribute_name_ref):
-    cf_output = resource_manager.get_cfn_output_params()
-    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
-    attribute_name = param_utils.parse_param_value(
-        attribute_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
-    update_time_to_live(table_name=table_name,
-                        is_enabled=True,
-                        attribute_name=attribute_name,
-                        boto3_session=boto3_session)
 
 
 @given(parsers.parse("enabled global dynamodb table {table_name_ref} in the region "

@@ -8,7 +8,7 @@ from resource_manager.src.util.dynamo_db_utils import (
     _check_if_table_deleted, _describe_continuous_backups, _describe_table,
     _execute_boto3_dynamodb, _update_table,
     remove_global_table_and_wait_for_active, try_remove_replica,
-    update_time_to_live, add_global_table_and_wait_for_active,
+    add_global_table_and_wait_for_active,
     get_earliest_recovery_point_in_time, drop_and_wait_dynamo_db_table_if_exists, wait_table_to_be_active)
 
 GENERIC_SUCCESS_RESULT = {
@@ -160,7 +160,6 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
         self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONCE
         self.dynamodb_client_mock.describe_continuous_backups.return_value = DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE
-        self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
 
         self.dynamodb_client_mock\
             .enable_kinesis_streaming_destination\
@@ -220,15 +219,6 @@ class TestDynamoDbUtil(unittest.TestCase):
                                          table_name="my_table")
 
         self.assertTrue(result)
-
-    def test_update_time_to_live(self):
-        result = update_time_to_live(boto3_session=self.session_mock,
-                                     table_name="my_table",
-                                     is_enabled=True,
-                                     attribute_name='End_Date',
-                                     )
-
-        self.assertEqual(result, UPDATE_TTL_RESPONSE)
 
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'TableStatus:': 'CREATING'}})
