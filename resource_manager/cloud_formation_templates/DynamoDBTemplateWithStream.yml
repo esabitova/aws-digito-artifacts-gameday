@@ -18,11 +18,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for DynamoDB and related resources. Contains all alarms
 Parameters:
-  DynamoDBTableName:
-    Type: String
-    Description: The DynamoDB Table Name
-    Default: digito-dynamodb-table
-
   StreamViewType:
     Type: String
     Description: Valid Values are NEW_IMAGE | OLD_IMAGE | NEW_AND_OLD_IMAGES | KEYS_ONLY
