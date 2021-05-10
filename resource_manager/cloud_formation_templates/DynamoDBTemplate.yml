@@ -26,9 +26,6 @@ Outputs:
   DynamoDBTable:
     Description: The DynamoDB Table Name
     Value: !Ref DynamoDBTable
-  DynamoDBTableARN:
-    Description: The DynamoDB Table ARN
-    Value: !GetAtt DynamoDBTable.Arn
   WriteThrottleEventsAlarmName:
     Description: Alarm
     Value: !Ref WriteThrottleEventsAlarm

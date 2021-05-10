@@ -31,9 +31,6 @@ Outputs:
   DynamoDBTable:
     Description: The DynamoDB Table Name
     Value: !Ref DynamoDBTable
-  DynamoDBTableARN:
-    Description: The DynamoDB Table ARN
-    Value: !GetAtt DynamoDBTable.Arn
 Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
