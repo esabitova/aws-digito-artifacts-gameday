@@ -67,7 +67,7 @@ Resources:
             Effect: "Allow"
             Principal:
               Service:
-                - application-autoscaling.amazonaws.com
+                - dynamodb.application-autoscaling.amazonaws.com
             Action:
               - "sts:AssumeRole"
       Path: "/"
@@ -84,7 +84,6 @@ Resources:
                   - "dynamodb:UpdateTable"
                   - "cloudwatch:PutMetricAlarm"
                   - "cloudwatch:DescribeAlarms"
-                  - "cloudwatch:GetMetricStatistics"
                   - "cloudwatch:SetAlarmState"
                   - "cloudwatch:DeleteAlarms"
                 Resource: "*"
