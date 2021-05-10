@@ -1,6 +1,7 @@
 @dynamodb
 Feature: SSM automation document to restore the database from point in time.
 
+  # TODO: validate the all the copied table properties on the target table
   Scenario: Restores table to the latest available point
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |

@@ -55,16 +55,16 @@ def _update_tags(resource_arn: str, tags: List[dict]) -> dict:
         delegate=lambda x: x.tag_resource(ResourceArn=resource_arn, Tags=tags))
 
 
-def _enable_kinesis_destinations(table_name: str, kds_arn: str) -> dict:
+def _enable_kinesis_destinations(table_name: str, kinesis_arn: str) -> dict:
     """
     Enabled kinesis destination
     :param table_name: The table name
-    :param kds_arn: The Kinesis Data Stream ARN
+    :param kinesis_arn: The Kinesis Data Stream ARN
     :return: The dictionary of kinesis destinations
     """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.enable_kinesis_streaming_destination(TableName=table_name,
-                                                                  StreamArn=kds_arn))
+                                                                  StreamArn=kinesis_arn))
 
 
 def _describe_time_to_live(table_name: str) -> dict:
@@ -358,7 +358,7 @@ def copy_active_kinesis_destinations(events: dict, context: dict) -> dict:
                     if d['DestinationStatus'] in ACTIVE_STATUSES]
 
     for d in destinations:
-        _enable_kinesis_destinations(table_name=target_table_name, kds_arn=d)
+        _enable_kinesis_destinations(table_name=target_table_name, kinesis_arn=d)
 
     return destinations
 

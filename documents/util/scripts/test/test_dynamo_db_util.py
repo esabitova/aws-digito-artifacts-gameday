@@ -480,11 +480,11 @@ class TestDynamoDbUtil(unittest.TestCase):
         expected_output = ["TestStreamArn1"]
         self.assertEqual(result, expected_output)
         get_destination_mock.assert_called_with(table_name='my_table')
-        enable_mock.assert_has_calls([call(table_name='my_table_target', kds_arn='TestStreamArn1')])
+        enable_mock.assert_has_calls([call(table_name='my_table_target', kinesis_arn='TestStreamArn1')])
 
     def test__enable_kinesis_destinations(self):
 
-        result = _enable_kinesis_destinations(table_name="my_table", kds_arn='arn')
+        result = _enable_kinesis_destinations(table_name="my_table", kinesis_arn='arn')
 
         self.assertEqual(result, ENABLE_KINESIS_DESTINATIONS_RESPONSE)
 
