@@ -118,20 +118,6 @@ def update_time_to_live(table_name: str, is_enabled: bool, attribute_name: str, 
                                                                             }))
 
 
-def add_kinesis_destinations(table_name: str, kds_arn: str, boto3_session: Session) -> dict:
-    """
-    Adds a new kinesis destination
-    :param table_name: The table name
-    :param kds_arn: The ARN of Kinesis Data Stream
-    :param boto3_session: The boto3 session
-    """
-    return \
-        _execute_boto3_dynamodb(boto3_session=boto3_session,
-                                delegate=lambda x:
-                                x.enable_kinesis_streaming_destination(TableName=table_name,
-                                                                       StreamArn=kds_arn))
-
-
 def try_remove_replica(table_name: str,
                        global_table_regions: List[str],
                        boto3_session: Session,
