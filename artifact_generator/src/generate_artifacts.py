@@ -3,13 +3,23 @@ import os
 import pathlib
 import re
 from artifact_generator.src.input_validator import InputValidator as validator
+from typing import Callable
+from util.bg_colors import BgColors
 
 AUTOMATION_DOC_NAME = 'AutomationDocument.yml'
 ROLE_DOC_NAME = 'AutomationAssumeRoleTemplate.yml'
 METADATA_DOC_NAME = 'metadata.json'
+USUAL_CASE_SOP_DOC_NAME = 'usual_case_sop.feature'
+USUAL_CASE_TEST_DOC_NAME = 'usual_case_test.feature'
+FAILED_DOC_TEST_NAME = 'failed.feature'
+ROLLBACK_TEST_DOC_NAME = 'rollback_previous.feature'
 SYNTHETIC_ALARM_PREFIX = 'Synthetic'
 RISKS = ['SMALL', 'MEDIUM', 'HIGH']
 FAILURE_TYPES = ['REGION', 'AZ', 'HARDWARE', 'SOFTWARE']
+FILE_PATH = pathlib.Path(__file__)
+PACKAGE_DIR = FILE_PATH.parent.parent.parent.absolute()
+TEMPLATES_DIR = os.path.join(FILE_PATH.parent.absolute(), 'templates')
+CFN_TEMPLATES_PATH = os.path.join(PACKAGE_DIR, "resource_manager", "cloud_formation_templates")
 
 
 def __is_exists(path: str):
@@ -36,9 +46,10 @@ def __get_date():
     date.
     :return: date
     """
-    date = input('Enter date in YYYY-MM-DD format if in the past, else we default to current date: \n')
+    date = __get_input('Enter date in YYYY-MM-DD format if in the past, else we default to current date: \n')
     if not date.strip():
         date = datetime.date.today().strftime("%Y-%m-%d")
+        print('Ok, using default value of {} for date\n'.format(date))
     else:
         validator.validate_date_input(date)
     return date
@@ -50,8 +61,8 @@ def __create_dir_if_not_exists(dir_path: str):
     :param dir_path: directory path
     """
     if not os.path.isdir(dir_path):
-        print('Creating target folder path [{}]'.format(dir_path))
         os.makedirs(dir_path)
+        __print_success('Created target folder structure [{}]'.format(os.path.relpath(dir_path, PACKAGE_DIR)))
 
 
 def __add_replacements_for_test(replacements: dict):
@@ -60,11 +71,13 @@ def __add_replacements_for_test(replacements: dict):
     :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
     """
     recommended_alarms = ''
-    supports_synth_alarm = validator.validate_boolean_inputs(input('Does test support synthetic alarm (yes/no)?\n'))
+    supports_synth_alarm = __get_input('Does test support synthetic alarm (yes/no)?\n',
+                                       validator.validate_boolean_inputs)
     if supports_synth_alarm == 'no':
-        alarm_prefix = validator.validate_alpha(input('Enter alarm name prefix - this will appear in the automation '
-                                                      'input as <Prefix>AlarmName (ex: CpuUtilizationAlarmName\n'))
-        alarm_id = input('Enter ID for recommended alarm (ex - compute:alarm:asg-cpu-util:2020-07-13)\n')
+        alarm_prefix = __get_input('Enter alarm name prefix - this will appear in the automation input as '
+                                   '<Prefix>AlarmName (ex: CpuUtilizationAlarmName)\n',
+                                   validator.validate_alpha_numeric_input)
+        alarm_id = __get_input('Enter ID for recommended alarm (ex - compute:alarm:asg-cpu-util:2020-07-13)\n')
         recommended_alarms = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}'.format(alarm_prefix, alarm_id)
     else:
         alarm_prefix = SYNTHETIC_ALARM_PREFIX
@@ -77,11 +90,12 @@ def __add_replacements_for_sop(replacements: dict):
     Get inputs specific to generating artifacts for SOP and add values to the replacement dictionary.
     :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
     """
-    supports_recovery_point = validator.validate_boolean_inputs(input('Does sop calculate recovery point (yes/no)?\n'))
+    supports_recovery_point = __get_input('Does sop calculate recovery point (yes/no)?\n',
+                                          validator.validate_boolean_inputs)
     recovery_point_output = recovery_point_step = ''
     if supports_recovery_point == 'yes':
-        recovery_point_step_name = validator.validate_alpha(input('Enter the name of the automation document step that '
-                                                                  'calculates recovery point (ex: GetRecoveryPoint)\n'))
+        recovery_point_step_name = __get_input('Enter name of the automation document step that calculates recovery '
+                                               'point (ex: GetRecoveryPoint)\n', validator.validate_alpha)
         recovery_point_output = '- {}.RecoveryPoint'.format(recovery_point_step_name)
         recovery_point_step = '- name: {} # step that calculates the recovery point'.format(recovery_point_step_name)
     replacements["${recoveryPointStep}"] = recovery_point_step
@@ -89,61 +103,200 @@ def __add_replacements_for_sop(replacements: dict):
     replacements["${recommendedAlarms}"] = ''
 
 
-def __replace(source_file_path: str, target_file_path: str, replacements: dict):
+def __create_artifact(source_template_path: str, target_file_path: str, replacements: dict):
     """
     Creates target artifact by replacing the placeholders in the source template.
-    :param source_file_path: source file
+    :param source_template_path: source template file
     :param target_file_path: target file
     :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
     """
-    source_file = open(source_file_path, "r")
-    source_content = source_file.read()
-    target_content = source_content
-    for k, v in replacements.items():
-        target_content = re.sub(re.escape(k), v, target_content)
-    target_file = open(target_file_path, "w")
-    target_file.write(target_content)
-    source_file.close()
-    target_file.close()
+    with open(source_template_path, "r") as source_file:
+        source_content = source_file.read()
+        target_content = source_content
+        for k, v in replacements.items():
+            target_content = re.sub(re.escape(k), v, target_content)
+        with open(target_file_path, "w") as target_file:
+            target_file.write(target_content)
 
 
-def main():
-    service_name = validator.validate_small_case_with_hyphens(input('Enter service name (ex - api-gw):\n'))
-    doc_type = validator.validate_input(input('Is this a test or a sop (test/sop)?: \n'), 'test|sop')
-    name = validator.validate_small_case_with_underscore(input('Enter {} name (ex - restore_from_backup):\n'
-                                                               .format(doc_type)))
-    date = __get_date()
-
-    file_path = pathlib.Path(__file__)
-    main_docs_path = os.path.join(file_path.parent.parent.parent.absolute(), 'documents', service_name, doc_type, name,
-                                  date, 'Documents')
-    __create_dir_if_not_exists(main_docs_path)
-    automation_doc_path = os.path.join(main_docs_path, AUTOMATION_DOC_NAME)
-    role_doc_path = os.path.join(main_docs_path, ROLE_DOC_NAME)
-    metadata_path = os.path.join(main_docs_path, METADATA_DOC_NAME)
-    if __is_exists(automation_doc_path) or __is_exists(role_doc_path) or __is_exists(metadata_path):
-        overwrite_files = validator.validate_boolean_inputs(
-            input('One or more of {}, {}, {} already exists under {}. Do you want to overwrite them (yes/no)?'
-                  .format(AUTOMATION_DOC_NAME, ROLE_DOC_NAME, METADATA_DOC_NAME, main_docs_path)))
+def ___exit_if_exists_and_no_overwrite(files: list):
+    """
+    Checks if any one of the specified files exist and if yes, checks if the files should be overwritten. If the user
+    chooses not to overwrite, the script is exited.
+    :param files: list of files to check existence for
+    """
+    if any([__is_exists(file) for file in files]):
+        file_names = [os.path.basename(f) for f in files]
+        overwrite_files = __get_input('One or more of {} already exists. Do you want to overwrite them (yes/no)?\n'
+                                      .format(",".join(file_names)), validator.validate_boolean_inputs)
         if overwrite_files == 'no':
             print('Nothing to do. Exiting.')
             exit(0)
 
-    display_name = input('Enter display name:\n')
-    description = input('Enter description:\n')
-    resource_id = validator.validate_alpha(input('Enter a name for the primary resource ID input parameter '
-                                                 '(ex: QueueUrl, DatabaseIdentifier):\n'))
-    failure_type = validator.validate_one_or_more_of(input('Enter failure type(s) as a comma-separated list (one or '
-                                                           'more of {}): \n'.format(','.join(FAILURE_TYPES))),
-                                                     FAILURE_TYPES)
-    risk = validator.validate_one_of(input('Enter risk ({}): \n'.format('/'.join(RISKS))), RISKS)
 
+def __get_cfn_template_info(doc_name: str, doc_type: str, resource_id: str, replacements: dict):
+    """
+    Get information about the cloudFormation template as inputs.
+    :param doc_name: SSM document name
+    :param doc_type: test or sop document
+    :param resource_id: primary resource identifier input of the SSM document
+    :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
+    :return:
+    """
+    print('\nWe use cloudformation templates to create the resources for testing test/SOP documents. '
+          'These are located under {}.\n\n'.format(os.path.relpath(CFN_TEMPLATES_PATH, PACKAGE_DIR)))
+
+    cfn_template_name = __get_input('Enter the name of the cloudformation template for testing {} '
+                                    '(ex: SqsTemplate, RdsTemplate):\n'.format(doc_name),
+                                    validator.validate_alpha_numeric_input)
+    replacements['${cfnTemplateName}'] = cfn_template_name
+
+    cfn_resource_id_output = __get_input('Enter the name of the cloudformation output for {}\n'
+                                         .format(resource_id), validator.validate_alpha_numeric_input)
+    replacements['${resourceIdOutput}'] = cfn_resource_id_output
+
+    alarm_name_output = ''
+    if doc_type == 'test':
+        cfn_alarm_id_output = __get_input('Enter the name of the cloudformation output for {}AlarmName\n'
+                                          .format(replacements['${alarmPrefix}']),
+                                          validator.validate_alpha_numeric_input)
+        alarm_name_output = cfn_alarm_id_output
+    replacements['${alarmNameOutput}'] = alarm_name_output
+
+    cfn_absolute_path = os.path.join(CFN_TEMPLATES_PATH, cfn_template_name + '.yml')
+    if not __is_exists(cfn_absolute_path):
+        create_cfn = __get_input('There is no {} under {}. Would you like artifact generator to create one (yes/no)?\n'
+                                 .format(cfn_template_name, os.path.relpath(CFN_TEMPLATES_PATH, PACKAGE_DIR)),
+                                 validator.validate_boolean_inputs)
+        if create_cfn == 'yes':
+            __create_artifact(os.path.join(TEMPLATES_DIR, "CloudFormationTemplate.yml"), cfn_absolute_path,
+                              replacements)
+            __print_success('Created {}'.format(os.path.relpath(cfn_absolute_path, PACKAGE_DIR)))
+        else:
+            required_outputs = ','.join([cfn_resource_id_output, alarm_name_output if alarm_name_output else ''])
+            print('Okay. Proceeding without creating the cloudformation template. Please make sure you create {} with '
+                  'output(s) {} in order for the integration tests to work'.format(cfn_template_name,
+                                                                                   required_outputs))
+
+
+def __get_feature_file_templates_applicable(doc_type: str, supports_rollback: str = None):
+    """
+    Get the feature file templates applicable to the automation document
+    :param doc_type: test or sop
+    :param supports_rollback: whether or not the test document supports rollback
+    :return: list of feature file templates applicable to the automation document
+    """
+    feature_file_templates = []
+    if doc_type == 'test':
+        feature_file_templates.append(USUAL_CASE_TEST_DOC_NAME)
+        if supports_rollback == 'yes':
+            feature_file_templates.extend([ROLLBACK_TEST_DOC_NAME, FAILED_DOC_TEST_NAME])
+    elif doc_type == 'sop':
+        feature_file_templates.append(USUAL_CASE_SOP_DOC_NAME)
+    return feature_file_templates
+
+
+def __create_feature_files(name: str, feature_file_templates: list, test_location: str, replacements: list):
+    """
+    Create the feature files for the test/sop in the specified target path by using the specified source templates and
+    placeholder replacements
+    :param name: test/sop name
+    :param feature_file_templates: list of source feature file template names
+    :param test_location: target Tests directory location
+    :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
+    """
+    for template in feature_file_templates:
+        target_name = '{}_{}'.format(name, re.sub('_test|_sop', '', template))
+        target_file_path = os.path.join(test_location, target_name)
+        __create_artifact(os.path.join(TEMPLATES_DIR, template), target_file_path, replacements)
+
+
+def __get_input(prompt: str, validate: Callable = None, validate_args=None, max_attempts: int = 2):
+    """
+    Get input upto specified maximum number of attempts in case of validation error.
+    :param prompt: input prompt
+    :param validate: validation method used to validate the input value
+    :param validate_args: any additional argument required by the validate method
+    :param max_attempts: maximum number of attempts made to get input (including the first attempt) in case of error
+    :return:
+    """
+    for attempt in range(0, max_attempts):
+        try:
+            value = input(BgColors.OKBLUE + prompt + BgColors.ENDC)
+            if not validate:
+                return value
+            if validate_args:
+                return validate(value, validate_args)
+            else:
+                return validate(value)
+        except ValueError as e:
+            if attempt < max_attempts - 1:
+                print(BgColors.FAIL + str(e) + BgColors.ENDC, end=" ")
+            else:
+                raise e
+
+
+def __print_header(prompt: str):
+    """
+    Syntax for printing headers
+    :param prompt: prompt
+    """
+    print(BgColors.BOLD + BgColors.HEADER + prompt + BgColors.ENDC + '\n')
+
+
+def __print_success(prompt: str):
+    """
+    Syntax for printing success message
+    :param prompt: prompt
+    """
+    print(BgColors.OKGREEN + prompt + BgColors.ENDC + '\n')
+
+
+def main():
+    __print_header('------------------------------------------------------------\n'
+                   '-------------- Welcome to Artifact Generator ---------------\n'
+                   '------------------------------------------------------------\n')
+    print('Artifact generator will help you get started by creating \n'
+          'outlines of documents required for your test/SOP. You can\n'
+          'then update these documents as per your requirement.\n'
+          'Let\'s get started!\n')
+
+    service_name = __get_input('Enter service name(ex - api-gw):\n', validator.validate_small_case_numeric_with_hyphens)
+    doc_type = __get_input('Is this a test or a sop (test/sop)?: \n', validator.validate_input, 'test|sop')
+    name = __get_input('Enter {} name (ex - restore_from_backup):\n'.format(doc_type),
+                       validator.validate_small_case_with_underscore)
+    date = __get_date()
+
+    artifacts_dir = os.path.join(PACKAGE_DIR, 'documents', service_name, doc_type, name, date)
+
+    __print_header('Step 1: Create artifacts under Documents folder\n')
+    main_docs_path = os.path.join(PACKAGE_DIR, artifacts_dir, 'Documents')
+
+    automation_doc_path = os.path.join(main_docs_path, AUTOMATION_DOC_NAME)
+    role_doc_path = os.path.join(main_docs_path, ROLE_DOC_NAME)
+    metadata_path = os.path.join(main_docs_path, METADATA_DOC_NAME)
+    ___exit_if_exists_and_no_overwrite([automation_doc_path, role_doc_path, metadata_path])
+
+    display_name = __get_input('Enter display name:\n')
+    description = __get_input('Enter description:\n')
+    resource_id = __get_input('Enter a name for the primary resource ID input parameter '
+                              '(ex: QueueUrl, DatabaseIdentifier):\n', validator.validate_alpha_numeric_input)
+    failure_type = __get_input('Enter failure type(s) as a comma-separated list (one or '
+                               'more of {}): \n'.format(','.join(FAILURE_TYPES)),
+                               validator.validate_one_or_more_of, FAILURE_TYPES)
+    risk = __get_input('Enter risk ({}): \n'.format('/'.join(RISKS)), validator.validate_one_of, RISKS)
+
+    document_name = "Digito-{}_{}".format(__pascal_case(name), date)
     replacements = {
+        "${serviceName}": service_name,
+        "${documentType}": doc_type,
+        "${name}": name,
+        "${date}": date,
         "${displayName}": display_name,
         "${description}": description,
         "${assumeRoleCfnPath}": ROLE_DOC_NAME,
         "${documentContentPath}": AUTOMATION_DOC_NAME,
-        "${documentName}": "Digito-{}_{}".format(__pascal_case(name), date),
+        "${documentName}": document_name,
         "${failureType}": failure_type,
         "${risk}": risk,
         "${tag}": ":".join([service_name, doc_type, name, date]),
@@ -153,7 +306,7 @@ def main():
     }
 
     if doc_type == 'test':
-        supports_rollback = validator.validate_boolean_inputs(input('Does test support rollback (yes/no)?\n'))
+        supports_rollback = __get_input('Does test support rollback (yes/no)?\n', validator.validate_boolean_inputs)
         __add_replacements_for_test(replacements)
         automation_doc_template = 'AutomationDocumentForTest.yml' if supports_rollback == 'yes'\
             else 'AutomationDocumentForTestNoRollback.yml'
@@ -161,13 +314,25 @@ def main():
         automation_doc_template = 'AutomationDocumentForSop.yml'
         __add_replacements_for_sop(replacements)
 
-    templates_path = os.path.join(file_path.parent.absolute(), 'templates')
     print()
-    print('Creating artifacts under [{}]'.format(main_docs_path))
-    __replace(os.path.join(templates_path, METADATA_DOC_NAME), metadata_path, replacements)
-    __replace(os.path.join(templates_path, ROLE_DOC_NAME), role_doc_path, replacements)
-    __replace(os.path.join(templates_path, automation_doc_template), automation_doc_path, replacements)
-    print('Successfully created artifacts. Please update them as required.')
+    __create_dir_if_not_exists(main_docs_path)
+    __create_artifact(os.path.join(TEMPLATES_DIR, METADATA_DOC_NAME), metadata_path, replacements)
+    __create_artifact(os.path.join(TEMPLATES_DIR, ROLE_DOC_NAME), role_doc_path, replacements)
+    __create_artifact(os.path.join(TEMPLATES_DIR, automation_doc_template), automation_doc_path, replacements)
+    __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(main_docs_path, PACKAGE_DIR)))
+
+    __print_header('Step 2: Create tests under Tests folder\n')
+    test_location = os.path.join(artifacts_dir, 'Tests', 'features')
+    feature_templates = __get_feature_file_templates_applicable(doc_type,
+                                                                supports_rollback if doc_type == 'test' else None)
+    target_feature_files = [os.path.join(test_location, '{}_{}'.format(name, t)) for t in feature_templates]
+    ___exit_if_exists_and_no_overwrite(target_feature_files)
+
+    __get_cfn_template_info(document_name, doc_type, resource_id, replacements)
+    __create_dir_if_not_exists(test_location)
+    __create_feature_files(name, feature_templates, test_location, replacements)
+    __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(test_location, PACKAGE_DIR)))
+    __print_header('Artifact generator has finished crating all documents. Please update them as required.')
 
 
 if __name__ == '__main__':

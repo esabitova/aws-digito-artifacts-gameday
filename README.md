@@ -76,37 +76,70 @@ then make the required updates to the generated files.
 
 Sample execution:
 ```
-> python3.8 artifact_generator/src/generate_artifacts.py
-Enter service name (ex - api-gw):
-sqs
-Is this a test or a sop (test/sop)?:
-test
-Enter test name (ex - restore_from_backup):
-block_delete_message
-Enter date in YYYY-MM-DD format if in the past, else we default to current date:
+> PYTHONPATH=. python3.8 artifact_generator/src/generate_artifacts.py
+  ------------------------------------------------------------
+  -------------- Welcome to Artifact Generator ---------------
+  ------------------------------------------------------------
 
-Creating target folder path [/workplace/aws-digito-artifacts-gameday/documents/sqs/test/block_delete_message/2021-05-06/Documents]
-Enter display name:
-Test - Block sqs:DeleteMessage
-Enter description:
-Test behavior when messages are not deleted from a specific queue
-Enter a name for the primary resource ID input parameter (ex: QueueUrl, DatabaseIdentifier):
-QueueUrl
-Enter failure type(s) as a comma-separated list (one or more of REGION,AZ,HARDWARE,SOFTWARE):
-SOFTWARE
-Enter risk (SMALL/MEDIUM/HIGH):
-HIGH
-Does test support rollback (yes/no)?
-yes
-Does test support synthetic alarm (yes/no)?
-no
-Enter alarm name prefix - this will appear in the automation input as <Prefix>AlarmName (ex: CpuUtilizationAlarmName
-SQSUserError
-Enter ID for recommended alarm (ex - compute:alarm:asg-cpu-util:2020-07-13)
-sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26
+  Artifact generator will help you get started by creating
+  outlines of documents required for your test/SOP. You can
+  then update these documents as per your requirement.
+  Let's get started!
 
-Creating artifacts under [/workplace/aws-digito-artifacts-gameday/documents/sqs/test/block_delete_message/2021-05-06/Documents]
-Successfully created artifacts. Please update them as required.
+  Enter service name(ex - api-gw):
+  s3
+  Is this a test or a sop (test/sop)?:
+  test
+  Enter test name (ex - restore_from_backup):
+  accidental_delete
+  Enter date in YYYY-MM-DD format if in the past, else we default to current date:
+
+  Ok, using default value of 2021-05-12 for date
+
+  Step 1: Create artifacts under Documents folder
+
+  Enter display name:
+  Test to accidentally delete files from S3 bucket
+  Enter description:
+  Test to accidentally delete files from S3 bucket
+  Enter a name for the primary resource ID input parameter (ex: QueueUrl, DatabaseIdentifier):
+  S3BucketIdentifier
+  Enter failure type(s) as a comma-separated list (one or more of REGION,AZ,HARDWARE,SOFTWARE):
+  SOFTWARE
+  Enter risk (SMALL/MEDIUM/HIGH):
+  SMALL
+  Does test support rollback (yes/no)?
+  yes
+  Does test support synthetic alarm (yes/no)?
+  no
+  Enter alarm name prefix - this will appear in the automation input as <Prefix>AlarmName (ex: CpuUtilizationAlarmName)
+  S3UserError
+  Enter ID for recommended alarm (ex - compute:alarm:asg-cpu-util:2020-07-13)
+  s3:alarm:health-4xxErrors_count:2020-04-01
+
+  Created target folder structure [documents/s3/test/accidental_delete/2021-05-12/Documents]
+
+  Successfully created artifacts under documents/s3/test/accidental_delete/2021-05-12/Documents.
+
+  Step 2: Create tests under Tests folder
+
+  We use cloudformation templates to create the resources for testing test/SOP documents. These are located under resource_manager/cloud_formation_templates.
+
+  Enter the name of the cloudformation template for testing Digito-AccidentalDelete_2021-05-12 (ex: SqsTemplate, RdsTemplate):
+  S3TemplateForAccidentalDelete
+  Enter the name of the cloudformation output for S3BucketIdentifier
+  S3BucketIdentifierOutput
+  Enter the name of the cloudformation output for S3UserErrorAlarmName
+  S3UserErrorAlarmNameOutput
+  There is no S3TemplateForAccidentalDelete under resource_manager/cloud_formation_templates. Would you like artifact generator to create one (yes/no)?
+  yes
+  Created resource_manager/cloud_formation_templates/S3TemplateForAccidentalDelete.yml
+
+  Created target folder structure [documents/s3/test/accidental_delete/2021-05-12/Tests/features]
+
+  Successfully created artifacts under documents/s3/test/accidental_delete/2021-05-12/Tests/features.
+
+  Artifact generator has finished crating all documents. Please update them as required.
 ```
 
 ## Metadata File
