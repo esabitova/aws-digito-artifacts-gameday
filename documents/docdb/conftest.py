@@ -1,6 +1,7 @@
 import random
 import time
 import datetime
+import logging
 
 from pytest_bdd import (
     given,
@@ -275,6 +276,7 @@ def wait_for_instances(
         time.sleep(constants.sleep_time_secs)
         elapsed_time = time.time() - start_time
         for instance in instances:
+            logging.info(f'Found instance {instance["DBInstanceIdentifier"]}, status {instance["DBInstanceStatus"]}')
             if instance['DBInstanceStatus'] != 'available':
                 each_instance_available = False
                 break
