@@ -3,7 +3,7 @@ import unittest
 from botocore.exceptions import ClientError
 import pytest
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.backup_utils as backup_utils
 from documents.util.scripts.test.test_data_provider import \
@@ -15,7 +15,6 @@ from documents.util.scripts.test.test_data_provider import \
     BACKUP_COMPLETED_RECOVERY_ARN, \
     BACKUP_VAULT_NAME, \
     ACCOUNT_ID
-from documents.util.scripts.test.mock_sleep import MockSleep
 
 logger = logging.getLogger(__name__)
 
@@ -88,13 +87,7 @@ class TestBackupUtil(unittest.TestCase):
         self.mock_backup_service.describe_backup_job.assert_called_with(BackupJobId='TestID')
         self.assertEqual(result, expected_recovery_arn)
 
-    @patch('time.sleep')
-    @patch('time.time')
-    def test_run_backup_wait_fail(self, patched_time, patched_sleep):
-        mock_sleep = MockSleep()
-        patched_time.side_effect = mock_sleep.time
-        patched_sleep.side_effect = mock_sleep.sleep
-
+    def test_run_backup_wait_fail(self):
         backed_resource_arn = f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/fs-a40ebd61"
         backup_iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/AWSBackupDefaultServiceRole"
         backup_vault_name = BACKUP_VAULT_NAME
@@ -253,13 +246,7 @@ class TestBackupUtil(unittest.TestCase):
         self.mock_backup_service.delete_recovery_point. \
             assert_called_once_with(BackupVaultName=backup_vault_name, RecoveryPointArn=recovery_point_arn)
 
-    @patch('time.sleep')
-    @patch('time.time')
-    def test_delete_recovery_point_wait_fail(self, patched_time, patched_sleep):
-        mock_sleep = MockSleep()
-        patched_time.side_effect = mock_sleep.time
-        patched_sleep.side_effect = mock_sleep.sleep
-
+    def test_delete_recovery_point_wait_fail(self):
         backup_vault_name = BACKUP_VAULT_NAME
         recovery_point_arn = BACKUP_COMPLETED_RECOVERY_ARN
         self.mock_backup_service. \
