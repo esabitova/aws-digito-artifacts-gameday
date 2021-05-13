@@ -85,6 +85,7 @@ def cache_number_of_messages(
 
 @given(parsers.parse('cache policy as "{cache_property}" "{step_key}" SSM automation execution\n{input_parameters}'))
 @when(parsers.parse('cache policy as "{cache_property}" "{step_key}" SSM automation execution\n{input_parameters}'))
+@then(parsers.parse('cache policy as "{cache_property}" "{step_key}" SSM automation execution\n{input_parameters}'))
 def cache_policy(resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_pool, ssm_test_cache)
     policy = sqs_utils.get_policy(boto3_session, queue_url)
