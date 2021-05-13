@@ -155,9 +155,9 @@ def delete_provisioned_concurrency_config(
 @when(parsers.parse(publish_function_version_expression))
 @given(parsers.parse(publish_function_version_expression))
 def publish_function_version(
-        resource_manager, ssm_test_cache, cache_property, step_key, input_parameters, boto3_session
+        resource_pool, ssm_test_cache, cache_property, step_key, input_parameters, boto3_session
 ):
-    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
     response = lambda_utils.publish_version(lambda_arn, boto3_session)
     version = response.get('Version')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, version)
@@ -165,11 +165,11 @@ def publish_function_version(
 
 @then(parsers.parse(assert_alias_version_expression))
 def assert_version_in_alias(
-        resource_manager, ssm_test_cache, input_parameters, boto3_session
+        resource_pool, ssm_test_cache, input_parameters, boto3_session
 ):
-    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
-    alias_name = extract_param_value(input_parameters, "AliasName", resource_manager, ssm_test_cache)
-    expected_version = extract_param_value(input_parameters, "LambdaVersion", resource_manager, ssm_test_cache)
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    alias_name = extract_param_value(input_parameters, "AliasName", resource_pool, ssm_test_cache)
+    expected_version = extract_param_value(input_parameters, "LambdaVersion", resource_pool, ssm_test_cache)
     actual_version = lambda_utils.get_alias_version(lambda_arn, alias_name, boto3_session)
     assert str(expected_version) == str(actual_version)
 
@@ -177,8 +177,8 @@ def assert_version_in_alias(
 @when(parsers.parse(delete_function_version_expression))
 @then(parsers.parse(delete_function_version_expression))
 def delete_version(
-        resource_manager, ssm_test_cache, input_parameters, boto3_session
+        resource_pool, ssm_test_cache, input_parameters, boto3_session
 ):
-    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
-    lambda_version = extract_param_value(input_parameters, "LambdaVersion", resource_manager, ssm_test_cache)
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    lambda_version = extract_param_value(input_parameters, "LambdaVersion", resource_pool, ssm_test_cache)
     lambda_utils.delete_function_version(lambda_arn, lambda_version, boto3_session)
