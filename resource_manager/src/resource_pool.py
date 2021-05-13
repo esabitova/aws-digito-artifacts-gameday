@@ -206,7 +206,7 @@ class ResourcePool:
         """
         logging.info("Releasing test resources.")
         for resource in self.cfn_resources.values():
-            if resource.type != ResourcePool.ResourceType.ASSUME_ROLE.name:
+            if resource.status == ResourceModel.Status.LEASED.name:
                 ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
     def fix_stalled_resources(self):
