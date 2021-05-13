@@ -29,10 +29,19 @@ mainSteps:
     action: 'aws:branch'
     inputs:
       Choices:
-        - NextStep: AssertNoSuspendedProcesses
+        - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
       Default: CancelInstanceRefresh
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: AssertNoSuspendedProcesses
     action: 'aws:executeScript'
     onFailure: Abort

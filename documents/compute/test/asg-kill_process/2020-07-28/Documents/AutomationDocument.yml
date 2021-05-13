@@ -37,11 +37,11 @@ parameters:
     default: 1
   ExpectedRecoveryTimeInMinutes:
     type: String
-    description: (Optional) The expected recovery time after process dies (default 5)
-    default: '5'
+    description: (Optional) The expected recovery time after process dies (default 10)
+    default: '10'
 mainSteps:
   - name: AssertAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
+    action: aws:waitForAwsResourceProperty
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms

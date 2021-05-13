@@ -46,9 +46,7 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::asg_util.assert_no_suspended_process
   - name: AssertSyntheticAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
+    action: aws:waitForAwsResourceProperty
     onFailure: Abort
     inputs:
       Service: cloudwatch

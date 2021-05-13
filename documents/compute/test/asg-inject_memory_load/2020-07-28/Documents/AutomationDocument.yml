@@ -61,10 +61,19 @@ mainSteps:
     action: 'aws:branch'
     inputs:
       Choices:
-        - NextStep: GetAsgInstanceIds
+        - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
       Default: GetPreviousExecutionDetails
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: GetAsgInstanceIds
     action: 'aws:executeScript'
     onFailure: Abort

@@ -4,7 +4,7 @@ Feature: SSM automation document ASG kill process document testing
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation to kill process on asg
     Given the cached input parameters
       |InstanceType|ProcessName|ExpectedRecoveryTimeInMinutes|PercentageOfInstances|
-      |    t2.small|      httpd|                            4|                  100|
+      |    t2.small|      httpd|                           10|                  100|
     And the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                              |ResourceType|InstanceType          |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                |   ON_DEMAND|{{cache:InstanceType}}|
