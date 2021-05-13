@@ -8,10 +8,12 @@ class TestInputValidator:
 
     @pytest.mark.parametrize(
         "text",
-        ["api-gw", "sqs", pytest.param("api_gw", marks=pytest.mark.xfail), pytest.param("Api", marks=pytest.mark.xfail)]
+        ["api-gw", "sqs", "s3", pytest.param("api_gw", marks=pytest.mark.xfail),
+         pytest.param("Api", marks=pytest.mark.xfail), pytest.param("api_gw", marks=pytest.mark.xfail),
+         pytest.param("3s-e", marks=pytest.mark.xfail)]
     )
-    def test_validate_small_case_with_hyphens(self, text):
-        assert InputValidator.validate_small_case_with_hyphens(text) == text
+    def test_validate_small_case_numeric_with_hyphens(self, text):
+        assert InputValidator.validate_small_case_numeric_with_hyphens(text) == text
 
     @pytest.mark.parametrize(
         "text",
@@ -28,6 +30,13 @@ class TestInputValidator:
     )
     def test_validate_alpha(self, text):
         assert InputValidator.validate_alpha(text) == text
+
+    @pytest.mark.parametrize(
+        "text",
+        ["MyText", "mytext", "mytext1", pytest.param("my_text", marks=pytest.mark.xfail)]
+    )
+    def test_validate_alpha_numeric_input(self, text):
+        assert InputValidator.validate_alpha_numeric_input(text) == text
 
     @pytest.mark.parametrize(
         "text",

@@ -16,34 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for ${documentName}
+Description: Test stack for ${serviceName}
 Outputs:
-  ${roleName}:
-    Description: ${documentName} Automation Assume Role ARN
-    Value: !GetAtt ${roleName}.Arn
+  ${resourceIdOutput}
+  ${alarmNameOutput}
+  # add reference to the appropriate resource attribute for the above
+
+  # add other outputs here
+Parameters:
+  # add required parameters here
 Resources:
-  ${roleName}:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - ssm.amazonaws.com
-            Action:
-              - sts:AssumeRole
-  ${policyName}:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: ${policyName}
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Resource: "*"
-            Action:
-              # add permissions required by automation document here
-      Roles:
-        - Ref: ${roleName}
+  # add resources required for integration tests here

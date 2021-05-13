@@ -7,13 +7,13 @@ class InputValidator:
     Validator that checks that the input string matches the specific format
     """
     @staticmethod
-    def validate_small_case_with_hyphens(input_text: str):
+    def validate_small_case_numeric_with_hyphens(input_text: str):
         """
-        Validates the string contains only small case alphabets and hyphens
+        Validates the string contains only small case alphabets, numbers and hyphens
         :param input_text: input text
         :return: input text
         """
-        return InputValidator.validate_input(input_text, "[a-z\\-]+")
+        return InputValidator.validate_input(input_text, "^[a-z]{1}[a-z0-9\\-]+$")
 
     @staticmethod
     def validate_small_case_with_underscore(input_text: str):
@@ -43,6 +43,10 @@ class InputValidator:
         return InputValidator.validate_input(input_text, "yes|no")
 
     @staticmethod
+    def validate_alpha_numeric_input(input_text: str):
+        return InputValidator.validate_input(input_text, "[a-zA-Z0-9]+")
+
+    @staticmethod
     def validate_date_input(input_text: str):
         """
         Validates the input date is valid
@@ -53,7 +57,7 @@ class InputValidator:
             datetime.datetime.strptime(input_text, '%Y-%m-%d')
             return input_text
         except ValueError:
-            raise Exception("Input date {} did not match the expected format YYYY-MM-DD".format(input_text))
+            raise ValueError("Input date {} did not match the expected format YYYY-MM-DD".format(input_text))
 
     @staticmethod
     def validate_one_of(input_text: str, allowed_values: list):
@@ -64,7 +68,7 @@ class InputValidator:
         :return: input text
         """
         if input_text not in allowed_values:
-            raise Exception("Input {} did not match one of {}".format(input_text, allowed_values))
+            raise ValueError("Input {} did not match one of {}".format(input_text, allowed_values))
         return input_text
 
     @staticmethod
@@ -76,11 +80,11 @@ class InputValidator:
         :return: input text
         """
         input_values = [input_text]
-        if input_text.find(",") != -1:
+        if "," in input_text:
             input_values = input_text.split(",")
         for value in input_values:
             if value not in allowed_values:
-                raise Exception("Input {} should be one of more of {}".format(input_text, allowed_values))
+                raise ValueError("Input {} should be one of more of {}".format(input_text, allowed_values))
         return ",".join(set(input_values))
 
     @staticmethod
@@ -92,5 +96,5 @@ class InputValidator:
         :return: input text
         """
         if re.fullmatch(regex, input_text) is None:
-            raise Exception("Input {} did not match {}".format(input_text, regex))
+            raise ValueError("Input {} did not match {}".format(input_text, regex))
         return input_text
