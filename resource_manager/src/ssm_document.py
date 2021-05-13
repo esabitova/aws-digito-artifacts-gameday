@@ -167,7 +167,9 @@ class SsmDocument:
         )
         step_executions = execution['AutomationExecution']['StepExecutions']
         step = self._get_step_by_name(step_executions, step_name)
-        return step['StepStatus']
+        if step:
+            return step['StepStatus']
+        return 'Pending'
 
     def _get_step_by_status(self, steps, status):
         """
