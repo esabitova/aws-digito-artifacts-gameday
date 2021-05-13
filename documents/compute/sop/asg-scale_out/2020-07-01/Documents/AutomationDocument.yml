@@ -91,6 +91,20 @@ mainSteps:
       AutoScalingGroupName: '{{AutoScalingGroupName}}'
       DesiredCapacity: '{{CalculateNewCapacity.NewDesiredCapacity}}'
       MaxSize: '{{CalculateNewCapacity.NewMaxSize}}'
+  - name: WaitForScaleOut
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: wait_for_in_service
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+        NewDesiredCapacity: '{{CalculateNewCapacity.NewDesiredCapacity}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+        SCRIPT_PLACEHOLDER::asg_util.wait_for_in_service
+    description: Wait for Asg to update capacity
+    timeoutSeconds: 1200
+    maxAttempts: 4
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
     inputs:

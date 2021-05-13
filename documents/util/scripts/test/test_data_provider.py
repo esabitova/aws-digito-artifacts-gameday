@@ -261,12 +261,13 @@ def get_sample_describe_images_response():
     return describe_images_response
 
 
-def get_sample_describe_auto_scaling_groups_response():
+def get_sample_describe_auto_scaling_groups_response(lifecycle_state='InService'):
     describe_auto_scaling_groups_response = {}
 
     instance = {}
     instance['InstanceId'] = INSTANCE_ID
     instance['AvailabilityZone'] = AZ_USW2A
+    instance['LifecycleState'] = lifecycle_state
 
     auto_scaling_group = {}
     auto_scaling_group['Instances'] = [instance]
