@@ -52,6 +52,7 @@ mainSteps:
   - name: SimulateNetworkUnavailable
     action: aws:runCommand
     onFailure: Continue
+    onCancel: 'step:TriggerRollback'
     timeoutSeconds: 60
     inputs:
       DocumentName: Digito-NetworkUnavailableCommand_2020-07-23
@@ -62,12 +63,14 @@ mainSteps:
       TimeoutSeconds: 60
   - name: WaitForTestDuration
     action: 'aws:sleep'
-    onFailure: step:RebootInstance
+    onFailure: 'step:RebootInstance'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Duration: 'PT{{DurationInMinutes}}M'
   - name: AssertAlarmTriggered
     action: 'aws:executeScript'
-    onFailure: step:RebootInstance
+    onFailure: 'step:RebootInstance'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Runtime: python3.6
       Handler: verify_alarm_triggered
@@ -80,7 +83,8 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
-    onFailure: step:RebootInstance
+    onFailure: 'step:RebootInstance'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -119,3 +123,21 @@ mainSteps:
       Service: ec2
       Api: RebootInstances
       InstanceIds: '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
+    isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

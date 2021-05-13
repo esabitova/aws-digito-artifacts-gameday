@@ -4,7 +4,7 @@ Here is a need to have a tool to manipulate integration test resources without e
 * List integration test templates which are deployed
 * Fix integration test resources in case of failures (not implemented yet)
 For this purpose we have cerated tool which you can execute using following command:
-> python3.8 resource_manager/src/tools/resource_tool.py -t <template_name_a, tempolate_name_b> -c <command>
+> PYTHONPATH=. python3.8 resource_manager/src/tools/resource_tool.py -t <template_name_a, tempolate_name_b> -c <command>
 * -c, --command (required): Command to perform against cloud formation resources for given template names (DESTROY | DESTROY_ALL | LIST).
   * DESTROY - destroys resources by given template names (--cfn_templates)
   * DESTROY_ALL - destroys all resources, not need to provide template name

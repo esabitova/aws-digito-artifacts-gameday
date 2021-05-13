@@ -50,5 +50,7 @@ Resources:
               - sqs:DeleteMessage
               - ssm:GetAutomationExecution
               - ssm:GetParameters
+              - ssm:StartAutomationExecution
+              - iam:PassRole
       Roles:
         - Ref: DigitoSQSCapacityFailureAssumeRole

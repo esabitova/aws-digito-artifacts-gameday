@@ -41,13 +41,17 @@ Feature: SSM automation document ASG AZ outage testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-SimulateAzOutageInAsg_2020-07-23" execution in status "Cancelled"
+    Then Wait for the SSM automation document "Digito-SimulateAzOutageInAsg_2020-07-23" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-SimulateAzOutageInAsg_2020-07-23" executed
-      |AutoScalingGroupName                               |AutomationAssumeRole                                                             |SyntheticAlarmName                          |TestDurationInMinutes          |IsRollback|PreviousExecutionId       |
-      |{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateAzOutageInAsgAssumeRole}}|{{cfn-output:AsgCfnTemplate>SyntheticAlarm}}|{{cache:TestDurationInMinutes}}|      true|{{cache:SsmExecutionId>1}}|
+    Then SSM automation document "Digito-SimulateAzOutageInAsg_2020-07-23" execution in status "Cancelled"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
 
     Then SSM automation document "Digito-SimulateAzOutageInAsg_2020-07-23" execution in status "Success"
       |ExecutionId               |

@@ -41,13 +41,17 @@ Feature: SSM automation document ASG node replace testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-RefreshAsgInstances_2020-07-23" execution in status "Cancelled"
+    Then Wait for the SSM automation document "Digito-RefreshAsgInstances_2020-07-23" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-RefreshAsgInstances_2020-07-23" executed
-      |AutoScalingGroupName                               |AutomationAssumeRole                                                           |SyntheticAlarmName                          |IsRollback|PreviousExecutionId       |
-      |{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoRefreshAsgInstancesAssumeRole}}|{{cfn-output:AsgCfnTemplate>SyntheticAlarm}}|      true|{{cache:SsmExecutionId>1}}|
+    Then SSM automation document "Digito-RefreshAsgInstances_2020-07-23" execution in status "Cancelled"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
 
     Then SSM automation document "Digito-RefreshAsgInstances_2020-07-23" execution in status "Success"
       |ExecutionId               |

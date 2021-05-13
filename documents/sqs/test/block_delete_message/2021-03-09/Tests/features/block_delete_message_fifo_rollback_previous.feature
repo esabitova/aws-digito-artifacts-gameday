@@ -47,15 +47,18 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
+    Then Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Cancelled"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
     # Run rollback
-    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" executed
-      | QueueUrl                                   | AutomationAssumeRole                                                              | SQSUserErrorAlarmName                                                    | IsRollback | PreviousExecutionId        |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBlockSQSDeleteMessageAssumeRole}} | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumFifoAlarm}} | true       | {{cache:SsmExecutionId>1}} |
-    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Success"
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+    When SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And cache number of messages in queue as "NumberOfMessages" "after-rollback" SSM automation execution

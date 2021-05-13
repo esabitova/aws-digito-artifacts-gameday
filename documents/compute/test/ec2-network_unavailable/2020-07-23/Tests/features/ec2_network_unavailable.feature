@@ -44,12 +44,17 @@ Feature: SSM automation document EC2 Network Unavailable testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" execution in status "Cancelled"
+    Then Wait for the SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    And SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" executed
-      |InstanceId                                         |AutomationAssumeRole                                                                       |SyntheticAlarmName                                  |DurationInMinutes          |IsRollback|PreviousExecutionId       |
-      |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateNetworkUnavailableInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2CpuAlarm}}|{{cache:DurationInMinutes}}|      true|{{cache:SsmExecutionId>1}}|
+
+    Then SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" execution in status "Cancelled"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
 
     Then SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" execution in status "Success"
       |ExecutionId               |

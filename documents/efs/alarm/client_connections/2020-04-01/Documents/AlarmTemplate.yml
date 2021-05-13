@@ -1,5 +1,8 @@
 ---
 AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
 Resources:
   ${AlarmLogicalId}:
     Type: "AWS::CloudWatch::Alarm"
@@ -7,7 +10,8 @@ Resources:
       AlarmName: ${AlarmName}
       AlarmDescription:
         Fn::Join: ['', ['Alarm by Digito that reports when client connections deviation is over ', ${Threshold} ]]
-      ActionsEnabled: false
+      AlarmActions:
+        - Ref: SNSTopicARN
       Metrics:
         - Expression:
             Fn::Join: ['', ["ANOMALY_DETECTION_BAND(m1,", ${Threshold}, ")"]]

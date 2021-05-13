@@ -1,13 +1,13 @@
 import jsonpath_ng
 import logging
 import uuid
-import resource_manager.src.util.backup_utils as backup_utils
-
 from pytest_bdd import (
     parsers, when, given, then
 )
 from botocore.exceptions import ClientError
-from resource_manager.src.util.param_utils import parse_param_values_from_table
+
+from resource_manager.src.util import backup_utils, ec2_utils
+from resource_manager.src.util.param_utils import parse_param_values_from_table, parse_param_value
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.efs_utils import describe_filesystem
 
@@ -103,3 +103,10 @@ def teardown_recovery_point(resource_pool, boto3_session, ssm_test_cache, input_
     if not backup_vault_name:
         raise AssertionError('Backup vault name is not specified for a recovery point tear down')
     backup_utils.delete_recovery_point(boto3_session, recovery_point_arn, backup_vault_name, wait=True, region=region)
+
+
+@when(parsers.parse('ec2 {ec2_instance_ref} is rebooted'))
+def reboot_instance(ec2_instance_ref, cfn_output_params, ssm_test_cache, boto3_session):
+    ec2_instance = parse_param_value(ec2_instance_ref, {'cfn-output': cfn_output_params,
+                                                        'cache': ssm_test_cache})
+    ec2_utils.reboot_instance(boto3_session, ec2_instance)

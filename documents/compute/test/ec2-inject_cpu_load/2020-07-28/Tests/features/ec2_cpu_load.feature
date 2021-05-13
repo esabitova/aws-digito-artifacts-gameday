@@ -56,12 +56,18 @@ Feature: SSM automation document EC2 CPU stress testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    When SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Cancelled"
+    Then Wait for the SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    And SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" executed
-      |AutomationAssumeRole                                                                |IsRollback|PreviousExecutionId       |InstanceId       |CpuUtilizationAlarmName|
-      |{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighCpuLoadInEc2AssumeRole}}|      true|{{cache:SsmExecutionId>1}}|dummy-instance-id|       dummy-alarm-name|
+
+    Then SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Cancelled"
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
+    Then cache rollback execution id
+      |ExecutionId               |
+      |{{cache:SsmExecutionId>1}}|
+
     And SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>2}}|

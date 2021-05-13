@@ -51,10 +51,10 @@ def assert_less_than(ssm_test_cache, expected_property, step_key_for_expected, a
 @when(parsers.parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" to'
                     ' "{to_range}" as "{cache_property}" "{cache_key}" SSM automation execution'
                     '\n{input_parameters}'))
-def generate_and_cache_different_value_by_property_name_from_expression(resource_manager, ssm_test_cache, old_property,
+def generate_and_cache_different_value_by_property_name_from_expression(resource_pool, ssm_test_cache, old_property,
                                                                         from_range, to_range, cache_property, step_key,
                                                                         input_parameters):
-    generate_and_cache_different_value_by_property_name(resource_manager, ssm_test_cache, old_property, from_range,
+    generate_and_cache_different_value_by_property_name(resource_pool, ssm_test_cache, old_property, from_range,
                                                         to_range, cache_property, step_key, input_parameters)
 
 
@@ -64,9 +64,9 @@ def generate_and_cache_different_value_by_property_name_from_expression(resource
 @when(parsers.parse('generate different list value of "{target_property}" than "{old_property}" from "{input_list}"'
                     ' as "{cache_property}" "{cache_key}" SSM automation execution'
                     '\n{input_parameters}'))
-def generate_and_cache_different_list_value_by_property_name_from_expression(resource_manager, ssm_test_cache,
+def generate_and_cache_different_list_value_by_property_name_from_expression(resource_pool, ssm_test_cache,
                                                                              old_property,
                                                                              input_list, cache_property, step_key,
                                                                              input_parameters):
-    generate_and_cache_different_list_value_by_property_name(resource_manager, ssm_test_cache, old_property, input_list,
+    generate_and_cache_different_list_value_by_property_name(resource_pool, ssm_test_cache, old_property, input_list,
                                                              cache_property, step_key, input_parameters)

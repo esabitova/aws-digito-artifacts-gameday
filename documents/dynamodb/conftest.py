@@ -4,7 +4,6 @@ from pytest_bdd import (
     when
 )
 from pytest_bdd.parsers import parse
-
 from resource_manager.src.util.common_test_utils import extract_param_value
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 

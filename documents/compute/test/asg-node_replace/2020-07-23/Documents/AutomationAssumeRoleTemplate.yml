@@ -52,5 +52,8 @@ Resources:
               - 'autoscaling:StartInstanceRefresh'
               - 'autoscaling:CancelInstanceRefresh'
               - 'cloudwatch:DescribeAlarms'
+              - 'ssm:GetAutomationExecution'
+              - 'ssm:StartAutomationExecution'
+              - 'iam:PassRole'
       Roles:
         - Ref: DigitoRefreshAsgInstancesAssumeRole

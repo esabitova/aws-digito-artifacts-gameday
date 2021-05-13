@@ -60,7 +60,8 @@ mainSteps:
   - name: RunCpuStress
     action: aws:runCommand
     maxAttempts: 3
-    onFailure: step:KillStressCommand
+    onFailure: 'step:KillStressCommand'
+    onCancel: 'step:TriggerRollback'
     inputs:
       DocumentName: Digito-RunCpuStress_2020-07-28
       InstanceIds:
@@ -73,7 +74,8 @@ mainSteps:
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10
     timeoutSeconds: 600
-    onFailure: step:KillStressCommand
+    onFailure: 'step:KillStressCommand'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -133,6 +135,20 @@ mainSteps:
       InstanceIds:
         - '{{InstanceId}}'
     isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
-
-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

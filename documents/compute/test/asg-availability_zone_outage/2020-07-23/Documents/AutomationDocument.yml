@@ -69,6 +69,7 @@ mainSteps:
   - name: GetInstancesInRandomAz
     action: 'aws:executeScript'
     onFailure: 'step:ResumeLaunchProcessInAsg'
+    onCancel: 'step:TriggerRollback'
     maxAttempts: 10
     timeoutSeconds: 900
     outputs:
@@ -87,12 +88,14 @@ mainSteps:
   - name: TerminateInstances
     action: 'aws:changeInstanceState'
     onFailure: 'step:ResumeLaunchProcessInAsg'
+    onCancel: 'step:TriggerRollback'
     inputs:
       InstanceIds: '{{GetInstancesInRandomAz.InstanceIds}}'
       DesiredState: 'terminated'
   - name: WaitForTestCompletion
     action: 'aws:sleep'
     onFailure: 'step:ResumeLaunchProcessInAsg'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Duration: 'PT{{TestDurationInMinutes}}M'
   - name: AssertSyntheticAlarmToBeGreenAfterTest
@@ -100,6 +103,7 @@ mainSteps:
     maxAttempts: 10
     timeoutSeconds: 600
     onFailure: 'step:ResumeLaunchProcessInAsg'
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -109,11 +113,28 @@ mainSteps:
       DesiredValues: ["OK"]
   - name: ResumeLaunchProcessInAsg
     action: 'aws:executeAwsApi'
-    onFailure: Abort
+    onCancel: 'step:TriggerRollback'
     inputs:
       Service: autoscaling
       Api: ResumeProcesses
       AutoScalingGroupName: '{{AutoScalingGroupName}}'
       ScalingProcesses:
       - 'Launch'
+    isEnd: true
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
     isEnd: true

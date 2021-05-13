@@ -1,10 +1,11 @@
 import unittest
 import pytest
-from unittest.mock import MagicMock
+import re
+from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
 from resource_manager.src.alarm_manager import AlarmManager
+from publisher.src.alarm_document_parser import AlarmDocumentParser
 import resource_manager.src.util.boto3_client_factory as client_factory
-
 
 single_alarm_doc = """
 AWSTemplateFormatVersion: '2010-09-09'
@@ -12,14 +13,14 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  UnHealthyHostCountAlarm:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
         Fn::Join: [ '', [ 'Alarm by Digito that reports when over time an ASG has many unhealthy hosts' ] ]
-      AlarmName: single_alarm_unique_name
+      AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 180
       DatapointsToAlarm: 30
@@ -32,7 +33,7 @@ Resources:
       Namespace: AWS/ApplicationELB
       Period: 60
       Statistic: Maximum
-      Threshold: 1
+      Threshold: ${Threshold}
       TreatMissingData: missing
 """
 
@@ -42,20 +43,20 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  VolumeWriteBytes:
+  ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when volume write  is anomalous with band width ', 1 ] ]
-      AlarmName: analytics_alarm_doc_unique_name
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when volume write  is anomalous with band width ' ] ]
+      AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
       Metrics:
         - Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', 1, ')' ] ]
+            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${Threshold}, ')' ] ]
           Id: ad1
         - Id: m1
           MetricStat:
@@ -98,17 +99,25 @@ class TestAlarmManager(unittest.TestCase):
         client_factory.clients = {}
         client_factory.resources = {}
 
-    def test_deploy_alarm_success(self):
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_deploy_alarm_success(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'CREATE_COMPLETE'
         }
-        self.alarm_manager.deploy_alarm("single_alarm_doc", single_alarm_doc, {"SNSTopicARN": "topic"})
+        mock_dock_parser.return_value = AlarmDocumentParser(single_alarm_doc)
+        self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {"Threshold": 1,
+                                                                               "alarmId": "test_alarm",
+                                                                               "SNSTopicARN": "topic"})
 
         self.s3_helper_mock.upload_file.assert_called_once()
         self.cfn_helper_mock.deploy_cf_stack.assert_called_once()
         self.cfn_helper_mock.describe_cf_stack.assert_called_once()
 
-    def test_deploy_alarm_failure(self):
+        assert self.alarm_manager.get_deployed_alarms() == {
+            "test_alarm": {"AlarmName": f"single-alarm-doc-{self.unique_prefix}-0"}}
+
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_deploy_alarm_failure_cfn(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'ROLLBACK_COMPLETE'
         }
@@ -118,37 +127,76 @@ class TestAlarmManager(unittest.TestCase):
              "ResourceStatusReason": "Internal_Failure_Reason"}
 
         ]
-        with pytest.raises(Exception) as err:
-            self.alarm_manager.deploy_alarm("single_alarm_doc", single_alarm_doc, {"SNSTopicARN": "topic"})
 
-        assert "Unexpected Status for deployed alarm " in str(err)
+        mock_dock_parser.return_value = AlarmDocumentParser(single_alarm_doc)
+        with pytest.raises(Exception) as err:
+            self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {"Threshold": 1,
+                                                                                   "SNSTopicARN": "topic"})
+
+        assert "Failed to deploy alarm " in str(err)
         assert "Internal_Failure_Reason" in str(err)
 
-    def test_destroy_deployed_alarms(self):
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_deploy_alarm_failure_missing_variables(self, mock_dock_parser):
+        self.cfn_helper_mock.describe_cf_stack.return_value = {
+            'StackStatus': 'ROLLBACK_COMPLETE'
+        }
+        self.cfn_helper_mock.describe_cf_stack_events.return_value = [
+            {"LogicalResourceId": "res1", "ResourceStatus": "CREATE_COMPLETE"},
+            {"LogicalResourceId": "res2", "ResourceStatus": "CREATE_FAILED",
+             "ResourceStatusReason": "Internal_Failure_Reason"}
+
+        ]
+
+        mock_dock_parser.return_value = AlarmDocumentParser(single_alarm_doc)
+        with pytest.raises(Exception) as err:
+            self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {})
+
+        assert "Test must provide values to the following variables" in str(err)
+        assert "Threshold" in str(err)
+
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_destroy_deployed_alarms(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'CREATE_COMPLETE'
         }
-        self.alarm_manager.deploy_alarm("single_alarm_doc", single_alarm_doc, {"SNSTopicARN": "topic"})
+        mock_dock_parser.return_value = AlarmDocumentParser(single_alarm_doc)
+        self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {"Threshold": 1,
+                                                                               "alarmId": "test_alarm",
+                                                                               "SNSTopicARN": "topic"})
 
         self.alarm_manager.destroy_deployed_alarms()
         self.cfn_helper_mock.delete_cf_stack.assert_called_once()
 
-    def test_destroy_deployed_multiple_alarms(self):
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_destroy_deployed_multiple_alarms(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'CREATE_COMPLETE'
         }
-        self.alarm_manager.deploy_alarm("single_alarm_doc", single_alarm_doc, {"SNSTopicARN": "topic"})
-        self.alarm_manager.deploy_alarm("analytics_alarm_doc", analytics_alarm_doc, {"SNSTopicARN": "topic"})
+        mock_dock_parser.side_effect = [AlarmDocumentParser(single_alarm_doc), AlarmDocumentParser(analytics_alarm_doc)]
+        self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {"Threshold": 1,
+                                                                               "SNSTopicARN": "topic"})
+        self.alarm_manager.deploy_alarm("service:alarm:analytics_alarm_doc:ver", {"Threshold": 1,
+                                                                                  "SNSTopicARN": "topic"})
+
+        assert self.alarm_manager.get_deployed_alarms() == {
+            "alarm-0": {"AlarmName": f"single-alarm-doc-{self.unique_prefix}-0"},
+            "alarm-1": {"AlarmName": f"analytics-alarm-doc-{self.unique_prefix}-1"}
+        }
 
         self.alarm_manager.destroy_deployed_alarms()
         assert self.cfn_helper_mock.delete_cf_stack.call_count == 2
 
-    def test_collect_alarms_without_data_all_have_data(self):
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_collect_alarms_without_data_all_have_data(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'CREATE_COMPLETE'
         }
-        self.alarm_manager.deploy_alarm("single_alarm_doc", single_alarm_doc, {"SNSTopicARN": "topic"})
-        self.alarm_manager.deploy_alarm("analytics_alarm_doc", analytics_alarm_doc, {"SNSTopicARN": "topic"})
+        mock_dock_parser.side_effect = [AlarmDocumentParser(single_alarm_doc), AlarmDocumentParser(analytics_alarm_doc)]
+        self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {"Threshold": 1,
+                                                                               "SNSTopicARN": "topic"})
+        self.alarm_manager.deploy_alarm("service:alarm:analytics_alarm_doc:ver", {"Threshold": 1,
+                                                                                  "SNSTopicARN": "topic"})
 
         self.cw_client_mock.get_metric_statistics.side_effect = lambda **request: ({
             'AWS/EC2': {"Datapoints": [{"Timestamp": "2020", "SampleCount": 4}]},
@@ -158,13 +206,18 @@ class TestAlarmManager(unittest.TestCase):
 
         assert missing_data == {}
 
-    def test_collect_alarms_without_data_some_dont_have_data(self):
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_collect_alarms_without_data_some_dont_have_data(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'CREATE_COMPLETE'
         }
-        self.alarm_manager.deploy_alarm("single_alarm_doc", single_alarm_doc, {"SNSTopicARN": "topic"})
-        self.alarm_manager.deploy_alarm("analytics_alarm_doc", analytics_alarm_doc, {"SNSTopicARN": "topic"})
-
+        mock_dock_parser.side_effect = [AlarmDocumentParser(single_alarm_doc), AlarmDocumentParser(analytics_alarm_doc)]
+        self.alarm_manager.deploy_alarm("service:alarm:single_alarm_doc:ver", {"Threshold": 1,
+                                                                               "alarmId": "no-data",
+                                                                               "SNSTopicARN": "topic"})
+        self.alarm_manager.deploy_alarm("service:alarm:analytics_alarm_doc:ver", {"Threshold": 1,
+                                                                                  "alarmId": "has-data",
+                                                                                  "SNSTopicARN": "topic"})
         self.datetime_helper_mock.utcnow.side_effect = [
             # Mock timestamps for the call below
             datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
@@ -177,14 +230,15 @@ class TestAlarmManager(unittest.TestCase):
             'AWS/EC2': {"Datapoints": [{"Timestamp": "2020", "SampleCount": 4}]},
             'AWS/ApplicationELB': {"Datapoints": []},
         }).get(request.get("Namespace"))
-        expected_alarm_name = f'single-alarm-doc-{self.unique_prefix}'
 
         # Test:
         missing_data = self.alarm_manager.collect_alarms_without_data()
-        assert list(missing_data.keys()) == [expected_alarm_name]
-        assert missing_data[expected_alarm_name]['UnHealthyHostCountAlarm']['metric_namespace'] == "AWS/ApplicationELB"
+        alarm_logical_id = re.sub("-", "0", f'single-alarm-doc-{self.unique_prefix}-0')
+        assert list(missing_data.keys()) == ['no-data']
+        assert missing_data['no-data'][alarm_logical_id]['metric_namespace'] == "AWS/ApplicationELB"
 
-    def test_collect_alarms_without_data_failure(self):
+    @patch('resource_manager.src.alarm_manager.AlarmDocumentParser.from_reference_id')
+    def test_collect_alarms_without_data_failure(self, mock_dock_parser):
         self.cfn_helper_mock.describe_cf_stack.return_value = {
             'StackStatus': 'CREATE_COMPLETE'
         }
@@ -213,9 +267,10 @@ class TestAlarmManager(unittest.TestCase):
                 Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', 1, ')' ] ]
               Id: ad1
     """
-        self.alarm_manager.deploy_alarm("no_metric_alarm", no_metric_alarm, {})
+        mock_dock_parser.return_value = AlarmDocumentParser(no_metric_alarm)
+        self.alarm_manager.deploy_alarm("service:alarm:no_metric_alarm:ver", {})
 
         with pytest.raises(Exception) as err:
             self.alarm_manager.collect_alarms_without_data()
 
-        assert "contained no alarms" in str(err)
+        assert "contained no metrics" in str(err)

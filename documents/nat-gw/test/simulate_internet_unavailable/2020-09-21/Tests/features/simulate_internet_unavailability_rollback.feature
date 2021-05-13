@@ -19,10 +19,19 @@ Feature: SSM automation document to simulate internet unavalability through chan
             | ExecutionId                |
             | {{cache:SsmExecutionId>1}} |
 
-        # Rollback
-        When SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" executed
-            | NatGatewayId                               | IsRollback | PreviousExecutionId        | BytesOutToSourceAlarm                               | AutomationAssumeRole                                                                    |
-            | {{cfn-output:NatCfnTemplate>NatGatewayId}} | true       | {{cache:SsmExecutionId>1}} | {{cfn-output:NatCfnTemplate>BytesOutToSourceAlarm}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateInternetUnavailableAssumeRole}} |
+        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+            |ExecutionId               |
+            |{{cache:SsmExecutionId>1}}|
+
+        Then SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution in status "Cancelled"
+            |ExecutionId               |
+            |{{cache:SsmExecutionId>1}}|
+
+        Then cache rollback execution id
+            |ExecutionId               |
+            |{{cache:SsmExecutionId>1}}|
+
+        # Rollback verification
         Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionInputsNatGw" in status "Success" for "600" seconds
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |

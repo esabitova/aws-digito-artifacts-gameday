@@ -1,0 +1,13 @@
+{
+  "displayName": "${displayName}",
+  "description": "${description}",
+  "assumeRoleCfnPath": "${assumeRoleCfnPath}",
+  "documentContentPath": "${documentContentPath}",
+  "documentFormat": "YAML",
+  "documentName": "${documentName}",
+  "documentType": "Automation",
+  "failureType": "${failureType}",
+  "minorVersion": "001",
+  "risk": "${risk}",
+  "tag": "${tag}"${recommendedAlarms}
+}

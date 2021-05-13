@@ -645,25 +645,6 @@ Resources:
           - - WebServerforResiliency-
             - Ref: VPC
         PropagateAtLaunch: 'true'
-  SNSAlarmTopic:
-    Type: AWS::SNS::Topic
-  SNSAlarmTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      PolicyDocument:
-        Version: 2008-10-17
-        Id: TopicPolicyId
-        Statement:
-          - Sid: AllowSelfAccess
-            Effect: Allow
-            Principal:
-              AWS:
-                - !Ref AWS::AccountId
-            Action:
-              - SNS:Publish
-            Resource: !Ref SNSAlarmTopic
-      Topics:
-        - !Ref SNSAlarmTopic
   InServiceCapacityLessThanThresholdAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -735,9 +716,10 @@ Outputs:
       Fn::Join:
       - ''
       - - http://
-        - Fn::GetAtt:
-          - WebLoadBalancer
-          - DNSName
-  AlarmTopicArn:
-    Description: SNSAlarmTopic Arn
-    Value: !Ref SNSAlarmTopic
+        - !GetAtt WebLoadBalancer.DNSName
+  LoadBalancer:
+    Description: AutoScalingGroup LoadBalancer
+    Value: !GetAtt WebLoadBalancer.LoadBalancerFullName
+  LoadBalancerTargetGroup:
+    Description: AutoScalingGroup LoadBalancer TargetGroup
+    Value: !GetAtt WebLoadBalancerTargetGroup.TargetGroupFullName

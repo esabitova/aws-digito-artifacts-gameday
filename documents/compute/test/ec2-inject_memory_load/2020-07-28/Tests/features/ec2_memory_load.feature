@@ -24,7 +24,7 @@ Feature: SSM automation document EC2 memory stress testing
       |ExecutionId               |StepName       |
       |{{cache:SsmExecutionId>1}}|RunMemoryStress|
     # TODO(semiond): When targeting 90% memory load CW reporting ~35  bellow target, investigate: https://issues.amazon.com/issues/Digito-1767
-    And wait "mem_used_percent" metric point "MORE_OR_EQUAL" to "60" "Percent"
+    And wait "mem_used_percent" metric point "MORE_OR_EQUAL" to "50" "Percent"
       |StartTime                                                     |EndTime                                                     |InstanceId                                         |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
       |{{cache:SsmStepExecutionInterval>1>RunMemoryStress>StartTime}}|{{cache:SsmStepExecutionInterval>1>RunMemoryStress>EndTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 
@@ -52,7 +52,7 @@ Feature: SSM automation document EC2 memory stress testing
       |{{cache:SsmExecutionId>1}}|RunMemoryStress|
 
     # TODO(semiond): When targeting 90% memory load CW reporting ~35  bellow target, investigate: https://issues.amazon.com/issues/Digito-1767
-    Then wait "mem_used_percent" metric point "MORE_OR_EQUAL" to "60" "Percent"
+    Then wait "mem_used_percent" metric point "MORE_OR_EQUAL" to "50" "Percent"
       |StartTime                                                     | InstanceId                                        |ImageId                                         |InstanceType          |Namespace               |MetricPeriod          |
       |{{cache:SsmStepExecutionInterval>1>RunMemoryStress>StartTime}}|{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:EC2WithCWAgentCfnTemplate>ImageId}}|{{cache:InstanceType}}|{{cache:AlarmNamespace}}|{{cache:MetricPeriod}}|
 

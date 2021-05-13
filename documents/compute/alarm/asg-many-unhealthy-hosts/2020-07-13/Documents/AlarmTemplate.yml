@@ -16,9 +16,9 @@ Resources:
       DatapointsToAlarm: 30
       Dimensions:
         - Name: TargetGroup
-          Value: '${TargetGroup}'
+          Value: ${TargetGroup}
         - Name: LoadBalancer
-          Value: '${LoadBalancer}'
+          Value: ${LoadBalancer}
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       Period: 60

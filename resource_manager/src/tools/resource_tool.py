@@ -3,8 +3,6 @@ import getopt
 import logging
 import sys
 import os
-# Need to append parent modules to syspath so to make them visible, since executing from package.
-sys.path.append(os.getcwd())
 from enum import Enum
 from botocore.exceptions import ClientError
 from resource_manager.src.resource_model import ResourceModel

@@ -52,5 +52,7 @@ Resources:
               - sqs:SendMessage
               - ssm:GetAutomationExecution
               - ssm:GetParameters
+              - ssm:StartAutomationExecution
+              - iam:PassRole
       Roles:
         - Ref: DigitoBreakingThePolicyForSQSAssumeRole
