@@ -38,7 +38,7 @@ parameters:
     default: '5'
 mainSteps:
   - name: AssertAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
+    action: aws:waitForAwsResourceProperty
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
