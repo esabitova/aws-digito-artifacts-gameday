@@ -22,6 +22,11 @@ create_alias_expression = 'create alias and cache its name as "{cache_property}"
 delete_alias_expression = 'delete alias\n{input_parameters}'
 wait_memory_changed_expression = 'wait for lambda memory size to have a new value for "{time_to_wait}" seconds' \
                                  '\n{input_parameters}'
+publish_function_version_expression = 'published function version and cached version as "{cache_property}"' \
+                                      ' at step "{step_key}"' \
+                                      '\n{input_parameters}'
+assert_alias_version_expression = 'assert version in alias changed\n{input_parameters}'
+delete_function_version_expression = 'delete function version\n{input_parameters}'
 
 
 def __populate_cache_with_memory_size(
@@ -69,6 +74,7 @@ def delete_alias(
     lambda_utils.delete_alias(lambda_arn, alias_name, boto3_session)
 
 
+@given(parsers.parse(wait_memory_changed_expression))
 @when(parsers.parse(wait_memory_changed_expression))
 @then(parsers.parse(wait_memory_changed_expression))
 def wait_memory_changed(
@@ -144,3 +150,35 @@ def delete_provisioned_concurrency_config(
     lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
     qualifier = extract_param_value(input_parameters, "LambdaQualifier", resource_pool, ssm_test_cache)
     lambda_utils.delete_function_provisioned_concurrency_config(lambda_arn, qualifier, boto3_session)
+
+
+@when(parsers.parse(publish_function_version_expression))
+@given(parsers.parse(publish_function_version_expression))
+def publish_function_version(
+        resource_manager, ssm_test_cache, cache_property, step_key, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
+    response = lambda_utils.publish_version(lambda_arn, boto3_session)
+    version = response.get('Version')
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, version)
+
+
+@then(parsers.parse(assert_alias_version_expression))
+def assert_version_in_alias(
+        resource_manager, ssm_test_cache, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
+    alias_name = extract_param_value(input_parameters, "AliasName", resource_manager, ssm_test_cache)
+    expected_version = extract_param_value(input_parameters, "LambdaVersion", resource_manager, ssm_test_cache)
+    actual_version = lambda_utils.get_alias_version(lambda_arn, alias_name, boto3_session)
+    assert str(expected_version) == str(actual_version)
+
+
+@when(parsers.parse(delete_function_version_expression))
+@then(parsers.parse(delete_function_version_expression))
+def delete_version(
+        resource_manager, ssm_test_cache, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_manager, ssm_test_cache)
+    lambda_version = extract_param_value(input_parameters, "LambdaVersion", resource_manager, ssm_test_cache)
+    lambda_utils.delete_function_version(lambda_arn, lambda_version, boto3_session)

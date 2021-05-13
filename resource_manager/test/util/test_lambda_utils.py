@@ -149,3 +149,30 @@ class TestLambdaUtil(unittest.TestCase):
             FunctionName=LAMBDA_ARN,
             Name=alias_name
         )
+
+    def test_get_alias_version(self):
+        alias_name = 'alias_name'
+        version = '10'
+        self.mock_lambda.get_alias.return_value = {
+            'FunctionVersion': version
+        }
+        response = lambda_utils.get_alias_version(LAMBDA_ARN, alias_name, self.session_mock)
+        self.mock_lambda.get_alias.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            Name=alias_name
+        )
+        self.assertEqual(response, version)
+
+    def test_publish_version(self):
+        lambda_utils.publish_version(LAMBDA_ARN, self.session_mock)
+        self.mock_lambda.publish_version.assert_called_once_with(
+            FunctionName=LAMBDA_ARN
+        )
+
+    def test_delete_function_version(self):
+        qualifier = '10'
+        lambda_utils.delete_function_version(LAMBDA_ARN, qualifier, self.session_mock)
+        self.mock_lambda.delete_function.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            Qualifier=qualifier
+        )

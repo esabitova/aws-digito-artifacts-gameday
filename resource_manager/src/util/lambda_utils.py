@@ -37,6 +37,23 @@ def create_alias(lambda_arn: str, alias_name: str, lambda_version: str, session:
     )
 
 
+def get_alias_version(lambda_arn: str, alias_name: str, session: Session):
+    """
+    Calls AWS API to get function version in alias info for Lambda with given name
+
+    :param lambda_arn: The ARN of Lambda Function
+    :param alias_name: Alias name
+    :param session The boto3 session
+    :return: Function version in alias
+    """
+    lambda_client = client('lambda', session)
+    response = lambda_client.get_alias(
+        FunctionName=lambda_arn,
+        Name=alias_name,
+    )
+    return response.get('FunctionVersion')
+
+
 def delete_alias(lambda_arn: str, alias_name: str, session: Session):
     """
     Calls AWS API to delete an alias of given Lambda by name
@@ -149,4 +166,33 @@ def delete_function_provisioned_concurrency_config(lambda_arn: str, qualifier: s
     lambda_client.delete_provisioned_concurrency_config(
         FunctionName=lambda_arn,
         Qualifier=qualifier
+    )
+
+
+def publish_version(lambda_arn: str, session: Session):
+    """
+    Calls AWS API to create a version from the current code and configuration of a function
+    :param lambda_arn: The ARN of Lambda Function
+    :param session The boto3 session
+    :return: The metadata of response
+    """
+    lambda_client = client('lambda', session)
+    response = lambda_client.publish_version(
+        FunctionName=lambda_arn,
+    )
+    return response
+
+
+def delete_function_version(lambda_arn: str, version: str, session: Session):
+    """
+    Calls AWS API to delete function version
+    :param lambda_arn: The ARN of Lambda Function
+    :param version: The function version
+    :param session The boto3 session
+    :return: None
+    """
+    lambda_client = client('lambda', session)
+    lambda_client.delete_function(
+        FunctionName=lambda_arn,
+        Qualifier=version
     )
