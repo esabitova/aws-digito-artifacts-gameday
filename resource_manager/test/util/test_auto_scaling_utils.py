@@ -82,7 +82,7 @@ class TestAutoScalingUtils(unittest.TestCase):
                                 ScalableDimension='my_dimension',
                                 ResourceId='table/my_table')
 
-    @patch('resource_manager.src.util.auto_scaling_utils._describe_scalable_targets',
+    @patch('resource_manager.src.util.auto_scaling_utils._describe_scalable_targets_for_dynamodb_table',
            return_value=DESCRIBE_SCALABLE_TARGETS_RESPONSE)
     @patch('resource_manager.src.util.auto_scaling_utils._deregister_scalable_target_for_dynamodb_table',
            return_value=GENERIC_SUCCESS_RESULT)
