@@ -1,0 +1,245 @@
+#
+# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for HTTP and WS API GW
+Outputs:
+  WsApiGwId:
+    Description: The ID of the Websockets API Gateway
+    Value: !Ref WsApi
+  WsDefaultDeploymentId:
+    Description: The ID of the default deployment of Websockets API Gateway
+    Value: !Ref WsDefaultDeployment
+  WsStageName:
+    Description: The stage name of Websockets API Gateway
+    Value: !Ref WsStage
+  WsStageNameAutoDeploy:
+    Description: The stage name of Websockets API Gateway with AutoDeploy enabled
+    Value: !Ref WsStageAutoDeploy
+  HttpApiGwId:
+    Description: The ID of the Websockets API Gateway
+    Value: !Ref HttpApi
+  HttpDefaultDeploymentId:
+    Description: The ID of the default deployment of Websockets API Gateway
+    Value: !Ref HttpDefaultDeployment
+  HttpStageName:
+    Description: The stage name of Websockets API Gateway
+    Value: !Ref HttpStage
+  HttpStageNameAutoDeploy:
+    Description: The stage name of Websockets API Gateway with AutoDeploy enabled
+    Value: !Ref HttpStageAutoDeploy
+Parameters: {}
+Resources:
+  WsApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Join
+        - "-"
+        - - "WsApiGateway-Digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: "$request.body.action"
+  WsConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WsApi
+      RouteKey: $connect
+      AuthorizationType: NONE
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref WsConnectIntegration
+  WsConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WsApi
+      Description: Connect Integration
+      IntegrationType: MOCK
+  WsDisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WsApi
+      RouteKey: $disconnect
+      AuthorizationType: NONE
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref WsDisconnectIntegration
+  WsDisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WsApi
+      Description: Disconnect Integration
+      IntegrationType: MOCK
+  WsDefaultRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref WsApi
+      RouteKey: $default
+      AuthorizationType: NONE
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref WsDefaultIntegration
+  WsDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref WsApi
+      Description: Default Integration
+      IntegrationType: MOCK
+  WsDefaultDeployment:
+    DependsOn: WsDefaultRoute
+    Type: AWS::ApiGatewayV2::Deployment
+    Properties:
+      ApiId: !Ref WsApi
+      Description: Default deployment
+  WsStage:
+    DependsOn: WsDefaultDeployment
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WsApi
+      DeploymentId: !Ref WsDefaultDeployment
+      StageName: !Join
+        - "-"
+        - - "WsApiGateway-Digito-test"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+  WsStageAutoDeploy:
+    DependsOn: WsDefaultDeployment
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WsApi
+      DeploymentId: !Ref WsDefaultDeployment
+      AutoDeploy: true
+      StageName: !Join
+        - "-"
+        - - "WsApiGateway-Digito-test-autodeploy"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Join
+        - "-"
+        - - "HttpApiGateway-Digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      ProtocolType: HTTP
+  HttpRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: "POST /test"
+      AuthorizationType: NONE
+      Target: !Join
+        - '/'
+        - - 'integrations'
+          - !Ref HttpDefaultIntegration
+  HttpDefaultIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      Description: Default Integration
+      IntegrationMethod: ANY
+      IntegrationType: HTTP_PROXY
+      IntegrationUri: "https://api.example.com"
+      PayloadFormatVersion: "1.0"
+  HttpDefaultDeployment:
+    DependsOn: HttpRoute
+    Type: AWS::ApiGatewayV2::Deployment
+    Properties:
+      ApiId: !Ref HttpApi
+      Description: Default deployment
+  HttpStage:
+    DependsOn: HttpDefaultDeployment
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      DeploymentId: !Ref HttpDefaultDeployment
+      StageName: !Join
+        - "-"
+        - - "HttpApiGateway-Digito-test"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+  HttpStageAutoDeploy:
+    DependsOn: HttpDefaultDeployment
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      DeploymentId: !Ref HttpDefaultDeployment
+      AutoDeploy: true
+      StageName: !Join
+        - "-"
+        - - "HttpApiGateway-Digito-test-autodeploy"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
