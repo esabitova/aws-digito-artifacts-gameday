@@ -20,7 +20,7 @@ def _execute_boto3_auto_scaling(boto3_session: Session, delegate: Callable[[Any]
     return description
 
 
-def _describe_scalable_targets(boto3_session: Session, table_name: str) -> dict:
+def _describe_scalable_targets_for_dynamodb_table(boto3_session: Session, table_name: str) -> dict:
     """
     Describes scalable targets
     :param table_name: The table name
@@ -53,7 +53,7 @@ def deregister_all_scaling_target_all_dynamodb_table(boto3_session: Session, tab
     :param boto3_session: The boto3 session
     :param boto3_session: The boto3 session
     """
-    table_result = _describe_scalable_targets(boto3_session=boto3_session, table_name=table_name)
+    table_result = _describe_scalable_targets_for_dynamodb_table(boto3_session=boto3_session, table_name=table_name)
 
     scaling_targets = [{'ScalableDimension': x['ScalableDimension'],
                         'MinCapacity':int(x["MinCapacity"]),

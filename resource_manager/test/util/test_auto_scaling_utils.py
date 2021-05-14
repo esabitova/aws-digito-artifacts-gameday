@@ -5,7 +5,7 @@ import resource_manager.src.util.boto3_client_factory as client_factory
 
 import pytest
 from resource_manager.src.util.auto_scaling_utils import (
-    _deregister_scalable_target_for_dynamodb_table, _describe_scalable_targets,
+    _deregister_scalable_target_for_dynamodb_table, _describe_scalable_targets_for_dynamodb_table,
     _execute_boto3_auto_scaling,
     deregister_all_scaling_target_all_dynamodb_table)
 
@@ -63,7 +63,7 @@ class TestAutoScalingUtils(unittest.TestCase):
 
     def test__describe_scalable_targets(self):
 
-        result = _describe_scalable_targets(self.session_mock, table_name='my_table')
+        result = _describe_scalable_targets_for_dynamodb_table(self.session_mock, table_name='my_table')
 
         self.application_autoscaling_client_mock\
             .describe_scalable_targets\
