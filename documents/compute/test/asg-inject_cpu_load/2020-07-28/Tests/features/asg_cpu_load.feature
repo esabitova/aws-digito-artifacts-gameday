@@ -5,7 +5,7 @@ Feature: SSM automation document ASG CPU stress testing
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation CPU stress on ASG instances
     Given the cached input parameters
       |InstanceType|CpuLoadPercentage|StressDuration|AlarmNamespace|MetricPeriod|PercentageOfInstances|ExpectedRecoveryTime|
-      |    t2.small|               90|           180|       AWS/EC2|          60|                   50|                 120|
+      |    t2.small|               90|           300|       AWS/EC2|          60|                   50|                 120|
     And the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                                 |ResourceType|InstanceType          |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                   |   ON_DEMAND|{{cache:InstanceType}}|
