@@ -1,0 +1,11 @@
+{
+  "displayName": "4xxErrors",
+  "description": "Reports when a number of 4xxErrors is is high",
+  "alarmName": "Digito-Health4xxErrorsCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "s3:alarm:health-4xxErrors_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
