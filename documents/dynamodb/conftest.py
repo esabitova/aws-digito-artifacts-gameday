@@ -1,6 +1,8 @@
 import jsonpath_ng
 from pytest_bdd import given, parsers, then, when
 from resource_manager.src.util import param_utils
+from resource_manager.src.util.auto_scaling_utils import \
+    deregister_all_scaling_target_all_dynamodb_table
 from resource_manager.src.util.common_test_utils import (extract_param_value,
                                                          put_to_ssm_test_cache)
 from resource_manager.src.util.dynamo_db_utils import (
@@ -111,3 +113,13 @@ def disable_global_table(ssm_test_cache,
                                             wait_sec=int(wait_sec),
                                             delay_sec=int(delay_sec),
                                             boto3_session=boto3_session)
+
+
+@then(parsers.parse("deregister all scaling target for the table {table_name_ref}"))
+def deregister_all_scaling_targers_for_dynamodb_table(ssm_test_cache,
+                                                      resource_pool,
+                                                      boto3_session,
+                                                      table_name_ref):
+    cf_output = resource_pool.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    deregister_all_scaling_target_all_dynamodb_table(boto3_session=boto3_session, table_name=table_name)

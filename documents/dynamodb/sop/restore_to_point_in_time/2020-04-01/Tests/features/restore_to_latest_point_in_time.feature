@@ -61,6 +61,7 @@ Feature: SSM automation document to restore the database from point in time.
     Then SSM automation document "Digito-RestoreToPointInTime_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And deregister all scaling target for the table {{cache:TargetTableToRestoreName}}
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
 
   # TODO In this Scenario it would be good to test how many Alarms has been changed (the output of SwitchAlarmsToTargetTable)
