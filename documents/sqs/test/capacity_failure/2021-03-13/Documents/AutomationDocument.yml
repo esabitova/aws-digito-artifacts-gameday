@@ -52,7 +52,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: MessageId
-        Selector: $.Payload.MessageId
+        Selector: $.Payload.MessageId[0]
         Type: String
     inputs:
       Runtime: python3.6

@@ -52,7 +52,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: Policy
-        Selector: $.Payload.Policy
+        Selector: $.Payload.Policy[0]
         Type: String
     inputs:
       Runtime: python3.6

@@ -112,7 +112,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: RoutesOriginalValue
-        Selector: $.Payload.RoutesOriginalValue
+        Selector: $.Payload.RoutesOriginalValue[0]
         Type: String
     inputs:
       Runtime: python3.6

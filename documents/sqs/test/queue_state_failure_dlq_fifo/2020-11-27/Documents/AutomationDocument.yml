@@ -84,10 +84,10 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: RedrivePolicy
-        Selector: $.Payload.RedrivePolicy
+        Selector: $.Payload.RedrivePolicy[0]
         Type: String
       - Name: VisibilityTimeout
-        Selector: $.Payload.VisibilityTimeout
+        Selector: $.Payload.VisibilityTimeout[0]
         Type: String
     inputs:
       Runtime: python3.7
