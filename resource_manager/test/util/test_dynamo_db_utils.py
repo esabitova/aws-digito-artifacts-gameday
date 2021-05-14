@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 from resource_manager.src.util.dynamo_db_utils import (
     _check_if_table_deleted, _describe_continuous_backups, _describe_table,
     _execute_boto3_dynamodb, _update_table,
-    remove_global_table_and_wait_for_active, try_remove_replica,
+    remove_global_table_and_wait_for_active,
     add_global_table_and_wait_for_active,
     get_earliest_recovery_point_in_time, drop_and_wait_dynamo_db_table_if_exists, wait_table_to_be_active)
 
@@ -244,33 +244,6 @@ class TestDynamoDbUtil(unittest.TestCase):
                                          table_name="my_table")
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
-           return_value=UPDATE_TABLE_STREAM_RESPONSE)
-    def test_try_remove_replica(self, update_mock):
-        try_remove_replica(boto3_session=self.session_mock,
-                           table_name="my_table",
-                           global_table_regions=['region-1']
-                           )
-
-        update_mock.assert_called_with(boto3_session=self.session_mock,
-                                       table_name="my_table",
-                                       ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}])
-
-    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
-           side_effect=RESOURCE_IN_USE_ERROR)
-    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep')
-    def test_try_remove_replica_client_error(self, sleep_mock, update_mock):
-        try_remove_replica(boto3_session=self.session_mock,
-                           table_name="my_table",
-                           global_table_regions=['region-1'],
-                           delay_sec=10,
-                           retry_count=1)
-
-        update_mock.assert_called_with(boto3_session=self.session_mock,
-                                       table_name="my_table",
-                                       ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}])
-        sleep_mock.assert_called_with(10)
-
-    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={**DESCRIBE_TABLE_RESPONCE})
@@ -339,13 +312,13 @@ class TestDynamoDbUtil(unittest.TestCase):
         describe_backups_mock.assert_called_with(boto3_session=self.session_mock,
                                                  table_name="my_table")
 
-    @patch('resource_manager.src.util.dynamo_db_utils.try_remove_replica',
+    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'Replicas': []}})
     @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
            return_value=None)
-    def test_remove_global_table_and_wait_to_active(self, time_mock, describe_mock, try_remove_mock):
+    def test_remove_global_table_and_wait_to_active(self, time_mock, describe_mock, update_mock):
         remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                                 table_name="my_table",
                                                 global_table_regions=['region-1'],
@@ -353,15 +326,15 @@ class TestDynamoDbUtil(unittest.TestCase):
                                                 delay_sec=1,
                                                 )
 
-        try_remove_mock.assert_called_with(boto3_session=self.session_mock,
-                                           table_name="my_table",
-                                           global_table_regions=['region-1']
-                                           )
+        update_mock.assert_called_with(boto3_session=self.session_mock,
+                                       table_name="my_table",
+                                       ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}]
+                                       )
         describe_mock.assert_called_with(boto3_session=self.session_mock,
                                          table_name="my_table"
                                          )
 
-    @patch('resource_manager.src.util.dynamo_db_utils.try_remove_replica',
+    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'Replicas': [{'Region': 'secondary_region'}]}})
@@ -376,7 +349,7 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         try_remove_mock.assert_called_with(boto3_session=self.session_mock,
                                            table_name="my_table",
-                                           global_table_regions=['region-1']
+                                           ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}]
                                            )
         describe_mock.assert_called_with(boto3_session=self.session_mock,
                                          table_name="my_table"

@@ -102,38 +102,6 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session) -> bool:
     return False
 
 
-def try_remove_replica(table_name: str,
-                       global_table_regions: List[str],
-                       boto3_session: Session,
-                       retry_count: int = 5,
-                       delay_sec: int = 20) -> None:
-    """
-    Gives a try to remove replica. Sometimes the table is in use and the request fails.
-    This function makes several retries and the given delay
-    :param table_name: The table name
-    :param global_table_regions: The list of regions where replica should be removed from
-    :param delay_sec: The delay in seconds between request attempts
-    :param retry_count: The number of retries
-    :param boto3_session: The boto3 session
-    """
-    i: int = 0
-    while i < retry_count:
-        try:
-            _update_table(boto3_session=boto3_session,
-                          table_name=table_name,
-                          ReplicaUpdates=[
-                              {'Delete': {'RegionName': region}} for region in global_table_regions])
-            return
-        except ClientError as ce:
-            if ce.response['Error']['Code'] == 'ResourceInUseException':
-                log.warning(f"The table `{table_name}` current in use (something in progress) '\
-                'skipping this error while remove replica. '\
-                    f'The next try later in {delay_sec} seconds")
-
-        time.sleep(delay_sec)
-        i += 1
-
-
 def remove_global_table_and_wait_for_active(table_name: str,
                                             global_table_regions: List[str],
                                             wait_sec: int,
@@ -146,9 +114,10 @@ def remove_global_table_and_wait_for_active(table_name: str,
     :param delay_sec: The delay in seconds between pulling atttempts of table status
     :param boto3_session: The boto3 session
     """
-    try_remove_replica(boto3_session=boto3_session,
-                       global_table_regions=global_table_regions,
-                       table_name=table_name)
+    _update_table(boto3_session=boto3_session,
+                  table_name=table_name,
+                  ReplicaUpdates=[
+                      {'Delete': {'RegionName': region}} for region in global_table_regions])
 
     start = time.time()
     elapsed = 0
