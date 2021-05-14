@@ -1,4 +1,5 @@
 import random
+import uuid
 
 from sttable import parse_str_table
 
@@ -109,3 +110,12 @@ def assert_https_status_code_200(response: dict, error_message: str) -> None:
 def assert_https_status_code_less_or_equal(code: int, response: dict, error_message: str) -> None:
     if not response['ResponseMetadata']['HTTPStatusCode'] <= code:
         raise AssertionError(f'{error_message} Response is: {response}')
+
+
+def generate_random_string_with_prefix(prefix: str) -> str:
+    """
+    Concatenates the given prefix with a random string 8 symbols long
+    :param prefix: The prefix
+    """
+    random_str = str(uuid.uuid1())[0:8]
+    return f"{prefix}{random_str}"

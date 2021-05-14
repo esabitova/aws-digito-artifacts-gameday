@@ -9,9 +9,7 @@ Feature: SSM automation document to restore the database from point in time.
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
-    And the cached input parameters
-      | TargetTableToRestoreName |
-      | TargetTableToRestore     |
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
@@ -29,9 +27,10 @@ Feature: SSM automation document to restore the database from point in time.
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And the cached input parameters
-      | TargetTableToRestoreName | GlobalTableSecondaryRegion |
-      | TargetTableToRestore     | ap-southeast-1             |
+      | GlobalTableSecondaryRegion |
+      | ap-southeast-1             |
     And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 600 seconds with delay 20 seconds
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
@@ -53,9 +52,7 @@ Feature: SSM automation document to restore the database from point in time.
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
-    And the cached input parameters
-      | TargetTableToRestoreName |
-      | TargetTableToRestore     |
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
@@ -71,16 +68,12 @@ Feature: SSM automation document to restore the database from point in time.
   # this will be done in a "Full Cucumber test" task
   Scenario: Restores table to the latest available point. Change Alarms
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                | ResourceType |
-      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithAutoScaling.yml | ON_DEMAND    |
-    Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
+      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithAutoScaling.yml                        | ON_DEMAND    |
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
-    And the cached input parameters
-      | TargetTableToRestoreName |
-      | TargetTableToRestore     |
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
@@ -98,9 +91,7 @@ Feature: SSM automation document to restore the database from point in time.
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
-    And the cached input parameters
-      | TargetTableToRestoreName |
-      | TargetTableToRestore     |
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplateWithIndex>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
@@ -120,9 +111,7 @@ Feature: SSM automation document to restore the database from point in time.
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
-    And the cached input parameters
-      | TargetTableToRestoreName |
-      | TargetTableToRestore     |
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
@@ -142,9 +131,7 @@ Feature: SSM automation document to restore the database from point in time.
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
-    And the cached input parameters
-      | TargetTableToRestoreName |
-      | TargetTableToRestore     |
+    And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
@@ -160,7 +147,7 @@ Feature: SSM automation document to restore the database from point in time.
   Scenario: Restores table to the latest available point with enabled kinesis streaming destination
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
-      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                                       | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                            | ON_DEMAND    |
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
@@ -170,7 +157,7 @@ Feature: SSM automation document to restore the database from point in time.
     And drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
     And wait table {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
-      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
+      | DynamoDBTableSourceName                                  | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |
       | {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
     Then SSM automation document "Digito-RestoreToPointInTime_2020-04-01" execution in status "Success"
       | ExecutionId                |

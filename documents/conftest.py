@@ -7,13 +7,20 @@ from pytest_bdd import (
 
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name
+from resource_manager.src.util.common_test_utils import generate_random_string_with_prefix
+
+
+@given(parsers.parse('generate and cache random string with prefix {prefix} as {field_name}'))
+def generate_and_cache_random_string_with_prefix(ssm_test_cache, prefix, field_name):
+    rnd = generate_random_string_with_prefix(prefix)
+    ssm_test_cache[field_name] = rnd
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-           == ssm_test_cache[step_key_for_actual][actual_property]
+        == ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.cfparse('assert the difference between "{expected_property}" at "{step_key_for_expected}" '
@@ -22,14 +29,14 @@ def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actua
 def assert_difference(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual,
                       expected_difference: int):
     assert int(ssm_test_cache[step_key_for_expected][expected_property]) \
-           - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
+        - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became not equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_not_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-           != ssm_test_cache[step_key_for_actual][actual_property]
+        != ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
@@ -42,7 +49,7 @@ def assert_equal_to_value(ssm_test_cache, expected_property, step_key_for_expect
                     'less than "{actual_property}" at "{step_key_for_actual}"'))
 def assert_less_than(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-           < ssm_test_cache[step_key_for_actual][actual_property]
+        < ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @given(parsers.parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" to'
