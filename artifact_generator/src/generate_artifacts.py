@@ -4,7 +4,10 @@ import pathlib
 import re
 from artifact_generator.src.input_validator import InputValidator as validator
 from typing import Callable
+
+from artifact_generator.src.scenario_info import ScenarioInfo
 from util.bg_colors import BgColors
+from mako.lookup import TemplateLookup
 
 AUTOMATION_DOC_NAME = 'AutomationDocument.yml'
 ROLE_DOC_NAME = 'AutomationAssumeRoleTemplate.yml'
@@ -14,12 +17,15 @@ USUAL_CASE_TEST_DOC_NAME = 'usual_case_test.feature'
 FAILED_DOC_TEST_NAME = 'failed.feature'
 ROLLBACK_TEST_DOC_NAME = 'rollback_previous.feature'
 SYNTHETIC_ALARM_PREFIX = 'Synthetic'
+SCENARIO_PREFIX = 'Scenario:'
 RISKS = ['SMALL', 'MEDIUM', 'HIGH']
 FAILURE_TYPES = ['REGION', 'AZ', 'HARDWARE', 'SOFTWARE']
 FILE_PATH = pathlib.Path(__file__)
 PACKAGE_DIR = FILE_PATH.parent.parent.parent.absolute()
 TEMPLATES_DIR = os.path.join(FILE_PATH.parent.absolute(), 'templates')
 CFN_TEMPLATES_PATH = os.path.join(PACKAGE_DIR, "resource_manager", "cloud_formation_templates")
+
+template_lookup = TemplateLookup(TEMPLATES_DIR)
 
 
 def __is_exists(path: str):
@@ -196,19 +202,49 @@ def __get_feature_file_templates_applicable(doc_type: str, supports_rollback: st
     return feature_file_templates
 
 
-def __create_feature_files(name: str, feature_file_templates: list, test_location: str, replacements: list):
+def __get_scenarios(feature_files: str, step_def_location: str):
     """
-    Create the feature files for the test/sop in the specified target path by using the specified source templates and
-    placeholder replacements
+    Parses the input feature files to get scenario information
+    :param feature_files: list of feature files
+    :param step_def_location: path to the step_defs directory
+    :return: scenario information
+    """
+    scenarios = []
+    for file in feature_files:
+        with open(file, "r") as f:
+            for ln in f:
+                if ln.strip().startswith(SCENARIO_PREFIX):
+                    scenarios.append(ScenarioInfo(ln.strip()[len(SCENARIO_PREFIX):].strip(),
+                                                  os.path.relpath(file, step_def_location)))
+    return scenarios
+
+
+def __create_feature_files(name: str, doc_name: str, doc_type: str, res_id: str,
+                           test_location: str, replacements: list, supports_rollback: str = None):
+    """
+    Create the feature files for the test/sop in the specified target path
     :param name: test/sop name
-    :param feature_file_templates: list of source feature file template names
+    :param doc_name: SSM document name
+    :param doc_type: test or sop document
+    :param res_id: primary resource identifier input of the SSM document
     :param test_location: target Tests directory location
     :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
+    :param supports_rollback: whether or not the test document supports rollback
+    :return:
     """
-    for template in feature_file_templates:
-        target_name = '{}_{}'.format(name, re.sub('_test|_sop', '', template))
-        target_file_path = os.path.join(test_location, target_name)
-        __create_artifact(os.path.join(TEMPLATES_DIR, template), target_file_path, replacements)
+    feature_templates = __get_feature_file_templates_applicable(doc_type, supports_rollback)
+    test_features_location = os.path.join(test_location, 'features')
+    template_targets = {}
+    for t in feature_templates:
+        template_targets[t] = os.path.join(test_features_location, '{}_{}'.format(name, re.sub('_test|_sop', '', t)))
+
+    ___exit_if_exists_and_no_overwrite(template_targets.values())
+    __get_cfn_template_info(doc_name, doc_type, res_id, replacements)
+    __create_dir_if_not_exists(test_features_location)
+
+    for template, target in template_targets.items():
+        __create_artifact(os.path.join(TEMPLATES_DIR, template), target, replacements)
+    return template_targets.values()
 
 
 def __get_input(prompt: str, validate: Callable = None, validate_args=None, max_attempts: int = 2):
@@ -322,17 +358,23 @@ def main():
     __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(main_docs_path, PACKAGE_DIR)))
 
     __print_header('Step 2: Create tests under Tests folder\n')
-    test_location = os.path.join(artifacts_dir, 'Tests', 'features')
-    feature_templates = __get_feature_file_templates_applicable(doc_type,
-                                                                supports_rollback if doc_type == 'test' else None)
-    target_feature_files = [os.path.join(test_location, '{}_{}'.format(name, t)) for t in feature_templates]
-    ___exit_if_exists_and_no_overwrite(target_feature_files)
+    test_location = os.path.join(artifacts_dir, 'Tests')
+    feature_files = __create_feature_files(name=name, doc_name=document_name, doc_type=doc_type,
+                                           res_id=resource_id, test_location=test_location, replacements=replacements,
+                                           supports_rollback=supports_rollback if doc_type == 'test' else None)
+    # create scenario test code
+    step_def_location = os.path.join(test_location, 'step_defs')
+    step_def_file = os.path.join(step_def_location, 'test_{}.py'.format(name.replace('-', '_')))
+    ___exit_if_exists_and_no_overwrite([step_def_file])
+    step_def_content = template_lookup.get_template("step_def.py.mak").render(
+        scenarios=__get_scenarios(feature_files, step_def_location),
+        get_test_suffix=lambda path: os.path.split(path)[1].split(".")[0])
+    __create_dir_if_not_exists(step_def_location)
+    with open(step_def_file, "w") as f:
+        f.write(step_def_content)
 
-    __get_cfn_template_info(document_name, doc_type, resource_id, replacements)
-    __create_dir_if_not_exists(test_location)
-    __create_feature_files(name, feature_templates, test_location, replacements)
     __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(test_location, PACKAGE_DIR)))
-    __print_header('Artifact generator has finished crating all documents. Please update them as required.')
+    __print_header('Artifact generator has finished creating all documents. Please update them as required.')
 
 
 if __name__ == '__main__':
