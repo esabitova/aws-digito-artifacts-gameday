@@ -1,3 +1,4 @@
+from resource_manager.src.util.cloudwatch_utils import delete_alarms_for_dynamo_db_table
 import jsonpath_ng
 from pytest_bdd import given, parsers, then, when
 from resource_manager.src.util import param_utils
@@ -123,3 +124,16 @@ def deregister_all_scaling_targers_for_dynamodb_table(ssm_test_cache,
     cf_output = resource_pool.get_cfn_output_params()
     table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
     deregister_all_scaling_target_all_dynamodb_table(boto3_session=boto3_session, table_name=table_name)
+
+
+@then(parsers.parse("delete all alarms for the table {table_name_ref}"))
+def delete_all_alarms_for_dynamodb_table(ssm_test_cache,
+                                         resource_pool,
+                                         boto3_session,
+                                         table_name_ref):
+    cf_output = resource_pool.get_cfn_output_params()
+    table_name = param_utils.parse_param_value(table_name_ref,
+                                               {'cfn-output': cf_output,
+                                                'cache': ssm_test_cache})
+    delete_alarms_for_dynamo_db_table(boto3_session=boto3_session,
+                                      table_name=table_name)

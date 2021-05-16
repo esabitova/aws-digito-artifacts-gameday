@@ -151,7 +151,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
         SCRIPT_PLACEHOLDER::auto_scaling_util.copy_scaling_targets
-  - name: SwitchAlarmsToTargetTable
+  - name: CopyAlarms
     action: aws:executeScript
     outputs:
       - Name: AlarmsChanged

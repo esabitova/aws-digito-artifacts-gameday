@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import List
+from typing import Any, Callable
 
 import boto3
 from botocore.config import Config
@@ -14,7 +14,7 @@ PUT_METRIC_ALARM_PARAMS = ['AlarmName', 'AlarmDescription', 'ActionsEnabled', 'O
                            'Metrics', 'Tags', 'ThresholdMetricId']
 
 
-def _execute_boto3_cloudwatch(delegate):
+def _execute_boto3_cloudwatch(delegate: Callable[[Any], dict]) -> dict:
     cloudwatch_client = boto3.client('cloudwatch')
     response = delegate(cloudwatch_client)
     if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
@@ -23,17 +23,27 @@ def _execute_boto3_cloudwatch(delegate):
     return response
 
 
-def _describe_metric_alarms(alarm_names: List[str]):
+def _describe_metric_alarms():
+    """
+    Returns all alarms setup in the current region
+    """
     return _execute_boto3_cloudwatch(
-        delegate=lambda x: x.describe_alarms(AlarmTypes=['MetricAlarm'], AlarmNames=alarm_names))
+        delegate=lambda x: x.describe_alarms(AlarmTypes=['MetricAlarm']))
 
 
 def _put_metric_alarm(**kwargs):
+    """
+    Updates or creates metric alarm with the given paramters:
+    :param kwargs: The parametes for boto3 put_metric_alarm
+    """
     return _execute_boto3_cloudwatch(
         delegate=lambda x: x.put_metric_alarm(**kwargs))
 
 
 def copy_alarms_for_dynamo_db_table(events, context):
+    """
+    Copies all the given alarm names from the source to the target table
+    """
     if 'SourceTableName' not in events:
         raise KeyError('Requires SourceTableName')
     if 'TargetTableName' not in events:
@@ -44,7 +54,11 @@ def copy_alarms_for_dynamo_db_table(events, context):
     source_table_name: str = events['SourceTableName']
     target_table_name: str = events['TargetTableName']
     alarms_names: str = events.get('DynamoDBSourceTableAlarmNames', [])
-    source_alarms = _describe_metric_alarms(alarm_names=alarms_names)
+    logging.info(
+        f"Coping alarms for dynamodb table. Source: {source_table_name}, "
+        f"Target: {target_table_name}. Alarm Names: {alarms_names}")
+    source_alarms = _describe_metric_alarms()
+    logging.info(f"Source Table alarms: {source_alarms}")
 
     alarms_copied_count: int = 0
 
@@ -52,9 +66,11 @@ def copy_alarms_for_dynamo_db_table(events, context):
         copy_alarm = False
         for dimension in alarm['Dimensions']:
             if dimension['Name'] == 'TableName' and \
-                    dimension['Value'] == source_table_name:
+                dimension['Value'] == source_table_name and \
+                    any([a for a in alarms_names if a in alarm['AlarmName']]):
                 copy_alarm = True
                 dimension['Value'] = target_table_name
+                alarm['AlarmName'] = f"{alarm['AlarmName']}_{target_table_name}"
 
         if copy_alarm:
             keys = [*alarm.keys()]

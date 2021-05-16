@@ -75,7 +75,7 @@ class TestCloudWatchUtil(unittest.TestCase):
 
     def test__describe_metric_alarms(self):
 
-        result = _describe_metric_alarms(alarm_names=[])
+        result = _describe_metric_alarms()
 
         self.assertEqual(result, DESCRIBE_ALARMS_RESPONSE)
 
