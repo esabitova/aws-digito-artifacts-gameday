@@ -17,7 +17,7 @@ Resources:
         - Name: BucketName
           Value: '${S3BucketName}'
         - Name: FilterId
-          Value: "${FilterId}"
+          Value: "${S3BucketName}-metrics"
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
