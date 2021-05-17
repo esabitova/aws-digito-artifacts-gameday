@@ -34,7 +34,21 @@ class ResourceModel(Model):
         CREATING = 3,
         UPDATING = 4,
         DELETING = 5,
-        FAILED = 6
+        FAILED = 6,
+        DELETED = 7
+
+    class ResourceType(Enum):
+        DEDICATED = 1,
+        ON_DEMAND = 2,
+        ASSUME_ROLE = 3,
+        SHARED = 4
+
+        @staticmethod
+        def from_string(resource_type):
+            for rt in ResourceModel.ResourceType:
+                if rt.name == resource_type:
+                    return rt
+            raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
 
     cf_stack_index = NumberAttribute(range_key=True)
     cf_template_name = UnicodeAttribute(hash_key=True)
@@ -79,7 +93,7 @@ class ResourceModel(Model):
         return resources
 
     @staticmethod
-    def update_resource_status(resource, status):
+    def update_resource_status(resource, status: Status):
         """
         Updates resource record to given status.
         :param resource: The resource record to be updated
