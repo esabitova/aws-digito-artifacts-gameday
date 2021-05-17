@@ -167,8 +167,7 @@ mainSteps:
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 120
-    timeoutSeconds: 5
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -252,8 +251,7 @@ mainSteps:
     action: aws:waitForAwsResourceProperty
     onFailure: 'step:GetDeadLetterQueueUrl'
     onCancel: 'step:TriggerRollback'
-    maxAttempts: 240
-    timeoutSeconds: 5
+    timeoutSeconds: 1200
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -326,8 +324,7 @@ mainSteps:
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 120
-    timeoutSeconds: 5
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
