@@ -75,7 +75,7 @@ mainSteps:
     onFailure: Abort
     outputs:
       - Name: ExistingRouteTableResponse
-        Selector: $.Payload.ExistingRouteTableResponse
+        Selector: $.Payload.ExistingRouteTableResponse[0]
         Type: String
     inputs:
       Runtime: python3.6

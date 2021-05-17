@@ -82,6 +82,7 @@ class ResourcePool:
             if self.cfn_resources.get(cfn_template_path) is None:
                 cf_template_file_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
                 pool_size = self._get_resource_pool_size(cf_template_file_name, resource_type)
+
                 self.cfn_resources[cfn_template_path] = self.pull_resource_by_template(cfn_template_path,
                                                                                        pool_size,
                                                                                        resource_type,
@@ -139,12 +140,12 @@ class ResourcePool:
 
                             if resource.cf_template_sha1 != cfn_template_sha1 \
                                     or resource.cf_input_parameters_sha1 != cfn_params_sha1 \
-                                    or resource.status == ResourceModel.Status.FAILED.name\
+                                    or resource.status == ResourceModel.Status.FAILED.name \
                                     or resource.status == ResourceModel.Status.DELETED.name:
                                 resource = self._update_resource(i, cfn_template_path, cfn_content, resource)
                                 if resource is not None:
                                     return resource
-                            # In case if resource type is ON_DEMAND
+                            # In case if resource type is ON_DEMAND or DEDICATED
                             elif resource.type == ResourceModel.ResourceType.ON_DEMAND.name or \
                                     resource.type == ResourceModel.ResourceType.DEDICATED.name:
                                 resource.leased_times = resource.leased_times + 1

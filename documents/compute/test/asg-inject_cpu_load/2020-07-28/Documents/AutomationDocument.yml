@@ -122,7 +122,7 @@ mainSteps:
         Duration: '{{Duration}}'
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 10
+    maxAttempts: 1
     timeoutSeconds: 600
     onFailure: 'step:KillStressCommand'
     onCancel: 'step:TriggerRollback'
@@ -140,7 +140,7 @@ mainSteps:
       Duration: 'PT{{ExpectedRecoveryTime}}S'
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
-    maxAttempts: 10
+    maxAttempts: 1
     timeoutSeconds: 600
     onFailure: Abort
     inputs:
@@ -167,7 +167,7 @@ mainSteps:
     onFailure: Abort
     outputs:
     - Name: InstanceIds
-      Selector: $.Payload.InstanceIds
+      Selector: $.Payload.InstanceIds[0]
       Type: String
     inputs:
       Runtime: python3.6

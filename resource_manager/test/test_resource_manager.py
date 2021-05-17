@@ -36,6 +36,7 @@ class TestResourcePool(unittest.TestCase):
     def tearDown(self):
         self.os_path_patcher.stop()
         self.mock_file_patcher.stop()
+        config.pool_size = dict(default=1)
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     @patch('resource_manager.src.resource_model.ResourceModel.create')
@@ -315,6 +316,43 @@ class TestResourcePool(unittest.TestCase):
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     @patch('resource_manager.src.resource_model.ResourceModel.create')
+    def test_pull_resources_dedicated_create_success(self, create_mock, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
+        r1 = MagicMock()
+        r1.configure_mock(cf_stack_index=0,
+                          status=ResourceModel.Status.LEASED.name,
+                          type=ResourceModel.ResourceType.DEDICATED.name,
+                          cf_template_sha1=self.cfn_content_sha1,
+                          cf_input_parameters_sha1=self.cfn_input_param_sha1)
+
+        client_side_effect_map = {
+            self.test_template_name: [r1],
+        }
+        query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
+
+        mock = MagicMock()
+        mock.configure_mock(cf_stack_index=1,
+                            status=ResourceModel.Status.CREATING.name,
+                            type=ResourceModel.ResourceType.DEDICATED.name,
+                            cf_template_sha1=self.cfn_content_sha1,
+                            cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        create_mock.return_value = mock
+
+        self.rm.add_cfn_template(self.test_template_name,
+                                 ResourceModel.ResourceType.DEDICATED,
+                                 test_param='test_param_value')
+
+        resources = self.rm.pull_resources()
+        self.assertEqual(len(resources), 1)
+        for resource in resources:
+            self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
+
+        self.s3_helper_mock.upload_file.assert_called_once()
+        self.cfn_helper_mock.deploy_cf_stack.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.query')
+    @patch('resource_manager.src.resource_model.ResourceModel.create')
     def test_pull_resources_shared_create_success(self, create_mock, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
 
@@ -498,6 +536,14 @@ class TestResourcePool(unittest.TestCase):
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
+    def test_get_resource_pool_size_dedicated_custom_override_config_success(self):
+        expected_pool_size = 10
+        config.pool_size['TesTemplateA'] = 5
+        custom_pool_size = dict(TesTemplateA=expected_pool_size)
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.DEDICATED)
+        self.assertEqual(actual_pool_size, expected_pool_size)
+
     def test_get_resource_pool_size_on_demand_config_success(self):
         expected_pool_size = 6
         custom_pool_size = dict()
@@ -512,6 +558,14 @@ class TestResourcePool(unittest.TestCase):
         config.pool_size['TesTemplateA'] = 6
         rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.SHARED)
+        self.assertEqual(actual_pool_size, expected_pool_size)
+
+    def test_get_resource_pool_size_dedicated_config_success(self):
+        expected_pool_size = 6
+        custom_pool_size = dict()
+        config.pool_size['TesTemplateA'] = 6
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.DEDICATED)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
     def test_get_resource_pool_size_assume_role_config_success(self):
@@ -532,3 +586,48 @@ class TestResourcePool(unittest.TestCase):
         resource_type = ResourceModel.ResourceType.SHARED
         self.rm.add_cfn_template(self.test_template_name, resource_type, test_param='test_param_value')
         self.rm.add_cfn_template(self.test_template_name + '_1', resource_type, test_param='test_param_value')
+
+    def test_release_resources_success(self):
+        on_demand = MagicMock()
+        on_demand.configure_mock(cf_stack_index=1,
+                                 type=ResourceModel.ResourceType.ON_DEMAND.name,
+                                 status=ResourceModel.Status.LEASED.name,
+                                 cf_template_sha1=self.cfn_content_sha1,
+                                 cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        dedicated = MagicMock()
+        dedicated.configure_mock(cf_stack_index=1,
+                                 type=ResourceModel.ResourceType.DEDICATED.name,
+                                 status=ResourceModel.Status.LEASED.name,
+                                 cf_template_sha1=self.cfn_content_sha1,
+                                 cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        shared = MagicMock()
+        shared.configure_mock(cf_stack_index=1,
+                              type=ResourceModel.ResourceType.SHARED.name,
+                              status=ResourceModel.Status.AVAILABLE.name,
+                              cf_template_sha1=self.cfn_content_sha1,
+                              cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        assume_role = MagicMock()
+        assume_role.configure_mock(cf_stack_index=1,
+                                   type=ResourceModel.ResourceType.ASSUME_ROLE.name,
+                                   status=ResourceModel.Status.AVAILABLE.name,
+                                   cf_template_sha1=self.cfn_content_sha1,
+                                   cf_input_parameters_sha1=self.cfn_input_param_sha1)
+
+        self.rm.cfn_resources['on_demand_template'] = on_demand
+        self.rm.cfn_resources['dedicated_template'] = dedicated
+        self.rm.cfn_resources['shared_template'] = shared
+        self.rm.cfn_resources['assume_role_template'] = assume_role
+
+        self.rm.release_resources()
+
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, on_demand.status)
+        self.assertEqual(ResourceModel.Status.DELETED.name, dedicated.status)
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, shared.status)
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, assume_role.status)
+
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, on_demand.status)
+        self.assertEqual(ResourceModel.Status.DELETED.name, dedicated.status)
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, shared.status)
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, assume_role.status)
+
+        self.cfn_helper_mock.delete_cf_stack.assert_called_once()

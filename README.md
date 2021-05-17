@@ -320,8 +320,8 @@ Given the cloud formation templates as integration test resources
 * Here is no risk of that multiple tests will use same assume role stack. It is ok if multiple tests will use same ASSUME_ROLE at the same time (No need isolation).
 ```
 Given the cloud formation templates as integration test resources
-      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|AllocatedStorage|
-      |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |                |
+      |CfnTemplatePath                                                                                |ResourceType|
+      |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|
 ```
 <b>File location:</b>.../AwsDigitoArtifactsGameday/documents/rds/test/force_aurora_failover/2020-04-01/Tests/features/aurora_failover_cluster.feature
 
@@ -331,7 +331,22 @@ Given the cloud formation templates as integration test resources
 * SHARED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/shared/```
 
 <b>NOTE:</b> Make your own best judgement when to create cloud formation template as SHARED. 
-# TODO (semiond): add example
+```
+Given the cloud formation templates as integration test resources
+      |CfnTemplatePath                                                                |ResourceType|<CfnParamName> |
+      |resource_manager/cloud_formation_templates/shared/<MySharedCfnTemplateName>.yml|      SHARED|<CfnParamValue>|  
+```
+
+<b>DEDICATED</b> type of CFN template resource:
+* Resource will be created for single test case and destroyed after test case completed. 
+* When using DEDICATED resource type you need to make sure that this cloud formation stack is deletable, there may be the case that stack cannot be deleted because some stack resource should be removed first on test tear down.
+* It can use same mechanism to control pool size as ON_DEMAND resource. We want allow to execute it in parallel and let create multiple cloud formation stacks for given DEDICATED cloud formation template to reduce test execution time. 
+* DEDICATED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/dedicated/```
+```
+Given the cloud formation templates as integration test resources
+      |CfnTemplatePath                                                                   |ResourceType|<CfnParamName> |
+      |resource_manager/cloud_formation_templates/shared/<MyDedicatedCfnTemplateName>.yml|   DEDICATED|<CfnParamValue>|  
+```
 
 Pool size configuration content given bellow:
 ```
@@ -363,6 +378,8 @@ pool_size = dict(
 )
 ```
 <b>File location:</b> .../AwsDigitoArtifactsGameday/resource_manager/config.py
+
+<b>NOTE:</b> Pool size can be controlled over command line as well as defined in section [Integration Test Execution](#integration-test-execution)
 
 ## Cloud Formation Templates
 
@@ -535,7 +552,7 @@ Integration test execution command line:
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 * --aws_profile - (Optional) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
-* --pool_size - (Optional) Custom pool size for CFN template resources, it overrides configuration given resource_manager/src/config.py. NOTE: Once pool size increased there is no feature to decrease it for now (only manual deletion available.).
+* --pool_size - (Optional) Custom pool size for CFN template resources, it overrides configuration given resource_manager/src/config.py. NOTE: Once pool size increased there is no feature to decrease it for now (only manual deletion available, more in [Resource Tool (to manipulate integration test resources)](#resource-tool) section).
 
 ## Resource Tool
 Here is a need to have a tool to manipulate integration test resources without executing integration tests which can serve following goals:

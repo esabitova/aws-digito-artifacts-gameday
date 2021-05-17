@@ -161,13 +161,13 @@ mainSteps:
     onFailure: Abort
     outputs:
       - Name: ExecutionId
-        Selector: $.Payload.ExecutionId
+        Selector: $.Payload.ExecutionId[0]
         Type: String
       - Name: InstanceId
-        Selector: $.Payload.Output
+        Selector: $.Payload.Output[0]
         Type: String
       - Name: Status
-        Selector: $.Payload.Status
+        Selector: $.Payload.Status[0]
         Type: String
     inputs:
       Runtime: python3.6
@@ -184,10 +184,10 @@ mainSteps:
     onFailure: step:CleanupPreviousExecutionBranch
     outputs:
       - Name: ExecutionId
-        Selector: $.Payload.ExecutionId
+        Selector: $.Payload.ExecutionId[0]
         Type: String
       - Name: Status
-        Selector: $.Payload.Status
+        Selector: $.Payload.Status[0]
         Type: String
     inputs:
       Runtime: python3.6

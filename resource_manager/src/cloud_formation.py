@@ -142,8 +142,6 @@ class CloudFormationTemplate:
         self._update_termination_protection(stack_name, False)
         self.client.delete_stack(StackName=stack_name)
         self._wait_stack_operation_completion(stack_name)
-        # waiter = self.client.get_waiter('stack_delete_complete')
-        # waiter.wait(StackName=stack_name)
 
     def describe_cf_stack(self, stack_name):
         return self.client.describe_stacks(StackName=stack_name)['Stacks'][0]
