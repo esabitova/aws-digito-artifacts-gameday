@@ -124,7 +124,7 @@ mainSteps:
     onFailure: Abort
     outputs:
       - Name: InstanceIds
-        Selector: $.Payload.InstanceIds
+        Selector: $.Payload.InstanceIds[0]
         Type: String
     inputs:
       Runtime: python3.6

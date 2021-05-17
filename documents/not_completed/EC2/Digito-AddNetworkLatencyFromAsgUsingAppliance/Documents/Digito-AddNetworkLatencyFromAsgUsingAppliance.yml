@@ -119,7 +119,7 @@ mainSteps:
     onFailure: Abort
     outputs:
       - Name: ExecutionId
-        Selector: $.Payload.ExecutionId
+        Selector: $.Payload.ExecutionId[0]
         Type: String
     inputs:
       Runtime: python3.6

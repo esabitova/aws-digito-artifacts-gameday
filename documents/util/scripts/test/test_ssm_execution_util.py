@@ -33,8 +33,8 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events['ResponseField'] = test_data_provider.RESPONSE_FIELD_1 + ',' + test_data_provider.RESPONSE_FIELD_2
 
         ssm_output = get_output_from_ssm_step_execution(events, None)
-        self.assertEqual(test_data_provider.SUCCESS_STATUS, ssm_output[test_data_provider.RESPONSE_FIELD_1])
-        self.assertEqual(test_data_provider.INSTANCE_ID, ssm_output[test_data_provider.RESPONSE_FIELD_2])
+        self.assertEqual(test_data_provider.SUCCESS_STATUS, ssm_output[test_data_provider.RESPONSE_FIELD_1][0])
+        self.assertEqual(test_data_provider.INSTANCE_ID, ssm_output[test_data_provider.RESPONSE_FIELD_2][0])
 
     def test_get_output_from_ssm_step_execution_fail_missing_input(self):
         events = {}
@@ -61,7 +61,7 @@ class TestSsmExecutionUtil(unittest.TestCase):
         events['ResponseField'] = MISSING_FIELD
 
         ssm_output = get_output_from_ssm_step_execution(events, None)
-        self.assertEqual('', ssm_output[MISSING_FIELD])
+        self.assertEqual([''], ssm_output[MISSING_FIELD])
 
     def test_get_step_durations(self):
         events = {}

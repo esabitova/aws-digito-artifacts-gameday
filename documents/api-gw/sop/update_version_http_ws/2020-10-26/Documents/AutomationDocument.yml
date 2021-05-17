@@ -1,0 +1,123 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test pushing specified deployment to stage"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+  - FindPreviousDeploymentIfNotProvided.DeploymentIdOriginalValue
+  - FindPreviousDeploymentIfNotProvided.DeploymentIdToApply
+  - ApplyDeploymentOnStage.DeploymentIdNewValue
+parameters:
+  HttpWsApiGwId:
+    type: String
+    description: (Required) The Id of the ApiGateway
+  HttpWsStageName:
+    type: String
+    description: (Required) The stage name of the ApiGateway stage
+  HttpWsDeploymentId:
+    type: String
+    description: (Optional) The Id of the deployment of the ApiGateway
+    default: ''
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: ValidateStage
+    action: aws:executeScript
+    inputs:
+      Runtime: "python3.7"
+      Handler: "validate_auto_deploy"
+      InputPayload:
+        HttpWsApiGwId: '{{ HttpWsApiGwId }}'
+        HttpWsStageName: '{{ HttpWsStageName }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw2_utils.imports
+        SCRIPT_PLACEHOLDER::apigw2_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_stage
+        SCRIPT_PLACEHOLDER::apigw2_utils.validate_auto_deploy
+
+  - name: FindPreviousDeploymentIfNotProvided
+    action: aws:executeScript
+    outputs:
+      - Name: DeploymentIdOriginalValue
+        Selector: "$.Payload.OriginalDeploymentId"
+        Type: String
+      - Name: DeploymentIdToApply
+        Selector: "$.Payload.DeploymentIdToApply"
+        Type: String
+    inputs:
+      Runtime: "python3.7"
+      Handler: "find_deployment_id_for_update"
+      InputPayload:
+        HttpWsApiGwId: '{{ HttpWsApiGwId }}'
+        HttpWsStageName: '{{ HttpWsStageName }}'
+        HttpWsDeploymentId: '{{ HttpWsDeploymentId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw2_utils.imports
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_stage
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_deployment
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_deployments
+        SCRIPT_PLACEHOLDER::apigw2_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw2_utils.find_deployment_id_for_update
+
+  - name: ApplyDeploymentOnStage
+    action: aws:executeScript
+    outputs:
+      - Name: DeploymentIdNewValue
+        Selector: "$.Payload.DeploymentIdNewValue"
+        Type: "String"
+    inputs:
+      Runtime: "python3.7"
+      Handler: "update_deployment"
+      InputPayload:
+        HttpWsApiGwId: '{{ HttpWsApiGwId }}'
+        HttpWsStageName: '{{ HttpWsStageName }}'
+        HttpWsDeploymentId: '{{ FindPreviousDeploymentIfNotProvided.DeploymentIdToApply }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw2_utils.imports
+        SCRIPT_PLACEHOLDER::apigw2_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw2_utils.update_deployment
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

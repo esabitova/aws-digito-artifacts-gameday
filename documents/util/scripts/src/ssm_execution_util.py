@@ -16,9 +16,8 @@ def get_output_from_ssm_step_execution(events, context):
             response_fields = events['ResponseField'].split(',')
             output = {}
             for response_field in response_fields:
-                # TODO DIG-854
                 if response_field in step['Outputs']:
-                    output[response_field] = step['Outputs'][response_field][0]
+                    output[response_field] = step['Outputs'][response_field]
                 else:
                     """
                     By default SSM ignores empty values when encodes API outputs to JSON. It may result in
@@ -28,7 +27,7 @@ def get_output_from_ssm_step_execution(events, context):
                     Instead of ignoring this value we should use a default empty value in rollback, i.e. empty string
                     represents a default sqs policy
                     """
-                    output[response_field] = ''
+                    output[response_field] = ['']
             return output
 
     # Could not find step name
@@ -94,7 +93,7 @@ def cancel_command_execution(events, context):
     if 'ExecutionId' not in events or 'InstanceIds' not in events or 'StepName' not in events:
         raise KeyError('Requires DocumentName, InstanceIds, Parameters in events')
     events['ResponseField'] = 'CommandId'
-    command_id = get_output_from_ssm_step_execution(events, context)[events['ResponseField']]
+    command_id = get_output_from_ssm_step_execution(events, context)[events['ResponseField']][0]
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     ssm = boto3.client('ssm', config=config)
     ssm.cancel_command(
