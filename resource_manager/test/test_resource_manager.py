@@ -99,6 +99,34 @@ class TestResourcePool(unittest.TestCase):
         r1.save.assert_not_called()
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
+    def test_pull_resources_dedicated_by_template_name_success(self, query_mock):
+        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        r1 = MagicMock()
+        r1.configure_mock(cf_stack_index=0,
+                          type=ResourceModel.ResourceType.DEDICATED.name,
+                          status=ResourceModel.Status.LEASED.name,
+                          cf_template_sha1=self.cfn_content_sha1,
+                          cf_input_parameters_sha1=self.cfn_input_param_sha1)
+
+        r2 = MagicMock()
+        r2.configure_mock(cf_stack_index=1,
+                          type=ResourceModel.ResourceType.DEDICATED.name,
+                          status=ResourceModel.Status.DELETED.name,
+                          cf_template_sha1=self.cfn_content_sha1,
+                          cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        query_mock.return_value = [r1, r2]
+
+        self.rm.add_cfn_template(self.test_template_name,
+                                 ResourceModel.ResourceType.ON_DEMAND,
+                                 test_param='test_param_value')
+        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
+                                                     ResourceModel.ResourceType.DEDICATED, 5)
+        self.assertEqual(resource.cf_stack_index, 1)
+        self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
+        r1.save.assert_not_called()
+        self.assertEqual(r2.save.call_count, 2)
+
+    @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_mixed_types_by_template_name_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
         r1 = MagicMock()

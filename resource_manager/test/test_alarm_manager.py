@@ -245,12 +245,6 @@ class TestAlarmManager(unittest.TestCase):
         no_metric_alarm = """
     AWSTemplateFormatVersion: '2010-09-09'
     Resources:
-      AbnormalRequestPerTargetAnomalyDetector:
-        Type: 'AWS::CloudWatch::AnomalyDetector'
-        Properties:
-          MetricName: RequestCountPerTarget
-          Namespace: AWS/ApplicationELB
-          Stat: Average
       VolumeWriteBytesAlarm:
         Type: 'AWS::CloudWatch::Alarm'
         Properties:

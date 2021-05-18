@@ -138,9 +138,12 @@ Sample execution:
 
   Created target folder structure [documents/s3/test/accidental_delete/2021-05-12/Tests/features]
 
-  Successfully created artifacts under documents/s3/test/accidental_delete/2021-05-12/Tests/features.
+  Created target folder structure [documents/s3/test/accidental_delete/2021-05-12/Tests/step_defs]
 
-  Artifact generator has finished crating all documents. Please update them as required.
+  Successfully created artifacts under documents/s3/test/accidental_delete/2021-05-12/Tests.
+
+  Artifact generator has finished creating all documents. Please update them as required.
+  
 ```
 
 ## Metadata File

@@ -50,22 +50,27 @@ Yes. The script backups existing Security Groups assigned and restores it when t
 * Description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf. See Permissions required above for test.
 * Type: String
 
+### `EmptySecurityGroup`:
+* Description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf. See Permissions required above for test.
+* Type: String
+
 ### `MountTargetIds`:
 
 * type: StringList
-* description: (Optional) The list of identifiers of the mount targets. The script disassociates security group(-s) from mount target(-s). Empty list means *ALL* targets in randomly selected AZ of the current Region. Provided as a YAML list
+* description: (Optional) The list of identifiers of the mount targets. The script disassociates security group(-s) from mount target(-s). Empty list means   target in randomly selected AZ of the current Region. Provided as a YAML list
+* default: []
 
 ### `IsRollback`:
 
-* type: Boolean
+* type: String
 * description: (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`)
 * default: False
 
 ### `PreviousExecutionId`:
 
-* type: Integer
+* type: String
 * description: (Optional) The id of previous execution of the current script
-* default: 0
+* default: ''
 
 ## Details
 
@@ -94,7 +99,7 @@ Yes. The script backups existing Security Groups assigned and restores it when t
     * Outputs: none
     * Explanation:
         * Fail if input parameters are not equal. Otherwise, move to the next step.
-1. `PrepareMountTargetIds`
+1. `PrepareRollbackOfPreviousExecutionMountTargetIds`
     * Type: aws:executeScript
     * Inputs:
         * `PreviousExecutionId`
@@ -103,7 +108,7 @@ Yes. The script backups existing Security Groups assigned and restores it when t
         * `MountTargetIds`
     * Explanation:
         * Get value of SSM Document output from the previous execution's step using `PreviousExecutionId`
-1. `PrepareSecurityGroups`
+1. `PrepareRollbackOfPreviousExecutionSecurityGroups`
     * Type: aws:executeScript
     * Inputs:
         * `PreviousExecutionId`
@@ -173,4 +178,5 @@ Yes. The script backups existing Security Groups assigned and restores it when t
 
 ## Outputs
 
-No
+### `OutputRecoveryTime.RecoveryTime`
+* Description: calculated SSM execution time

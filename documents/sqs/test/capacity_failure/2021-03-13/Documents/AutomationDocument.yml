@@ -82,7 +82,6 @@ mainSteps:
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
     timeoutSeconds: 600
     inputs:
       Service: cloudwatch
@@ -128,7 +127,6 @@ mainSteps:
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
     timeoutSeconds: 300
     onFailure: 'step:RollbackCurrentExecution'
     onCancel: 'step:TriggerRollback'
@@ -157,7 +155,6 @@ mainSteps:
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
     timeoutSeconds: 600
     inputs:
       Service: cloudwatch

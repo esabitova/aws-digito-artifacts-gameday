@@ -1,7 +1,7 @@
 @${serviceName}
-Feature: SSM automation document ${name}
+Feature: SSM automation document ${documentName}
 
-  Scenario: Execute SSM automation document ${name} in rollback
+  Scenario: Execute SSM automation document ${documentName} in rollback
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath     | ResourceType |
       | resource_manager/cloud_formation_templates/${cfnTemplateName}.yml  | ON_DEMAND    |
