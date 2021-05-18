@@ -11,8 +11,8 @@ Feature: SSM automation document to test EFS behavior after breaking security gr
       | MountTargetId                            |
       | {{cfn-output:EFSTemplate>EFSMountTarget}}|
     And SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" executed
-      | FileSystemId                     | ClientConnectionsAlarmName                            | AutomationAssumeRole                                                              |
-      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>ClientConnectionsAlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoEFSBreakSecurityGroupAssumeRole}} |
+      | FileSystemId                     | ClientConnectionsAlarmName                            | MountTargetIds                            | AutomationAssumeRole                                                              |
+      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>ClientConnectionsAlarmName}} | {{cfn-output:EFSTemplate>EFSMountTarget}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoEFSBreakSecurityGroupAssumeRole}} |
 
     When SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" execution in status "Success"
       | ExecutionId                |

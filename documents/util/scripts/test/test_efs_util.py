@@ -167,6 +167,53 @@ class TestBackupUtil(unittest.TestCase):
             efs_util.revert_fs_security_groups(events, None)
         assert 'An error occurred (BadRequest)' in str(key_error.value)
 
+    def test_revert_fs_security_groups_empty_sg_not_exist(self):
+        sg_name = f"EmptySG-{MT_ID}-{test_data_provider.AUTOMATION_EXECUTION_ID}"
+        events = {
+            'MountTargetIdToSecurityGroupsMap': [f"{MT_ID}:{sg_name}"],
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+        }
+        self.mock_ec2.describe_security_groups.side_effect = ClientError(
+            error_response={"Error": {"Code": "InvalidGroup.NotFound"}},
+            operation_name='DescribeSecurityGroups'
+        )
+        efs_util.revert_fs_security_groups(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_once_with(
+            Filters=[
+                {
+                    'Name': 'group-name',
+                    'Values': [
+                        sg_name,
+                    ]
+                }
+            ]
+        )
+
+    def test_revert_fs_security_groups_empty_sg_smth_wrong(self):
+        sg_name = f"EmptySG-{MT_ID}-{test_data_provider.AUTOMATION_EXECUTION_ID}"
+        events = {
+            'MountTargetIdToSecurityGroupsMap': [f"{MT_ID}:{sg_name}"],
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+        }
+        self.mock_ec2.describe_security_groups.side_effect = ClientError(
+            error_response={"Error": {"Code": "BadRequest"}},
+            operation_name='DescribeSecurityGroups'
+        )
+        with pytest.raises(ClientError) as key_error:
+            efs_util.revert_fs_security_groups(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_once_with(
+            Filters=[
+                {
+                    'Name': 'group-name',
+                    'Values': [
+                        sg_name,
+                    ]
+                }
+            ]
+        )
+
+        assert 'An error occurred (BadRequest)' in str(key_error.value)
+
     def test_search_for_mount_target_ids_all(self):
         events = {
             'FileSystemId': FS_ID

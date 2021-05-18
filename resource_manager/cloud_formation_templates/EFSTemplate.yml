@@ -44,6 +44,9 @@ Outputs:
   EFSID:
     Description: EFS ID
     Value: !GetAtt FileSystem.FileSystemId
+  EFSMountTarget:
+    Description: EFS Mount target ID
+    Value: !Ref EFSMountTarget
   JobIAMRoleArn:
     Description: JobIAMRole ARN
     Value: !GetAtt JobIAMRole.Arn
