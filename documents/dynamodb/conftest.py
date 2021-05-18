@@ -85,9 +85,10 @@ def enable_global_table(ssm_test_cache,
                         wait_sec,
                         delay_sec):
     cf_output = resource_pool.get_cfn_output_params()
-    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    param_containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
+    table_name = param_utils.parse_param_value(table_name_ref, param_containers)
     region_global_table = param_utils.parse_param_value(
-        region_global_table_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+        region_global_table_ref, param_containers)
     add_global_table_and_wait_for_active(table_name=table_name,
                                          global_table_regions=[region_global_table],
                                          wait_sec=int(wait_sec),
@@ -106,9 +107,10 @@ def disable_global_table(ssm_test_cache,
                          wait_sec,
                          delay_sec):
     cf_output = resource_pool.get_cfn_output_params()
-    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+    param_containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
+    table_name = param_utils.parse_param_value(table_name_ref, param_containers)
     region_global_table = param_utils.parse_param_value(
-        region_global_table_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+        region_global_table_ref, param_containers)
     remove_global_table_and_wait_for_active(table_name=table_name,
                                             global_table_regions=[region_global_table],
                                             wait_sec=int(wait_sec),
@@ -116,24 +118,19 @@ def disable_global_table(ssm_test_cache,
                                             boto3_session=boto3_session)
 
 
-@then(parsers.parse("deregister all scaling target for the table {table_name_ref}"))
+@then(parsers.parse("deregister all scaling target for the table {table_name_cache_ref}"))
 def deregister_all_scaling_targers_for_dynamodb_table(ssm_test_cache,
-                                                      resource_pool,
                                                       boto3_session,
-                                                      table_name_ref):
-    cf_output = resource_pool.get_cfn_output_params()
-    table_name = param_utils.parse_param_value(table_name_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
+                                                      table_name_cache_ref):
+    table_name = param_utils.parse_param_value(table_name_cache_ref, {'cache': ssm_test_cache})
     deregister_all_scaling_target_all_dynamodb_table(boto3_session=boto3_session, table_name=table_name)
 
 
-@then(parsers.parse("delete all alarms for the table {table_name_ref}"))
+@then(parsers.parse("delete all alarms for the table {table_name_cache_ref}"))
 def delete_all_alarms_for_dynamodb_table(ssm_test_cache,
-                                         resource_pool,
                                          boto3_session,
-                                         table_name_ref):
-    cf_output = resource_pool.get_cfn_output_params()
-    table_name = param_utils.parse_param_value(table_name_ref,
-                                               {'cfn-output': cf_output,
-                                                'cache': ssm_test_cache})
+                                         table_name_cache_ref):
+    table_name = param_utils.parse_param_value(table_name_cache_ref,
+                                               {'cache': ssm_test_cache})
     delete_alarms_for_dynamo_db_table(boto3_session=boto3_session,
                                       table_name=table_name)
