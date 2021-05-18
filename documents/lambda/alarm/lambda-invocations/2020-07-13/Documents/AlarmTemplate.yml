@@ -3,12 +3,6 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  ConnectionSpikeAnomalyDetector:
-    Type: 'AWS::CloudWatch::AnomalyDetector'
-    Properties:
-      MetricName: Invocations
-      Namespace: AWS/Lambda
-      Stat: Sum
   ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
