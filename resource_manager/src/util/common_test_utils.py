@@ -18,6 +18,21 @@ def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cac
     return param_value
 
 
+def extract_and_cache_param_values(input_parameters, param_list, resource_manager, ssm_test_cache, step_key):
+    """
+    Extract values of CloudFormation output parameters provided in table and put them into SSM cache
+    :param input_parameters: the table with input parameters
+    :param param_list: Coma separated column names in the table with input parameters, for 2-level cache values
+    :param resource_manager: AWS resource manager
+    :param ssm_test_cache: cache
+    :param step_key: 1-level cache key
+    """
+    param_list: list = param_list.strip().split(',')
+    for param_name in param_list:
+        cache_value: str = extract_param_value(input_parameters, param_name, resource_manager, ssm_test_cache)
+        put_to_ssm_test_cache(ssm_test_cache, step_key, param_name, cache_value)
+
+
 def put_to_ssm_test_cache(ssm_test_cache: dict, cache_key, cache_property, value):
     """
     Put the value to the cache with the key cache property which should be placed under other key - cache_key

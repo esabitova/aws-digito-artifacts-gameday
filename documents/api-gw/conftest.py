@@ -1,14 +1,16 @@
+import logging
 from time import sleep
 
 import jsonpath_ng
 import pytest
-import logging
 from pytest_bdd import given, parsers, when, then
 
-from resource_manager.src.util import apigw_utils as apigw_utils
 from resource_manager.src.util import apigw2_utils as apigw2_utils
+from resource_manager.src.util import apigw_utils as apigw_utils
 from resource_manager.src.util.boto3_client_factory import client
-from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
+from resource_manager.src.util.common_test_utils import (
+    extract_param_value, put_to_ssm_test_cache, extract_and_cache_param_values
+)
 
 cache_current_stage_deployment_id_expression = 'cache current deployment id as "{cache_property}" "{step_key}" SSM ' \
                                                'automation execution' \
@@ -53,6 +55,16 @@ delete_dummy_deployment_expression = 'delete dummy deployment' \
 
 delete_dummy_deployment_set_expression = 'delete dummy deployments' \
                                          '\n{input_parameters}'
+
+cache_param_values_for_teardown_expression = 'cache value of "{param_list}" "{step_key}" SSM automation execution for' \
+                                             ' teardown' \
+                                             '\n{input_parameters}'
+
+cache_param_values_expression = 'cache value of "{param_list}" "{step_key}" SSM automation execution' \
+                                '\n{input_parameters}'
+
+cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_limit_key}" and ' \
+                                       'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution'
 
 
 @given(parsers.parse('cache API GW property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
@@ -285,3 +297,60 @@ def apply_wshttp_dummy_deployment_to_stage(
     previous_deployment_id = dummy_deployments[number - 1]
     apigw2_utils.update_stage_deployment(boto3_session, gateway_id, stage_name, dummy_deployment_id)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, previous_deployment_id)
+
+
+@pytest.fixture(scope='function')
+def rollback_throttling_settings(ssm_test_cache, boto3_session):
+    yield
+    logging.info('Rolling back API GW throttling settings...')
+    logging.info(f'SSM test cache: {ssm_test_cache}')
+    cache_before = ssm_test_cache['before']
+    usage_plan_id = cache_before['RestApiGwUsagePlanId']
+    rate_limit_before = cache_before['OldRateLimit']
+    burst_limit_before = cache_before['OldBurstLimit']
+    stage_name = cache_before.get('RestApiGwStageName')
+    gateway_id = cache_before.get('RestApiGwId')
+
+    actual_response = apigw_utils.set_throttling_settings(
+        boto3_session, usage_plan_id, rate_limit_before, burst_limit_before, gateway_id, stage_name
+    )
+    assert rate_limit_before == actual_response['RateLimit']
+    assert burst_limit_before == actual_response['BurstLimit']
+    logging.info('Rollback is finished.')
+
+
+@given(parsers.parse(cache_param_values_for_teardown_expression))
+@when(parsers.parse(cache_param_values_for_teardown_expression))
+@then(parsers.parse(cache_param_values_for_teardown_expression))
+def cache_param_values_for_teardown(
+        resource_pool, ssm_test_cache, rollback_throttling_settings, param_list, input_parameters, step_key
+):
+    extract_and_cache_param_values(input_parameters, param_list, resource_pool, ssm_test_cache, step_key)
+
+
+@given(parsers.parse(cache_param_values_expression))
+@when(parsers.parse(cache_param_values_expression))
+@then(parsers.parse(cache_param_values_expression))
+def cache_param_values(
+        resource_pool, ssm_test_cache, param_list, input_parameters, step_key
+):
+    extract_and_cache_param_values(input_parameters, param_list, resource_pool, ssm_test_cache, step_key)
+
+
+@given(parsers.parse(cache_throttling_settings_expression))
+@when(parsers.parse(cache_throttling_settings_expression))
+@then(parsers.parse(cache_throttling_settings_expression))
+def cache_throttling_settings(
+        ssm_test_cache, boto3_session, rate_limit_key, burst_limit_key, step_key
+):
+    cache_before = ssm_test_cache['before']
+    usage_plan_id = cache_before['RestApiGwUsagePlanId']
+    stage_name = cache_before.get('RestApiGwStageName')
+    gateway_id = cache_before.get('RestApiGwId')
+
+    throttling_settings = apigw_utils.get_throttling_settings(
+        boto3_session, usage_plan_id, gateway_id, stage_name
+    )
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, rate_limit_key, throttling_settings['RateLimit'])
+    put_to_ssm_test_cache(ssm_test_cache, step_key, burst_limit_key, throttling_settings['BurstLimit'])

@@ -1,10 +1,14 @@
 import logging
+import time
+from random import uniform
+from typing import Any, Callable
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 log = logging.getLogger()
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 
 
 def check_limit_and_period(events, context):
@@ -118,6 +122,43 @@ def assert_https_status_code_200(response: dict, error_message: str) -> None:
         raise ValueError(f'{error_message} Response is: {response}')
 
 
+def execute_boto3_with_backoff(delegate: Callable[[Any], dict], **kwargs) -> dict:
+    """
+    Executes the given delegate with apigateway client parameter, handles TooManyRequestsException using
+    exponential backoff algorithm with random jitter
+    :param delegate: The delegate to execute (with boto3 function)
+    :keyword args:
+        retries: Number of maximum backoff retries
+        max_interval: Maximum backoff interval in seconds
+        base_time: Backoff base time
+    :return: The output of the given function
+    """
+    backoff_retries: int = kwargs.get('retries', 15)
+    backoff_max_interval: int = kwargs.get('max_interval', 64)
+    backoff_base_time: int = kwargs.get('base_time', 2)
+    apigw_client = boto3.client('apigateway')
+
+    count = 1
+    while count <= backoff_retries:
+        try:
+            log.info(f'Making an API call, attempt: {count} ...')
+            response = delegate(apigw_client)
+            assert_https_status_code_200(response, 'Failed to perform API call')
+            log.info('API call performed successfully.')
+            return response
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'TooManyRequestsException':
+                interval: float = min(backoff_base_time * 2 ** count + round(uniform(-2, 2), 2), backoff_max_interval)
+                log.warning(f'TooManyRequestsException, slow it down with delay {interval} seconds ...')
+                time.sleep(interval)
+                count += 1
+            else:
+                log.error(error)
+                raise error
+
+    raise Exception(f'Failed to perform API call successfully for {count - 1} times.')
+
+
 def get_service_quota(config: object, service_code: str, quota_code: str) -> dict:
     client = boto3.client('service-quotas', config=config)
     response = client.get_service_quota(ServiceCode=service_code, QuotaCode=quota_code)
@@ -126,8 +167,7 @@ def get_service_quota(config: object, service_code: str, quota_code: str) -> dic
     return response
 
 
-def get_deployment(gateway_id: str, deployment_id: str) -> dict:
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+def get_deployment(config: object, gateway_id: str, deployment_id: str) -> dict:
     client = boto3.client('apigateway', config=config)
     response = client.get_deployment(restApiId=gateway_id, deploymentId=deployment_id)
     assert_https_status_code_200(response, f'Failed to perform get_deployment with '
@@ -135,8 +175,7 @@ def get_deployment(gateway_id: str, deployment_id: str) -> dict:
     return response
 
 
-def get_deployments(gateway_id: str, limit: int = 25, position: str = None) -> dict:
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+def get_deployments(config: object, gateway_id: str, limit: int = 25, position: str = None) -> dict:
     client = boto3.client('apigateway', config=config)
     if not position:
         response = client.get_deployments(restApiId=gateway_id, limit=limit)
@@ -147,8 +186,7 @@ def get_deployments(gateway_id: str, limit: int = 25, position: str = None) -> d
     return response
 
 
-def get_stage(gateway_id: str, stage_name: str) -> dict:
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+def get_stage(config: object, gateway_id: str, stage_name: str) -> dict:
     client = boto3.client('apigateway', config=config)
     response = client.get_stage(restApiId=gateway_id, stageName=stage_name)
     assert_https_status_code_200(response, f'Failed to perform get_stage with '
@@ -163,11 +201,14 @@ def get_usage_plan(config: object, usage_plan_id: str) -> dict:
     return response
 
 
-def update_usage_plan(config: object, usage_plan_id: str, patch_operations: list) -> dict:
-    client = boto3.client('apigateway', config=config)
-    response = client.update_usage_plan(usagePlanId=usage_plan_id, patchOperations=patch_operations)
-    assert_https_status_code_200(response, f'Failed to update usage plan with id {usage_plan_id}')
-    return response
+def update_usage_plan(usage_plan_id: str, patch_operations: list, retries: int = 15) -> dict:
+    return execute_boto3_with_backoff(
+        delegate=lambda x: x.update_usage_plan(
+            usagePlanId=usage_plan_id,
+            patchOperations=patch_operations
+        ),
+        retries=retries
+    )
 
 
 def find_deployment_id_for_update(events: dict, context: dict) -> dict:
@@ -185,22 +226,23 @@ def find_deployment_id_for_update(events: dict, context: dict) -> dict:
     stage_name: str = events['RestStageName']
     provided_deployment_id: str = events.get('RestDeploymentId', '')
 
-    current_deployment_id = get_stage(gateway_id, stage_name)['deploymentId']
+    boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    current_deployment_id = get_stage(boto3_config, gateway_id, stage_name)['deploymentId']
     output['OriginalDeploymentId'] = current_deployment_id
 
     if provided_deployment_id and provided_deployment_id == current_deployment_id:
         raise ValueError('Provided deployment ID and current deployment ID should not be the same')
 
     if provided_deployment_id:
-        output['DeploymentIdToApply'] = get_deployment(gateway_id, provided_deployment_id)['id']
+        output['DeploymentIdToApply'] = get_deployment(boto3_config, gateway_id, provided_deployment_id)['id']
         return output
 
-    deployment_items = get_deployments(gateway_id, 500)['items']
+    deployment_items = get_deployments(boto3_config, gateway_id, 500)['items']
     if len(deployment_items) == 1 and deployment_items[0]['id'] == current_deployment_id:
         raise ValueError(f'There are no deployments found to apply in RestApiGateway ID: {gateway_id}, '
                          f'except current deployment ID: {current_deployment_id}')
 
-    current_deployment_creation_date = get_deployment(gateway_id, current_deployment_id)['createdDate']
+    current_deployment_creation_date = get_deployment(boto3_config, gateway_id, current_deployment_id)['createdDate']
     deployment_items.sort(key=lambda x: x['createdDate'], reverse=True)
     for item in deployment_items:
         if item['createdDate'] < current_deployment_creation_date and item['id'] != current_deployment_id:
@@ -276,10 +318,18 @@ def validate_throttling_config(events: dict, context: dict) -> dict:
     current_usage_plan: dict = get_usage_plan(boto3_config, usage_plan_id)
 
     if stage_name:
+        stage_found = False
         for stage in current_usage_plan['apiStages']:
             if stage['apiId'] == gateway_id and stage['stage'] == stage_name:
-                original_rate_limit = stage['throttle'][f'{resource_path}/{http_method}']['rateLimit']
-                original_burst_limit = stage['throttle'][f'{resource_path}/{http_method}']['burstLimit']
+                stage_found = True
+                if 'throttle' in stage and f'{resource_path}/{http_method}' in stage['throttle']:
+                    original_rate_limit: float = stage['throttle'][f'{resource_path}/{http_method}']['rateLimit']
+                    original_burst_limit: int = stage['throttle'][f'{resource_path}/{http_method}']['burstLimit']
+                else:
+                    original_rate_limit: float = current_usage_plan['throttle']['rateLimit']
+                    original_burst_limit: int = current_usage_plan['throttle']['burstLimit']
+        if not stage_found:
+            raise KeyError(f'Stage name {stage_name} not found in get_usage_plan response: {current_usage_plan}')
     else:
         original_rate_limit: float = current_usage_plan['throttle']['rateLimit']
         original_burst_limit: int = current_usage_plan['throttle']['burstLimit']
@@ -323,7 +373,6 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     http_method: str = events.get('RestApiGwHttpMethod', '*')
 
     output: dict = {}
-    boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     quota_rate_limit_code: str = 'L-8A5B8E43'
     quota_burst_limit_code: str = 'L-CDF5615A'
     patch_operations: list = [
@@ -339,6 +388,7 @@ def set_throttling_config(events: dict, context: dict) -> dict:
         }
     ]
 
+    boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     quota_rate_limit: float = get_service_quota(boto3_config, 'apigateway', quota_rate_limit_code)['Quota']['Value']
     quota_burst_limit: float = get_service_quota(boto3_config, 'apigateway', quota_burst_limit_code)['Quota']['Value']
 
@@ -352,14 +402,14 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     if stage_name:
         path: str = f'/apiStages/{gateway_id}:{stage_name}/throttle/{resource_path}/{http_method}'
         patch_operations[0]['path'], patch_operations[1]['path'] = f'{path}/rateLimit', f'{path}/burstLimit'
-        updated_usage_plan = update_usage_plan(boto3_config, usage_plan_id, patch_operations)
+        updated_usage_plan = update_usage_plan(usage_plan_id, patch_operations)
 
         for stage in updated_usage_plan['apiStages']:
             if stage['apiId'] == gateway_id and stage['stage'] == stage_name:
                 output['RateLimit'] = stage['throttle'][f'{resource_path}/{http_method}']['rateLimit']
                 output['BurstLimit'] = stage['throttle'][f'{resource_path}/{http_method}']['burstLimit']
     else:
-        updated_usage_plan = update_usage_plan(boto3_config, usage_plan_id, patch_operations)
+        updated_usage_plan = update_usage_plan(usage_plan_id, patch_operations)
         output['RateLimit'] = updated_usage_plan['throttle']['rateLimit']
         output['BurstLimit'] = updated_usage_plan['throttle']['burstLimit']
 

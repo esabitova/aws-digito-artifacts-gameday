@@ -5,9 +5,11 @@ from unittest.mock import patch
 
 import pytest
 from botocore.config import Config
+from botocore.exceptions import ClientError
 from dateutil.tz import tzlocal
 
 import documents.util.scripts.src.apigw_utils as apigw_utils
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 BOTO3_CONFIG: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 
@@ -274,7 +276,7 @@ class TestApigwUtil(unittest.TestCase):
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
             REST_API_GW_DEPLOYMENT_ID_V2, REST_API_GW_DEPLOYMENT_CREATED_DATE_MORE_THAN_V1
         )
-        output = apigw_utils.get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V2)
+        output = apigw_utils.get_deployment(BOTO3_CONFIG, REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V2)
         self.mock_apigw.get_deployment.assert_called_with(
             restApiId=REST_API_GW_ID,
             deploymentId=REST_API_GW_DEPLOYMENT_ID_V2
@@ -284,7 +286,7 @@ class TestApigwUtil(unittest.TestCase):
 
     def test_get_deployments(self):
         self.mock_apigw.get_deployments.return_value = get_sample_get_deployments_response_with_1_deployment()
-        output = apigw_utils.get_deployments(REST_API_GW_ID)
+        output = apigw_utils.get_deployments(BOTO3_CONFIG, REST_API_GW_ID)
         self.mock_apigw.get_deployments.assert_called_with(
             restApiId=REST_API_GW_ID,
             limit=25
@@ -293,7 +295,7 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(REST_API_GW_DEPLOYMENT_ID_V1, output['items'][0]['id'])
 
     def test_get_stage(self):
-        output = apigw_utils.get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+        output = apigw_utils.get_stage(BOTO3_CONFIG, REST_API_GW_ID, REST_API_GW_STAGE_NAME)
         self.mock_apigw.get_stage.assert_called_with(
             restApiId=REST_API_GW_ID,
             stageName=REST_API_GW_STAGE_NAME
@@ -408,7 +410,7 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['throttle']['burstLimit'])
 
     def test_update_usage_plan(self):
-        output = apigw_utils.update_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID, [])
+        output = apigw_utils.update_usage_plan(USAGE_PLAN_ID, [])
         self.mock_apigw.update_usage_plan.assert_called_with(
             usagePlanId=USAGE_PLAN_ID,
             patchOperations=[]
@@ -416,6 +418,48 @@ class TestApigwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['throttle']['rateLimit'])
         self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['throttle']['burstLimit'])
+
+    @patch('time.sleep')
+    def test_update_usage_plan_with_too_many_requests_exception_and_normal_execution(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        self.mock_apigw.update_usage_plan.side_effect = [
+            ClientError(
+                error_response={"Error": {"Code": "TooManyRequestsException"}},
+                operation_name='UpdateUsagePlan'
+            ),
+            get_sample_update_usage_plan_response()
+        ]
+        output = apigw_utils.update_usage_plan(USAGE_PLAN_ID, [])
+        self.mock_apigw.update_usage_plan.assert_called_with(
+            usagePlanId=USAGE_PLAN_ID,
+            patchOperations=[]
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['throttle']['rateLimit'])
+        self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['throttle']['burstLimit'])
+
+    @patch('time.sleep')
+    def test_update_usage_plan_with_too_many_requests_exception_and_failed_execution(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        self.mock_apigw.update_usage_plan.side_effect = ClientError(
+            error_response={"Error": {"Code": "TooManyRequestsException"}},
+            operation_name='UpdateUsagePlan'
+        )
+        with pytest.raises(Exception) as exception_info:
+            apigw_utils.update_usage_plan(USAGE_PLAN_ID, [], 5)
+        self.assertTrue(exception_info.match('Failed to perform API call successfully for 5 times'))
+
+    def test_update_usage_plan_with_unknown_exception(self):
+        self.mock_apigw.update_usage_plan.side_effect = ClientError(
+            error_response={"Error": {"Code": "UnknownException"}},
+            operation_name='UpdateUsagePlan'
+        )
+        with self.assertRaises(Exception) as e:
+            apigw_utils.update_usage_plan(USAGE_PLAN_ID, [])
+
+        self.assertEqual(e.exception.response['Error']['Code'], 'UnknownException')
 
     def test_validate_throttling_config_with_provided_stage_name(self):
         events = {
@@ -442,6 +486,18 @@ class TestApigwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['OriginalRateLimit'])
         self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['OriginalBurstLimit'])
+
+    def test_validate_throttling_config_with_provided_wrong_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT,
+            'RestApiGwStageName': 'WrongStageName',
+            'RestApiGwId': REST_API_GW_ID
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.validate_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Stage name WrongStageName not found in get_usage_plan'))
 
     def test_validate_throttling_config_with_new_rate_limit_increased_more_than_50_percent(self):
         events = {
@@ -619,20 +675,20 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
 
     def test_error_get_deployment(self):
         with pytest.raises(ValueError) as exception_info:
-            apigw_utils.get_deployment(REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
+            apigw_utils.get_deployment(BOTO3_CONFIG, REST_API_GW_ID, REST_API_GW_DEPLOYMENT_ID_V1)
         self.assertTrue(exception_info.match(f'Failed to perform get_deployment with restApiId: {REST_API_GW_ID} '
                                              f'and deploymentId: {REST_API_GW_DEPLOYMENT_ID_V1} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
     def test_error_get_deployments(self):
         with pytest.raises(ValueError) as exception_info:
-            apigw_utils.get_deployments(REST_API_GW_ID)
+            apigw_utils.get_deployments(BOTO3_CONFIG, REST_API_GW_ID)
         self.assertTrue(exception_info.match(f'Failed to perform get_deployments with restApiId: {REST_API_GW_ID} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
     def test_error_get_stage(self):
         with pytest.raises(ValueError) as exception_info:
-            apigw_utils.get_stage(REST_API_GW_ID, REST_API_GW_STAGE_NAME)
+            apigw_utils.get_stage(BOTO3_CONFIG, REST_API_GW_ID, REST_API_GW_STAGE_NAME)
         self.assertTrue(exception_info.match(f'Failed to perform get_stage with restApiId: {REST_API_GW_ID} '
                                              f'and stageName: {REST_API_GW_STAGE_NAME} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
@@ -665,9 +721,8 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
 
     def test_error_update_usage_plan(self):
         with pytest.raises(ValueError) as exception_info:
-            apigw_utils.update_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID, [])
-        self.assertTrue(exception_info.match(f'Failed to update usage plan with id {USAGE_PLAN_ID} '
-                                             f'Response is: {get_sample_https_status_code_403_response()}'))
+            apigw_utils.update_usage_plan(USAGE_PLAN_ID, [])
+        self.assertTrue(exception_info.match('Failed to perform API call'))
 
 
 @pytest.mark.unit_test
