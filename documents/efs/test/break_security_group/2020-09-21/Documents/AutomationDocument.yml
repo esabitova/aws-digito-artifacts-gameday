@@ -1,0 +1,261 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Used to test EFS behavior after breaking security group id"
+schemaVersion: "0.3"
+assumeRole: "{{AutomationAssumeRole}}"
+parameters:
+  FileSystemId:
+    type: String
+    description: (Required) The EFS File Sustem id.
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  ClientConnectionsAlarmName:
+    type: String
+    description: (Required) The name of ClientConnections Alarm for specified FileSystemId.
+  MountTargetIds:
+    type: StringList
+    description: >-
+      (Optional) The list of identifiers of the mount targets.
+      The script disassociates security group(-s) from mount target(-s).
+      Empty list means *ALL* targets in randomly selected AZ of the current Region.
+      Provided as a YAML list
+    default: []
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    nextStep: AssertFileSystemId
+    outputs:
+      - Name: FileSystemId
+        Selector: $.Payload.FileSystemId[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertFileSystemId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetSecurityGroupsMapFromPreviousExecution
+          Variable: "{{ GetInputsFromPreviousExecution.FileSystemId }}"
+          StringEquals: '{{ FileSystemId }}'
+    isEnd: true
+
+  - name: GetSecurityGroupsMapFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: MountTargetIdToSecurityGroupsMap
+        Selector: $.Payload.MountTargetIdToSecurityGroupsMap
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupEfsSecurityGroups'
+        ResponseField: 'MountTargetIdToSecurityGroupsMap'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: revert_fs_security_groups
+      InputPayload:
+        MountTargetIdToSecurityGroupsMap: '{{ GetSecurityGroupsMapFromPreviousExecution.MountTargetIdToSecurityGroupsMap }}'
+        FileSystemId: '{{ GetInputsFromPreviousExecution.FileSystemId }}'
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::efs_util.imports
+
+        SCRIPT_PLACEHOLDER::efs_util.check_required_params
+        SCRIPT_PLACEHOLDER::efs_util.revert_fs_security_groups
+
+  - name: AssertAlarmToBeGreenAfterRollback
+    action: aws:waitForAwsResourceProperty
+    isEnd: true
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ClientConnectionsAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    onFailure: Abort
+    onCancel: Abort
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ClientConnectionsAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: SearchForMountTargetIds
+    action: aws:executeScript
+    onFailure: Abort
+    onCancel: Abort
+    outputs:
+      - Name: MountTargetIds
+        Selector: $.Payload.MountTargetIds
+        Type: StringList
+      - Name: FileSystemId
+        Selector: $.Payload.FileSystemId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: search_for_mount_target_ids
+      InputPayload:
+        FileSystemId: '{{ FileSystemId }}'
+        MountTargetIds: '{{ MountTargetIds }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::efs_util.imports
+
+        SCRIPT_PLACEHOLDER::efs_util.check_required_params
+        SCRIPT_PLACEHOLDER::efs_util.search_for_mount_target_ids
+
+  - name: BackupEfsSecurityGroups
+    action: aws:executeScript
+    onFailure: Abort
+    onCancel: Abort
+    outputs:
+      - Name: MountTargetIdToSecurityGroupsMap
+        Selector: $.Payload.MountTargetIdToSecurityGroupsMap
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: list_security_groups_for_mount_targets
+      InputPayload:
+        MountTargetIds: '{{ SearchForMountTargetIds.MountTargetIds }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::efs_util.imports
+
+        SCRIPT_PLACEHOLDER::efs_util.check_required_params
+        SCRIPT_PLACEHOLDER::efs_util.list_security_groups_for_mount_targets
+
+  - name: EmptyMountTargetSecurityGroups
+    action: aws:executeScript
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Runtime: python3.7
+      Handler: empty_security_groups_for_mount_targets
+      InputPayload:
+        MountTargetIds: '{{SearchForMountTargetIds.MountTargetIds}}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::efs_util.imports
+
+        SCRIPT_PLACEHOLDER::efs_util.check_required_params
+        SCRIPT_PLACEHOLDER::efs_util.empty_security_groups_for_mount_targets
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ClientConnectionsAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["ALARM"]
+
+  - name: RollbackCurrentExecution
+    action: aws:executeScript
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+    inputs:
+      Runtime: python3.7
+      Handler: revert_fs_security_groups
+      InputPayload:
+        MountTargetIdToSecurityGroupsMap: '{{ BackupEfsSecurityGroups.MountTargetIdToSecurityGroupsMap }}'
+        MountTargetIds: '{{ SearchForMountTargetIds.MountTargetIds }}'
+        FileSystemId: '{{ FileSystemId }}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::efs_util.imports
+
+        SCRIPT_PLACEHOLDER::efs_util.check_required_params
+        SCRIPT_PLACEHOLDER::efs_util.revert_fs_security_groups
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    onFailure: Abort
+    onCancel: Abort
+    isEnd: true
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ClientConnectionsAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: TriggerRollback
+    action: aws:executeScript
+    onFailure: Abort
+    onCancel: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

@@ -396,11 +396,11 @@ Resources:
             02_permissions:
               command: !Sub
                 - "chown ec2-user:ec2-user ${MountPoint}"
-                - {MountPoint: !Ref MountPoint }
+                - {MountPoint: !Ref MountPoint}
             03_fstab:
               command: !Sub
                 - echo "${FileSystemId}:/  ${MountPoint} efs _netdev,noresvport,tls,iam  0 0 " >> /etc/fstab
-                - {MountPoint: !Ref MountPoint, FileSystemId: !Ref FileSystem }
+                - {MountPoint: !Ref MountPoint, FileSystemId: !Ref FileSystem}
   EFSMountTargetSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -512,14 +512,14 @@ Resources:
       Namespace: AWS/EFS
       Period: 60
       Statistic: Average
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 1
       ComparisonOperator: LessThanThreshold
       Threshold: !Ref AlarmClientConnectionsThreshold
       Dimensions:
         - Name: FileSystemId
           Value: !Ref FileSystem
-      TreatMissingData: missing
+      TreatMissingData: breaching
   BackupVaultSource:
     Type: AWS::Backup::BackupVault
     Properties:
