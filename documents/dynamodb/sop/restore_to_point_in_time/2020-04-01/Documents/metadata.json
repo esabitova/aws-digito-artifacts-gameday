@@ -1,0 +1,13 @@
+{
+  "displayName": "Restore To Point In Time",
+  "description": "Used to restore Dynamodb to a specific point in time.",
+  "documentName": "Digito-RestoreToPointInTime_2020-04-01",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "dynamodb:sop:restore_to_point_in_time:2020-04-01",
+  "failureType": "SOFTWARE",
+  "risk": "SMALL",
+  "minorVersion": "001"
+}

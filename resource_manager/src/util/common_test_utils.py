@@ -1,6 +1,8 @@
 import random
-from sttable import parse_str_table
+import uuid
+
 from resource_manager.src.util import param_utils as param_utils
+from sttable import parse_str_table
 
 
 def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cache) -> str:
@@ -122,3 +124,12 @@ def assert_https_status_code_200(response: dict, error_message: str) -> None:
 def assert_https_status_code_less_or_equal(code: int, response: dict, error_message: str) -> None:
     if not response['ResponseMetadata']['HTTPStatusCode'] <= code:
         raise AssertionError(f'{error_message} Response is: {response}')
+
+
+def generate_random_string_with_prefix(prefix: str) -> str:
+    """
+    Concatenates the given prefix with a random string 8 symbols long
+    :param prefix: The prefix
+    """
+    random_str = str(uuid.uuid1())[0:8]
+    return f"{prefix}{random_str}"
