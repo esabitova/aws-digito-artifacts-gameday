@@ -1,0 +1,11 @@
+{
+  "displayName": "I/O is too high",
+  "description": "Alarm by Digito that reports when EFS I/O load is more than 90% for too much time",
+  "alarmName": "Digito-EFSHighIO_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "efs:alarm:percent_io_limit:2020-04-01",
+  "failureType": "HARDWARE",
+  "minorVersion": "001"
+}
