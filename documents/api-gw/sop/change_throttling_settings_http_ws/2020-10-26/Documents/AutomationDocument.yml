@@ -1,0 +1,143 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Change throttling settings"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - ValidateInputs.HttpWsThrottlingRateOriginalValue
+  - ValidateInputs.HttpWsThrottlingBurstOriginalValue
+  - SetThrottlingConfiguration.HttpWsThrottlingRateNewValue
+  - SetThrottlingConfiguration.HttpWsThrottlingBurstNewValue
+  - OutputRecoveryTime.RecoveryTime
+  
+parameters:
+  HttpWsApiGwId:
+    type: String
+    description: (Required) The ID of the HTTP or WS API Gateway
+  HttpWsStageName:
+    type: String
+    description: (Required) The stage name of the HTTP or WS API Gateway
+  HttpWsThrottlingRate:
+    type: String
+    description: (Required) The value of throttling rate (requests per second)
+  HttpWsThrottlingBurst:
+    type: String
+    description: (Required) The value of throttling burst rate (requests per second)
+  HttpWsRouteKey:
+    type: String
+    description: (Optional) The route key for the Route to which throttling settings should be applied to. Can be set as "*" (default routes)
+    default: '*'
+  ForceExecution:
+    type: Boolean
+    description: (Optional) If True, validations will be skipped
+    default: false
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: CheckIfForceExecutionIsSet
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: SetThrottlingConfiguration
+          Variable: '{{ ForceExecution }}'
+          BooleanEquals: true
+        - NextStep: ValidateInputs
+          Variable: '{{ ForceExecution }}'
+          BooleanEquals: false
+      Default:
+        ValidateInputs
+
+  - name: ValidateInputs
+    description: Raise error if throttling rate or burst is going to be changed for more than 50%
+    action: aws:executeScript
+    outputs:
+      - Name: HttpWsThrottlingRateOriginalValue
+        Selector: '$.Payload.OriginalRateLimit'
+        Type: Integer
+      - Name: HttpWsThrottlingBurstOriginalValue
+        Selector: '$.Payload.OriginalBurstLimit'
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: validate_throttling_config
+      InputPayload:
+        HttpWsApiGwId: '{{ HttpWsApiGwId }}'
+        HttpWsStageName: '{{ HttpWsStageName }}'
+        HttpWsRouteKey: '{{ HttpWsRouteKey }}'
+        HttpWsThrottlingRate: '{{ HttpWsThrottlingRate }}'
+        HttpWsThrottlingBurst: '{{ HttpWsThrottlingBurst }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw2_utils.imports
+        SCRIPT_PLACEHOLDER::apigw2_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_stage
+        SCRIPT_PLACEHOLDER::apigw2_utils.validate_throttling_config
+
+  - name: SetThrottlingConfiguration
+    action: aws:executeScript
+    description: Update throttling settings for HTTP or WS API Gateway
+    outputs:
+      - Name: HttpWsThrottlingRateNewValue
+        Selector: '$.Payload.RateLimit'
+        Type: Integer
+      - Name: HttpWsThrottlingBurstNewValue
+        Selector: '$.Payload.BurstLimit'
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: set_throttling_config
+      InputPayload:
+        HttpWsApiGwId: '{{ HttpWsApiGwId }}'
+        HttpWsStageName: '{{ HttpWsStageName }}'
+        HttpWsRouteKey: '{{ HttpWsRouteKey }}'
+        HttpWsThrottlingRate: '{{ HttpWsThrottlingRate }}'
+        HttpWsThrottlingBurst: '{{ HttpWsThrottlingBurst }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw2_utils.imports
+        SCRIPT_PLACEHOLDER::apigw2_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_service_quota
+        SCRIPT_PLACEHOLDER::apigw2_utils.get_stage
+        SCRIPT_PLACEHOLDER::apigw2_utils.set_throttling_config
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

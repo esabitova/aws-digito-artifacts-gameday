@@ -128,3 +128,122 @@ def validate_auto_deploy(events: dict, context: dict) -> bool:
     if 'AutoDeploy' in response and response['AutoDeploy']:
         raise ValueError('AutoDeploy must be turned off to update deployment manually')
     return True
+
+
+def validate_throttling_config(events: dict, context: dict) -> dict:
+    if 'HttpWsThrottlingRate' not in events:
+        raise KeyError('Requires HttpWsThrottlingRate in events')
+
+    if 'HttpWsThrottlingBurst' not in events:
+        raise KeyError('Requires HttpWsThrottlingBurst in events')
+
+    if 'HttpWsApiGwId' not in events:
+        raise KeyError('Requires HttpWsApiGwId in events')
+
+    if 'HttpWsStageName' not in events:
+        raise KeyError('Requires HttpWsStageName in events')
+
+    new_rate_limit: float = float(events['HttpWsThrottlingRate'])
+    new_burst_limit: int = int(events['HttpWsThrottlingBurst'])
+    gateway_id: str = events.get('HttpWsApiGwId')
+    stage_name: str = events.get('HttpWsStageName')
+    route_key: str = events.get('HttpWsRouteKey', '*')
+
+    stage = get_stage(gateway_id, stage_name)
+    if route_key != '*':
+        if route_key in stage['RouteSettings']:
+            original_rate_limit: float = stage['RouteSettings'][route_key].get('ThrottlingRateLimit', 0.0)
+            original_burst_limit: int = stage['RouteSettings'][route_key].get('ThrottlingBurstLimit', 0)
+        else:
+            original_rate_limit: float = 0.0
+            original_burst_limit: int = 0
+    else:
+        original_rate_limit: float = stage['DefaultRouteSettings'].get('ThrottlingRateLimit', 0.0)
+        original_burst_limit: int = stage['DefaultRouteSettings'].get('ThrottlingBurstLimit', 0)
+
+    if original_burst_limit and abs(new_burst_limit - original_burst_limit) > original_burst_limit * 0.5:
+        raise ValueError('Burst rate limit is going to be changed more than 50%, please use smaller increments or use '
+                         'ForceExecution parameter to disable validation')
+
+    if original_rate_limit and abs(new_rate_limit - original_rate_limit) > original_rate_limit * 0.5:
+        raise ValueError('Rate limit is going to be changed more than 50%, please use smaller increments or use '
+                         'ForceExecution parameter to disable validation')
+
+    original_rate_limit = int(original_rate_limit)
+
+    return {'OriginalRateLimit': original_rate_limit,
+            'OriginalBurstLimit': original_burst_limit}
+
+
+def get_service_quota(config: object, service_code: str, quota_code: str) -> dict:
+    client = boto3.client('service-quotas', config=config)
+    response = client.get_service_quota(ServiceCode=service_code, QuotaCode=quota_code)
+    assert_https_status_code_200(response, f'Failed to perform get_service_quota with '
+                                           f'ServiceCode: {service_code} and QuotaCode: {quota_code}')
+    return response
+
+
+def set_throttling_config(events: dict, context: dict) -> dict:
+    if 'HttpWsApiGwId' not in events:
+        raise KeyError('Requires HttpWsApiGwId in events')
+
+    if 'HttpWsThrottlingRate' not in events:
+        raise KeyError('Requires HttpWsThrottlingRate in events')
+
+    if 'HttpWsThrottlingBurst' not in events:
+        raise KeyError('Requires HttpWsThrottlingBurst in events')
+
+    if 'HttpWsStageName' not in events:
+        raise KeyError('Requires HttpWsStageName in events')
+
+    new_rate_limit: float = float(events['HttpWsThrottlingRate'])
+    new_burst_limit: int = int(events['HttpWsThrottlingBurst'])
+    gateway_id: str = events.get('HttpWsApiGwId')
+    stage_name: str = events.get('HttpWsStageName')
+    route_key: str = events.get('HttpWsRouteKey', '*')
+
+    output: dict = {}
+    quota_rate_limit_code: str = 'L-8A5B8E43'
+    quota_burst_limit_code: str = 'L-CDF5615A'
+
+    boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    apigw2_client = boto3.client('apigatewayv2', config=boto3_config)
+    quota_rate_limit: float = get_service_quota(boto3_config, 'apigateway', quota_rate_limit_code)['Quota']['Value']
+    quota_burst_limit: float = get_service_quota(boto3_config, 'apigateway', quota_burst_limit_code)['Quota']['Value']
+
+    if new_rate_limit > quota_rate_limit:
+        raise ValueError(f'Given value of RestApiGwThrottlingRate: {new_rate_limit}, can not be more than '
+                         f'service quota Throttle rate: {quota_rate_limit}')
+
+    if new_burst_limit > quota_burst_limit:
+        raise ValueError(f'Given value of RestApiGwThrottlingBurst: {new_burst_limit}, can not be more than '
+                         f'service quota Throttle burst rate: {quota_burst_limit}')
+
+    stage = get_stage(gateway_id, stage_name)
+
+    if route_key != '*':
+        stage_route_settings = stage['RouteSettings']
+        if route_key not in stage_route_settings:
+            stage_route_settings[route_key] = {}
+        stage_route_settings[route_key]['ThrottlingRateLimit'] = new_rate_limit
+        stage_route_settings[route_key]['ThrottlingBurstLimit'] = new_burst_limit
+
+        response = apigw2_client.update_stage(
+            ApiId=gateway_id, StageName=stage_name, RouteSettings=stage_route_settings
+        )
+        output['RateLimit'] = response['RouteSettings'][route_key]['ThrottlingRateLimit']
+        output['BurstLimit'] = response['RouteSettings'][route_key]['ThrottlingBurstLimit']
+
+    else:
+        default_route_settings = {
+            'ThrottlingRateLimit': new_rate_limit,
+            'ThrottlingBurstLimit': new_burst_limit
+        }
+        response = apigw2_client.update_stage(
+            ApiId=gateway_id, StageName=stage_name, DefaultRouteSettings=default_route_settings
+        )
+        output['RateLimit'] = response['DefaultRouteSettings']['ThrottlingRateLimit']
+        output['BurstLimit'] = response['DefaultRouteSettings']['ThrottlingBurstLimit']
+
+    output['RateLimit'] = int(output['RateLimit'])
+    return output

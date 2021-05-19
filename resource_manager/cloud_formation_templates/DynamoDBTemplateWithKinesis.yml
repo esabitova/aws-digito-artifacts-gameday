@@ -21,52 +21,15 @@ Outputs:
   DynamoDBTable:
     Description: The DynamoDB Table Name
     Value: !Ref DynamoDBTable
-  WriteThrottleEventsAlarmName:
-    Description: Alarm
-    Value: !Ref WriteThrottleEventsAlarm
-  ReadThrottleEventsAlarmName:
-    Description: Alarm
-    Value: !Ref ReadThrottleEventsAlarm
-  ThrottledRequestsAlarmName:
-    Description: Alarm
-    Value: !Ref ThrottledRequestsAlarm
-  ConditionalCheckFailedRequestsAlarmmName:
-    Description: Alarm
-    Value: !Ref ConditionalCheckFailedRequestsAlarm
-  UserErrorsAlarmName:
-    Description: Alarm
-    Value: !Ref UserErrorsAlarm
-  SystemErrorsAlarmName:
-    Description: Alarm
-    Value: !Ref SystemErrorsAlarm
-  TransactionConflictAlarmName:
-    Description: Alarm
-    Value: !Ref TransactionConflictAlarm
-  OnlineIndexThrottleEventsAlarmName:
-    Description: Alarm
-    Value: !Ref OnlineIndexThrottleEventsAlarm
-  SuccessfulRequestLatencyAlarmName:
-    Description: Alarm
-    Value: !Ref SuccessfulRequestLatencyAlarm
-  AccountProvisionedReadCapacityUtilizationAlarmName:
-    Description: Alarm
-    Value: !Ref AccountProvisionedReadCapacityUtilizationAlarm
-  AccountProvisionedWriteCapacityUtilizationAlarmName:
-    Description: Alarm
-    Value: !Ref AccountProvisionedWriteCapacityUtilizationAlarm
-  MaxProvisionedTableReadCapacityUtilizationAlarmName:
-    Description: Alarm
-    Value: !Ref MaxProvisionedTableReadCapacityUtilizationAlarm
-  MaxProvisionedTableWriteCapacityUtilizationAlarmName:
-    Description: Alarm
-    Value: !Ref MaxProvisionedTableWriteCapacityUtilizationAlarm
-  PendingReplicationCountAlarmName:
-    Description: Alarm
-    Value: !Ref PendingReplicationCountAlarm
-  ReplicationLatencyAlarmName:
-    Description: Alarm
-    Value: !Ref ReplicationLatencyAlarm
+  KinesisStreamArn:
+    Description: The Kinesis Data Stream
+    Value: !GetAtt KinesisDataStream.Arn
 Resources:
+  KinesisDataStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      RetentionPeriodHours: 168
+      ShardCount: 2
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -77,6 +40,8 @@ Resources:
       KeySchema:
         - AttributeName: "USER_ID"
           KeyType: "HASH"
+      KinesisStreamSpecification:
+        StreamArn: !GetAtt KinesisDataStream.Arn
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       Tags:

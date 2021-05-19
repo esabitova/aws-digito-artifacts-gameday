@@ -1,0 +1,13 @@
+{
+  "displayName": "SOP - Change throttling settings for HTTP or WS API Gateway",
+  "description": "Change throttling settings for HTTP or WEBSOCKET types of API. The script checks if throttling rate or burst going to be changed on more than 50%. If so, raises an error. Customers have an option to disable this validation by passing ForceExecution parameter or change throttling burst and rate with smaller increments",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "api-gw:sop:change_throttling_settings_http_ws:2020-10-26"
+}

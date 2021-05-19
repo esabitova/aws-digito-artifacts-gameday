@@ -1,14 +1,16 @@
+import logging
 from time import sleep
 
 import jsonpath_ng
 import pytest
-import logging
 from pytest_bdd import given, parsers, when, then
 
-from resource_manager.src.util import apigw_utils as apigw_utils
 from resource_manager.src.util import apigw2_utils as apigw2_utils
+from resource_manager.src.util import apigw_utils as apigw_utils
 from resource_manager.src.util.boto3_client_factory import client
-from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
+from resource_manager.src.util.common_test_utils import (
+    extract_param_value, put_to_ssm_test_cache, extract_and_cache_param_values
+)
 
 cache_current_stage_deployment_id_expression = 'cache current deployment id as "{cache_property}" "{step_key}" SSM ' \
                                                'automation execution' \
@@ -52,6 +54,24 @@ delete_dummy_deployment_expression = 'delete dummy deployment' \
                                      '\n{input_parameters}'
 
 delete_dummy_deployment_set_expression = 'delete dummy deployments' \
+                                         '\n{input_parameters}'
+
+cache_param_values_for_teardown_expression = 'cache value of "{param_list}" "{step_key}" SSM automation execution for' \
+                                             ' teardown' \
+                                             '\n{input_parameters}'
+
+cache_param_values_expression = 'cache value of "{param_list}" "{step_key}" SSM automation execution' \
+                                '\n{input_parameters}'
+
+cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_limit_key}" and ' \
+                                       'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution'
+
+cache_httpws_default_throttling_settings = 'cache default route throttling rate limit as "{rate_limit_key}" and ' \
+                                           'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution' \
+                                           '\n{input_parameters}'
+
+cache_httpws_route_throttling_settings = 'cache route throttling rate limit as "{rate_limit_key}" and ' \
+                                         'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution' \
                                          '\n{input_parameters}'
 
 
@@ -285,3 +305,166 @@ def apply_wshttp_dummy_deployment_to_stage(
     previous_deployment_id = dummy_deployments[number - 1]
     apigw2_utils.update_stage_deployment(boto3_session, gateway_id, stage_name, dummy_deployment_id)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, previous_deployment_id)
+
+
+@pytest.fixture(scope='function')
+def rollback_throttling_settings(ssm_test_cache, boto3_session):
+    yield
+    logging.info('Rolling back API GW throttling settings...')
+    logging.info(f'SSM test cache: {ssm_test_cache}')
+    cache_before = ssm_test_cache['before']
+    usage_plan_id = cache_before['RestApiGwUsagePlanId']
+    rate_limit_before = cache_before['OldRateLimit']
+    burst_limit_before = cache_before['OldBurstLimit']
+    stage_name = cache_before.get('RestApiGwStageName')
+    gateway_id = cache_before.get('RestApiGwId')
+
+    actual_response = apigw_utils.set_throttling_settings(
+        boto3_session, usage_plan_id, rate_limit_before, burst_limit_before, gateway_id, stage_name
+    )
+    assert rate_limit_before == actual_response['RateLimit']
+    assert burst_limit_before == actual_response['BurstLimit']
+    logging.info('Rollback is finished.')
+
+
+@given(parsers.parse(cache_param_values_for_teardown_expression))
+@when(parsers.parse(cache_param_values_for_teardown_expression))
+@then(parsers.parse(cache_param_values_for_teardown_expression))
+def cache_param_values_for_teardown(
+        resource_pool, ssm_test_cache, rollback_throttling_settings, param_list, input_parameters, step_key
+):
+    extract_and_cache_param_values(input_parameters, param_list, resource_pool, ssm_test_cache, step_key)
+
+
+@given(parsers.parse(cache_param_values_expression))
+@when(parsers.parse(cache_param_values_expression))
+@then(parsers.parse(cache_param_values_expression))
+def cache_param_values(
+        resource_pool, ssm_test_cache, param_list, input_parameters, step_key
+):
+    extract_and_cache_param_values(input_parameters, param_list, resource_pool, ssm_test_cache, step_key)
+
+
+@given(parsers.parse(cache_throttling_settings_expression))
+@when(parsers.parse(cache_throttling_settings_expression))
+@then(parsers.parse(cache_throttling_settings_expression))
+def cache_throttling_settings(
+        ssm_test_cache, boto3_session, rate_limit_key, burst_limit_key, step_key
+):
+    cache_before = ssm_test_cache['before']
+    usage_plan_id = cache_before['RestApiGwUsagePlanId']
+    stage_name = cache_before.get('RestApiGwStageName')
+    gateway_id = cache_before.get('RestApiGwId')
+
+    throttling_settings = apigw_utils.get_throttling_settings(
+        boto3_session, usage_plan_id, gateway_id, stage_name
+    )
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, rate_limit_key, throttling_settings['RateLimit'])
+    put_to_ssm_test_cache(ssm_test_cache, step_key, burst_limit_key, throttling_settings['BurstLimit'])
+
+
+@pytest.fixture(scope='function')
+def default_route_throttling_settings(ssm_test_cache, boto3_session):
+    default_route_throttling_settings = {}
+    yield default_route_throttling_settings
+    gateway_id = default_route_throttling_settings['HttpWsApiGwId']
+    stage_name = default_route_throttling_settings['HttpWsStageName']
+    backup_rate_limit = default_route_throttling_settings['BackupRateLimit']
+    backup_burst_limit = default_route_throttling_settings['BackupBurstLimit']
+    logging.info('Rolling back default route API GW throttling settings...')
+    updated_stage_settings = apigw2_utils.update_default_throttling_settings(
+        boto3_session, gateway_id, stage_name, backup_rate_limit, backup_burst_limit
+    )['DefaultRouteSettings']
+    assert updated_stage_settings['ThrottlingBurstLimit'] == backup_burst_limit
+    assert updated_stage_settings['ThrottlingRateLimit'] == backup_rate_limit
+
+
+@pytest.fixture(scope='function')
+def route_throttling_settings(ssm_test_cache, boto3_session):
+    route_throttling_settings = {}
+    yield route_throttling_settings
+    gateway_id = route_throttling_settings['HttpWsApiGwId']
+    stage_name = route_throttling_settings['HttpWsStageName']
+    route_key = route_throttling_settings['HttpWsRouteKey']
+    backup_rate_limit = route_throttling_settings['BackupRateLimit']
+    backup_burst_limit = route_throttling_settings['BackupBurstLimit']
+    logging.info(f'Rolling back route {route_key} API GW throttling settings...')
+    if backup_rate_limit and backup_burst_limit:
+        updated_stage_settings = apigw2_utils.update_route_throttling_settings(
+            boto3_session, gateway_id, stage_name, route_key, backup_rate_limit, backup_burst_limit
+        )['RouteSettings'][route_key]
+        assert updated_stage_settings['ThrottlingBurstLimit'] == backup_burst_limit
+        assert updated_stage_settings['ThrottlingRateLimit'] == backup_rate_limit
+    else:
+        apigw2_client = client('apigatewayv2', boto3_session)
+        apigw2_client.delete_route_settings(
+            ApiId=gateway_id, StageName=stage_name, RouteKey=route_key
+        )
+
+
+@given(parsers.parse(cache_httpws_default_throttling_settings))
+@when(parsers.parse(cache_httpws_default_throttling_settings))
+@then(parsers.parse(cache_httpws_default_throttling_settings))
+def cache_default_throttling_settings(
+        resource_pool, ssm_test_cache, boto3_session, rate_limit_key, burst_limit_key, step_key, input_parameters
+):
+    gateway_id = extract_param_value(input_parameters, "HttpWsApiGwId", resource_pool, ssm_test_cache)
+    stage_name = extract_param_value(input_parameters, "HttpWsStageName", resource_pool, ssm_test_cache)
+
+    stage_default_settings = apigw2_utils.get_default_throttling_settings(
+        boto3_session, gateway_id, stage_name
+    )
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, rate_limit_key, stage_default_settings['ThrottlingRateLimit'])
+    put_to_ssm_test_cache(ssm_test_cache, step_key, burst_limit_key, stage_default_settings['ThrottlingBurstLimit'])
+
+
+@given(parsers.parse(cache_httpws_route_throttling_settings))
+@when(parsers.parse(cache_httpws_route_throttling_settings))
+@then(parsers.parse(cache_httpws_route_throttling_settings))
+def cache_route_throttling_settings(
+        resource_pool, ssm_test_cache, boto3_session, rate_limit_key, burst_limit_key, step_key, input_parameters
+):
+    gateway_id = extract_param_value(input_parameters, "HttpWsApiGwId", resource_pool, ssm_test_cache)
+    stage_name = extract_param_value(input_parameters, "HttpWsStageName", resource_pool, ssm_test_cache)
+    route_key = extract_param_value(input_parameters, "HttpWsRouteKey", resource_pool, ssm_test_cache)
+
+    stage_default_settings = apigw2_utils.get_route_throttling_settings(
+        boto3_session, gateway_id, stage_name, route_key
+    )
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, rate_limit_key, stage_default_settings['ThrottlingRateLimit'])
+    put_to_ssm_test_cache(ssm_test_cache, step_key, burst_limit_key, stage_default_settings['ThrottlingBurstLimit'])
+
+
+@given(parsers.parse('prepare default route settings for teardown\n{input_parameters}'))
+def prepare_default_route_settings_teardown(
+        resource_pool, ssm_test_cache, default_route_throttling_settings, input_parameters
+):
+    gateway_id = extract_param_value(input_parameters, "HttpWsApiGwId", resource_pool, ssm_test_cache)
+    stage_name = extract_param_value(input_parameters, "HttpWsStageName", resource_pool, ssm_test_cache)
+    backup_rate_limit = extract_param_value(input_parameters, "BackupRateLimit", resource_pool, ssm_test_cache)
+    backup_burst_limit = extract_param_value(input_parameters, "BackupBurstLimit", resource_pool, ssm_test_cache)
+    # Prepare teardown
+    default_route_throttling_settings['HttpWsApiGwId'] = gateway_id
+    default_route_throttling_settings['HttpWsStageName'] = stage_name
+    default_route_throttling_settings['BackupRateLimit'] = backup_rate_limit
+    default_route_throttling_settings['BackupBurstLimit'] = backup_burst_limit
+
+
+@given(parsers.parse('prepare route settings for teardown\n{input_parameters}'))
+def prepare_route_settings_teardown(
+        resource_pool, ssm_test_cache, route_throttling_settings, input_parameters
+):
+    gateway_id = extract_param_value(input_parameters, "HttpWsApiGwId", resource_pool, ssm_test_cache)
+    stage_name = extract_param_value(input_parameters, "HttpWsStageName", resource_pool, ssm_test_cache)
+    route_key = extract_param_value(input_parameters, "HttpWsRouteKey", resource_pool, ssm_test_cache)
+    backup_rate_limit = extract_param_value(input_parameters, "BackupRateLimit", resource_pool, ssm_test_cache)
+    backup_burst_limit = extract_param_value(input_parameters, "BackupBurstLimit", resource_pool, ssm_test_cache)
+    # Prepare teardown
+    route_throttling_settings['HttpWsApiGwId'] = gateway_id
+    route_throttling_settings['HttpWsStageName'] = stage_name
+    route_throttling_settings['HttpWsRouteKey'] = route_key
+    route_throttling_settings['BackupRateLimit'] = backup_rate_limit
+    route_throttling_settings['BackupBurstLimit'] = backup_burst_limit
