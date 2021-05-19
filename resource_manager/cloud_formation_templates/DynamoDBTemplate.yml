@@ -18,79 +18,59 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for DynamoDB and related resources. Contains all alarms
 Outputs:
-  DynamoDBTableName:
+  DynamoDBTable:
     Description: The DynamoDB Table Name
     Value: !Ref DynamoDBTable
-  DynamoDBTableARN:
-    Description: The DynamoDB Table ARN
-    Value: !GetAtt DynamoDBTable.Arn
   WriteThrottleEventsAlarmName:
     Description: Alarm
-    Value: !Ref  WriteThrottleEventsAlarm
+    Value: !Ref WriteThrottleEventsAlarm
   ReadThrottleEventsAlarmName:
     Description: Alarm
-    Value: !Ref  ReadThrottleEventsAlarm
+    Value: !Ref ReadThrottleEventsAlarm
   ThrottledRequestsAlarmName:
     Description: Alarm
-    Value: !Ref  ThrottledRequestsAlarm
+    Value: !Ref ThrottledRequestsAlarm
   ConditionalCheckFailedRequestsAlarmmName:
     Description: Alarm
-    Value: !Ref  ConditionalCheckFailedRequestsAlarm
+    Value: !Ref ConditionalCheckFailedRequestsAlarm
   UserErrorsAlarmName:
     Description: Alarm
-    Value: !Ref  UserErrorsAlarm
+    Value: !Ref UserErrorsAlarm
   SystemErrorsAlarmName:
     Description: Alarm
-    Value: !Ref  SystemErrorsAlarm
+    Value: !Ref SystemErrorsAlarm
   TransactionConflictAlarmName:
     Description: Alarm
-    Value: !Ref  TransactionConflictAlarm
+    Value: !Ref TransactionConflictAlarm
   OnlineIndexThrottleEventsAlarmName:
     Description: Alarm
-    Value: !Ref  OnlineIndexThrottleEventsAlarm
+    Value: !Ref OnlineIndexThrottleEventsAlarm
   SuccessfulRequestLatencyAlarmName:
     Description: Alarm
-    Value: !Ref  SuccessfulRequestLatencyAlarm
+    Value: !Ref SuccessfulRequestLatencyAlarm
   AccountProvisionedReadCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  AccountProvisionedReadCapacityUtilizationAlarm
+    Value: !Ref AccountProvisionedReadCapacityUtilizationAlarm
   AccountProvisionedWriteCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  AccountProvisionedWriteCapacityUtilizationAlarm
+    Value: !Ref AccountProvisionedWriteCapacityUtilizationAlarm
   MaxProvisionedTableReadCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  MaxProvisionedTableReadCapacityUtilizationAlarm
+    Value: !Ref MaxProvisionedTableReadCapacityUtilizationAlarm
   MaxProvisionedTableWriteCapacityUtilizationAlarmName:
     Description: Alarm
-    Value: !Ref  MaxProvisionedTableWriteCapacityUtilizationAlarm
+    Value: !Ref MaxProvisionedTableWriteCapacityUtilizationAlarm
   PendingReplicationCountAlarmName:
     Description: Alarm
-    Value: !Ref  PendingReplicationCountAlarm
+    Value: !Ref PendingReplicationCountAlarm
   ReplicationLatencyAlarmName:
     Description: Alarm
-    Value: !Ref  ReplicationLatencyAlarm
+    Value: !Ref ReplicationLatencyAlarm
 Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Join
-        - "-"
-        - - "dynamo-db-table-digito"
-          - !Ref "AWS::Region"
-          - !Ref "AWS::AccountId"
-          - !Select
-            - 0
-            - !Split
-              - "-"
-              - !Select
-                - 2
-                - !Split
-                  - "/"
-                  - !Ref "AWS::StackId"
-      BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: "5"
-        WriteCapacityUnits: "5"
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: "USER_ID"
           AttributeType: "S"
@@ -99,6 +79,9 @@ Resources:
           KeyType: "HASH"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Key
+          Value: Value
 
   WriteThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"

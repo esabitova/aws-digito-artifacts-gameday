@@ -3,12 +3,6 @@ Parameters:
   SNSTopicARN:
     Type: String
 Resources:
-  CpuUtilizationAnomalyDetector:
-    Type: 'AWS::CloudWatch::AnomalyDetector'
-    Properties:
-      MetricName: CPUUtilization
-      Namespace: AWS/EC2
-      Stat: Average
   ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:

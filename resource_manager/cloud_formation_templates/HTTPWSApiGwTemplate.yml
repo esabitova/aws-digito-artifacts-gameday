@@ -42,7 +42,7 @@ Outputs:
   HttpStageNameAutoDeploy:
     Description: The stage name of Websockets API Gateway with AutoDeploy enabled
     Value: !Ref HttpStageAutoDeploy
-Parameters: {}
+Parameters: { }
 Resources:
   WsApi:
     Type: AWS::ApiGatewayV2::Api

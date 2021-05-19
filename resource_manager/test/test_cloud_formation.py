@@ -128,7 +128,7 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.update_termination_protection.assert_called_once_with(
             StackName='test_stack_name', EnableTerminationProtection=False)
         self.cf_service_mock.delete_stack.assert_called_once()
-        self.cf_service_mock.get_waiter.assert_called_once()
+        self.cf_service_mock.describe_stacks.assert_called_once()
 
     def test_describe_cf_stack_success(self):
         stack_name = "test_stack_name"

@@ -19,6 +19,7 @@ from sttable import parse_str_table
 from publisher.src.publish_documents import PublishDocuments
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.resource_pool import ResourcePool
+from resource_manager.src.resource_model import ResourceModel
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
@@ -295,7 +296,7 @@ def set_up_cfn_template_resources(resource_pool, cfn_input_parameters, ssm_test_
             if len(param_val_ref) > 0:
                 value = parse_param_value(param_val_ref, {'cache': ssm_test_cache})
                 cf_input_params[param] = str(value)
-        rm_resource_type = ResourcePool.ResourceType.from_string(resource_type)
+        rm_resource_type = ResourceModel.ResourceType.from_string(resource_type)
         resource_pool.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
 
 

@@ -81,8 +81,7 @@ mainSteps:
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 2
-    timeoutSeconds: 600
+    timeoutSeconds: 1200
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -140,8 +139,7 @@ mainSteps:
         Policy: '{{ GetPolicyWithDenyOnDeleteMessageAction.Policy }}'
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 200
-    timeoutSeconds: 5
+    timeoutSeconds: 1000
     onFailure: 'step:RollbackCurrentExecution'
     onCancel: 'step:TriggerRollback'
     inputs:
@@ -166,7 +164,6 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
     timeoutSeconds: 600
     inputs:
       Service: cloudwatch

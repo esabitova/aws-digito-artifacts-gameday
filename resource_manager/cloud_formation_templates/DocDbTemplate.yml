@@ -117,42 +117,6 @@ Resources:
                   - !Ref "AWS::StackId"
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBInstancePrimary
-  HighVolumeReadIOPSAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: VolumeReadIOPs
-      Namespace: AWS/DocDB
-      Stat: Maximum
-      Dimensions:
-        - Name: DBClusterIdentifier
-          Value: !Ref DBCluster
-  HighVolumeWriteIOPSAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: VolumeWriteIOPs
-      Namespace: AWS/DocDB
-      Stat: Maximum
-      Dimensions:
-        - Name: DBClusterIdentifier
-          Value: !Ref DBCluster
-  ConnectionSpikeDBInstancePrimaryAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: DatabaseConnections
-      Namespace: AWS/DocDB
-      Stat: Average
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-  ConnectionSpikeDBInstanceReplicaAnomalyDetector:
-    Type: AWS::CloudWatch::AnomalyDetector
-    Properties:
-      MetricName: DatabaseConnections
-      Namespace: AWS/DocDB
-      Stat: Average
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
   HighVolumeReadIOPSAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:

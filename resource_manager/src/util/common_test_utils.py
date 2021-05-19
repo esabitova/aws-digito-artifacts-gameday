@@ -1,6 +1,8 @@
 import random
-from sttable import parse_str_table
+import uuid
+
 from resource_manager.src.util import param_utils as param_utils
+from sttable import parse_str_table
 
 
 def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cache) -> str:
@@ -16,6 +18,21 @@ def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cac
     cf_output = resource_pool.get_cfn_output_params()
     param_value = param_utils.parse_param_value(param_val_ref, {'cfn-output': cf_output, 'cache': ssm_test_cache})
     return param_value
+
+
+def extract_and_cache_param_values(input_parameters, param_list, resource_manager, ssm_test_cache, step_key):
+    """
+    Extract values of CloudFormation output parameters provided in table and put them into SSM cache
+    :param input_parameters: the table with input parameters
+    :param param_list: Coma separated column names in the table with input parameters, for 2-level cache values
+    :param resource_manager: AWS resource manager
+    :param ssm_test_cache: cache
+    :param step_key: 1-level cache key
+    """
+    param_list: list = param_list.strip().split(',')
+    for param_name in param_list:
+        cache_value: str = extract_param_value(input_parameters, param_name, resource_manager, ssm_test_cache)
+        put_to_ssm_test_cache(ssm_test_cache, step_key, param_name, cache_value)
 
 
 def put_to_ssm_test_cache(ssm_test_cache: dict, cache_key, cache_property, value):
@@ -107,3 +124,12 @@ def assert_https_status_code_200(response: dict, error_message: str) -> None:
 def assert_https_status_code_less_or_equal(code: int, response: dict, error_message: str) -> None:
     if not response['ResponseMetadata']['HTTPStatusCode'] <= code:
         raise AssertionError(f'{error_message} Response is: {response}')
+
+
+def generate_random_string_with_prefix(prefix: str) -> str:
+    """
+    Concatenates the given prefix with a random string 8 symbols long
+    :param prefix: The prefix
+    """
+    random_str = str(uuid.uuid1())[0:8]
+    return f"{prefix}{random_str}"

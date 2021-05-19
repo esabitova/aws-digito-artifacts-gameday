@@ -135,6 +135,7 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
         SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
         SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
         SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
         SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
