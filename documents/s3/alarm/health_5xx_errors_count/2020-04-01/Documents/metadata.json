@@ -1,5 +1,5 @@
 {
-  "displayName": "5xxErrors",
+  "displayName": "S3 bucket 5xxErrors",
   "description": "Reports when a number of 5xxErrors is is high",
   "alarmName": "Digito-Health5xxErrorsCount_2020-04-01",
   "alarmType": "Metric",

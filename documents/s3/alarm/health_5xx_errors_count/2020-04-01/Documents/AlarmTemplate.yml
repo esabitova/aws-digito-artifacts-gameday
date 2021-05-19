@@ -9,10 +9,11 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of 5xxErrors is over ', ${ Threshold }, '%' ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of 5xxErrors is over ', ${Threshold}, '%' ] ]
+      AlarmName: ${AlarmName}
       MetricName: 5xxErrors
       Namespace: AWS/S3
-      Statistic: Sum
+      Statistic: Average
       Dimensions:
         - Name: BucketName
           Value: '${S3BucketName}'

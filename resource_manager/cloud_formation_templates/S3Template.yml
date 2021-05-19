@@ -42,11 +42,6 @@ Outputs:
   RoleApproveCleanBucketArn:
     Description: ARN of RoleApproveCleanBucket
     Value: !GetAtt RoleApproveCleanBucket.Arn
-Parameters:
-  FilterId:
-    Description: FilterId value for the request-based alarms of S3 buckets
-    Type: String
-    Default: "all_objects"
 Resources:
   S3BackupBucket:
     Type: AWS::S3::Bucket
@@ -77,9 +72,7 @@ Resources:
     Properties:
       BucketName: !Join
         - "-"
-        - - "s3-bucket-to-restore-digito"
-          - !Ref "AWS::Region"
-          - !Ref "AWS::AccountId"
+        - - "s3-restore-bucket-digito"
           - !Select
             - 0
             - !Split
@@ -97,8 +90,19 @@ Resources:
       VersioningConfiguration:
         Status: Enabled
       MetricsConfigurations:
-        -
-          Id: !Ref FilterId
+        - Id: !Join
+            - "-"
+            - - "s3-restore-bucket-digito"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+              - "metrics"
   SNSTopic:
     Type: "AWS::SNS::Topic"
   SNSTopicPolicy:
@@ -157,7 +161,19 @@ Resources:
         - Name: BucketName
           Value: !Ref S3BucketToRestore
         - Name: FilterId
-          Value: !Ref FilterId
+          Value: !Join
+            - "-"
+            - - "s3-restore-bucket-digito"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+              - "metrics"
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
