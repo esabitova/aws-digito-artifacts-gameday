@@ -9,10 +9,11 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of TotalRequestLatency is over ', ${ Threshold }, '%' ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of TotalRequestLatency is over ', ${Threshold}, 'milliseconds' ] ]
+      AlarmName: ${AlarmName}
       MetricName: TotalRequestLatency
       Namespace: AWS/S3
-      Statistic: Sum
+      Statistic: Maximum
       Dimensions:
         - Name: BucketName
           Value: '${S3BucketName}'

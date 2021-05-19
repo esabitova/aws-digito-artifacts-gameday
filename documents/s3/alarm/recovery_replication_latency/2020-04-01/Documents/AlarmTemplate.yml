@@ -9,14 +9,18 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of ReplicationLatency is over ', ${Threshold}, '%' ] ]
+        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of ReplicationLatency is over ', ${Threshold}, 'milliseconds' ] ]
       AlarmName: ${AlarmName}
       MetricName: ReplicationLatency
       Namespace: AWS/S3
       Statistic: Maximum
       Dimensions:
-        - Name: BucketName
-          Value: '${S3BucketName}'
+        - Name: SourceBucket
+          Value: '${SourceBucketName}'
+        - Name: DestinationBucket
+          Value: '${DestinationBucketName}'
+        - Name: RuleId
+          Value: '${RuleId}'
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1

@@ -1,5 +1,7 @@
 from typing import List
+
 from boto3 import Session
+
 from .boto3_client_factory import client
 
 
@@ -110,3 +112,14 @@ def get_object(session: Session, s3_bucket_name: str, object_key, version_id) ->
     """
     s3_client = client('s3', session)
     return s3_client.get_object(Bucket=s3_bucket_name, Key=object_key, VersionId=version_id)
+
+
+def get_bucket_replication(boto3_session, s3_bucket_name):
+    """
+    Returns the replication configuration of a bucket.
+    :param boto3_session: The boto3 session
+    :param s3_bucket_name: bucket name
+    :return: replication configuration of a bucket
+    """
+    s3_client = client('s3', boto3_session)
+    return s3_client.get_bucket_replication(Bucket=s3_bucket_name)

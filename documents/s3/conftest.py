@@ -1,12 +1,14 @@
 import logging
 
+import jsonpath_ng
 from boto3 import Session
 from pytest_bdd import (
     given,
     parsers, when
 )
-from resource_manager.src.util.boto3_client_factory import client
+
 from resource_manager.src.util import s3_utils as s3_utils
+from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 
 
@@ -77,6 +79,7 @@ def populate_cache_property_of_version(boto3_session: Session, resource_pool, ss
 
 
 @given(parsers.parse('put "{number_of_files_to_put}" objects into the bucket\n{input_parameters}'))
+@when(parsers.parse('put "{number_of_files_to_put}" objects into the bucket\n{input_parameters}'))
 def put_objects_to_bucket(boto3_session, resource_pool, ssm_test_cache, number_of_files_to_put, input_parameters):
     s3_bucket_name = extract_param_value(
         input_parameters, "BucketName", resource_pool, ssm_test_cache
@@ -96,6 +99,16 @@ cache_number_of_files_value_expression = 'cache value of number of files as "{ca
 def cache_value_before_ssm(boto3_session, resource_pool, ssm_test_cache, cache_property, step_key, input_parameters):
     populate_cache_of_number_of_files(boto3_session, resource_pool, ssm_test_cache, cache_property, step_key,
                                       "BucketName", input_parameters)
+
+
+@given(parsers.parse('cache bucket replication property "{json_path}" '
+                     'as "{cache_property}" "{step_key}" SSM automation execution\n{input_parameters}'))
+def cache_bucket_replication_property(boto3_session, resource_pool, ssm_test_cache, json_path, cache_property, step_key,
+                                      input_parameters):
+    s3_bucket_name = extract_param_value(input_parameters, "BucketName", resource_pool, ssm_test_cache)
+    response = s3_utils.get_bucket_replication(boto3_session, s3_bucket_name)
+    target_value = jsonpath_ng.parse(json_path).find(response)[0].value
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, target_value)
 
 
 def populate_cache_of_number_of_files(boto3_session: Session, resource_pool, ssm_test_cache, cache_property,

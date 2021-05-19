@@ -8,5 +8,5 @@
   "tag": "s3:alarm:health_total_request_latency:2020-04-01",
   "failureType": "SOFTWARE",
   "minorVersion": "001",
-  "prerequisite": "Make sure the MetricsConfiguration attribute is set with the Id for the bucket (see [docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-metricsconfigurations) )\nExample : \n```\nTargetS3Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n        ...\n        MetricsConfigurations:\n            -\n                Id: \"some-filter-id\"\n```"
+  "prerequisite": "Make sure the MetricsConfiguration attribute is set with the Id for the bucket (see [docs](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket.html#cfn-s3-bucket-metricsconfigurations) )\n\nExample : \n```\nTargetS3Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n        ...\n        MetricsConfigurations:\n            -\n                Id: \"${S3BucketName}-metrics\"\n``` \nwhere ${S3BucketName} is the value of the target bucket."
 }
