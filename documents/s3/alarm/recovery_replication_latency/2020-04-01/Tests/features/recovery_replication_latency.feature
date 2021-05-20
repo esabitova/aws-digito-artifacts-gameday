@@ -15,5 +15,5 @@ Feature: Alarm Setup - RecoveryReplicationLatency
     And put "100" objects into the bucket
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 5 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
