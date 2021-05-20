@@ -8,7 +8,7 @@ Resources:
     Type: AWS::Logs::MetricFilter
     Properties:
       FilterPattern: "Mount failed"
-      LogGroupName: "/aws/efs/utils"
+      LogGroupName: ${LogGroupName}
       MetricTransformations:
         - MetricValue: "1"
           DefaultValue: "0"

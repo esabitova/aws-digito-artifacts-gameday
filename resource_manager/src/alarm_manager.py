@@ -88,13 +88,13 @@ class AlarmManager:
         logging.info(f"Destroying [{alarm_id}] alarm_stack {alarm_name}.")
         self.cfn_helper.delete_cf_stack(alarm_name)
 
-    def collect_alarms_without_data(self):
+    def collect_alarms_without_data(self, data_period_seconds):
         """
         Verifies that all alarm metrics have data on the requested dimension
         Returns list of alarms that do not report data
         """
         alarms_without_data = {
-            alarm: self._collect_alarms_without_data(alarm)
+            alarm: self._collect_alarms_without_data(alarm, data_period_seconds)
             for alarm in self.deployed_alarms.keys()
         }
         return {alarm: missing_metrics
@@ -102,7 +102,7 @@ class AlarmManager:
                 if len(missing_metrics) > 0
                 }
 
-    def _collect_alarms_without_data(self, alarm_id):
+    def _collect_alarms_without_data(self, alarm_id, data_period_seconds):
         # iterate over Resources of type Alarm AWS::CloudWatch::Alarm
         alarm = self.deployed_alarms[alarm_id]["content"]
         alarm_name = self.deployed_alarms[alarm_id]["alarm_name"]
@@ -145,7 +145,7 @@ class AlarmManager:
 
         end_time_utc = self.datetime_helper.utcnow()
         for metric_name, metric_props in metrics.items():
-            start_time_utc = self.datetime_helper.utcnow() - timedelta(seconds=metric_props['period'] * 3)
+            start_time_utc = end_time_utc - timedelta(seconds=(metric_props['period'] + data_period_seconds))
             data_points = get_cw_metric_statistics(self.session, start_time_utc, end_time_utc, **metric_props)
             if not data_points:
                 metrics_without_data[metric_name] = metric_props
