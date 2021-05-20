@@ -5,7 +5,7 @@
   "documentFormat": "YAML",
   "documentName": "Digito-EFSBreakSecurityGroup_2020-09-21",
   "documentType": "Automation",
-  "failureType": "HARDWARE,AZ",
+  "failureType": "AZ",
   "intent": "Used to emulate AZ failure for security groups",
   "minorVersion": "001",
   "risk": "HIGH",
