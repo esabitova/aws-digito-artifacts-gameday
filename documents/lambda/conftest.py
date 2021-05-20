@@ -27,6 +27,7 @@ publish_function_version_expression = 'published function version and cached ver
                                       '\n{input_parameters}'
 assert_alias_version_expression = 'assert version in alias changed\n{input_parameters}'
 delete_function_version_expression = 'delete function version\n{input_parameters}'
+invoke_throttled_function_expression = 'invoke throttled function\n{input_parameters}'
 
 
 def __populate_cache_with_memory_size(
@@ -182,3 +183,11 @@ def delete_version(
     lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
     lambda_version = extract_param_value(input_parameters, "LambdaVersion", resource_pool, ssm_test_cache)
     lambda_utils.delete_function_version(lambda_arn, lambda_version, boto3_session)
+
+
+@when(parsers.parse(invoke_throttled_function_expression))
+def invoke_throttled_function(
+        resource_pool, ssm_test_cache, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    lambda_utils.trigger_throttled_lambda(lambda_arn, boto3_session)

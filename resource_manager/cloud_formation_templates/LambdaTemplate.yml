@@ -163,7 +163,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "missing"
+      TreatMissingData: "notBreaching"
   ErrorsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:

@@ -7,6 +7,7 @@ import resource_manager.src.util.boto3_client_factory as client_factory
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from unittest.mock import MagicMock
 from botocore.response import StreamingBody
+from botocore.exceptions import ClientError
 from documents.util.scripts.test.test_lambda_util import LAMBDA_ARN, LAMBDA_NAME, LAMBDA_VERSION
 
 
@@ -176,3 +177,20 @@ class TestLambdaUtil(unittest.TestCase):
             FunctionName=LAMBDA_ARN,
             Qualifier=qualifier
         )
+
+    def test_trigger_throttled_lambda_status_429(self):
+        status_code = 429
+        self.mock_lambda.invoke.side_effect = ClientError({'ResponseMetadata': {
+            'HTTPStatusCode': status_code
+        }, 'Error': {}}, "Invoke")
+        response = lambda_utils.trigger_throttled_lambda(LAMBDA_ARN, self.session_mock)
+        self.assertEqual(response, True)
+        self.mock_lambda.invoke.assert_called_once_with(FunctionName=LAMBDA_ARN)
+
+    def test_trigger_throttled_lambda_status_200(self):
+        status_code = 200
+        self.mock_lambda.invoke.side_effect = ClientError({'ResponseMetadata': {
+            'HTTPStatusCode': status_code
+        }, 'Error': {}}, "Invoke")
+        self.assertRaises(Exception, lambda_utils.trigger_throttled_lambda, LAMBDA_ARN, self.session_mock)
+        self.mock_lambda.invoke.assert_called_once_with(FunctionName=LAMBDA_ARN)

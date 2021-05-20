@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock, call
 import pytest
 
 from documents.util.scripts.src.lambda_util import get_concurrent_execution_quota, check_feasibility, \
-    calculate_total_reserved_concurrency, set_reserved_concurrent_executions
+    calculate_total_reserved_concurrency, set_reserved_concurrent_executions, backup_reserved_concurrent_executions
 
 CONCURRENT_EXECUTION_QUOTA_CODE = 'L-B99A9384'
 LAMBDA_NAME = 'LambdaTemplate-0-LambdaFunction-5UDF2PBK1R'
@@ -301,3 +301,32 @@ class TestLambdaUtil(unittest.TestCase):
 
     def test_set_reserved_concurrent_executions_empty_events(self):
         self.assertRaises(Exception, set_reserved_concurrent_executions, {}, None)
+
+    def test_backup_reserved_concurrent_executions_empty_events(self):
+        events = {}
+        self.assertRaises(KeyError, backup_reserved_concurrent_executions, events, None)
+
+    def test_backup_reserved_concurrent_executions_empty_response(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+        }
+        self.mock_lambda.get_function_concurrency.return_value = None
+        response = backup_reserved_concurrent_executions(events, None)
+        self.assertEqual(response, {
+            "ReservedConcurrentExecutionsConfigured": False,
+            "BackupReservedConcurrentExecutionsValue": 0
+        })
+
+    def test_backup_reserved_concurrent_executions_concurrency_configured(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+        }
+        reserved_concurrency = 10
+        self.mock_lambda.get_function_concurrency.return_value = {
+            'ReservedConcurrentExecutions': reserved_concurrency
+        }
+        response = backup_reserved_concurrent_executions(events, None)
+        self.assertEqual(response, {
+            "ReservedConcurrentExecutionsConfigured": True,
+            "BackupReservedConcurrentExecutionsValue": reserved_concurrency
+        })
