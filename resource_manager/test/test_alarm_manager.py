@@ -202,7 +202,7 @@ class TestAlarmManager(unittest.TestCase):
             'AWS/EC2': {"Datapoints": [{"Timestamp": "2020", "SampleCount": 4}]},
             'AWS/ApplicationELB': {"Datapoints": [{"Timestamp": "2020", "SampleCount": 4}]},
         }).get(request.get("Namespace"))
-        missing_data = self.alarm_manager.collect_alarms_without_data()
+        missing_data = self.alarm_manager.collect_alarms_without_data(300)
 
         assert missing_data == {}
 
@@ -221,9 +221,7 @@ class TestAlarmManager(unittest.TestCase):
         self.datetime_helper_mock.utcnow.side_effect = [
             # Mock timestamps for the call below
             datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            datetime(2020, 1, 1, 0, 0, 1, tzinfo=timezone.utc),
             datetime(2020, 1, 1, 0, 1, 0, tzinfo=timezone.utc),
-            datetime(2020, 1, 1, 0, 1, 1, tzinfo=timezone.utc),
             datetime(2020, 1, 1, 1, 0, 0, tzinfo=timezone.utc),
         ]
         self.cw_client_mock.get_metric_statistics.side_effect = lambda **request: ({
@@ -232,7 +230,7 @@ class TestAlarmManager(unittest.TestCase):
         }).get(request.get("Namespace"))
 
         # Test:
-        missing_data = self.alarm_manager.collect_alarms_without_data()
+        missing_data = self.alarm_manager.collect_alarms_without_data(300)
         alarm_logical_id = re.sub("-", "0", f'single-alarm-doc-{self.unique_prefix}-0')
         assert list(missing_data.keys()) == ['no-data']
         assert missing_data['no-data'][alarm_logical_id]['metric_namespace'] == "AWS/ApplicationELB"
@@ -265,6 +263,6 @@ class TestAlarmManager(unittest.TestCase):
         self.alarm_manager.deploy_alarm("service:alarm:no_metric_alarm:ver", {})
 
         with pytest.raises(Exception) as err:
-            self.alarm_manager.collect_alarms_without_data()
+            self.alarm_manager.collect_alarms_without_data(300)
 
         assert "contained no metrics" in str(err)

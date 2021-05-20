@@ -600,14 +600,18 @@ def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
 
 
 @then(parse('assert metrics for all alarms are populated'))
-def verify_alarm_metrics_exist(alarm_manager):
-    wait_sec = int(300)
-    delay_sec = int(15)
+def verify_alarm_metrics_exist_defaults(alarm_manager):
+    verify_alarm_metrics_exist(alarm_manager, 300, 15)
+
+
+@then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '
+            'check every {delay_sec:d} seconds'))
+def verify_alarm_metrics_exist(alarm_manager, wait_sec, delay_sec):
     elapsed = 0
     iteration = 1
     while elapsed < wait_sec:
         start = time.time()
-        alarms_missing_data = alarm_manager.collect_alarms_without_data()
+        alarms_missing_data = alarm_manager.collect_alarms_without_data(wait_sec)
         if not alarms_missing_data:
             return  # All alarms have data
         logging.info(f'#{iteration}; Alarms missing data: {alarms_missing_data} '
