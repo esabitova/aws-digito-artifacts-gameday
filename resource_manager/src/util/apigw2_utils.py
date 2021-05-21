@@ -45,7 +45,7 @@ def get_stage(session: Session, gateway_id: str, stage_name: str) -> dict:
     apigw2_client = client('apigatewayv2', session)
     response = apigw2_client.get_stage(ApiId=gateway_id, StageName=stage_name)
     assert_https_status_code_200(response, f'Failed to perform get_stage with '
-                                           f'restApiId: {gateway_id} and stageName: {stage_name}')
+                                           f'ApiId: {gateway_id} and StageName: {stage_name}')
     return response
 
 

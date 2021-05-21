@@ -212,11 +212,11 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     quota_burst_limit: float = get_service_quota(boto3_config, 'apigateway', quota_burst_limit_code)['Quota']['Value']
 
     if new_rate_limit > quota_rate_limit:
-        raise ValueError(f'Given value of RestApiGwThrottlingRate: {new_rate_limit}, can not be more than '
+        raise ValueError(f'Given value of HttpWsThrottlingRate: {new_rate_limit}, can not be more than '
                          f'service quota Throttle rate: {quota_rate_limit}')
 
     if new_burst_limit > quota_burst_limit:
-        raise ValueError(f'Given value of RestApiGwThrottlingBurst: {new_burst_limit}, can not be more than '
+        raise ValueError(f'Given value of HttpWsThrottlingBurst: {new_burst_limit}, can not be more than '
                          f'service quota Throttle burst rate: {quota_burst_limit}')
 
     stage = get_stage(gateway_id, stage_name)
