@@ -245,3 +245,93 @@ def wait_for_in_service(events, context):
         if (num_in_service >= events['NewDesiredCapacity']):
             return True
         time.sleep(15)
+
+
+def get_instance_data(events, context):
+    asg = boto3.client('autoscaling')
+    ec2 = boto3.client('ec2')
+    describe_asg = asg.describe_auto_scaling_groups(AutoScalingGroupNames=[events['AutoScalingGroupName']])
+    if 'MixedInstancesPolicy' in describe_asg['AutoScalingGroups'][0]:
+        raise Exception('Cannot run this SOP on ASG that has a MixedInstancesPolicy')
+    current_state = get_current_state(ec2, asg, describe_asg)
+    bigger_instance_type = get_bigger_instance(current_state['OriginalInstanceType'], ec2)
+    return {**current_state, **{'BiggerInstanceType': bigger_instance_type}}
+
+
+def get_current_state(ec2, asg, describe_asg):
+    if 'LaunchTemplate' in describe_asg['AutoScalingGroups'][0]:
+        launch_template_version = describe_asg['AutoScalingGroups'][0]['LaunchTemplate']['Version']
+        launch_template_name = describe_asg['AutoScalingGroups'][0]['LaunchTemplate']['LaunchTemplateName']
+        describe_template = ec2.describe_launch_template_versions(LaunchTemplateName=launch_template_name, Versions=[launch_template_version])
+        current_instance_type = describe_template['LaunchTemplateVersions'][0]['LaunchTemplateData']['InstanceType']
+        return {'OriginalInstanceType': current_instance_type, 'LaunchTemplateVersion': launch_template_version,
+                'LaunchTemplateName': launch_template_name, 'LaunchConfigurationName': ''}
+    else:
+        launch_config_name = describe_asg['AutoScalingGroups'][0]['LaunchConfigurationName']
+        launch_config = asg.describe_launch_configurations(LaunchConfigurationNames=[launch_config_name])
+        return {'OriginalInstanceType': launch_config['LaunchConfigurations'][0]['InstanceType'], 'LaunchTemplateVersion': '',
+                'LaunchTemplateName': '', 'LaunchConfigurationName': launch_config_name}
+
+
+def get_bigger_instance(current_instance_type, ec2):
+    instance_type_size = current_instance_type.rsplit(".", 1)
+    instance_sizes = ["nano", "micro", "small", "medium", "large", "xlarge", "2xlarge", "3xlarge", "4xlarge",
+                      "6xlarge", "8xlarge", "9xlarge", "10xlarge", "12xlarge", "16xlarge", "18xlarge", "24xlarge",
+                      "32xlarge", "56xlarge", "112xlarge"]
+    bigger_size_start_idx = instance_sizes.index(instance_type_size[1]) + 1
+    possible_instance_types = []
+    for i in range(len(instance_sizes) - bigger_size_start_idx):
+        possible_instance_types.append(instance_type_size[0] + "." + instance_sizes[bigger_size_start_idx + i])
+    instance_types_response = ec2.describe_instance_type_offerings(
+        Filters=[{'Name': 'instance-type', "Values": [instance_type_size[0] + ".*"]}])
+    all_instance_types = [offering['InstanceType'] for offering in instance_types_response['InstanceTypeOfferings']]
+    bigger_instances = [candidate for candidate in possible_instance_types if candidate in all_instance_types]
+    if bigger_instances:
+        return bigger_instances[0]
+    else:
+        raise Exception("Could not identify bigger instance type than current instance type: " + current_instance_type)
+
+
+def update_asg(events, context):
+    asg = boto3.client('autoscaling')
+    ec2 = boto3.client('ec2')
+    new_instance_type = events['BiggerInstanceType']
+    if events['LaunchTemplateName']:
+        create_template_response = ec2.create_launch_template_version(
+            LaunchTemplateName=events['LaunchTemplateName'],
+            SourceVersion=events['LaunchTemplateVersion'],
+            LaunchTemplateData={'InstanceType': new_instance_type},
+            VersionDescription="Uses instance type " + new_instance_type)
+        new_version = str(create_template_response['LaunchTemplateVersion']['VersionNumber'])
+        asg.update_auto_scaling_group(AutoScalingGroupName=events['AutoScalingGroupName'],
+                                      LaunchTemplate={'LaunchTemplateName': events['LaunchTemplateName'],
+                                                      'Version': new_version})
+        return {'LaunchConfigOrTemplate': events['LaunchTemplateName'] + ':' + new_version}
+    else:
+        describe_asg = asg.describe_auto_scaling_groups(AutoScalingGroupNames=[events['AutoScalingGroupName']])
+        describe_launch_config = asg.describe_launch_configurations(
+            LaunchConfigurationNames=[describe_asg['AutoScalingGroups'][0]['LaunchConfigurationName']])
+        launch_config = describe_launch_config['LaunchConfigurations'][0]
+        launch_config.pop('LaunchConfigurationARN')
+        launch_config.pop('CreatedTime')
+        launch_config['InstanceType'] = new_instance_type
+        launch_config['LaunchConfigurationName'] = launch_config['LaunchConfigurationName'] + "-" + str(random.randint(1000, 9999))
+        asg.create_launch_configuration(**{ key: value for (key, value) in launch_config.items() if value != ''})
+        asg.update_auto_scaling_group(AutoScalingGroupName=events['AutoScalingGroupName'],
+                                      LaunchConfigurationName=launch_config['LaunchConfigurationName'])
+        return {'LaunchConfigOrTemplate': launch_config['LaunchConfigurationName']}
+
+
+def rollback_scaleup(events, context):
+    asg = boto3.client('autoscaling')
+    ec2 = boto3.client('ec2')
+    if events['LaunchTemplateName']:
+        name_version = events['LaunchConfigOrTemplate'].rsplit(":", 1)
+        asg.update_auto_scaling_group(AutoScalingGroupName=events['AutoScalingGroupName'],
+                                      LaunchTemplate={'LaunchTemplateName': events['LaunchTemplateName'],
+                                                      'Version': events['LaunchTemplateVersion']})
+        ec2.delete_launch_template_versions(LaunchTemplateName=name_version[0], Versions=[name_version[1]])
+    else:
+        asg.update_auto_scaling_group(AutoScalingGroupName=events['AutoScalingGroupName'],
+                                      LaunchConfigurationName=events['LaunchConfigurationName'])
+        asg.delete_launch_configuration(LaunchConfigurationName=events['LaunchConfigOrTemplate'])
