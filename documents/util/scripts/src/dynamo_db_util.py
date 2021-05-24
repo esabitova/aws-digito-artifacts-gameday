@@ -25,6 +25,19 @@ def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
     return description
 
 
+def _describe_continuous_backups(table_name: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.describe_continuous_backups(TableName=table_name))
+
+
+def _enable_continuous_backups(table_name: str):
+    return _execute_boto3_dynamodb(
+        delegate=lambda x: x.update_continuous_backups(TableName=table_name,
+                                                       PointInTimeRecoverySpecification={
+                                                           'PointInTimeRecoveryEnabled': True
+                                                       }))
+
+
 def _describe_kinesis_destinations(table_name: str) -> dict:
     """
     Describes the current kinesis destination of the given table
@@ -115,6 +128,11 @@ def _describe_table(table_name: str) -> dict:
 
 
 def _describe_contributor_insights(table_name: str, index_name: str = None) -> dict:
+    """
+    Describes contributor insights for the given table or index
+    :param table_name: The table name
+    :param index_name: The index name
+    """
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.describe_contributor_insights(TableName=table_name, IndexName=index_name))
@@ -124,6 +142,12 @@ def _describe_contributor_insights(table_name: str, index_name: str = None) -> d
 
 
 def _update_contributor_insights(table_name: str, status: str, index_name: str = None) -> dict:
+    """
+    Update contributor insides for the given table or index
+    :param table_name: The table name
+    :param index_name: The index name
+    :param status: The status 'ENABLE'|'DISABLE'
+    """
     if index_name:
         return _execute_boto3_dynamodb(
             delegate=lambda x: x.update_contributor_insights(TableName=table_name,
@@ -136,9 +160,40 @@ def _update_contributor_insights(table_name: str, status: str, index_name: str =
 
 
 def _get_global_table_all_regions(table_name: str) -> List[dict]:
+    """
+    Returns all global table regions
+    :param table_name: The table name
+    """
     description = _describe_table(table_name=table_name)
     replicas = description['Table'].get('Replicas', [])
     return replicas
+
+
+def copy_continuous_backups_properties(events: dict, context: dict) -> List:
+    """
+    Copies continuous backups properties
+    :param events: The dictionary that supposed to have the following keys:
+    * `SourceTableName` - The source table name
+    * `TargetTableName` - The target table name
+    :return: The status of continuous backup
+    """
+    if 'SourceTableName' not in events:
+        raise KeyError('Requires SourceTableName')
+    if 'TargetTableName' not in events:
+        raise KeyError('Requires TargetTableName')
+
+    source_table_name: str = events['SourceTableName']
+    target_table_name: str = events['TargetTableName']
+    continuous_backups_settings = _describe_continuous_backups(table_name=source_table_name)
+    continuous_backups_status = continuous_backups_settings\
+        .get('ContinuousBackupsDescription', {})\
+        .get('PointInTimeRecoveryDescription', {})\
+        .get('PointInTimeRecoveryStatus', '')
+
+    if continuous_backups_status in ['ENABLED', 'ENABLING']:
+        _enable_continuous_backups(table_name=target_table_name)
+
+    return continuous_backups_status
 
 
 def copy_global_table_settings(events: dict, context: dict) -> dict:

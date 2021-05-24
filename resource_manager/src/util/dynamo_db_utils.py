@@ -23,6 +23,73 @@ def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], di
     return description
 
 
+def _delete_backup(boto3_session: Session, backup_arn: str):
+    return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                   delegate=lambda x: x.delete_backup(
+                                       BackupArn=backup_arn
+                                   ))
+
+
+def _delete_backup_if_exist(boto3_session: Session, backup_arn: str):
+    try:
+        _delete_backup(boto3_session=boto3_session, backup_arn=backup_arn)
+    except ClientError as ce:
+        if ce.response['Error']['Code'] == 'BackupNotFoundException':
+            log.warning(f"Backup doesn't exist `{backup_arn}`")
+            return False
+        raise
+    return True
+
+
+def _describe_backup(boto3_session: Session, backup_arn: str):
+    """
+    Describes the given DynamoDB backup ARN
+    :param boto3_session: The boto3 session
+    :param backup_arn: The name of DynamoDB table backup
+    """
+    return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                   delegate=lambda x: x.describe_backup(
+                                       BackupArn=backup_arn
+                                   ))
+
+
+def _check_if_backup_exists(boto3_session: Session, backup_arn: str):
+    """
+    Describes the given DynamoDB backup ARN and returns True if it's not deleted
+    :param boto3_session: The boto3 session
+    :param backup_arn: The ARN of DynamoDB table backup
+    """
+    try:
+        description = _describe_backup(boto3_session=boto3_session, backup_arn=backup_arn)
+        backup_status = description.get('BackupDescription', {})\
+            .get('BackupDetails', {})\
+            .get('BackupStatus', '')
+        log.info(f'Backup status is {backup_status}')
+        if backup_status == 'DELETED' or backup_status == '':
+            return False
+        else:
+            return True
+    except ClientError as ce:
+        if ce.response['Error']['Code'] == 'BackupNotFoundException':
+            log.warning(f"Backup doesn't exist `{backup_arn}`")
+            return False
+        raise
+
+
+def _create_backup(boto3_session: Session, table_name: str, backup_name: str):
+    """
+    Create a backup of the given DynamoDB table
+    :param boto3_session: The boto3 session
+    :param table_name: The DynamoDB table
+    :param backup_name: The name of DynamoDB table backup
+    """
+    return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                   delegate=lambda x: x.create_backup(
+                                       TableName=table_name,
+                                       BackupName=backup_name
+                                   ))
+
+
 def _update_table(boto3_session: Session, table_name: str, **kwargs) -> dict:
     """
     Updates the given table with specified set of parametes (`kwargs`). Calls `update_table` of `dynamodb` client
@@ -100,6 +167,58 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session) -> bool:
             log.warning(f"Table `{table_name}` has been deleted")
             return True
     return False
+
+
+def delete_backup_and_wait(backup_arn: str,
+                           wait_sec: int,
+                           delay_sec: int,
+                           boto3_session: Session):
+    exists = _delete_backup_if_exist(boto3_session=boto3_session,
+                                     backup_arn=backup_arn)
+    log.info(f'Backup `{backup_arn}` exists: {exists}')
+    if exists:
+        start = time.time()
+        elapsed = 0
+        while elapsed < wait_sec:
+            exists = _check_if_backup_exists(boto3_session=boto3_session, backup_arn=backup_arn)
+            if not exists:
+                log.info(f'The backup {backup_arn} has been deleted')
+                return
+
+            end = time.time()
+            elapsed = end - start
+            time.sleep(delay_sec)
+
+        raise TimeoutError(f'Timeout of waiting the backup deleted. Backup arn: {backup_arn}')
+
+
+def create_backup_and_wait_for_available(table_name: str,
+                                         backup_name: str,
+                                         wait_sec: int,
+                                         delay_sec: int,
+                                         boto3_session: Session):
+    backup_description = _create_backup(boto3_session=boto3_session,
+                                        backup_name=backup_name,
+                                        table_name=table_name)
+
+    start = time.time()
+    elapsed = 0
+    backup_arn = backup_description['BackupDetails']['BackupArn']
+    while elapsed < wait_sec:
+        description = _describe_backup(backup_arn=backup_arn,
+                                       boto3_session=boto3_session)
+        backup_status = description['BackupDescription']\
+            .get('BackupDetails', {})\
+            .get('BackupStatus', '')
+        log.info(f'Backup status is {backup_status}. Table:{table_name}')
+        if backup_status == 'AVAILABLE':
+            return backup_arn
+
+        end = time.time()
+        elapsed = end - start
+        time.sleep(delay_sec)
+
+    raise TimeoutError(f'Timeout of waiting the backup deleted. Backup arn: {backup_arn}')
 
 
 def remove_global_table_and_wait_for_active(table_name: str,

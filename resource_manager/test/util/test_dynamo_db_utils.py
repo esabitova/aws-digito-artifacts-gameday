@@ -5,11 +5,14 @@ import pytest
 import resource_manager.src.util.boto3_client_factory as client_factory
 from botocore.exceptions import ClientError
 from resource_manager.src.util.dynamo_db_utils import (
-    _check_if_table_deleted, _describe_continuous_backups, _describe_table,
-    _execute_boto3_dynamodb, _update_table,
-    remove_global_table_and_wait_for_active,
-    add_global_table_and_wait_for_active,
-    get_earliest_recovery_point_in_time, drop_and_wait_dynamo_db_table_if_exists, wait_table_to_be_active)
+    _check_if_backup_exists, _check_if_table_deleted, _create_backup,
+    _delete_backup, _delete_backup_if_exist, _describe_backup,
+    _describe_continuous_backups, _describe_table, _execute_boto3_dynamodb,
+    _update_table, add_global_table_and_wait_for_active,
+    create_backup_and_wait_for_available, delete_backup_and_wait,
+    drop_and_wait_dynamo_db_table_if_exists,
+    get_earliest_recovery_point_in_time,
+    remove_global_table_and_wait_for_active, wait_table_to_be_active)
 
 GENERIC_SUCCESS_RESULT = {
     "ResponseMetadata": {
@@ -139,8 +142,164 @@ ENABLE_KINESIS_DESTINATIONS_RESPONSE = {
     "DestinationStatus": 'ENABLING',
     "DestinationStatusDescription": 'Description'
 }
+DELETE_BACKUP_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "BackupDescription": {
+        "BackupDetails": {
+            "BackupArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable/backup/01618662389955-43f7af5d",
+            "BackupName": "mybackup",
+            "BackupSizeBytes": 83,
+            "BackupStatus": "DELETED",
+            "BackupType": "USER",
+            "BackupCreationDateTime": "2021-04-17T16:26:29.955000+04:00"
+        },
+        "SourceTableDetails": {
+            "TableName": "myable",
+            "TableId": "cd7e8790-c589-4d6d-9a5e-042d61c20fed",
+            "TableArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable",
+            "TableSizeBytes": 83,
+            "KeySchema": [
+                {
+                    "AttributeName": "id",
+                    "KeyType": "HASH"
+                }
+            ],
+            "TableCreationDateTime": "2021-04-08T18:25:03.335000+04:00",
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 5,
+                "WriteCapacityUnits": 5
+            },
+            "ItemCount": 1,
+            "BillingMode": "PROVISIONED"
+        },
+        "SourceTableFeatureDetails": {
+            "GlobalSecondaryIndexes": [
+                {
+                    "IndexName": "Partition_key-index",
+                    "KeySchema": [
+                        {
+                            "AttributeName": "Partition_key",
+                            "KeyType": "HASH"
+                        }
+                    ],
+                    "Projection": {
+                        "ProjectionType": "ALL"
+                    },
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": 5,
+                        "WriteCapacityUnits": 5
+                    }
+                },
+                {
+                    "IndexName": "another-fkey-index",
+                    "KeySchema": [
+                        {
+                            "AttributeName": "another-fkey",
+                            "KeyType": "HASH"
+                        }
+                    ],
+                    "Projection": {
+                        "ProjectionType": "ALL"
+                    },
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": 5,
+                        "WriteCapacityUnits": 5
+                    }
+                }
+            ],
+            "StreamDescription": {
+                "StreamEnabled": True,
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+            }
+        }
+    }
+}
+DESCRIBE_BACKUP_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "BackupDescription": {
+        "BackupDetails": {
+            "BackupArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable/backup/01618662389955-43f7af5d",
+            "BackupName": "mybackup",
+            "BackupSizeBytes": 83,
+            "BackupStatus": "AVAILABLE",
+            "BackupType": "USER",
+            "BackupCreationDateTime": "2021-04-17T16:26:29.955000+04:00"
+        },
+        "SourceTableDetails": {
+            "TableName": "myable",
+            "TableId": "cd7e8790-c589-4d6d-9a5e-042d61c20fed",
+            "TableArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable",
+            "TableSizeBytes": 83,
+            "KeySchema": [
+                {
+                    "AttributeName": "id",
+                    "KeyType": "HASH"
+                }
+            ],
+            "TableCreationDateTime": "2021-04-08T18:25:03.335000+04:00",
+            "ProvisionedThroughput": {
+                "ReadCapacityUnits": 5,
+                "WriteCapacityUnits": 5
+            },
+            "ItemCount": 1,
+            "BillingMode": "PROVISIONED"
+        },
+        "SourceTableFeatureDetails": {
+            "GlobalSecondaryIndexes": [
+                {
+                    "IndexName": "Partition_key-index",
+                    "KeySchema": [
+                        {
+                            "AttributeName": "Partition_key",
+                            "KeyType": "HASH"
+                        }
+                    ],
+                    "Projection": {
+                        "ProjectionType": "ALL"
+                    },
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": 5,
+                        "WriteCapacityUnits": 5
+                    }
+                },
+                {
+                    "IndexName": "another-fkey-index",
+                    "KeySchema": [
+                        {
+                            "AttributeName": "another-fkey",
+                            "KeyType": "HASH"
+                        }
+                    ],
+                    "Projection": {
+                        "ProjectionType": "ALL"
+                    },
+                    "ProvisionedThroughput": {
+                        "ReadCapacityUnits": 5,
+                        "WriteCapacityUnits": 5
+                    }
+                }
+            ],
+            "StreamDescription": {
+                "StreamEnabled": True,
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+            }
+        }
+    }
+}
+CREATE_BACKUP_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "BackupDetails": {
+        "BackupArn": "arn:aws:dynamodb:us-east-2:435978235099:table/myable/backup/01618664635471-dddafc01",
+        "BackupName": "mybackup",
+        "BackupSizeBytes": 83,
+        "BackupStatus": "CREATING",
+        "BackupType": "USER",
+        "BackupCreationDateTime": "2021-04-17T17:03:55.471000+04:00"
+    }
+}
 
 RESOURCE_NOT_FOUND_ERROR = ClientError({'Error': {'Code': 'ResourceNotFoundException'}}, "")
+BACKUP_NOT_FOUND_ERROR = ClientError({'Error': {'Code': 'BackupNotFoundException'}}, "")
 RESOURCE_IN_USE_ERROR = ClientError({'Error': {'Code': 'ResourceInUseException'}}, "")
 
 
@@ -160,6 +319,10 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
         self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONCE
         self.dynamodb_client_mock.describe_continuous_backups.return_value = DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE
+        self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
+        self.dynamodb_client_mock.delete_backup.return_value = DELETE_BACKUP_RESPONSE
+        self.dynamodb_client_mock.describe_backup.return_value = DESCRIBE_BACKUP_RESPONSE
+        self.dynamodb_client_mock.create_backup.return_value = CREATE_BACKUP_RESPONSE
 
         self.dynamodb_client_mock\
             .enable_kinesis_streaming_destination\
@@ -202,6 +365,186 @@ class TestDynamoDbUtil(unittest.TestCase):
                                               table_name="my_table")
 
         self.assertEqual(result, DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE)
+
+    def test__delete_backup(self):
+
+        result = _delete_backup(boto3_session=self.session_mock,
+                                backup_arn="arn")
+
+        self.assertEqual(result, DELETE_BACKUP_RESPONSE)
+
+    def test__describe_backup(self):
+
+        result = _describe_backup(boto3_session=self.session_mock,
+                                  backup_arn="arn")
+
+        self.assertEqual(result, DESCRIBE_BACKUP_RESPONSE)
+
+    def test__create_backup(self):
+
+        result = _create_backup(boto3_session=self.session_mock,
+                                table_name="my_table", backup_name="my_backup")
+
+        self.assertEqual(result, CREATE_BACKUP_RESPONSE)
+
+    @patch('resource_manager.src.util.dynamo_db_utils._delete_backup',
+           return_value={})
+    def test__delete_backup_if_exist__exists(self, delete_mock):
+
+        result = _delete_backup_if_exist(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+        self.assertTrue(result)
+        delete_mock.assert_called_with(boto3_session=self.session_mock,
+                                       backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._delete_backup',
+           side_effect=BACKUP_NOT_FOUND_ERROR)
+    def test__delete_backup_if_exist__not_exists(self, delete_mock):
+
+        result = _delete_backup_if_exist(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+        self.assertFalse(result)
+        delete_mock.assert_called_with(boto3_session=self.session_mock,
+                                       backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._delete_backup',
+           side_effect=RESOURCE_IN_USE_ERROR)
+    def test__delete_backup_if_exist__client_error(self, delete_mock):
+
+        with self.assertRaises(ClientError):
+            _delete_backup_if_exist(boto3_session=self.session_mock,
+                                    backup_arn="arn")
+
+            delete_mock.assert_called_with(boto3_session=self.session_mock,
+                                           backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_backup',
+           return_value={'BackupDescription': {
+               'BackupDetails': {
+                   'BackupStatus': 'DELETED'
+               }
+           }})
+    def test__check_if_backup_exists_deleted_status(self, describe_mock):
+
+        result = _check_if_backup_exists(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+        self.assertFalse(result)
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_backup',
+           side_effect=BACKUP_NOT_FOUND_ERROR)
+    def test__check_if_backup_exists_does_not_exist(self, describe_mock):
+
+        result = _check_if_backup_exists(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+        self.assertFalse(result)
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_backup',
+           side_effect=RESOURCE_IN_USE_ERROR)
+    def test__check_if_backup_exists__client_error(self, describe_mock):
+
+        with self.assertRaises(ClientError):
+            _check_if_backup_exists(boto3_session=self.session_mock,
+                                    backup_arn="arn")
+            describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                             backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_backup',
+           return_value={'BackupDescription': {
+               'BackupDetails': {
+                   'BackupStatus': 'DELETING'
+               }
+           }})
+    def test__check_if_backup_exists__deleting(self, describe_mock):
+
+        result = _check_if_backup_exists(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+        self.assertTrue(result)
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._delete_backup_if_exist',
+           return_value=True)
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_backup_exists',
+           return_value=False)
+    def test_delete_backup_and_wait(self, describe_mock, check_mock):
+
+        delete_backup_and_wait(boto3_session=self.session_mock,
+                               backup_arn="arn",
+                               wait_sec=1,
+                               delay_sec=1)
+
+        check_mock.assert_called_with(boto3_session=self.session_mock,
+                                      backup_arn="arn")
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._delete_backup_if_exist',
+           return_value=True)
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_backup_exists',
+           return_value=True)
+    def test_delete_backup_and_wait__timeout(self, describe_mock, check_mock):
+
+        with self.assertRaises(TimeoutError):
+            delete_backup_and_wait(boto3_session=self.session_mock,
+                                   backup_arn="arn",
+                                   wait_sec=1,
+                                   delay_sec=1)
+
+            check_mock.assert_called_with(boto3_session=self.session_mock,
+                                          backup_arn="arn")
+            describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                             backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._create_backup',
+           return_value={'BackupDetails': {'BackupArn': 'arn'}})
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_backup',
+           return_value={'BackupDescription': {
+               'BackupDetails': {
+                   'BackupStatus': 'AVAILABLE'
+               }
+           }})
+    def test_create_backup_and_wait_for_active(self, describe_mock, create_mock):
+
+        create_backup_and_wait_for_available(boto3_session=self.session_mock,
+                                             table_name="my_table",
+                                             backup_name="my_backup",
+                                             wait_sec=1,
+                                             delay_sec=1)
+
+        create_mock.assert_called_with(boto3_session=self.session_mock,
+                                       backup_name='my_backup',
+                                       table_name='my_table')
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         backup_arn="arn")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._create_backup',
+           return_value={'BackupDetails': {'BackupArn': 'arn'}})
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_backup',
+           return_value={'BackupDescription': {
+               'BackupDetails': {
+                   'BackupStatus': 'CREATING'
+               }
+           }})
+    def test_create_backup_and_wait_for_active__timeout(self, describe_mock, create_mock):
+
+        with self.assertRaises(TimeoutError):
+            create_backup_and_wait_for_available(boto3_session=self.session_mock,
+                                                 table_name="my_table",
+                                                 backup_name="my_backup",
+                                                 wait_sec=1,
+                                                 delay_sec=1)
+
+            create_mock.assert_called_with(boto3_session=self.session_mock,
+                                           backup_name='my_backup',
+                                           table_name='my_table')
+            describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                             backup_arn="arn")
 
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'TableStatus': 'DELETING'}})

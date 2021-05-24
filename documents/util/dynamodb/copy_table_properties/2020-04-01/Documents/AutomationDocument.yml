@@ -16,6 +16,25 @@ parameters:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
+  - name: CopyContinuousBackups
+    action: aws:executeScript
+    outputs:
+      - Name: CopiedContinuousBackupsStatus
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: copy_continuous_backups_properties
+      InputPayload:
+        SourceTableName: "{{ DynamoDBTableSourceName }}"
+        TargetTableName: "{{ DynamoDBTableTargetName }}"
+      Script: |-
+        SCRIPT_PLACEHOLDER::dynamo_db_util.imports
+
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._describe_continuous_backups
+        SCRIPT_PLACEHOLDER::dynamo_db_util._enable_continuous_backups
+        SCRIPT_PLACEHOLDER::dynamo_db_util.copy_continuous_backups_properties
   - name: CopyDynamoDBTableStreamSettings
     action: aws:executeScript
     outputs:
@@ -210,5 +229,4 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
         SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
         SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
-        SCRIPT_PLACEHOLDER::dynamo_db_util.get_global_table_active_regions
         SCRIPT_PLACEHOLDER::dynamo_db_util.wait_replication_status_in_all_regions
