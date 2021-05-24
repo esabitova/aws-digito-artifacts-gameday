@@ -1,12 +1,13 @@
 import logging
+import random
+import re
+import string
 import time
 import uuid
-import re
-import random
-import string
+from datetime import datetime
+
 import boto3
 import pytest
-from datetime import datetime
 from botocore.exceptions import ClientError
 from pytest import ExitCode
 from pytest_bdd import (
@@ -16,25 +17,26 @@ from pytest_bdd import (
 )
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
+
 from publisher.src.publish_documents import PublishDocuments
+from resource_manager.src.alarm_manager import AlarmManager
 from resource_manager.src.cloud_formation import CloudFormationTemplate
-from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.resource_model import ResourceModel
+from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
+from resource_manager.src.util.cw_util import get_metric_alarm_state
+from resource_manager.src.util.cw_util import wait_for_metric_data_point
+from resource_manager.src.util.enums.alarm_state import AlarmState
+from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.util.param_utils import parse_pool_size
-from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.sts_utils import assume_role_session
-from resource_manager.src.util.enums.alarm_state import AlarmState
-from resource_manager.src.util.cw_util import get_metric_alarm_state
-from resource_manager.src.util.ssm_utils import send_step_approval
-from resource_manager.src.alarm_manager import AlarmManager
-from resource_manager.src.util.enums.operator import Operator
-from resource_manager.src.util.cw_util import wait_for_metric_data_point
 from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.ssm_utils import send_step_approval
+from resource_manager.src.util.sts_utils import assume_role_session
 
 
 def pytest_addoption(parser):
@@ -421,6 +423,10 @@ def sleep_seconds(seconds):
     time.sleep(int(seconds))
 
 
+@given(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
+             '\n{parameters}'))
+@when(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
+            '\n{parameters}'))
 @then(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
             '\n{parameters}'))
 def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters):

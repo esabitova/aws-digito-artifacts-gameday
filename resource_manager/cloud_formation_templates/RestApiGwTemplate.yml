@@ -31,9 +31,15 @@ Outputs:
   RestApiGwDeploymentId:
     Description: The deployment ID of the REST API Gateway
     Value: !Ref ApplicationsApiDeployment
+  RestApiGwStageUrl:
+    Description: The URL of the REST API Gateway
+    Value: !Sub "https://${ApplicationsApi}.execute-api.${AWS::Region}.amazonaws.com/${ApplicationsApiStage}/app"
   SyntheticAlarmName:
     Description: REST API GW Alarm based on HTTP4xx metric
     Value: !Ref Api4xxErrors
+  ApiKeyId:
+    Description: The ID of API key
+    Value: !Ref ApiKey
 Parameters:
   RestApiGwQuotaLimit:
     Description: Usage Plan limit value
@@ -50,6 +56,10 @@ Resources:
       ApiStages:
         - ApiId: !Ref ApplicationsApi
           Stage: !Ref ApplicationsApiStage
+          Throttle:
+            "*/*":
+              BurstLimit: 80
+              RateLimit: 80
       Description: Test Usage Plan
       Quota:
         Limit: !Ref RestApiGwQuotaLimit
@@ -99,41 +109,10 @@ Resources:
           ResourcePath: "/*"
           HttpMethod: "*"
           MetricsEnabled: true
-          ThrottlingRateLimit: 5
-          ThrottlingBurstLimit: 10
-
-  Api4xxErrors:
-    Type: 'AWS::CloudWatch::Alarm'
-    Properties:
-      ActionsEnabled: false
-      AlarmDescription: 'Api 4xx Errors are more than 30%. Only used in canary deployment'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      Dimensions:
-        - Name: ApiName
-          Value: !Join
-            - "-"
-            - - "RestApiGateway-Digito"
-              - !Ref "AWS::Region"
-              - !Ref "AWS::AccountId"
-              - !Select
-                - 0
-                - !Split
-                  - "-"
-                  - !Select
-                    - 2
-                    - !Split
-                      - "/"
-                      - !Ref "AWS::StackId"
-      EvaluationPeriods: 5
-      MetricName: 4XXErrors
-      Namespace: AWS/ApiGateway
-      Period: 60
-      Statistic: Average
-      Threshold: 0.3
-      TreatMissingData: notBreaching
+          ThrottlingRateLimit: 250
+          ThrottlingBurstLimit: 500
 
   ApplicationsApi:
-    #DeletionPolicy: Retain
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: !Join
@@ -150,200 +129,47 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      Body:
-        openapi: 3.0.0
-
-        info:
-          title: TestApiName
-          description: Test API for SSM
-          version: 2019-10-13
-
-        # Enable request validator. See doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-validation-sample-api-swagger.html
-        x-amazon-apigateway-request-validators:
-          all:
-            validateRequestBody: true
-            validateRequestParameters: true
-        x-amazon-apigateway-request-validator: all
-
-        x-amazon-apigateway-gateway-responses:
-          # Provide more detailed error message for bad request body errors. See doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-swagger-extensions-gateway-responses.html
-          BAD_REQUEST_BODY:
-            responseTemplates:
-              application/json: '{"errorCode": "BadRequestBody", "message": "$context.error.validationErrorString"}'
-            responseParameters:
-              gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-          DEFAULT_4XX:
-            responseParameters:
-              gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-          DEFAULT_5XX:
-            responseParameters:
-              gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
-        paths:
-          /applications:
-            get:
-              operationId: ListApplications
-              parameters:
-                - name: nextToken
-                  in: query
-                  required: false
-                  schema:
-                    type: string
-                - name: maxItems
-                  in: query
-                  required: false
-                  schema:
-                    type: integer
-                    minimum: 1
-                    maximum: 100
-              responses:
-                "200":
-                  description: "Successfully list applications"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/ApplicationList"
-                "400":
-                  description: "Bad Request Exception"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/BadRequestException"
-                "401":
-                  description: "Unauthorized Exception"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/UnauthorizedException"
-                "429":
-                  description: "Too Many Requests Exception"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/TooManyRequestsException"
-                "500":
-                  description: "Internal Server Error"
-                  content:
-                    application/json:
-                      schema:
-                        $ref: "#/components/schemas/InternalServerErrorException"
-              x-amazon-apigateway-integration:
-                uri: https://api.site.com
-                httpMethod: POST
-                type: http_proxy
-                passthroughBehavior: never
-        components:
-          schemas:
-            BadRequestException:
-              type: object
-              properties:
-                message:
-                  type: string
-                errorCode:
-                  type: string
-            UnauthorizedException:
-              type: object
-              properties:
-                message:
-                  type: string
-                errorCode:
-                  type: string
-            NotFoundException:
-              type: object
-              properties:
-                message:
-                  type: string
-                errorCode:
-                  type: string
-            ConflictException:
-              type: object
-              properties:
-                message:
-                  type: string
-                errorCode:
-                  type: string
-            TooManyRequestsException:
-              type: object
-              properties:
-                message:
-                  type: string
-                errorCode:
-                  type: string
-            InternalServerErrorException:
-              type: object
-              properties:
-                message:
-                  type: string
-                errorCode:
-                  type: string
-            CreateApplicationInput:
-              type: object
-              required:
-                - applicationId
-                - description
-                - author
-              properties:
-                applicationId:
-                  type: string
-                  pattern: ^[a-zA-Z0-9\-]{3,128}$
-                description:
-                  type: string
-                  minLength: 3
-                  maxLength: 256
-                author:
-                  type: string
-                  pattern: ^[a-zA-Z0-9\-]{1,128}$
-                homePageUrl:
-                  type: string
-                  pattern: ^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$
-            UpdateApplicationInput:
-              type: object
-              properties:
-                description:
-                  type: string
-                  minLength: 3
-                  maxLength: 256
-                author:
-                  type: string
-                  pattern: ^[a-zA-Z0-9\-]{1,128}$
-                homePageUrl:
-                  type: string
-                  pattern: ^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$
-            Application:
-              type: object
-              required:
-                - applicationId
-                - description
-                - author
-              properties:
-                applicationId:
-                  type: string
-                description:
-                  type: string
-                author:
-                  type: string
-                creationTime:
-                  type: string
-                homePageUrl:
-                  type: string
-            ApplicationSummary:
-              type: object
-              properties:
-                applicationId:
-                  type: string
-                description:
-                  type: string
-                creationTime:
-                  type: string
-            ApplicationList:
-              type: object
-              properties:
-                applications:
-                  type: array
-                  items:
-                    $ref: "#/components/schemas/ApplicationSummary"
-                nextToken:
-                  type: string
       Description: Test API
+      ApiKeySourceType: HEADER
+
+  ApiGatewayResourceApp:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApplicationsApi.RootResourceId
+      PathPart: 'app'
+      RestApiId: !Ref ApplicationsApi
+
+  ApiGatewayModel:
+    Type: AWS::ApiGateway::Model
+    Properties:
+      ContentType: 'application/json'
+      RestApiId: !Ref ApplicationsApi
+      Schema: { }
+
+  ApiGatewayMethodGet:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: GET
+      ResourceId: !Ref ApiGatewayResourceApp
+      RestApiId:
+        !Ref ApplicationsApi
+      OperationName: 'app'
+      ApiKeyRequired: True
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: '{"message": "OK"}'
+            SelectionPattern: '2\d{2}'
+            StatusCode: 200
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - ResponseModels:
+            application/json: !Ref ApiGatewayModel
+          StatusCode: 200
 
   ApiGatewayPushToCloudWatchRole:
     Type: AWS::IAM::Role
@@ -366,16 +192,33 @@ Resources:
       CloudWatchRoleArn: !Sub ${ApiGatewayPushToCloudWatchRole.Arn}
 
   ApplicationsApiDeployment:
+    DependsOn: ApiGatewayMethodGet
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref ApplicationsApi
 
-  ApiAvailability:
-    Type: 'AWS::CloudWatch::Alarm'
+  ApiKey:
+    Type: AWS::ApiGateway::ApiKey
+    Properties:
+      Description: 'Test API Key'
+      Enabled: True
+      StageKeys:
+        - RestApiId: !Ref ApplicationsApi
+          StageName: !Ref ApplicationsApiStage
+
+  UsagePlanKey:
+    Type: AWS::ApiGateway::UsagePlanKey
+    Properties:
+      KeyId: !Ref ApiKey
+      KeyType: API_KEY
+      UsagePlanId: !Ref UsagePlan
+
+  Api4xxErrors:
+    Type: AWS::CloudWatch::Alarm
     Properties:
       ActionsEnabled: false
-      AlarmDescription: 'Api availability is lower than 90%. Only used in canary deployment'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmDescription: 'Api 4xx Errors'
+      ComparisonOperator: GreaterThanThreshold
       Dimensions:
         - Name: ApiName
           Value: !Join
@@ -392,10 +235,46 @@ Resources:
                     - !Split
                       - "/"
                       - !Ref "AWS::StackId"
+        - Name: Stage
+          Value: !Ref ApplicationsApiStage
       EvaluationPeriods: 5
-      MetricName: 5XXErrors
+      DatapointsToAlarm: 3
+      MetricName: 4XXError
       Namespace: AWS/ApiGateway
       Period: 60
-      Statistic: Average
-      Threshold: 0.1
+      ExtendedStatistic: p20
+      Threshold: 0
+      TreatMissingData: notBreaching
+
+  Api5xxErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api 5xx Errors'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Join
+            - "-"
+            - - "RestApiGateway-Digito"
+              - !Ref "AWS::Region"
+              - !Ref "AWS::AccountId"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+        - Name: Stage
+          Value: !Ref ApplicationsApiStage
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Period: 60
+      ExtendedStatistic: p10
+      Threshold: 0
       TreatMissingData: notBreaching

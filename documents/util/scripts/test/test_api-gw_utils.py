@@ -35,12 +35,14 @@ QUOTA_BURST_LIMIT: float = 5000.0
 QUOTA_BURST_LIMIT_CODE: str = 'L-CDF5615A'
 
 USAGE_PLAN_THROTTLE_RATE_LIMIT: float = 100.0
+USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT: float = 100.0
 NEW_THROTTLE_RATE_LIMIT: float = 80.0
 LESS_THROTTLE_RATE_LIMIT: float = 49.0
 MORE_THROTTLE_RATE_LIMIT: float = 151.0
 HUGE_THROTTLE_RATE_LIMIT: float = 11000.0
 
 USAGE_PLAN_THROTTLE_BURST_LIMIT: int = 100
+USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT: int = 90
 NEW_THROTTLE_BURST_LIMIT: int = 80
 LESS_THROTTLE_BURST_LIMIT: int = 49
 MORE_THROTTLE_BURST_LIMIT: int = 151
@@ -75,8 +77,8 @@ def get_sample_get_usage_plan_response():
                 "stage": REST_API_GW_STAGE_NAME,
                 "throttle": {
                     "*/*": {
-                        "burstLimit": USAGE_PLAN_THROTTLE_BURST_LIMIT,
-                        "rateLimit": USAGE_PLAN_THROTTLE_RATE_LIMIT
+                        "burstLimit": USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT,
+                        "rateLimit": USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT
                     }
                 }
             }
@@ -402,13 +404,6 @@ class TestApigwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(QUOTA_RATE_LIMIT, output['Quota']['Value'])
 
-    def test_get_usage_plan(self):
-        output = apigw_utils.get_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID)
-        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
-        self.assertIsNotNone(output)
-        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['throttle']['rateLimit'])
-        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['throttle']['burstLimit'])
-
     def test_update_usage_plan(self):
         output = apigw_utils.update_usage_plan(USAGE_PLAN_ID, [])
         self.mock_apigw.update_usage_plan.assert_called_with(
@@ -461,20 +456,6 @@ class TestApigwUtil(unittest.TestCase):
 
         self.assertEqual(e.exception.response['Error']['Code'], 'UnknownException')
 
-    def test_validate_throttling_config_with_provided_stage_name(self):
-        events = {
-            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
-            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
-            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT,
-            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
-            'RestApiGwId': REST_API_GW_ID
-        }
-        output = apigw_utils.validate_throttling_config(events, None)
-        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
-        self.assertIsNotNone(output)
-        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['OriginalRateLimit'])
-        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['OriginalBurstLimit'])
-
     def test_validate_throttling_config_without_provided_stage_name(self):
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
@@ -486,18 +467,6 @@ class TestApigwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['OriginalRateLimit'])
         self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['OriginalBurstLimit'])
-
-    def test_validate_throttling_config_with_provided_wrong_stage_name(self):
-        events = {
-            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
-            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
-            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT,
-            'RestApiGwStageName': 'WrongStageName',
-            'RestApiGwId': REST_API_GW_ID
-        }
-        with pytest.raises(KeyError) as exception_info:
-            apigw_utils.validate_throttling_config(events, None)
-        self.assertTrue(exception_info.match('Stage name WrongStageName not found in get_usage_plan'))
 
     def test_validate_throttling_config_with_new_rate_limit_increased_more_than_50_percent(self):
         events = {
@@ -624,6 +593,64 @@ class TestApigwUtil(unittest.TestCase):
                                              f'can not be more than service quota Throttle burst rate: '
                                              f'{QUOTA_BURST_LIMIT}'))
 
+    def test_get_throttling_config_without_provided_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID
+        }
+        output = apigw_utils.get_throttling_config(events, None)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
+    def test_get_throttling_config_with_provided_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID
+        }
+        output = apigw_utils.get_throttling_config(events, None)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
+    def test_get_throttling_config_with_provided_wrong_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': 'WrongStageName',
+            'RestApiGwId': REST_API_GW_ID
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.get_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Stage name WrongStageName not found in get_usage_plan'))
+
+    def test_get_throttling_config_with_provided_stage_name_and_unknown_resource_path(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwResourcePath': 'UnknownResourcePath'
+        }
+        output = apigw_utils.get_throttling_config(events, None)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
+    def test_get_throttling_config_with_provided_stage_name_and_unknown_http_method(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwHttpMethod': 'GET'
+        }
+        output = apigw_utils.get_throttling_config(events, None)
+        self.mock_apigw.get_usage_plan.assert_called_with(usagePlanId=USAGE_PLAN_ID)
+        self.assertIsNotNone(output)
+        self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
 
 @pytest.mark.unit_test
 class TestApigwUtilValueExceptions(unittest.TestCase):
@@ -713,9 +740,14 @@ class TestApigwUtilValueExceptions(unittest.TestCase):
                                              f'ServiceCode: {QUOTA_SERVICE_CODE} and '
                                              f'QuotaCode: {QUOTA_RATE_LIMIT_CODE}'))
 
-    def test_error_get_usage_plan(self):
+    def test_error_get_throttling_config(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwId': REST_API_GW_ID,
+            'RestStageName': REST_API_GW_STAGE_NAME,
+        }
         with pytest.raises(ValueError) as exception_info:
-            apigw_utils.get_usage_plan(BOTO3_CONFIG, USAGE_PLAN_ID)
+            apigw_utils.get_throttling_config(events, None)
         self.assertTrue(exception_info.match(f'Failed to get usage plan with id {USAGE_PLAN_ID} '
                                              f'Response is: {get_sample_https_status_code_403_response()}'))
 
@@ -904,26 +936,18 @@ class TestApigwUtilKeyExceptions(unittest.TestCase):
 
     def test_validate_throttling_config_error_input_1(self):
         events = {
-            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
-            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
-            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT,
-            'RestApiGwStageName': REST_API_GW_STAGE_NAME
         }
         with pytest.raises(KeyError) as exception_info:
             apigw_utils.validate_throttling_config(events, None)
-        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+        self.assertTrue(exception_info.match('Requires RestApiGwThrottlingRate in events'))
 
     def test_validate_throttling_config_error_input_2(self):
         events = {
-            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
-            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT,
-            'RestApiGwThrottlingBurst': QUOTA_BURST_LIMIT,
-            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
-            'RestApiGwId': ''
+            'RestApiGwThrottlingRate': QUOTA_RATE_LIMIT
         }
         with pytest.raises(KeyError) as exception_info:
             apigw_utils.validate_throttling_config(events, None)
-        self.assertTrue(exception_info.match('RestApiGwId should not be empty'))
+        self.assertTrue(exception_info.match('Requires RestApiGwThrottlingBurst in events'))
 
     def test_validate_throttling_config_error_input_3(self):
         events = {
@@ -954,3 +978,28 @@ class TestApigwUtilKeyExceptions(unittest.TestCase):
         with pytest.raises(KeyError) as exception_info:
             apigw_utils.validate_throttling_config(events, None)
         self.assertTrue(exception_info.match('Requires RestApiGwThrottlingBurst in events'))
+
+    def test_get_throttling_config_error_input_1(self):
+        events = {}
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.get_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwUsagePlanId in events'))
+
+    def test_get_throttling_config_error_input_2(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.get_throttling_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
+    def test_get_throttling_config_error_input_3(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': ''
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.get_throttling_config(events, None)
+        self.assertTrue(exception_info.match('RestApiGwId should not be empty'))
