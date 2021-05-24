@@ -4,6 +4,7 @@ import resource_manager.src.constants as constants
 import resource_manager.src.util.param_utils as param_utils
 from sttable import parse_str_table
 from .util.boto3_client_factory import client
+from botocore.exceptions import ClientError
 
 
 class SsmDocument:
@@ -30,14 +31,14 @@ class SsmDocument:
                 # DocumentVersion=version,
                 Parameters=input_params
             )['AutomationExecutionId']
-            logging.info(f'SSM execution URL: {self._build_execution_url(execution_id, None, None)}')
+            logging.info(f'SSM execution URL: {self._build_execution_step_url(execution_id, None, None)}')
             return execution_id
         else:
             error_msg = "SSM document with name [{}] does not exist.".format(document_name)
             logging.error(error_msg)
             raise Exception(error_msg)
 
-    def wait_for_execution_completion(self, execution_id, document_name):
+    def wait_for_execution_completion(self, execution_id, document_name=None):
         """
         Returns SSM document final execution status, if status is in PROGRESS/PENDING
         it will wait till SSM document execution will be completed.
@@ -133,9 +134,30 @@ class SsmDocument:
         )
         step_executions = execution['AutomationExecution']['StepExecutions']
         step = self._get_step_by_name(step_executions, step_name)
-        return step['Outputs'][output_key][0]
+        if step and step.get('Outputs'):
+            return step['Outputs'][output_key][0]
 
-    def _get_execution_status(self, execution_id, document_name):
+    def cancel_execution_with_rollback(self, execution_id: str):
+        """
+        Cancels SSM document execution in waits till 'TriggerRollback' step triggered SSM execution is completed.
+        :param execution_id: The SSM execution id.
+        """
+        execution_url = self._build_execution_step_url(execution_id)
+        try:
+            logging.info("Canceling SSM execution: {}".format(execution_url))
+            self.ssm_client.stop_automation_execution(AutomationExecutionId=execution_id, Type='Cancel')
+            self.wait_for_execution_completion(execution_id)
+            rollback_execution_id = self.get_step_output(execution_id, constants.rollback_step_name,
+                                                         constants.rollback_execution_id_output_name)
+            if rollback_execution_id:
+                rollback_execution_url = self._build_execution_step_url(rollback_execution_id)
+                logging.info("Waiting [RollbackExecution] completed SSM execution: {}".format(rollback_execution_url))
+                self.wait_for_execution_completion(rollback_execution_id)
+        except ClientError as e:
+            logging.error("Failed to cancel SSM execution [%s] due to: %s", execution_url, e.response)
+            raise e
+
+    def _get_execution_status(self, execution_id, document_name=None):
         """
         Returns SSM document execution status for given execution id.
         :param execution_id: The SSM document execution id
@@ -145,6 +167,8 @@ class SsmDocument:
         execution = self.ssm_client.get_automation_execution(
             AutomationExecutionId=execution_id
         )
+        # TODO(semiond): we can remove document name as parameter, can take it by execution id.
+        document_name = document_name if document_name else execution['AutomationExecution']['DocumentName']
         step_executions = execution['AutomationExecution']['StepExecutions']
         step = self._get_step_by_status(step_executions, 'InProgress')
         if step:
@@ -152,7 +176,7 @@ class SsmDocument:
             step_execution_id = step['StepExecutionId']
             step_index = self._get_step_execution_index(step_executions, step_name)
             logging.info(f'Waiting SSM document step [{document_name}>{step_name}] to be completed: '
-                         f'{self._build_execution_url(execution_id, step_index, step_execution_id)}')
+                         f'{self._build_execution_step_url(execution_id, step_index, step_execution_id)}')
         return execution['AutomationExecution']['AutomationExecutionStatus']
 
     def _get_execution_step_status(self, execution_id, step_name):
@@ -203,7 +227,7 @@ class SsmDocument:
         """
         return len(self.ssm_client.list_document_versions(Name=document_name)['DocumentVersions']) >= 1
 
-    def _build_execution_url(self, execution_id, step_index, step_execution_id):
+    def _build_execution_step_url(self, execution_id, step_index=None, step_execution_id=None):
         """
         Build and return URL of SSM Automation Execution page
         :param execution_id: The SSM document execution id

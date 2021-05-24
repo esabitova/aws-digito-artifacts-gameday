@@ -6,3 +6,6 @@ wait_time_out_secs = 3600
 cf_operation_sleep_time_secs = 20
 # S3 bucket name patter for integration test cfn templates
 s3_bucket_name_pattern = 'ssm-test-resources-<account_id>-<region_name>'
+# TriggerRollback step constants
+rollback_step_name = 'TriggerRollback'
+rollback_execution_id_output_name = 'RollbackExecutionId'

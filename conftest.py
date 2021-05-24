@@ -7,7 +7,6 @@ import string
 import boto3
 import pytest
 from datetime import datetime
-from botocore.exceptions import ClientError
 from pytest import ExitCode
 from pytest_bdd import (
     when,
@@ -35,6 +34,7 @@ from resource_manager.src.alarm_manager import AlarmManager
 from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
 from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
+from resource_manager.src.util.role_session import RoleSession
 
 
 def pytest_addoption(parser):
@@ -50,6 +50,11 @@ def pytest_addoption(parser):
                      action="store",
                      default='default',
                      help="Boto3 session profile name")
+    parser.addoption("--aws_role_arn",
+                     action="store",
+                     default=None,
+                     help="Role for integration tests execution. If specified it will override --aws_profile and"
+                          "use role credentials for tests execution.")
     parser.addoption("--keep_test_resources",
                      action="store_true",
                      default=False,
@@ -92,8 +97,10 @@ def pytest_sessionstart(session):
         # resources which are still in use by other sessions.
         test_session_id = str(uuid.uuid4())
         session.config.option.test_session_id = test_session_id
+        aws_role_arn = session.config.option.aws_role_arn
+        aws_profile_name = session.config.option.aws_profile
 
-        boto3_session = get_boto3_session(session.config.option.aws_profile)
+        boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
         rm = ResourcePool(cfn_helper, s3_helper, dict(), None)
@@ -120,7 +127,10 @@ def pytest_sessionfinish(session, exitstatus):
 
     if session.config.option.run_integration_tests:
         test_session_id = session.config.option.test_session_id
-        boto3_session = get_boto3_session(session.config.option.aws_profile)
+        aws_role_arn = session.config.option.aws_role_arn
+        aws_profile_name = session.config.option.aws_profile
+
+        boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
         rm = ResourcePool(cfn_helper, s3_helper, dict(), test_session_id)
@@ -149,7 +159,9 @@ def boto3_session(request):
     '''
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
-        return get_boto3_session(request.config.option.aws_profile)
+        aws_role_arn = request.session.config.option.aws_role_arn
+        aws_profile_name = request.config.option.aws_profile
+        return get_boto3_session(aws_profile_name, aws_role_arn)
     return boto3.Session()
 
 
@@ -192,40 +204,18 @@ def resource_pool(request, boto3_session):
 
 
 @pytest.fixture(scope='function')
-def ssm_document(boto3_session):
+def ssm_document(request, boto3_session, ssm_test_cache):
     """
     Creates SsmDocument fixture to for every test case.
     """
-    return SsmDocument(boto3_session)
-
-
-@pytest.fixture(autouse=True, scope='function')
-def setup(request, ssm_test_cache, boto3_session):
-    """
-    Terminates SSM execution after each test execution. In case if test failed and test didn't perform any
-    SSM execution termination step we don't want to leave SSM running after test failure.
-    :param request The pytest request object
-    :param ssm_test_cache The test cache
-    :param boto3_session The boto3 session
-    """
-
-    def tear_down():
-        # Terminating SSM automation execution at the end of each test.
-        ssm = boto3_session.client('ssm')
-        cached_executions = ssm_test_cache.get('SsmExecutionId')
-        if cached_executions is not None:
-            for index, exec_id in cached_executions.items():
-                execution_url = 'https://{}.console.aws.amazon.com/systems-manager/automation/execution/{}' \
-                    .format(boto3_session.region_name, exec_id)
-                try:
-                    logging.info("Canceling SSM execution: {}".format(execution_url))
-                    ssm.stop_automation_execution(AutomationExecutionId=exec_id, Type='Cancel')
-                except ClientError as e:
-                    logging.error("Failed to cancel SSM execution [%s] due to: %s", execution_url, e.response)
-
+    ssm = SsmDocument(boto3_session)
+    yield ssm
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
-        request.addfinalizer(tear_down)
+        cached_executions = ssm_test_cache.get('SsmExecutionId')
+        if cached_executions is not None:
+            for index, execution_id in cached_executions.items():
+                ssm.cancel_execution_with_rollback(execution_id)
 
 
 @pytest.fixture(scope='function')
@@ -253,13 +243,24 @@ def alarm_manager(boto3_session):
     manager.destroy_deployed_alarms()
 
 
-def get_boto3_session(aws_profile):
-    '''
-    Helper to create boto3 session based on given AWS profile.
-    :param The AWS profile name.
-    '''
-    logging.info("Creating boto3 session for [{}] profile.".format(aws_profile))
-    return boto3.Session(profile_name=aws_profile)
+def get_boto3_session(aws_profile_name, aws_role_arn):
+    """
+    Helper to create boto3 session based on given AWS profile or AWS IAM role.
+    With IAM role credentials will be refreshed every time boto3 client is created as
+    well as if client session is exceeding 1 hour (to avoid session expiration).
+    However we need to make sure that credentials which are used to assume this role
+    will not exceed session time limit as well.
+    :param aws_profile_name: The AWS profile name as credential provider.
+    :param aws_role_arn: The AWS IAM role arn to be used as credential provider.
+    """
+    if aws_role_arn:
+        logging.info(f"Creating boto3 session with [{aws_profile_name}] profile and [{aws_role_arn}] role credentials.")
+        return RoleSession(iam_role_arn=aws_role_arn, session_name='integration_test',
+                           credential_session=boto3.Session(profile_name=aws_profile_name),
+                           duration=3600)
+    else:
+        logging.info(f"Creating boto3 session with [{aws_profile_name}] profile credentials.")
+        return boto3.Session(profile_name=aws_profile_name)
 
 
 @given(parse('published "{ssm_document_name}" SSM document'))

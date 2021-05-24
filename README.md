@@ -547,7 +547,7 @@ markers =
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
-> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name --pool_size TestTemplateA=5,TestTemplateB=3
+> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name --pool_size TestTemplateA=5,TestTemplateB=3 --aws_role_arn=arn:aws:iam::<aws_account_id>:role/<role_name>
 
 * -m pytest - (Required) Use [pytest](https://docs.pytest.org/en/stable/) module for test execution.
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
@@ -555,6 +555,7 @@ Integration test execution command line:
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
 * --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 * --aws_profile - (Optional) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
+* --aws_role_arn - (Optional) The AWS IAM role arn, if provided boto3 credentials for test execution will be taken based on given role temporary credentials with refreshing mechanism to avoid session expiration after 1 hour. However credentials which are used to assume this role should be configured be configured to not expire as well. NOTE: this is more applicable for CI/CD execution when CI/CD role needs to have permissions to execute tests.
 * --pool_size - (Optional) Custom pool size for CFN template resources, it overrides configuration given resource_manager/src/config.py. NOTE: Once pool size increased there is no feature to decrease it for now (only manual deletion available, more in [Resource Tool (to manipulate integration test resources)](#resource-tool) section).
 
 ## Resource Tool
