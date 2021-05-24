@@ -2,6 +2,7 @@ import datetime
 import os
 import pathlib
 import re
+from artifact_generator.src import constants
 from artifact_generator.src.input_validator import InputValidator as validator
 from typing import Callable
 
@@ -9,9 +10,6 @@ from artifact_generator.src.scenario_info import ScenarioInfo
 from util.bg_colors import BgColors
 from mako.lookup import TemplateLookup
 
-AUTOMATION_DOC_NAME = 'AutomationDocument.yml'
-ROLE_DOC_NAME = 'AutomationAssumeRoleTemplate.yml'
-METADATA_DOC_NAME = 'metadata.json'
 USUAL_CASE_SOP_DOC_NAME = 'usual_case_sop.feature'
 USUAL_CASE_TEST_DOC_NAME = 'usual_case_test.feature'
 FAILED_DOC_TEST_NAME = 'failed.feature'
@@ -308,9 +306,9 @@ def main():
     __print_header('Step 1: Create artifacts under Documents folder\n')
     main_docs_path = os.path.join(PACKAGE_DIR, artifacts_dir, 'Documents')
 
-    automation_doc_path = os.path.join(main_docs_path, AUTOMATION_DOC_NAME)
-    role_doc_path = os.path.join(main_docs_path, ROLE_DOC_NAME)
-    metadata_path = os.path.join(main_docs_path, METADATA_DOC_NAME)
+    automation_doc_path = os.path.join(main_docs_path, constants.AUTOMATION_DOC_NAME)
+    role_doc_path = os.path.join(main_docs_path, constants.ROLE_DOC_NAME)
+    metadata_path = os.path.join(main_docs_path, constants.METADATA_DOC_NAME)
     ___exit_if_exists_and_no_overwrite([automation_doc_path, role_doc_path, metadata_path])
 
     display_name = __get_input('Enter display name:\n')
@@ -330,8 +328,8 @@ def main():
         "${date}": date,
         "${displayName}": display_name,
         "${description}": description,
-        "${assumeRoleCfnPath}": ROLE_DOC_NAME,
-        "${documentContentPath}": AUTOMATION_DOC_NAME,
+        "${assumeRoleCfnPath}": constants.ROLE_DOC_NAME,
+        "${documentContentPath}": constants.AUTOMATION_DOC_NAME,
         "${documentName}": document_name,
         "${failureType}": failure_type,
         "${risk}": risk,
@@ -352,8 +350,8 @@ def main():
 
     print()
     __create_dir_if_not_exists(main_docs_path)
-    __create_artifact(os.path.join(TEMPLATES_DIR, METADATA_DOC_NAME), metadata_path, replacements)
-    __create_artifact(os.path.join(TEMPLATES_DIR, ROLE_DOC_NAME), role_doc_path, replacements)
+    __create_artifact(os.path.join(TEMPLATES_DIR, constants.METADATA_DOC_NAME), metadata_path, replacements)
+    __create_artifact(os.path.join(TEMPLATES_DIR, constants.ROLE_DOC_NAME), role_doc_path, replacements)
     __create_artifact(os.path.join(TEMPLATES_DIR, automation_doc_template), automation_doc_path, replacements)
     __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(main_docs_path, PACKAGE_DIR)))
 

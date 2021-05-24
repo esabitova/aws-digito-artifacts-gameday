@@ -10,7 +10,7 @@ Feature: SSM automation document for changing execution time limit of Lambda.
     And published "Digito-ChangeExecutionTimeLimit_2020-10-26" SSM document
     And SSM automation document "Digito-ChangeExecutionTimeLimit_2020-10-26" executed
       | NewTimeoutValueSeconds                       | LambdaARN                               | AutomationAssumeRole                                                                 |
-      | 570 | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeExecutionTimeLimitAssumeRole}} |
+      | 570 | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaChangeExecutionTimeLimitAssumeRole}} |
 
     When SSM automation document "Digito-ChangeExecutionTimeLimit_2020-10-26" execution in status "Success"
       | ExecutionId                |
