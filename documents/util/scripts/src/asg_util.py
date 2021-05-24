@@ -234,3 +234,14 @@ def get_instance_ids_by_percentage(events, context):
     for i in range(instance_count):
         output['InstanceIds'].append(instanceIds[i])
     return output
+
+
+def wait_for_in_service(events, context):
+    client = boto3.client('autoscaling')
+    while (True):
+        res = client.describe_auto_scaling_groups(AutoScalingGroupNames=[events['AutoScalingGroupName']])
+        instances = res['AutoScalingGroups'][0]['Instances']
+        num_in_service = sum(instance['LifecycleState'] == 'InService' for instance in instances)
+        if (num_in_service >= events['NewDesiredCapacity']):
+            return True
+        time.sleep(15)

@@ -103,3 +103,23 @@ def set_reserved_concurrent_executions(events: dict, context):
     except Exception as e:
         logger.error(f'Setting new value for reserved concurrent executions failed with error: {e}')
         raise
+
+
+def backup_reserved_concurrent_executions(events: dict, context):
+    lambda_arn = events.get('LambdaARN')
+    if not lambda_arn:
+        raise KeyError('Requires LambdaARN in events')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    lambda_client = boto3.client('lambda', config=config)
+    response = lambda_client.get_function_concurrency(
+        FunctionName=lambda_arn
+    )
+    reserved_concurrent_executions_configured = False
+    concurrent_executions_value = 0
+    if response:
+        reserved_concurrent_executions_configured = True
+        concurrent_executions_value = response.get('ReservedConcurrentExecutions')
+    return {
+        'ReservedConcurrentExecutionsConfigured': reserved_concurrent_executions_configured,
+        'BackupReservedConcurrentExecutionsValue': concurrent_executions_value
+    }

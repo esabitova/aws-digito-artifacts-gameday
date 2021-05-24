@@ -27,20 +27,26 @@ Outputs:
   WsStageName:
     Description: The stage name of Websockets API Gateway
     Value: !Ref WsStage
+  WsStageNameThrottled:
+    Description: The stage name of Websockets API Gateway with throttling enabled
+    Value: !Ref WsStageThrottled
   WsStageNameAutoDeploy:
     Description: The stage name of Websockets API Gateway with AutoDeploy enabled
     Value: !Ref WsStageAutoDeploy
   HttpApiGwId:
-    Description: The ID of the Websockets API Gateway
+    Description: The ID of the HTTP API Gateway
     Value: !Ref HttpApi
   HttpDefaultDeploymentId:
-    Description: The ID of the default deployment of Websockets API Gateway
+    Description: The ID of the default deployment of HTTP API Gateway
     Value: !Ref HttpDefaultDeployment
   HttpStageName:
-    Description: The stage name of Websockets API Gateway
+    Description: The stage name of HTTP API Gateway
     Value: !Ref HttpStage
+  HttpStageNameThrottled:
+    Description: The stage name of HTTP API Gateway with throttling enabled
+    Value: !Ref HttpStageThrottled
   HttpStageNameAutoDeploy:
-    Description: The stage name of Websockets API Gateway with AutoDeploy enabled
+    Description: The stage name of HTTP API Gateway with AutoDeploy enabled
     Value: !Ref HttpStageAutoDeploy
 Parameters: { }
 Resources:
@@ -158,6 +164,33 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
+  WsStageThrottled:
+    DependsOn: WsDefaultDeployment
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref WsApi
+      DeploymentId: !Ref WsDefaultDeployment
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 100.0
+      RouteSettings:
+        "$default":
+          ThrottlingBurstLimit: 100
+          ThrottlingRateLimit: 100.0
+      StageName: !Join
+        - "-"
+        - - "WsApiGateway-Digito-test-throttled"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
 
   HttpApi:
     Type: AWS::ApiGatewayV2::Api
@@ -232,6 +265,33 @@ Resources:
       StageName: !Join
         - "-"
         - - "HttpApiGateway-Digito-test-autodeploy"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+  HttpStageThrottled:
+    DependsOn: HttpDefaultDeployment
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      DeploymentId: !Ref HttpDefaultDeployment
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 100
+        ThrottlingRateLimit: 100.0
+      RouteSettings:
+        "POST /test":
+          ThrottlingBurstLimit: 100
+          ThrottlingRateLimit: 100.0
+      StageName: !Join
+        - "-"
+        - - "HttpApiGateway-Digito-test-throttled"
           - !Ref "AWS::Region"
           - !Ref "AWS::AccountId"
           - !Select

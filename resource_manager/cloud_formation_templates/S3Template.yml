@@ -21,6 +21,9 @@ Outputs:
   S3BackupBucketName:
     Description: S3 backup bucket name
     Value: !Ref S3BackupBucket
+  S3BucketForReplicationName:
+    Description: S3BucketForReplication bucket name
+    Value: !Ref S3BucketForReplication
   S3BucketToRestoreName:
     Description: S3 bucket name to restore
     Value: !Ref S3BucketToRestore
@@ -67,12 +70,12 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
-  S3BucketToRestore:
+  S3BucketForReplication:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Join
         - "-"
-        - - "s3-bucket-to-restore-digito"
+        - - "s3-replication-bucket-digito"
           - !Ref "AWS::Region"
           - !Ref "AWS::AccountId"
           - !Select
@@ -91,9 +94,105 @@ Resources:
         RestrictPublicBuckets: true
       VersioningConfiguration:
         Status: Enabled
+  S3BucketToRestore:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - "-"
+        - - "s3-restore-bucket-digito"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
       MetricsConfigurations:
-        -
-          Id: "all_objects"
+        - Id: !Join
+            - "-"
+            - - "s3-restore-bucket-digito"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+              - "metrics"
+      ReplicationConfiguration:
+        Role: !GetAtt S3BucketReplicationRole.Arn
+        Rules:
+          - Status: Enabled
+            Filter:
+              Prefix: ''
+            DeleteMarkerReplication:
+              Status: Enabled
+            Destination:
+              Bucket: !GetAtt S3BucketForReplication.Arn
+              Metrics:
+                Status: Enabled
+                EventThreshold:
+                  Minutes: 15
+              ReplicationTime:
+                Status: Enabled
+                Time:
+                  Minutes: 15
+            Priority: 1
+  S3BucketReplicationRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+  S3BucketReplicationPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - 's3:GetReplicationConfiguration'
+              - 's3:ListBucket'
+            Effect: Allow
+            Resource: !GetAtt S3BucketToRestore.Arn
+          - Action:
+              - 's3:GetObjectVersion'
+              - 's3:GetObjectVersionAcl'
+              - 's3:GetObjectVersionTagging'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - !GetAtt S3BucketToRestore.Arn
+                  - /*
+          - Action:
+              - 's3:ReplicateObject'
+              - 's3:ReplicateDelete'
+              - 's3:ReplicateTags'
+            Effect: Allow
+            Resource:
+              - !Join
+                - ''
+                - - !GetAtt S3BucketForReplication.Arn
+                  - /*
+      PolicyName: S3BucketReplicationPolicy
+      Roles:
+        - !Ref S3BucketReplicationRole
   SNSTopic:
     Type: "AWS::SNS::Topic"
   SNSTopicPolicy:
@@ -152,7 +251,19 @@ Resources:
         - Name: BucketName
           Value: !Ref S3BucketToRestore
         - Name: FilterId
-          Value: "all_objects"
+          Value: !Join
+            - "-"
+            - - "s3-restore-bucket-digito"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+              - "metrics"
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1

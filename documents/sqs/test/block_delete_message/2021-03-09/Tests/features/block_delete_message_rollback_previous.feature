@@ -43,11 +43,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     Then terminate "Digito-BlockSQSDeleteMessage_2021-03-09" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    When sleep for "60" seconds
-    And cache number of messages in queue as "NumberOfMessages" "after-send" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    Then Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Cancelled"
@@ -61,9 +57,6 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And cache number of messages in queue as "NumberOfMessages" "after-rollback" SSM automation execution
-      | QueueUrl                                       |
-      | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -79,8 +72,6 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     Then assert "NumberOfMessages" at "before" became equal to "NumberOfMessages" at "after"
-    And assert "NumberOfMessages" at "after-send" became not equal to "NumberOfMessages" at "before"
     # Assert rollback didn't change number of messages
-    And assert "NumberOfMessages" at "after-rollback" became equal to "NumberOfMessages" at "after-send"
     And assert "NumberOfMessages" at "after" became equal to "0"
     And assert "Policy" at "before" became equal to "Policy" at "after"

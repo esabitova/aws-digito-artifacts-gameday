@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 @pytest.mark.unit_test
-class TestRdsUtil(unittest.TestCase):
+class TestRoleSession(unittest.TestCase):
 
     def setUp(self):
         self.test_region_name = 'test_region_name'

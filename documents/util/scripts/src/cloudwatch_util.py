@@ -62,7 +62,7 @@ def copy_alarms_for_dynamo_db_table(events, context):
 
     alarms_copied_count: int = 0
 
-    for alarm in filter(lambda x: x['Namespace'] == 'AWS/DynamoDB', source_alarms.get('MetricAlarms', [])):
+    for alarm in filter(lambda x: x.get('Namespace', '') == 'AWS/DynamoDB', source_alarms.get('MetricAlarms', [])):
         copy_alarm = False
         for dimension in alarm['Dimensions']:
             if dimension['Name'] == 'TableName' and \

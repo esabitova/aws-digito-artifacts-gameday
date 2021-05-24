@@ -1,0 +1,16 @@
+{
+  "displayName": "Test Lambda behavior when hitting ReservedConcurrentExecutions value",
+  "description": "Test Lambda behavior when hitting ReservedConcurrentExecutions value",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-Throttling_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "lambda:test:throttling:2020-10-26",
+  "recommendedAlarms": {
+    "ThrottlesAlarm": "lambda:alarm:health-throttles:2020-04-01"
+  }
+}

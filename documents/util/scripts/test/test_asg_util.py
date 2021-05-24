@@ -6,7 +6,7 @@ from test import test_data_provider
 from src.asg_util import get_instance_ids_by_percentage, get_instance_ids_in_asg_random_az
 from src.asg_util import start_instance_refresh, cancel_instance_refresh, assert_no_refresh_in_progress
 from src.asg_util import wait_for_refresh_to_finish, assert_no_suspended_process, get_instance_ids_in_asg
-from src.asg_util import get_networking_configuration_from_asg, suspend_launch
+from src.asg_util import get_networking_configuration_from_asg, suspend_launch, wait_for_in_service
 
 
 @pytest.mark.unit_test
@@ -162,3 +162,18 @@ class TestAsgUtil(unittest.TestCase):
         events['InstanceIds'] = test_data_provider.get_instance_ids_by_count(10)
         events['Percentage'] = -10
         self.assertRaises(Exception, get_instance_ids_by_percentage, events, None)
+
+    def test_wait_for_in_service_returns_if_ready(self):
+        events = {'AutoScalingGroupName': test_data_provider.ASG_NAME, 'NewDesiredCapacity': 1}
+        wait_for_in_service(events, None)
+        self.mock_autoscaling.describe_auto_scaling_groups.assert_called_once()
+
+    @patch('time.sleep', return_value=None)
+    def test_wait_for_in_service_waits_until_ready(self, patched_time_sleep):
+        events = {'AutoScalingGroupName': test_data_provider.ASG_NAME, 'NewDesiredCapacity': 1}
+        self.mock_autoscaling.describe_auto_scaling_groups.side_effect = \
+            [test_data_provider.get_sample_describe_auto_scaling_groups_response(lifecycle_state='Pending'),
+             test_data_provider.get_sample_describe_auto_scaling_groups_response(lifecycle_state='InService')]
+        wait_for_in_service(events, None)
+        self.assertEqual(self.mock_autoscaling.describe_auto_scaling_groups.call_count, 2)
+        patched_time_sleep.assert_called_once()

@@ -253,14 +253,14 @@ def get_boto3_session(aws_profile_name, aws_role_arn):
     :param aws_profile_name: The AWS profile name as credential provider.
     :param aws_role_arn: The AWS IAM role arn to be used as credential provider.
     """
+    session = boto3.Session(profile_name=aws_profile_name)
     if aws_role_arn:
         logging.info(f"Creating boto3 session with [{aws_profile_name}] profile and [{aws_role_arn}] role credentials.")
-        return RoleSession(iam_role_arn=aws_role_arn, session_name='integration_test',
-                           credential_session=boto3.Session(profile_name=aws_profile_name),
+        return RoleSession(iam_role_arn=aws_role_arn, session_name='integration_test', credential_session=session,
                            duration=3600)
     else:
         logging.info(f"Creating boto3 session with [{aws_profile_name}] profile credentials.")
-        return boto3.Session(profile_name=aws_profile_name)
+        return session
 
 
 @given(parse('published "{ssm_document_name}" SSM document'))
@@ -601,14 +601,18 @@ def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
 
 
 @then(parse('assert metrics for all alarms are populated'))
-def verify_alarm_metrics_exist(alarm_manager):
-    wait_sec = int(300)
-    delay_sec = int(15)
+def verify_alarm_metrics_exist_defaults(alarm_manager):
+    verify_alarm_metrics_exist(alarm_manager, 300, 15)
+
+
+@then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '
+            'check every {delay_sec:d} seconds'))
+def verify_alarm_metrics_exist(alarm_manager, wait_sec, delay_sec):
     elapsed = 0
     iteration = 1
     while elapsed < wait_sec:
         start = time.time()
-        alarms_missing_data = alarm_manager.collect_alarms_without_data()
+        alarms_missing_data = alarm_manager.collect_alarms_without_data(wait_sec)
         if not alarms_missing_data:
             return  # All alarms have data
         logging.info(f'#{iteration}; Alarms missing data: {alarms_missing_data} '

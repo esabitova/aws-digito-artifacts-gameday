@@ -109,6 +109,18 @@ def trigger_lambda(lambda_arn: str, payload: dict,
     return payload
 
 
+def trigger_throttled_lambda(lambda_arn: str, session: Session):
+    lambda_client = client('lambda', session)
+    try:
+        lambda_client.invoke(
+            FunctionName=lambda_arn
+        )
+    except Exception as e:
+        if e.response['ResponseMetadata']['HTTPStatusCode'] != 429:
+            raise Exception('Wrong StatusCode in response for throttled function invocation')
+    return True
+
+
 def get_function_concurrency(lambda_arn: str, session: Session):
     """
     Calls AWS API to get the value of concurrent executions parameter of given Lambda

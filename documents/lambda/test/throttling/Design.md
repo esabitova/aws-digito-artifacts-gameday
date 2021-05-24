@@ -12,7 +12,7 @@ Medium
 
 ## Requirements
 * Existing Lambda Function
-* There is a synthetic alarm setup for application
+* There is a recommended alarm setup for application
 
 ## Permission required for AutomationAssumeRole
 * lambda:PutFunctionConcurrency
@@ -28,7 +28,7 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
 ### `AutomationAssumeRole`
   * type: String
   * description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
-### `SyntheticAlarmName`:
+### `AlarmName`:
   * type: String
   * description: (Required) Alarm which should be green after test
 ### `LambdaARN`
@@ -99,10 +99,10 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
-        * `SyntheticAlarmName`
+        * `AlarmName`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `ALARM` for `600` seconds
+        * Wait for `AlarmName` alarm to be `ALARM` for `600` seconds
     * OnFailure: step: RollbackToPreviousReservedConcurrentExecutions 
 1. `RollbackToPreviousReservedConcurrentExecutions`
     * Type: aws:executeAwsApi
@@ -118,10 +118,10 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
 1. `AssertAlarmToBeGreen`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
-        * `SyntheticAlarmName`
+        * `AlarmName`
     * Outputs: none
     * Explanation:
-        * Wait for `SyntheticAlarmName` alarm to be `OK` for `600` seconds
+        * Wait for `AlarmName` alarm to be `OK` for `600` seconds
     * isEnd: true
 ## Outputs
 * `BackupReservedConcurrentExecutions.BackupReservedConcurrentExecutionsValue`

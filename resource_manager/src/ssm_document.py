@@ -134,7 +134,7 @@ class SsmDocument:
         )
         step_executions = execution['AutomationExecution']['StepExecutions']
         step = self._get_step_by_name(step_executions, step_name)
-        if step and step.get('Outputs'):
+        if step and step.get('Outputs') and step.get('Outputs').get(output_key):
             return step['Outputs'][output_key][0]
 
     def cancel_execution_with_rollback(self, execution_id: str):
