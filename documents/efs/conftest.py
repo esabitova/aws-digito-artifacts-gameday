@@ -14,6 +14,20 @@ from resource_manager.src.util.efs_utils import describe_filesystem
 logger = logging.getLogger(__name__)
 
 
+@given(parsers.parse('cache filesystem property "{json_path}" as "{cache_property}" "{step_key}" SSM automation '
+                     'execution\n{input_parameters}'))
+@when(parsers.parse('cache filesystem property "{json_path}" as "{cache_property}" "{step_key}" SSM automation '
+                    'execution\n{input_parameters}'))
+@then(parsers.parse('cache filesystem property "{json_path}" as "{cache_property}" "{step_key}" SSM automation '
+                    'execution\n{input_parameters}'))
+def cache_filesystem_property(resource_pool, ssm_test_cache, boto3_session, json_path, cache_property, step_key,
+                              input_parameters):
+    filesystem_id = extract_param_value(input_parameters, 'FileSystemID', resource_pool, ssm_test_cache)
+    response = describe_filesystem(boto3_session, filesystem_id)['FileSystems'][0]
+    target_value = jsonpath_ng.parse(json_path).find(response)[0].value
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, target_value)
+
+
 @when(parsers.parse('cache restore job property "{json_path}" as "{cache_property}" '
                     '"{step_key}" SSM automation execution\n{input_parameters}'))
 def cache_backup_value(cfn_output_params, resource_pool, ssm_test_cache, boto3_session, json_path, cache_property,
@@ -68,7 +82,7 @@ def create_backup_vault_in_region(
 
 @then(parsers.parse('assert EFS fs exists\n{input_parameters}'))
 def efs_fs_exists(resource_pool, boto3_session, ssm_test_cache, input_parameters):
-    efs_id = extract_param_value(input_parameters, 'FileSystemARN', resource_pool, ssm_test_cache).\
+    efs_id = extract_param_value(input_parameters, 'FileSystemARN', resource_pool, ssm_test_cache). \
         split(':')[-1].split('/')[-1]
     region = None
     try:

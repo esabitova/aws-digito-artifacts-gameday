@@ -1,0 +1,13 @@
+{
+  "displayName": "Change Provisioned Throughput",
+  "description": "Change Provisioned Throughput for EFS",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-EFSChangeProvisionedThroughput_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "efs:sop:change_provisioned_throughput:2020-10-26"
+}
