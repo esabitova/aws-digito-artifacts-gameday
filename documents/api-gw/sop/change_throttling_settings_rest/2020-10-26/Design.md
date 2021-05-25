@@ -17,7 +17,7 @@ Medium
 
 ## Permission required for AutomationAssumeRole
 * apigateway:GET
-* apigateway:PUT
+* apigateway:PATCH
 * servicequotas:GetServiceQuota
 
 ## Supports Rollback

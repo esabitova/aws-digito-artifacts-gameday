@@ -1,0 +1,13 @@
+{
+  "displayName": "Digito-RestApiGwThrottling_2020-09-21",
+  "description": "Test API Gateway REST API behavior when hitting throttling threshold  ",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RestApiGwThrottling_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "tag": "api-gw:test:throttling-rest:2020-09-21"
+}

@@ -422,6 +422,10 @@ def sleep_seconds(seconds):
     time.sleep(int(seconds))
 
 
+@given(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
+             '\n{parameters}'))
+@when(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
+            '\n{parameters}'))
 @then(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
             '\n{parameters}'))
 def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters):

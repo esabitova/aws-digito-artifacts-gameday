@@ -16,7 +16,10 @@ High
 
 ## Permission required for AutomationAssumeRole
 * apigateway:GET
-* apigateway:PUT
+* apigateway:PATCH
+* cloudwatch:DescribeAlarms
+* ssm:GetAutomationExecution
+* ssm:GetParameters
 
 ## Supports Rollback
 Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback changes from the previous run 

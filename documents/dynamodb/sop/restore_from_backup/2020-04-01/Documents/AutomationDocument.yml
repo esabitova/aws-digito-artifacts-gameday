@@ -14,22 +14,20 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
-
-description: "Restore To Point In Time SOP"
+---
+description: "Restore from backup SOP"
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
   DynamoDBTableSourceName:
     type: String
     description: (Required) The DynamoDB Table Source Name.
+  DynamoDBSourceTableBackupArn:
+    type: String
+    description: (Required) The DynamoDB Source Table Backup ARN.
   DynamoDBTableTargetName:
     type: String
     description: (Required) The DynamoDB Table Target Name.
-  RecoveryPointDateTime:
-    type: String
-    description: (Optional) The recovery point in time in format YYYY-MM-DDTHH:MM:SSZ
-    allowedPattern: "^latest$|^\\d{4}-[01]\\d-[0-3]\\dT[0-2]\\d:[0-5]\\d:[0-5]\\d([+-][0-2]\\d[0-5]\\d|Z)$"
-    default: "latest"
   CopyAllProperties:
     type: Boolean
     description: (Optional) If True copies all the settings from Source table to the restored on
@@ -43,11 +41,9 @@ parameters:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 outputs:
-  - "RestoreDynamoDBTableLatestToPointInTime.TargetTableArn"
-  - "RestoreDynamoDBTableToPointInTime.TargetTableArn"
+  - "RestoreDynamoDBTableFromBackup.TargetTableArn"
+  - "RestoreDynamoDBTableFromBackup.RecoveryPoint"
   - "OutputRecoveryTime.RecoveryTime"
-  - "RestoreDynamoDBTableLatestToPointInTime.RecoveryPoint"
-  - "RestoreDynamoDBTableToPointInTime.RecoveryPoint"
 mainSteps:
   - name: RecordStartTime
     action: 'aws:executeScript'
@@ -61,79 +57,28 @@ mainSteps:
       Script: |-
         SCRIPT_PLACEHOLDER::common_util.imports
         SCRIPT_PLACEHOLDER::common_util.start_time
-  - name: verifyDynamoDBTableTargetStatus
-    action: aws:assertAwsResourceProperty
-    onFailure: Abort
-    inputs:
-      Service: dynamodb
-      Api: DescribeTable
-      TableName: "{{ DynamoDBTableSourceName }}"
-      PropertySelector: "$.Table.TableStatus"
-      DesiredValues:
-        - "ACTIVE"
-    nextStep: verifyDynamoDBTargetTablePointInTimeRecovery
-  - name: verifyDynamoDBTargetTablePointInTimeRecovery
-    action: aws:assertAwsResourceProperty
-    onFailure: Abort
-    inputs:
-      Service: dynamodb
-      Api: DescribeContinuousBackups
-      TableName: "{{ DynamoDBTableSourceName }}"
-      PropertySelector: "$.ContinuousBackupsDescription.ContinuousBackupsStatus"
-      DesiredValues:
-        - "ENABLED"
-  - name: CheckIfUseLatestRecoveryPoint
-    action: aws:branch
-    inputs:
-      Choices:
-        - NextStep: RestoreDynamoDBTableLatestToPointInTime
-          Variable: "{{RecoveryPointDateTime}}"
-          EqualsIgnoreCase: "latest"
-      Default: RestoreDynamoDBTableToPointInTime
-  - name: RestoreDynamoDBTableLatestToPointInTime
+  - name: RestoreDynamoDBTableFromBackup
     action: aws:executeAwsApi
     onFailure: Abort
-    nextStep: WaitTableToBeActive
     inputs:
       Service: dynamodb
-      Api: RestoreTableToPointInTime
-      SourceTableName: "{{ DynamoDBTableSourceName }}"
+      Api: RestoreTableFromBackup
+      BackupArn: "{{ DynamoDBSourceTableBackupArn }}"
       TargetTableName: "{{ DynamoDBTableTargetName }}"
-      UseLatestRestorableTime: True
     outputs:
-      - Name: RecoveryPoint
-        Selector: "$.TableDescription.RestoreSummary.RestoreDateTime"
-        Type: String
       - Name: TargetTableArn
         Selector: "$.TableDescription.TableArn"
         Type: String
-    nextStep: WaitTableToBeActive
-  - name: RestoreDynamoDBTableToPointInTime
-    action: aws:executeAwsApi
-    onFailure: Abort
-    nextStep: WaitTableToBeActive
-    inputs:
-      Service: dynamodb
-      Api: RestoreTableToPointInTime
-      SourceTableName: "{{ DynamoDBTableSourceName }}"
-      TargetTableName: "{{ DynamoDBTableTargetName }}"
-      RestoreDateTime: "{{ RecoveryPointDateTime }}"
-    outputs:
       - Name: RecoveryPoint
         Selector: "$.TableDescription.RestoreSummary.RestoreDateTime"
         Type: String
-      - Name: TargetTableArn
-        Selector: "$.TableDescription.TableArn"
-        Type: String
-    nextStep: WaitTableToBeActive
   - name: WaitTableToBeActive
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
-    timeoutSeconds: 600
+    onFailure: Abort
     inputs:
       Service: dynamodb
       Api: DescribeTable
-      TableName: "{{DynamoDBTableTargetName}}"
+      TableName: "{{ DynamoDBTableTargetName }}"
       PropertySelector: "$.Table.TableStatus"
       DesiredValues:
         - "ACTIVE"

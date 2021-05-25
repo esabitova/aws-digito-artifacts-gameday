@@ -1,0 +1,307 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test API Gateway REST API behavior when hitting throttling threshold  "
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  RestApiGwUsagePlanId:
+    type: String
+    description: (Required) The ID of REST API Gateway usage plan to be modified
+  RestApiGwThrottlingRate:
+    type: String
+    description: (Optional) The value of throttling rate (requests per second)
+    default: '0'
+  RestApiGwThrottlingBurst:
+    type: String
+    description: (Optional) The value of throttling burst rate (requests per second)
+    default: '0'
+  RestApiGwStageName:
+    type: String
+    description: (Optional) The name of the Stage which throttling settings should be applied to. If not set, setting will be applied on the Usage Plan level
+    default: ''
+  RestApiGwId:
+    type: String
+    description: (Optional) The ID of REST API Gateway. Required if Stage name is provided. Otherwise, it will be ignored
+    default: ''
+  RestApiGwResourcePath:
+    type: String
+    description: (Optional) The Resource Path which throttling settings should be applied to (e.g. /Customers/Accounts/). Can be set as "*" (all resources). If RestApiGwStageName is not provided then this parameter is ignored
+    default: '*'
+  RestApiGwHttpMethod:
+    type: String
+    description: (Optional) The HTTP method which throttling settings should be applied to (e.g. GET, POST, PUT, and etc.). Can be set as "*" (all http methods). If RestApiGwStageName is not provided then this parameter is ignored
+    default: '*'
+  IsRollback:
+    type: Boolean
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: false
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: '{{IsRollback}}'
+          BooleanEquals: true
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: RestApiGwUsagePlanId
+        Selector: $.Payload.RestApiGwUsagePlanId[0]
+        Type: String
+      - Name: RestApiGwId
+        Selector: $.Payload.RestApiGwId[0]
+        Type: String
+      - Name: RestApiGwStageName
+        Selector: $.Payload.RestApiGwStageName[0]
+        Type: String
+      - Name: RestApiGwResourcePath
+        Selector: $.Payload.RestApiGwResourcePath[0]
+        Type: String
+      - Name: RestApiGwHttpMethod
+        Selector: $.Payload.RestApiGwHttpMethod[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertRestApiGwUsagePlanId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRollbackOfPreviousExecution
+          Variable: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
+          StringEquals: '{{ RestApiGwUsagePlanId }}'
+    isEnd: true
+
+  - name: PrepareRollbackOfPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: RestApiGwThrottlingRateOriginalValue
+        Selector: $.Payload.RestApiGwThrottlingRateOriginalValue[0]
+        Type: String
+      - Name: RestApiGwThrottlingBurstOriginalValue
+        Selector: $.Payload.RestApiGwThrottlingBurstOriginalValue[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupThrottlingConfiguration'
+        ResponseField: 'RestApiGwThrottlingRateOriginalValue,RestApiGwThrottlingBurstOriginalValue'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    description: Rollback throttling configuratiuon for REST API Gateway from previous execution
+    outputs:
+      - Name: RestApiGwThrottlingRateRestoredValue
+        Selector: '$.Payload.RateLimit'
+        Type: Integer
+      - Name: RestApiGwThrottlingBurstRestoredValue
+        Selector: '$.Payload.BurstLimit'
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: set_throttling_config
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
+        RestApiGwId: '{{ GetInputsFromPreviousExecution.RestApiGwId }}'
+        RestApiGwStageName: '{{ GetInputsFromPreviousExecution.RestApiGwStageName }}'
+        RestApiGwResourcePath: '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}'
+        RestApiGwHttpMethod: '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        RestApiGwThrottlingRate: '{{ PrepareRollbackOfPreviousExecution.RestApiGwThrottlingRateOriginalValue }}'
+        RestApiGwThrottlingBurst: '{{ PrepareRollbackOfPreviousExecution.RestApiGwThrottlingBurstOriginalValue }}'
+        ValidateQuotaLimits: False
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
+        SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
+        SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
+        SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+
+  - name: BackupThrottlingConfiguration
+    action: aws:executeScript
+    description: Rollback throttling settings for REST API Gateway
+    outputs:
+      - Name: RestApiGwThrottlingRateOriginalValue
+        Selector: '$.Payload.RateLimit'
+        Type: Integer
+      - Name: RestApiGwThrottlingBurstOriginalValue
+        Selector: '$.Payload.BurstLimit'
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: get_throttling_config
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwId: '{{ RestApiGwId }}'
+        RestApiGwStageName: '{{ RestApiGwStageName }}'
+        RestApiGwResourcePath: '{{ RestApiGwResourcePath }}'
+        RestApiGwHttpMethod: '{{ RestApiGwHttpMethod }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
+
+  - name: SetThrottlingConfiguration
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    description: Update throttling configuratiuon for REST API Gateway
+    outputs:
+      - Name: RestApiGwThrottlingRateNewValue
+        Selector: '$.Payload.RateLimit'
+        Type: Integer
+      - Name: RestApiGwThrottlingBurstNewValue
+        Selector: '$.Payload.BurstLimit'
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: set_throttling_config
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwId: '{{ RestApiGwId }}'
+        RestApiGwStageName: '{{ RestApiGwStageName }}'
+        RestApiGwResourcePath: '{{ RestApiGwResourcePath }}'
+        RestApiGwHttpMethod: '{{ RestApiGwHttpMethod }}'
+        RestApiGwThrottlingRate: '{{ RestApiGwThrottlingRate }}'
+        RestApiGwThrottlingBurst: '{{ RestApiGwThrottlingBurst }}'
+        ValidateQuotaLimits: False
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
+        SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
+        SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
+        SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    maxAttempts: 5
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    description: Rollback throttling configuratiuon for REST API Gateway
+    outputs:
+      - Name: RestApiGwThrottlingRateRestoredValue
+        Selector: '$.Payload.RateLimit'
+        Type: Integer
+      - Name: RestApiGwThrottlingBurstRestoredValue
+        Selector: '$.Payload.BurstLimit'
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: set_throttling_config
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwId: '{{ RestApiGwId }}'
+        RestApiGwStageName: '{{ RestApiGwStageName }}'
+        RestApiGwResourcePath: '{{ RestApiGwResourcePath }}'
+        RestApiGwHttpMethod: '{{ RestApiGwHttpMethod }}'
+        RestApiGwThrottlingRate: '{{ BackupThrottlingConfiguration.RestApiGwThrottlingRateOriginalValue }}'
+        RestApiGwThrottlingBurst: '{{ BackupThrottlingConfiguration.RestApiGwThrottlingBurstOriginalValue }}'
+        ValidateQuotaLimits: False
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
+        SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
+        SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
+        SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

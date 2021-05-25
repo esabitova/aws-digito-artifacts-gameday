@@ -2,6 +2,7 @@
 import unittest
 from unittest.mock import MagicMock, call, patch
 from parameterized import parameterized
+from datetime import datetime
 
 import pytest
 from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _execute_boto3_dynamodb,
@@ -22,7 +23,10 @@ from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _
                                                        _update_contributor_insights,
                                                        _update_time_to_live,
                                                        copy_time_to_live,
-                                                       wait_replication_status_in_all_regions)
+                                                       wait_replication_status_in_all_regions,
+                                                       _describe_continuous_backups,
+                                                       _enable_continuous_backups,
+                                                       copy_continuous_backups_properties)
 
 
 GENERIC_SUCCESS_RESULT = {
@@ -220,6 +224,26 @@ DESCRIBE_TTL_RESPONSE = {
         "AttributeName": "End_Date"
     }
 }
+DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "ContinuousBackupsDescription": {
+        "ContinuousBackupsStatus": "ENABLED",
+        "PointInTimeRecoveryDescription": {
+            "PointInTimeRecoveryStatus": "ENABLED"
+        }
+    }
+}
+UPDATE_CONTINUOUS_BACKUPS_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    'ContinuousBackupsDescription': {
+        'ContinuousBackupsStatus': 'ENABLED',
+        'PointInTimeRecoveryDescription': {
+            'PointInTimeRecoveryStatus': 'ENABLED',
+            'EarliestRestorableDateTime': datetime(2015, 1, 1),
+            'LatestRestorableDateTime': datetime(2015, 1, 1)
+        }
+    }
+}
 
 
 @pytest.mark.unit_test
@@ -244,6 +268,10 @@ class TestDynamoDbUtil(unittest.TestCase):
             DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
         self.dynamodb_client_mock.update_contributor_insights.return_value = \
             UPDATE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
+        self.dynamodb_client_mock.describe_continuous_backups.return_value = \
+            DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE
+        self.dynamodb_client_mock.update_continuous_backups.return_value = \
+            UPDATE_CONTINUOUS_BACKUPS_RESPONSE
 
         self.dynamodb_client_mock\
             .describe_kinesis_streaming_destination\
@@ -271,6 +299,14 @@ class TestDynamoDbUtil(unittest.TestCase):
                 "RegionName": "ap-southeast-1",
                 "ReplicaStatus": "ACTIVE"
             }]
+
+    @parameterized.expand([
+        ({}, {}),
+        ({'SourceTableName': 'my_table'}, {})]
+    )
+    def test_copy_continuous_backups_properties(self, events, context):
+        with self.assertRaises(KeyError) as context:
+            copy_continuous_backups_properties(events=events, context=context)
 
     @staticmethod
     def describe_contributor_mock(**kwargs):
@@ -351,6 +387,18 @@ class TestDynamoDbUtil(unittest.TestCase):
         with self.assertRaises(KeyError):
             copy_table_stream_settings(events=events, context=context)
 
+    def test__describe_continuous_backups(self):
+
+        result = _describe_continuous_backups(table_name='table')
+
+        self.assertEquals(result, DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE)
+
+    def test__enable_continuous_backups(self):
+
+        result = _enable_continuous_backups(table_name='table')
+
+        self.assertEquals(result, UPDATE_CONTINUOUS_BACKUPS_RESPONSE)
+
     def test__describe_time_to_live(self):
         result = _describe_time_to_live(table_name='my_table')
 
@@ -370,6 +418,23 @@ class TestDynamoDbUtil(unittest.TestCase):
         ])
 
         describe_mock.assert_called_with(table_name='my_table')
+
+    @patch('documents.util.scripts.src.dynamo_db_util._enable_continuous_backups',
+           return_value=UPDATE_CONTINUOUS_BACKUPS_RESPONSE)
+    @patch('documents.util.scripts.src.dynamo_db_util._describe_continuous_backups',
+           return_value=UPDATE_CONTINUOUS_BACKUPS_RESPONSE)
+    def test_enable_continuous_backups_properties(self, describe_mock, enable_mock):
+        events = {
+            "SourceTableName": 'my_table_source',
+            "TargetTableName": 'my_table_target'
+        }
+
+        result = copy_continuous_backups_properties(events=events, context={})
+
+        self.assertEquals(result, "ENABLED")
+
+        describe_mock.assert_called_with(table_name='my_table_source')
+        enable_mock.assert_called_with(table_name='my_table_target')
 
     @patch('documents.util.scripts.src.dynamo_db_util._get_global_table_all_regions',
            new_callable=lambda: TestDynamoDbUtil.get_global_table_all_regions_mock)

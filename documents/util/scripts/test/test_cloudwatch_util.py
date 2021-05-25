@@ -2,13 +2,14 @@ import datetime
 import time
 import unittest
 from unittest.mock import MagicMock, patch
+from parameterized import parameterized
 
 import pytest
 from documents.util.scripts.src.cloudwatch_util import (
-    _describe_metric_alarms, describe_metric_alarm_state,
+    _describe_metric_alarms, _execute_boto3_cloudwatch, _put_metric_alarm,
+    copy_alarms_for_dynamo_db_table, describe_metric_alarm_state,
     get_ec2_metric_max_datapoint, get_metric_alarm_threshold_values,
-    verify_alarm_triggered, verify_ec2_stress,
-    copy_alarms_for_dynamo_db_table)
+    verify_alarm_triggered, verify_ec2_stress)
 from documents.util.scripts.test.test_data_provider import \
     get_instance_ids_by_count
 
@@ -69,15 +70,36 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.cw_mock.describe_alarms.return_value = \
             DESCRIBE_ALARMS_RESPONSE
+        self.cw_mock.put_metric_alarm.return_value = \
+            GENERIC_SUCCESS_RESULT
 
     def tearDown(self):
         self.patcher.stop()
+
+    def test__execute_boto3_cloudwatch(self):
+        with self.assertRaises(ValueError):
+            _execute_boto3_cloudwatch(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
     def test__describe_metric_alarms(self):
 
         result = _describe_metric_alarms()
 
         self.assertEqual(result, DESCRIBE_ALARMS_RESPONSE)
+
+    def test__put_metric_alarm(self):
+
+        result = _put_metric_alarm(AlarmName='ABC')
+
+        self.assertEqual(result, GENERIC_SUCCESS_RESULT)
+
+    @parameterized.expand([
+        ({}, {}),
+        ({'SourceTableName': 'my_table'}, {}),
+        ({'SourceTableName': 'my_table', 'TargetTableName': 'target_table'}, {})
+    ])
+    def test_copy_alarms_for_dynamo_db_table_raises_exception(self, events, context):
+        with self.assertRaises(KeyError):
+            copy_alarms_for_dynamo_db_table(events=events, context=context)
 
     @patch('documents.util.scripts.src.cloudwatch_util._describe_metric_alarms',
            return_value=DESCRIBE_ALARMS_RESPONSE)

@@ -107,8 +107,8 @@ mainSteps:
         RestApiGwThrottlingBurst: '{{ RestApiGwThrottlingBurst }}'
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
-        SCRIPT_PLACEHOLDER::apigw_utils.get_usage_plan
         SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
         SCRIPT_PLACEHOLDER::apigw_utils.validate_throttling_config
 
   - name: SetThrottlingConfiguration

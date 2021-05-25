@@ -8,6 +8,7 @@ from resource_manager.src.util.common_test_utils import (extract_param_value,
                                                          put_to_ssm_test_cache)
 from resource_manager.src.util.dynamo_db_utils import (
     add_global_table_and_wait_for_active,
+    create_backup_and_wait_for_available, delete_backup_and_wait,
     drop_and_wait_dynamo_db_table_if_exists,
     get_earliest_recovery_point_in_time,
     remove_global_table_and_wait_for_active, wait_table_to_be_active)
@@ -40,6 +41,44 @@ def wait_table_to_be_active_for_x_seconds(ssm_test_cache,
                             boto3_session=boto3_session,
                             wait_sec=int(wait_sec),
                             delay_sec=int(delay_sec))
+
+
+@given(parsers.parse("Create backup {backup_name_ref} for table {table_name_ref} and wait "
+                     "for {wait_sec} seconds with interval {delay_sec} seconds"))
+def create_backup_and_wait_when_it_becomes_available(ssm_test_cache,
+                                                     resource_pool,
+                                                     boto3_session,
+                                                     backup_name_ref,
+                                                     table_name_ref,
+                                                     wait_sec,
+                                                     delay_sec):
+    cf_output = resource_pool.get_cfn_output_params()
+    containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
+    table_name = param_utils.parse_param_value(table_name_ref, containers)
+    backup_name = param_utils.parse_param_value(backup_name_ref, containers)
+    backup_arn = create_backup_and_wait_for_available(table_name=table_name,
+                                                      backup_name=backup_name,
+                                                      boto3_session=boto3_session,
+                                                      wait_sec=int(wait_sec),
+                                                      delay_sec=int(delay_sec))
+    ssm_test_cache['BackupArn'] = backup_arn
+
+
+@then(parsers.parse("Delete backup {backup_arn_ref} and wait "
+                    "for {wait_sec} seconds with interval {delay_sec} seconds"))
+def delete_backup_and_wait_it_gone(ssm_test_cache,
+                                   resource_pool,
+                                   boto3_session,
+                                   backup_arn_ref,
+                                   wait_sec,
+                                   delay_sec):
+    cf_output = resource_pool.get_cfn_output_params()
+    containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
+    backup_arn = param_utils.parse_param_value(backup_arn_ref, containers)
+    delete_backup_and_wait(backup_arn=backup_arn,
+                           boto3_session=boto3_session,
+                           wait_sec=int(wait_sec),
+                           delay_sec=int(delay_sec))
 
 
 @given(parsers.parse("drop Dynamo DB table with the name {table_name_ref} and wait "

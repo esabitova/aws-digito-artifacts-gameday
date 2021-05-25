@@ -3,7 +3,10 @@ from time import sleep
 
 import jsonpath_ng
 import pytest
-from pytest_bdd import given, parsers, when, then
+import requests
+from pytest_bdd import (
+    given, parsers, when, then
+)
 
 from resource_manager.src.util import apigw2_utils as apigw2_utils
 from resource_manager.src.util import apigw_utils as apigw_utils
@@ -65,6 +68,10 @@ cache_param_values_expression = 'cache value of "{param_list}" "{step_key}" SSM 
 
 cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_limit_key}" and ' \
                                        'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution'
+
+get_api_key_and_perform_http_requests_expression = 'get value of API key "{key_id}" and perform "{count}" http ' \
+                                                   'requests with delay "{delay}" seconds using stage URL "{url}"' \
+                                                   '\n{input_parameters}'
 
 cache_httpws_default_throttling_settings = 'cache default route throttling rate limit as "{rate_limit_key}" and ' \
                                            'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution' \
@@ -468,3 +475,22 @@ def prepare_route_settings_teardown(
     route_throttling_settings['HttpWsRouteKey'] = route_key
     route_throttling_settings['BackupRateLimit'] = backup_rate_limit
     route_throttling_settings['BackupBurstLimit'] = backup_burst_limit
+
+
+@given(parsers.parse(get_api_key_and_perform_http_requests_expression))
+@when(parsers.parse(get_api_key_and_perform_http_requests_expression))
+@then(parsers.parse(get_api_key_and_perform_http_requests_expression))
+def get_api_key_and_perform_http_requests(
+        resource_pool, ssm_test_cache, boto3_session, key_id, count, delay, url, input_parameters
+):
+    api_key_id = extract_param_value(input_parameters, key_id, resource_pool, ssm_test_cache)
+    request_url = extract_param_value(input_parameters, url, resource_pool, ssm_test_cache)
+    request_count = int(count)
+    request_delay = int(delay)
+    apigw_client = client('apigateway', boto3_session)
+    api_key = apigw_client.get_api_key(apiKey=api_key_id, includeValue=True)['value']
+    while request_count > 0:
+        response = requests.get(request_url, headers={'x-api-key': api_key})
+        logging.info(f'Response status code: {response.status_code}')
+        sleep(request_delay)
+        request_count -= 1
