@@ -57,6 +57,10 @@ Resources:
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
               - 'autoscaling:DescribeAutoScalingGroups'
-              - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole

@@ -45,7 +45,6 @@ Resources:
             Resource: "*"
             Action:
               - ssm:StartAutomationExecution
-              - iam:PassRole
               - ssm:GetAutomationExecution
               - servicequotas:ListAWSDefaultServiceQuotas
               - servicequotas:ListServiceQuotas

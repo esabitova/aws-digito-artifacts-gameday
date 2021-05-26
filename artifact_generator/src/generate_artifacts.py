@@ -1,6 +1,5 @@
 import datetime
 import os
-import pathlib
 import re
 from artifact_generator.src import constants
 from artifact_generator.src.input_validator import InputValidator as validator
@@ -18,12 +17,9 @@ SYNTHETIC_ALARM_PREFIX = 'Synthetic'
 SCENARIO_PREFIX = 'Scenario:'
 RISKS = ['SMALL', 'MEDIUM', 'HIGH']
 FAILURE_TYPES = ['REGION', 'AZ', 'HARDWARE', 'SOFTWARE']
-FILE_PATH = pathlib.Path(__file__)
-PACKAGE_DIR = FILE_PATH.parent.parent.parent.absolute()
-TEMPLATES_DIR = os.path.join(FILE_PATH.parent.absolute(), 'templates')
-CFN_TEMPLATES_PATH = os.path.join(PACKAGE_DIR, "resource_manager", "cloud_formation_templates")
+CFN_TEMPLATES_PATH = os.path.join(constants.PACKAGE_DIR, "resource_manager", "cloud_formation_templates")
 
-template_lookup = TemplateLookup(TEMPLATES_DIR)
+template_lookup = TemplateLookup(constants.TEMPLATES_DIR)
 
 
 def __is_exists(path: str):
@@ -66,7 +62,7 @@ def __create_dir_if_not_exists(dir_path: str):
     """
     if not os.path.isdir(dir_path):
         os.makedirs(dir_path)
-        __print_success('Created target folder structure [{}]'.format(os.path.relpath(dir_path, PACKAGE_DIR)))
+        __print_success('Created target folder structure [{}]'.format(os.path.relpath(dir_path, constants.PACKAGE_DIR)))
 
 
 def __add_replacements_for_test(replacements: dict):
@@ -148,7 +144,7 @@ def __get_cfn_template_info(doc_name: str, doc_type: str, resource_id: str, repl
     :return:
     """
     print('\nWe use cloudformation templates to create the resources for testing test/SOP documents. '
-          'These are located under {}.\n\n'.format(os.path.relpath(CFN_TEMPLATES_PATH, PACKAGE_DIR)))
+          'These are located under {}.\n\n'.format(os.path.relpath(CFN_TEMPLATES_PATH, constants.PACKAGE_DIR)))
 
     cfn_template_name = __get_input('Enter the name of the cloudformation template for testing {} '
                                     '(ex: SqsTemplate, RdsTemplate):\n'.format(doc_name),
@@ -170,12 +166,12 @@ def __get_cfn_template_info(doc_name: str, doc_type: str, resource_id: str, repl
     cfn_absolute_path = os.path.join(CFN_TEMPLATES_PATH, cfn_template_name + '.yml')
     if not __is_exists(cfn_absolute_path):
         create_cfn = __get_input('There is no {} under {}. Would you like artifact generator to create one (yes/no)?\n'
-                                 .format(cfn_template_name, os.path.relpath(CFN_TEMPLATES_PATH, PACKAGE_DIR)),
+                                 .format(cfn_template_name, os.path.relpath(CFN_TEMPLATES_PATH, constants.PACKAGE_DIR)),
                                  validator.validate_boolean_inputs)
         if create_cfn == 'yes':
-            __create_artifact(os.path.join(TEMPLATES_DIR, "CloudFormationTemplate.yml"), cfn_absolute_path,
+            __create_artifact(os.path.join(constants.TEMPLATES_DIR, "CloudFormationTemplate.yml"), cfn_absolute_path,
                               replacements)
-            __print_success('Created {}'.format(os.path.relpath(cfn_absolute_path, PACKAGE_DIR)))
+            __print_success('Created {}'.format(os.path.relpath(cfn_absolute_path, constants.PACKAGE_DIR)))
         else:
             required_outputs = ','.join([cfn_resource_id_output, alarm_name_output if alarm_name_output else ''])
             print('Okay. Proceeding without creating the cloudformation template. Please make sure you create {} with '
@@ -183,11 +179,11 @@ def __get_cfn_template_info(doc_name: str, doc_type: str, resource_id: str, repl
                                                                                    required_outputs))
 
 
-def __get_feature_file_templates_applicable(doc_type: str, supports_rollback: str = None):
+def __get_feature_file_templates_applicable(doc_type: str, supports_rollback: str):
     """
     Get the feature file templates applicable to the automation document
     :param doc_type: test or sop
-    :param supports_rollback: whether or not the test document supports rollback
+    :param supports_rollback: whether or not the document supports rollback
     :return: list of feature file templates applicable to the automation document
     """
     feature_file_templates = []
@@ -217,8 +213,17 @@ def __get_scenarios(feature_files: str, step_def_location: str):
     return scenarios
 
 
+def __create_role_doc(target_file_path: str, doc_name: str, service_name: str, name: str,
+                      supports_rollback: str, role_name: str):
+    policy_name = "Digito{}{}AssumePolicy".format(__pascal_case(service_name), __pascal_case(name))
+    role_content = template_lookup.get_template('AutomationAssumeRoleTemplate.yml.mak')\
+        .render(documentName=doc_name, roleName=role_name, policyName=policy_name, supportsRollback=supports_rollback)
+    with open(target_file_path, "w") as f:
+        f.write(role_content)
+
+
 def __create_feature_files(name: str, doc_name: str, doc_type: str, res_id: str,
-                           test_location: str, replacements: list, supports_rollback: str = None):
+                           test_location: str, replacements: list, supports_rollback: str):
     """
     Create the feature files for the test/sop in the specified target path
     :param name: test/sop name
@@ -227,7 +232,7 @@ def __create_feature_files(name: str, doc_name: str, doc_type: str, res_id: str,
     :param res_id: primary resource identifier input of the SSM document
     :param test_location: target Tests directory location
     :param replacements: dictionary that contains replacement value corresponding to placeholders in artifact templates
-    :param supports_rollback: whether or not the test document supports rollback
+    :param supports_rollback: whether or not the document supports rollback
     :return:
     """
     feature_templates = __get_feature_file_templates_applicable(doc_type, supports_rollback)
@@ -241,7 +246,7 @@ def __create_feature_files(name: str, doc_name: str, doc_type: str, res_id: str,
     __create_dir_if_not_exists(test_features_location)
 
     for template, target in template_targets.items():
-        __create_artifact(os.path.join(TEMPLATES_DIR, template), target, replacements)
+        __create_artifact(os.path.join(constants.TEMPLATES_DIR, template), target, replacements)
     return template_targets.values()
 
 
@@ -301,10 +306,10 @@ def main():
                        validator.validate_small_case_with_underscore)
     date = __get_date()
 
-    artifacts_dir = os.path.join(PACKAGE_DIR, 'documents', service_name, doc_type, name, date)
+    artifacts_dir = os.path.join(constants.PACKAGE_DIR, 'documents', service_name, doc_type, name, date)
 
     __print_header('Step 1: Create artifacts under Documents folder\n')
-    main_docs_path = os.path.join(PACKAGE_DIR, artifacts_dir, 'Documents')
+    main_docs_path = os.path.join(constants.PACKAGE_DIR, artifacts_dir, 'Documents')
 
     automation_doc_path = os.path.join(main_docs_path, constants.AUTOMATION_DOC_NAME)
     role_doc_path = os.path.join(main_docs_path, constants.ROLE_DOC_NAME)
@@ -321,6 +326,7 @@ def main():
     risk = __get_input('Enter risk ({}): \n'.format('/'.join(RISKS)), validator.validate_one_of, RISKS)
 
     document_name = "Digito-{}_{}".format(__pascal_case(name), date)
+    role_name = "Digito{}{}AssumeRole".format(__pascal_case(service_name), __pascal_case(name))
     replacements = {
         "${serviceName}": service_name,
         "${documentType}": doc_type,
@@ -334,15 +340,16 @@ def main():
         "${failureType}": failure_type,
         "${risk}": risk,
         "${tag}": ":".join([service_name, doc_type, name, date]),
-        "${roleName}": "Digito{}{}AssumeRole".format(__pascal_case(service_name), __pascal_case(name)),
+        "${roleName}": role_name,
         "${policyName}": "Digito{}{}AssumePolicy".format(__pascal_case(service_name), __pascal_case(name)),
         "${primaryResourceIdentifier}": resource_id
     }
 
+    supports_rollback = 'no'
     if doc_type == 'test':
         supports_rollback = __get_input('Does test support rollback (yes/no)?\n', validator.validate_boolean_inputs)
         __add_replacements_for_test(replacements)
-        automation_doc_template = 'AutomationDocumentForTest.yml' if supports_rollback == 'yes'\
+        automation_doc_template = 'AutomationDocumentForTest.yml' if supports_rollback == 'yes' \
             else 'AutomationDocumentForTestNoRollback.yml'
     elif doc_type == 'sop':
         automation_doc_template = 'AutomationDocumentForSop.yml'
@@ -350,16 +357,18 @@ def main():
 
     print()
     __create_dir_if_not_exists(main_docs_path)
-    __create_artifact(os.path.join(TEMPLATES_DIR, constants.METADATA_DOC_NAME), metadata_path, replacements)
-    __create_artifact(os.path.join(TEMPLATES_DIR, constants.ROLE_DOC_NAME), role_doc_path, replacements)
-    __create_artifact(os.path.join(TEMPLATES_DIR, automation_doc_template), automation_doc_path, replacements)
-    __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(main_docs_path, PACKAGE_DIR)))
+    __create_artifact(os.path.join(constants.TEMPLATES_DIR, constants.METADATA_DOC_NAME), metadata_path, replacements)
+    __create_role_doc(role_doc_path, doc_name=document_name, service_name=service_name, name=name,
+                      supports_rollback=supports_rollback, role_name=role_name)
+    __create_artifact(os.path.join(constants.TEMPLATES_DIR, automation_doc_template), automation_doc_path, replacements)
+    __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(main_docs_path,
+                                                                                      constants.PACKAGE_DIR)))
 
     __print_header('Step 2: Create tests under Tests folder\n')
     test_location = os.path.join(artifacts_dir, 'Tests')
     feature_files = __create_feature_files(name=name, doc_name=document_name, doc_type=doc_type,
                                            res_id=resource_id, test_location=test_location, replacements=replacements,
-                                           supports_rollback=supports_rollback if doc_type == 'test' else None)
+                                           supports_rollback=supports_rollback)
     # create scenario test code
     step_def_location = os.path.join(test_location, 'step_defs')
     step_def_file = os.path.join(step_def_location, 'test_{}.py'.format(name.replace('-', '_')))
@@ -371,7 +380,8 @@ def main():
     with open(step_def_file, "w") as f:
         f.write(step_def_content)
 
-    __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(test_location, PACKAGE_DIR)))
+    __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(test_location,
+                                                                                      constants.PACKAGE_DIR)))
     __print_header('Artifact generator has finished creating all documents. Please update them as required.')
 
 

@@ -53,6 +53,10 @@ Resources:
               - ssm:GetAutomationExecution
               - ssm:GetParameters
               - ssm:StartAutomationExecution
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoBreakingThePolicyForSQSAssumeRole.Arn
+            Action:
               - iam:PassRole
       Roles:
         - Ref: DigitoBreakingThePolicyForSQSAssumeRole

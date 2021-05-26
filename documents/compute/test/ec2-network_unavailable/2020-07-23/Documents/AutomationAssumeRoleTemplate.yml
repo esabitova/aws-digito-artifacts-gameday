@@ -54,6 +54,10 @@ Resources:
               - 'cloudwatch:DescribeAlarmHistory'
               - 'cloudwatch:DescribeAlarms'
               - 'ec2:RebootInstances'
-              - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSimulateNetworkUnavailableInEc2AssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoSimulateNetworkUnavailableInEc2AssumeRole

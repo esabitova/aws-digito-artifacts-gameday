@@ -61,6 +61,10 @@ Resources:
              - 'ec2:ModifyInstanceAttribute'
              - 'ec2:TerminateInstances'
              - 'ec2:ReplaceRoute'
-             - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoAddNetworkLatencyUsingApplianceAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoAddNetworkLatencyUsingApplianceAssumeRole

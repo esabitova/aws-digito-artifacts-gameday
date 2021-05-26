@@ -241,6 +241,25 @@ Script: |-
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
 ```
+* For tests that support rollback the AutomationAssumeRoleTemplate should contain iam:PassRole permission on the current
+role. Please do not specify Resources as * and only restrict this permission to the same role. For example -
+```
+   DigitoSimulateHighCpuLoadInAsgAssumePolicy:
+     Type: 'AWS::IAM::Policy'
+     Properties:
+       PolicyName: "DigitoSimulateHighCpuLoadInAsgAssumePolicy"
+       PolicyDocument:
+         Version: 2012-10-17
+         Statement:
+               ...
+	           - Effect: Allow
+	             Resource:
+	               - !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+	             Action:
+	               - iam:PassRole
+       Roles:
+	         - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+```
 * Please include rollback test in cucumber too with following steps, example: documents/compute/test/ec2-network_unavailable/2020-07-23/Tests/features/ec2_network_unavailable.feature -
 ```
 Start execution in normal mode

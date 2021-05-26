@@ -54,10 +54,14 @@ Resources:
               - s3:ListObjectVersions
               - s3:PutObject
               - ssm:StartAutomationExecution
-              - iam:PassRole
               - ssm:GetAutomationExecution
               - sns:Publish
               - ssm:GetParameters
               - cloudwatch:DescribeAlarms
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoAccidentalDeleteAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoAccidentalDeleteAssumeRole

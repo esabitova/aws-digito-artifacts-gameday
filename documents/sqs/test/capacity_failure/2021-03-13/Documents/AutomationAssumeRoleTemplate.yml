@@ -51,6 +51,10 @@ Resources:
               - ssm:GetAutomationExecution
               - ssm:GetParameters
               - ssm:StartAutomationExecution
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSQSCapacityFailureAssumeRole.Arn
+            Action:
               - iam:PassRole
       Roles:
         - Ref: DigitoSQSCapacityFailureAssumeRole

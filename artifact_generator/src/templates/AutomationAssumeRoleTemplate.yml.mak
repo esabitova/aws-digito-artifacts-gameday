@@ -45,5 +45,12 @@ Resources:
             Resource: "*"
             Action:
               # add permissions required by automation document here
+% if supportsRollback == 'yes':
+          - Effect: Allow
+            Resource:
+              - !GetAtt ${roleName}.Arn
+            Action:
+                - iam:PassRole
+%endif
       Roles:
         - Ref: ${roleName}

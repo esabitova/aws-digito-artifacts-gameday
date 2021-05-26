@@ -54,6 +54,10 @@ Resources:
               - 'ssm:CancelCommand'
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
-              - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSimulateHighCpuLoadInEc2AssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoSimulateHighCpuLoadInEc2AssumeRole

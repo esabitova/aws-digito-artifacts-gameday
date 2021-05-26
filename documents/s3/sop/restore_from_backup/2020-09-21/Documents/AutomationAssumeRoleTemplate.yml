@@ -51,9 +51,13 @@ Resources:
               - s3:ListBucketVersions
               - s3:DeleteObject
               - ssm:StartAutomationExecution
-              - iam:PassRole
               - ssm:GetAutomationExecution
               - s3:DeleteObject*
               - SNS:Publish
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoRestoreFromBackupAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoRestoreFromBackupAssumeRole
