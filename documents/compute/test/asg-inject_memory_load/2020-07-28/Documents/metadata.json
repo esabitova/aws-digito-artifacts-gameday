@@ -16,5 +16,8 @@
         "2": "Start a memory load for the amount of memory in bytes on instances for X minutes.",
         "3": "Verify monitor stays green or returns to green in Y minutes. (optional variant verify that monitor turns red instead)."
     },
+    "recommendedAlarms": {
+        "MemoryUtilizationAlarmName": "compute:alarm:asg-cloudwatch-mem-util:2021-04-05"
+    },
     "minorVersion": "002"
 }

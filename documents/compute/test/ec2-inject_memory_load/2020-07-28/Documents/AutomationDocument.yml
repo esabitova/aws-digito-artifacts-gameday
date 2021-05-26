@@ -27,7 +27,7 @@ parameters:
     description: (Required) EC2 instance id
   MemoryUtilizationAlarmName:
     type: String
-    description: (Required) EC2 CPUUtilization alarm which should be triggerred
+    description: (Required) EC2 MemoryUtilization alarm which should be triggerred
   DurationSeconds:
     type: String
     description: (Optional) The duration of the attack in seconds (default/recommended 300)
