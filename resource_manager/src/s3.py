@@ -9,10 +9,12 @@ class S3:
     """
     Class to manipulate with S3 ResourcePool created buckets/files.
     """
+
     def __init__(self, boto3_session):
         self.session = boto3_session
         self.client = client('s3', boto3_session)
         self.resource = resource('s3', boto3_session)
+        self.account_id = self._get_account_id()
 
     def upload_file(self, file_name: str, content: dict):
         """
@@ -26,7 +28,7 @@ class S3:
             # In case if template already exist it is possible that we want to update it.
             logging.info('Uploading CF template [%s] to S3 bucket [%s]', file_name, bucket_name)
             self._put_object_as_yaml(bucket_name, file_name, content)
-            return self._get_file_url(file_name)
+            return self._get_file_url(bucket_name, file_name)
         except ClientError as e:
             logging.error('Failed to upload CF template [%s] to S3 bucket [%s]:\n %s', file_name,
                           bucket_name, e.response)
@@ -41,29 +43,27 @@ class S3:
         region_name = self.session.region_name
         try:
             if region_name == 'us-east-1':
-                self.client.create_bucket(Bucket=bucket_name)
+                self.client.create_bucket(ACL='private', Bucket=bucket_name)
             else:
-                config = {'LocationConstraint': region_name}
-                self.client.create_bucket(Bucket=bucket_name, CreateBucketConfiguration=config)
+                self.client.create_bucket(ACL='private', Bucket=bucket_name, CreateBucketConfiguration={
+                    'LocationConstraint': region_name
+                })
+
         except ClientError as e:
             if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
                 logging.warning("Bucket with name [{}] for region [{}] already exist.".format(bucket_name, region_name))
             else:
                 raise e
 
-    def _get_file_url(self, file_name):
+    def _get_file_url(self, bucket_name, key):
         """
         Returns cloud formation template URL located in S3 bucket.
         :return: The cloud formation template URL
         """
-        # TODO(semiond): Secure bucket by appending UUID, so that attacker will not be able to guess name:
-        # https://issues.amazon.com/issues/Digito-1287
-        region_name = self.session.region_name
-        bucket_name = self.get_bucket_name()
-        if region_name == 'us-east-1':
-            return 'https://{}.s3.amazonaws.com/{}'.format(bucket_name, file_name)
-        else:
-            return 'https://{}.s3.{}.amazonaws.com/{}'.format(bucket_name, region_name, file_name)
+        return self.client.generate_presigned_url('get_object', Params={
+            'Bucket': bucket_name,
+            'Key': key
+        }, ExpiresIn=3600)
 
     def _get_account_id(self):
         sts_client = self.session.client('sts')
@@ -75,7 +75,7 @@ class S3:
         Returns S3 bucket name.
         :return: The S3 bucket name
         """
-        account_id = self._get_account_id()
+        account_id = self.account_id
         region_name = self.session.region_name
         return s3_bucket_name_pattern.replace('<account_id>', account_id).replace('<region_name>', region_name)
 
@@ -87,26 +87,13 @@ class S3:
         try:
             if self.bucket_exists(bucket_name):
                 logging.info('Deleting CF bucket with name [%s]', bucket_name)
-                for key in self._get_bucket_keys(bucket_name):
-                    self.client.delete_objects(
-                        Bucket=bucket_name,
-                        Delete={'Objects': [{'Key': key}]}
-                    )
-                self.client.delete_bucket(Bucket=bucket_name)
+                bucket = self.resource.Bucket(bucket_name)
+                bucket.objects.delete(ExpectedBucketOwner=self.account_id)
+                self.client.delete_bucket(Bucket=bucket_name,
+                                          ExpectedBucketOwner=self.account_id)
         except ClientError as e:
             logging.error('Failed to delete S3 bucket with name [%s]', bucket_name, e)
             raise e
-
-    def _get_bucket_keys(self, bucket_name):
-        """
-        Returns all S3 bucket keys for given bucket name.
-        :return: The S3 bucket keys
-        """
-        bucket = self.resource.Bucket(bucket_name)
-        obj_keys = []
-        for obj in bucket.objects.all():
-            obj_keys.append(obj.key)
-        return obj_keys
 
     def bucket_key_exist(self, bucket_name, key):
         """
@@ -115,7 +102,13 @@ class S3:
         :param key: The S3 bucket key
         :return: True is exist, False otherwise
         """
-        return key in self._get_bucket_keys(bucket_name)
+        try:
+            self.client.head_object(Bucket=bucket_name,
+                                    Key=key,
+                                    ExpectedBucketOwner=self.account_id)
+            return True
+        except ClientError:
+            return False
 
     def bucket_exists(self, bucket_name):
         """
@@ -135,7 +128,7 @@ class S3:
         '''
         try:
             s3_object = self.resource.Object(bucket_name, file_name)
-            return s3_object.get()['Body'].read().decode('utf-8')
+            return s3_object.get(ExpectedBucketOwner=self.account_id)['Body'].read().decode('utf-8')
         except ClientError as e:
             if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == 'NoSuchKey':
                 return None
@@ -150,4 +143,4 @@ class S3:
         :param content The content of the file to be uploaded
         '''
         s3_object = self.resource.Object(bucket_name, file_name)
-        s3_object.put(Body=(bytes(dump_yaml(content).encode('UTF-8'))))
+        s3_object.put(ExpectedBucketOwner=self.account_id, Body=(bytes(dump_yaml(content).encode('UTF-8'))))
