@@ -345,6 +345,7 @@ def get_sample_describe_instance_type_offerings_response():
 def get_sample_describe_launch_template_versions_response():
     return {'LaunchTemplateVersions': [{'LaunchTemplateData': {'InstanceType': SMALLER_INSTANCE}}]}
 
+
 def get_sample_describe_security_groups_response():
     describe_security_groups_response = {}
 

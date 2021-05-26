@@ -7,7 +7,6 @@ from src.asg_util import get_instance_ids_by_percentage, get_instance_ids_in_asg
 from src.asg_util import start_instance_refresh, cancel_instance_refresh, assert_no_refresh_in_progress
 from src.asg_util import wait_for_refresh_to_finish, assert_no_suspended_process, get_instance_ids_in_asg
 from src.asg_util import get_networking_configuration_from_asg, suspend_launch, wait_for_in_service
-from src.asg_util import get_networking_configuration_from_asg, suspend_launch
 from src.asg_util import get_instance_data, update_asg, rollback_scaleup
 
 
@@ -245,8 +244,10 @@ class TestAsgUtil(unittest.TestCase):
                   'LaunchConfigOrTemplate': 'MyLaunchTemp:5'}
         rollback_scaleup(events, None)
         self.mock_autoscaling.update_auto_scaling_group.assert_called_with(
-            AutoScalingGroupName=test_data_provider.ASG_NAME, LaunchTemplate={'LaunchTemplateName': 'MyLaunchTemp', 'Version': '4'})
-        self.mock_ec2.delete_launch_template_versions.assert_called_with(LaunchTemplateName='MyLaunchTemp', Versions=['5'])
+            AutoScalingGroupName=test_data_provider.ASG_NAME,
+            LaunchTemplate={'LaunchTemplateName': 'MyLaunchTemp', 'Version': '4'})
+        self.mock_ec2.delete_launch_template_versions.assert_called_with(
+            LaunchTemplateName='MyLaunchTemp', Versions=['5'])
 
     def test_rollback_scaleup_launch_config_success(self):
         events = {'AutoScalingGroupName': test_data_provider.ASG_NAME,

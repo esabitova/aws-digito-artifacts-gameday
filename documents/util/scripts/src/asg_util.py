@@ -262,15 +262,18 @@ def get_current_state(ec2, asg, describe_asg):
     if 'LaunchTemplate' in describe_asg['AutoScalingGroups'][0]:
         launch_template_version = describe_asg['AutoScalingGroups'][0]['LaunchTemplate']['Version']
         launch_template_name = describe_asg['AutoScalingGroups'][0]['LaunchTemplate']['LaunchTemplateName']
-        describe_template = ec2.describe_launch_template_versions(LaunchTemplateName=launch_template_name, Versions=[launch_template_version])
+        describe_template = ec2.describe_launch_template_versions(
+            LaunchTemplateName=launch_template_name, Versions=[launch_template_version])
         current_instance_type = describe_template['LaunchTemplateVersions'][0]['LaunchTemplateData']['InstanceType']
         return {'OriginalInstanceType': current_instance_type, 'LaunchTemplateVersion': launch_template_version,
                 'LaunchTemplateName': launch_template_name, 'LaunchConfigurationName': ''}
     else:
         launch_config_name = describe_asg['AutoScalingGroups'][0]['LaunchConfigurationName']
         launch_config = asg.describe_launch_configurations(LaunchConfigurationNames=[launch_config_name])
-        return {'OriginalInstanceType': launch_config['LaunchConfigurations'][0]['InstanceType'], 'LaunchTemplateVersion': '',
-                'LaunchTemplateName': '', 'LaunchConfigurationName': launch_config_name}
+        return {'OriginalInstanceType': launch_config['LaunchConfigurations'][0]['InstanceType'],
+                'LaunchTemplateVersion': '',
+                'LaunchTemplateName': '',
+                'LaunchConfigurationName': launch_config_name}
 
 
 def get_bigger_instance(current_instance_type, ec2):
@@ -315,8 +318,9 @@ def update_asg(events, context):
         launch_config.pop('LaunchConfigurationARN')
         launch_config.pop('CreatedTime')
         launch_config['InstanceType'] = new_instance_type
-        launch_config['LaunchConfigurationName'] = launch_config['LaunchConfigurationName'] + "-" + str(random.randint(1000, 9999))
-        asg.create_launch_configuration(**{ key: value for (key, value) in launch_config.items() if value != ''})
+        launch_config['LaunchConfigurationName'] = launch_config['LaunchConfigurationName'] + \
+            "-" + str(random.randint(1000, 9999))
+        asg.create_launch_configuration(**{key: value for (key, value) in launch_config.items() if value != ''})
         asg.update_auto_scaling_group(AutoScalingGroupName=events['AutoScalingGroupName'],
                                       LaunchConfigurationName=launch_config['LaunchConfigurationName'])
         return {'LaunchConfigOrTemplate': launch_config['LaunchConfigurationName']}

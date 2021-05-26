@@ -13,6 +13,7 @@ def test_asg_scale_up_launch_config():
     """Create AWS resources using CloudFormation template and execute '
     'SSM automation scale up on ASG with LaunchConfig."""
 
+
 @scenario('../features/asg_scale_up.feature',
           'Create AWS resources using CloudFormation template and execute '
           'SSM automation scale up on ASG with LaunchTemplate')
