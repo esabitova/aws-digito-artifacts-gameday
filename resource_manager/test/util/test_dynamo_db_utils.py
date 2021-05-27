@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import resource_manager.src.util.boto3_client_factory as client_factory
 from botocore.exceptions import ClientError
+
+from documents.util.scripts.test.mock_sleep import MockSleep
 from resource_manager.src.util.dynamo_db_utils import (
     _check_if_backup_exists, _check_if_table_deleted, _create_backup,
     _delete_backup, _delete_backup_if_exist, _describe_backup,
@@ -338,7 +340,7 @@ class TestDynamoDbUtil(unittest.TestCase):
             _execute_boto3_dynamodb(self.session_mock,
                                     lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-        self.assertTrue(type(context.exception) is ValueError)
+        self.assertTrue(isinstance(context.exception, ValueError))
 
     def test__update_table(self):
 
@@ -488,7 +490,12 @@ class TestDynamoDbUtil(unittest.TestCase):
            return_value=True)
     @patch('resource_manager.src.util.dynamo_db_utils._check_if_backup_exists',
            return_value=True)
-    def test_delete_backup_and_wait__timeout(self, describe_mock, check_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_backup_and_wait__timeout(self, patched_time, patched_sleep, describe_mock, check_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
 
         with self.assertRaises(TimeoutError):
             delete_backup_and_wait(boto3_session=self.session_mock,
@@ -531,7 +538,12 @@ class TestDynamoDbUtil(unittest.TestCase):
                    'BackupStatus': 'CREATING'
                }
            }})
-    def test_create_backup_and_wait_for_active__timeout(self, describe_mock, create_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_create_backup_and_wait_for_active__timeout(self, patched_time, patched_sleep, describe_mock, create_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
 
         with self.assertRaises(TimeoutError):
             create_backup_and_wait_for_available(boto3_session=self.session_mock,
@@ -565,7 +577,12 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'TableStatus:': 'CREATING'}})
-    def test_wait_table_to_be_active_timeout(self, describe_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_table_to_be_active_timeout(self, patched_time, patched_sleep, describe_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
         with self.assertRaises(TimeoutError):
             wait_table_to_be_active(boto3_session=self.session_mock,
                                     table_name="my_table",
@@ -590,9 +607,13 @@ class TestDynamoDbUtil(unittest.TestCase):
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={**DESCRIBE_TABLE_RESPONCE})
-    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
-           return_value=None)
-    def test_add_global_table_and_wait_to_active(self, time_mock, describe_mock, update_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_add_global_table_and_wait_to_active(self, patched_time, patched_sleep, describe_mock, update_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         add_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                              table_name="my_table",
                                              global_table_regions=['region-1'],
@@ -619,7 +640,12 @@ class TestDynamoDbUtil(unittest.TestCase):
                        "ReplicaStatus": "NOT_ACTIVE_YET"
                    }
                ]}})
-    def test_add_global_table_and_wait_to_active_timeout(self, describe_mock, update_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_add_global_table_and_wait_to_active_timeout(self, patched_time, patched_sleep, describe_mock, update_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
         with self.assertRaises(TimeoutError):
             add_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                                  table_name="my_table",
@@ -659,9 +685,12 @@ class TestDynamoDbUtil(unittest.TestCase):
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'Replicas': []}})
-    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
-           return_value=None)
-    def test_remove_global_table_and_wait_to_active(self, time_mock, describe_mock, update_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_remove_global_table_and_wait_to_active(self, patched_time, patched_sleep, describe_mock, update_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
         remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                                 table_name="my_table",
                                                 global_table_regions=['region-1'],
@@ -681,7 +710,13 @@ class TestDynamoDbUtil(unittest.TestCase):
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'Replicas': [{'Region': 'secondary_region'}]}})
-    def test_remove_global_table_and_wait_to_active_timeout(self, describe_mock, try_remove_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_remove_global_table_and_wait_to_active_timeout(self, patched_time, patched_sleep, describe_mock,
+                                                            try_remove_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
         with self.assertRaises(TimeoutError):
             remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                                     table_name="my_table",
@@ -735,7 +770,14 @@ class TestDynamoDbUtil(unittest.TestCase):
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._check_if_table_deleted',
            return_value=False)
-    def test_drop_and_wait_dynamo_db_table_if_exists__timeout(self, check_mock, execute_mock):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_drop_and_wait_dynamo_db_table_if_exists__timeout(
+            self, patched_time, patched_sleep, check_mock, execute_mock):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
         with self.assertRaises(TimeoutError):
             drop_and_wait_dynamo_db_table_if_exists(boto3_session=self.session_mock,
                                                     table_name="my_table",
