@@ -175,13 +175,9 @@ def get_deployment(config: object, gateway_id: str, deployment_id: str) -> dict:
     return response
 
 
-def get_deployments(config: object, gateway_id: str, limit: int = 25, position: str = None) -> dict:
+def get_deployments(config: object, gateway_id: str, limit: int = 25) -> dict:
     client = boto3.client('apigateway', config=config)
-    if not position:
-        response = client.get_deployments(restApiId=gateway_id, limit=limit)
-    else:
-        response = client.get_deployments(restApiId=gateway_id, limit=limit, position=position)
-
+    response = client.get_deployments(restApiId=gateway_id, limit=limit)
     assert_https_status_code_200(response, f'Failed to perform get_deployments with restApiId: {gateway_id}')
     return response
 
@@ -399,7 +395,6 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     if resource_path.startswith('{{') and http_method.startswith('{{'):
         resource_path = http_method = '*'
 
-    # Need to have it here for rollback case to overcame issue DIG-853 with get_inputs_from_ssm_execution
     if stage_name and gateway_id:
         if stage_name.startswith('{{') and gateway_id.startswith('{{'):
             stage_name = gateway_id = None
@@ -436,3 +431,42 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     output['RateLimit'] = int(output['RateLimit'])
 
     return output
+
+
+def assert_inputs_before_throttling_rollback(events: dict, context: dict) -> None:
+    usage_plan_id: str = events['RestApiGwUsagePlanId']
+    gateway_id: str = events.get('RestApiGwId')
+    stage_name: str = events.get('RestApiGwStageName')
+    resource_path: str = events.get('RestApiGwResourcePath', '*')
+    http_method: str = events.get('RestApiGwHttpMethod', '*')
+
+    original_usage_plan_id: str = events['OriginalRestApiGwUsagePlanId']
+    original_gateway_id: str = events.get('OriginalRestApiGwId')
+    original_stage_name: str = events.get('OriginalRestApiGwStageName')
+    original_resource_path: str = events.get('OriginalRestApiGwResourcePath', '*')
+    original_http_method: str = events.get('OriginalRestApiGwHttpMethod', '*')
+
+    # Need to have it here to overcame issue DIG-853 during rollback case
+    if original_stage_name.startswith('{{') and original_gateway_id.startswith('{{'):
+        original_stage_name = original_gateway_id = ''
+
+    if original_resource_path.startswith('{{'):
+        original_resource_path = '*'
+
+    if original_http_method.startswith('{{'):
+        original_http_method = '*'
+
+    assert usage_plan_id == original_usage_plan_id, f'Provided RestApiGwUsagePlanId: {usage_plan_id} is not equal to ' \
+                                                    f'original RestApiGwUsagePlanId: {original_usage_plan_id}'
+
+    assert gateway_id == original_gateway_id, f'Provided RestApiGwId: {gateway_id} is not equal to ' \
+                                              f'original RestApiGwId: {original_gateway_id}'
+
+    assert stage_name == original_stage_name, f'Provided RestApiGwStageName: {stage_name} is not equal to ' \
+                                              f'original RestApiGwStageName: {original_stage_name}'
+
+    assert resource_path == original_resource_path, f'Provided RestApiGwResourcePath: {resource_path} is not equal to' \
+                                                    f' original RestApiGwResourcePath: {original_resource_path}'
+
+    assert http_method == original_http_method, f'Provided RestApiGwHttpMethod: {http_method} is not equal to ' \
+                                                f'original RestApiGwHttpMethod: {original_http_method}'

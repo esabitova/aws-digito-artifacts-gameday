@@ -50,10 +50,13 @@ Resources:
               - ssm:GetAutomationExecution
               - ssm:StartAutomationExecution
               - ssm:GetParameters
-              - iam:PassRole
               - logs:PutLogEvents
               - logs:DescribeLogGroups
               - logs:DescribeLogStreams
-
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoRestApiGwThrottlingAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoRestApiGwThrottlingAssumeRole

@@ -34,12 +34,18 @@ Outputs:
   RestApiGwStageUrl:
     Description: The URL of the REST API Gateway
     Value: !Sub "https://${ApplicationsApi}.execute-api.${AWS::Region}.amazonaws.com/${ApplicationsApiStage}/app"
-  SyntheticAlarmName:
+  4XXErrorAlarmName:
     Description: REST API GW Alarm based on HTTP4xx metric
-    Value: !Ref Api4xxErrors
+    Value: !Ref 4XXErrorAlarm
+  5XXErrorAlarmName:
+    Description: REST API GW Alarm based on HTTP5xx metric
+    Value: !Ref 5XXErrorAlarm
   ApiKeyId:
     Description: The ID of API key
     Value: !Ref ApiKey
+  RestApiGwResourceId:
+    Description: The ID of REST API Gateway resource
+    Value: !Ref ApiGatewayResource
 Parameters:
   RestApiGwQuotaLimit:
     Description: Usage Plan limit value
@@ -132,7 +138,7 @@ Resources:
       Description: Test API
       ApiKeySourceType: HEADER
 
-  ApiGatewayResourceApp:
+  ApiGatewayResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       ParentId: !GetAtt ApplicationsApi.RootResourceId
@@ -150,7 +156,7 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       HttpMethod: GET
-      ResourceId: !Ref ApiGatewayResourceApp
+      ResourceId: !Ref ApiGatewayResource
       RestApiId:
         !Ref ApplicationsApi
       OperationName: 'app'
@@ -213,7 +219,7 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref UsagePlan
 
-  Api4xxErrors:
+  4XXErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       ActionsEnabled: false
@@ -246,7 +252,7 @@ Resources:
       Threshold: 0
       TreatMissingData: notBreaching
 
-  Api5xxErrors:
+  5XXErrorAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
       ActionsEnabled: false
