@@ -1,9 +1,14 @@
 import unittest
 from unittest.mock import patch, MagicMock, call
 import pytest
+from botocore.exceptions import ClientError
+
+import documents.util.scripts.test.test_data_provider as test_data_provider
+import documents.util.scripts.src.lambda_util as lambda_util
 
 from documents.util.scripts.src.lambda_util import get_concurrent_execution_quota, check_feasibility, \
-    calculate_total_reserved_concurrency, set_reserved_concurrent_executions, backup_reserved_concurrent_executions
+    calculate_total_reserved_concurrency, set_reserved_concurrent_executions, backup_reserved_concurrent_executions, \
+    check_required_params
 
 CONCURRENT_EXECUTION_QUOTA_CODE = 'L-B99A9384'
 LAMBDA_NAME = 'LambdaTemplate-0-LambdaFunction-5UDF2PBK1R'
@@ -154,6 +159,52 @@ def get_paginate_side_effect(function, number_of_functions):
     return PaginateMock
 
 
+def get_lambda_function(is_vpc):
+    result = \
+        {
+            "Configuration": {
+                "FunctionName": LAMBDA_NAME,
+                "FunctionArn": LAMBDA_ARN,
+                "Runtime": "python3.8",
+                "Role": test_data_provider.ROLE,
+                "Handler": "index.handler",
+                "CodeSize": 295,
+                "Description": "",
+                "Timeout": 60,
+                "MemorySize": 128,
+                "LastModified": "2021-05-26T15:37:37.948+0000",
+                "CodeSha256": "lW6EIEMPAiNs3k3AhHMwH9n0pE54GR2p5T0ngcuwe10=",
+                "Version": "$LATEST",
+                "VpcConfig": {},
+                "TracingConfig": {
+                    "Mode": "PassThrough"
+                },
+                "RevisionId": "f69027a6-89f8-42cf-a102-1703918b1a84",
+                "State": "Active",
+                "LastUpdateStatus": "Successful",
+                "PackageType": "Zip"
+            },
+            "Code": {
+                "RepositoryType": "S3",
+                "Location": "https://url.amazonaws.com/snapshots/435978235099/SOmeLocation"
+            },
+            "Concurrency": {
+                "ReservedConcurrentExecutions": 10
+            }
+        }
+    if is_vpc:
+        result['Configuration']['VpcConfig'] = {
+            "SubnetIds": [
+                test_data_provider.APPLICATION_SUBNET_ID
+            ],
+            "SecurityGroupIds": [
+                test_data_provider.SECURITY_GROUP
+            ],
+            "VpcId": test_data_provider.VPC_ID
+        }
+    return result
+
+
 @pytest.mark.unit_test
 class TestLambdaUtil(unittest.TestCase):
     def setUp(self):
@@ -162,17 +213,26 @@ class TestLambdaUtil(unittest.TestCase):
         self.mock_lambda = MagicMock()
         self.mock_service_quotas = MagicMock()
 
-        # self.list_functions_mock = MagicMock()
         side_effect_map = {
             'lambda': self.mock_lambda,
             'service-quotas': self.mock_service_quotas,
-            # 'list_functions': self.list_functions_mock
         }
-        self.client.side_effect = lambda service_name, config: side_effect_map.get(service_name)
-        # self.client.get_paginator.side_effect = lambda action_name: side_effect_map.get(action_name)
+        self.client.side_effect = lambda service_name, config=None: side_effect_map.get(service_name)
 
     def tearDown(self):
         self.patcher.stop()
+
+    def test_check_required_params(self):
+        events = {
+            'test': 'foo'
+        }
+        required_params = [
+            'test',
+            'test2'
+        ]
+        with pytest.raises(KeyError) as key_error:
+            check_required_params(required_params, events)
+        assert 'Requires test2 in events' in str(key_error.value)
 
     # Test get_concurrent_execution_quota
     def test_get_concurrent_execution_quota_account_limit_5000(self):
@@ -330,3 +390,147 @@ class TestLambdaUtil(unittest.TestCase):
             "ReservedConcurrentExecutionsConfigured": True,
             "BackupReservedConcurrentExecutionsValue": reserved_concurrency
         })
+
+    # Test break_security_group
+    def test_remove_sg_assignment(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+            'SecurityGroupId': ''
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+        self.mock_lambda.update_function_configuration.return_value = {}
+
+        result = lambda_util.remove_sg_assignment(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+        self.mock_lambda.update_function_configuration.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            VpcConfig={
+                'SecurityGroupIds': [test_data_provider.SECURITY_GROUP],
+                'SubnetIds': get_lambda_function(is_vpc=True)['Configuration']['VpcConfig']['SubnetIds']
+            }
+        )
+
+        self.assertEqual(result, {'SecurityGroupListUpdatedValue': [test_data_provider.SECURITY_GROUP]})
+
+    def test_remove_sg_assignment_with_sg_id(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'EmptySecurityGroupId': f'{test_data_provider.SECURITY_GROUP}_empty',
+            'SecurityGroupId': test_data_provider.SECURITY_GROUP
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+        self.mock_lambda.update_function_configuration.return_value = {}
+
+        result = lambda_util.remove_sg_assignment(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+        self.mock_lambda.update_function_configuration.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            VpcConfig={
+                'SecurityGroupIds': [f'{test_data_provider.SECURITY_GROUP}_empty'],
+                'SubnetIds': get_lambda_function(is_vpc=True)['Configuration']['VpcConfig']['SubnetIds']
+            }
+        )
+
+        self.assertEqual(result, {'SecurityGroupListUpdatedValue': [f'{test_data_provider.SECURITY_GROUP}_empty']})
+
+    def test_remove_sg_assignment_wrong_sg_id(self):
+        events = {
+            'SecurityGroupId': f'{test_data_provider.SECURITY_GROUP}1',
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+
+        with pytest.raises(KeyError) as error:
+            lambda_util.remove_sg_assignment(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+
+        assert f"Security group {events['SecurityGroupId']} is not in security group list of Lambda: " \
+               f"{get_lambda_function(is_vpc=True)['Configuration']['VpcConfig']['SecurityGroupIds']}" \
+               in str(error.value)
+
+    def test_remove_sg_assignment_wrong_function_arn(self):
+        events = {
+            'SecurityGroupId': f'{test_data_provider.SECURITY_GROUP}',
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'EmptySecurityGroupId': f'{test_data_provider.SECURITY_GROUP}_empty'
+        }
+        self.mock_lambda.get_function.side_effect = ClientError(
+            error_response={'Error': {'Type': 'Sender', 'Code': 'ResourceNotFoundException'}},
+            operation_name='GetFunction'
+        )
+
+        with pytest.raises(ClientError) as error:
+            lambda_util.remove_sg_assignment(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+
+        assert "ResourceNotFoundException" in str(error.value)
+
+    def test_rollback_security_groups(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'SecurityGroupList': [test_data_provider.SECURITY_GROUP]
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+        self.mock_lambda.update_function_configuration.return_value = {}
+
+        result = lambda_util.rollback_security_groups(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+        self.mock_lambda.update_function_configuration.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            VpcConfig={
+                'SecurityGroupIds': [test_data_provider.SECURITY_GROUP],
+                'SubnetIds': [test_data_provider.APPLICATION_SUBNET_ID]
+            }
+        )
+        self.assertEqual(result, {'SecurityGroupListRestoredValue': events['SecurityGroupList']})
+
+    def test_assert_lambda_in_vpc_and_backup_sg(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+        result = lambda_util.assert_lambda_in_vpc_and_backup_sg(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+        self.assertEqual(result, {
+            'SecurityGroupIds': [test_data_provider.SECURITY_GROUP],
+            'VpcId': test_data_provider.VPC_ID
+        })
+
+    def test_assert_lambda_in_vpc_and_backup_sg_not_in_vpc(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=False)
+        with pytest.raises(AssertionError) as error:
+            lambda_util.assert_lambda_in_vpc_and_backup_sg(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+
+        assert f'Lambda function:{LAMBDA_ARN} is not a member of any VPC' in str(error.value)

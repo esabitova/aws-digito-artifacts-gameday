@@ -24,6 +24,9 @@ Outputs:
   LambdaVersion:
     Description: Lambda Version Qualifier
     Value: !GetAtt LambdaVersion.Version
+  LambdaSecurityGroup:
+    Description: Lambda Security Group
+    Value: !Ref LambdaSecurityGroup
   S3Bucket:
     Description: S3 Bucket Name
     Value: !Ref S3Bucket
@@ -66,7 +69,7 @@ Outputs:
 Parameters:
   MemorySoftLimit:
     Type: Number
-    Description: The limit of RAM for Lambda in MB
+    Description: The limit of RAM for Lambda in MBs
     Default: 2000
   LambdaLevelConcurrencyQuotaMinus10Percents:
     Type: Number
@@ -92,19 +95,213 @@ Parameters:
     Type: Number
     Description: AverageInvocations * 0.05 per 1 minute
     Default: 50
+  VPCCidr:
+    Type: String
+    Description: VPC cidr block
+    Default: 10.0.0.0/16
+  LambdaCode:
+    Type: String
+    Description: Code to upload to Lambda
+    Default: >
+      def handler(event, context):
+        print('hello from lambda')
+
 Resources:
+  LambdaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: LambdaVPC
+
+  LambdaPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref LambdaVPC
+      CidrBlock: !Select
+        - 0
+        - !Cidr
+          - !Ref VPCCidr
+          - 2
+          - 8
+      Tags:
+        - Key: Name
+          Value: LambdaPublicSubnet
+
+  LambdaPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref LambdaVPC
+      CidrBlock: !Select
+        - 1
+        - !Cidr
+          - !Ref VPCCidr
+          - 2
+          - 8
+      Tags:
+        - Key: Name
+          Value: LambdaPrivateSubnet
+
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow inbound everyting.
+      VpcId: !Ref LambdaVPC
+      SecurityGroupIngress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: LambdaSecurityGroup
+
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC
+
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      SubnetId: !Ref LambdaPublicSubnet
+      Tags:
+        - Key: Name
+          Value: LambdaNatGateway
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: LambdaVPCInternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: LambdaVPC
+      InternetGatewayId:
+        Ref: InternetGateway
+
+  IGWRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: LambdaVPC
+      Tags:
+        - Key: Name
+          Value: LambdaVPC-IGWRoute
+
+  NATRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: LambdaVPC
+      Tags:
+        - Key: Name
+          Value: LambdaVPC-NATRoute
+
+  IGWPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId:
+        Ref: IGWRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+
+  NATPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - NATRouteTable
+      - NATGateway
+    Properties:
+      RouteTableId:
+        Ref: NATRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NATGateway
+
+  IGWSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: LambdaPublicSubnet
+      RouteTableId:
+        Ref: IGWRouteTable
+
+  NATSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: LambdaPrivateSubnet
+      RouteTableId:
+        Ref: NATRouteTable
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: RunEveryMinute
+      Name: !Join
+        - "-"
+        - - "RunEveryMinute"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      ScheduleExpression: "rate(1 minute)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt
+            - LambdaFunction
+            - Arn
+          Id: !Ref LambdaFunction
+          Input: !Join
+            - ""
+            - - '{"bucket_name": "'
+              - !Ref S3Bucket
+              - '"}'
+
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        ZipFile: >
-          def handler(event, context):
-            print('hello from lambda')
+        ZipFile: !Ref LambdaCode
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
       Timeout: 60
       ReservedConcurrentExecutions: 10
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+        SubnetIds:
+          - !Ref LambdaPrivateSubnet
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LambdaFunction
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt EventRule.Arn
+
   LambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
@@ -116,21 +313,42 @@ Resources:
       FunctionName: !Ref LambdaFunction
       FunctionVersion: !GetAtt LambdaVersion.Version
       Name: actual
+
+  LambdaRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DigitoLambdaBreakSecurityGroupAssumePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              - ec2:DescribeNetworkInterfaces
+              - ec2:CreateNetworkInterface
+              - ec2:DetachNetworkInterface
+              - ec2:DeleteNetworkInterface
+          - Effect: Allow
+            Resource: !GetAtt S3Bucket.Arn
+            Action:
+              - s3:ListBucket
+      Roles:
+        - Ref: LambdaRole
   LambdaRole:
-      Type: AWS::IAM::Role
-      Properties:
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - lambda.amazonaws.com
-              Action:
-                - 'sts:AssumeRole' 
-        Description: Lambda Role
-        ManagedPolicyArns:
-          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: Lambda Role
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -225,8 +443,7 @@ Resources:
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
       TreatMissingData: "missing"
       Metrics:
-        -
-          Id: "m1"
+        - Id: "m1"
           MetricStat:
             Metric:
               Namespace: "AWS/States"
@@ -237,15 +454,14 @@ Resources:
             Period: 60
             Stat: "Average"
           ReturnData: true
-        -
-          Id: "ad1"
+        - Id: "ad1"
           Expression:
             !Join [
-                "",
+            "",
               [
-                  "ANOMALY_DETECTION_BAND(m1, ",
-                  !Ref AverageExecutionsStartedThreshold,
-                  ")",
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageExecutionsStartedThreshold,
+                ")"
               ],
             ]
           Label: "ExecutionsStarted (expected)"
@@ -261,8 +477,7 @@ Resources:
       ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
       TreatMissingData: "missing"
       Metrics:
-        -
-          Id: "m1"
+        - Id: "m1"
           MetricStat:
             Metric:
               Namespace: "Custom"
@@ -273,15 +488,14 @@ Resources:
             Period: 60
             Stat: "Maximum"
           ReturnData: true
-        -
-          Id: "ad1"
+        - Id: "ad1"
           Expression:
             !Join [
-                "",
+            "",
               [
-                  "ANOMALY_DETECTION_BAND(m1, ",
-                  !Ref AverageMemoryThreshold,
-                  ")",
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageMemoryThreshold,
+                ")",
               ],
             ]
           Label: "Duration (expected)"
@@ -311,11 +525,11 @@ Resources:
         - Id: "ad1"
           Expression:
             !Join [
-                "",
+            "",
               [
-                  "ANOMALY_DETECTION_BAND(m1, ",
-                  !Ref AverageExecutionTimeThreshold,
-                  ")",
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageExecutionTimeThreshold,
+                ")",
               ],
             ]
           Label: "ExecutionTime (expected)"
@@ -345,11 +559,11 @@ Resources:
         - Id: "ad1"
           Expression:
             !Join [
-                "",
+            "",
               [
-                  "ANOMALY_DETECTION_BAND(m1, ",
-                  !Ref AverageDurationThreshold,
-                  ")",
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageDurationThreshold,
+                ")",
               ],
             ]
           Label: "Duration (expected)"
@@ -379,11 +593,11 @@ Resources:
         - Id: "ad1"
           Expression:
             !Join [
-                "",
+            "",
               [
-                  "ANOMALY_DETECTION_BAND(m1, ",
-                  !Ref AverageInvocationsThreshold,
-                  ")",
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageInvocationsThreshold,
+                ")",
               ],
             ]
           Label: "Invocations (expected)"
@@ -463,15 +677,15 @@ Resources:
         }
       StateMachineType: STANDARD
   StateMachineRole:
-      Type: AWS::IAM::Role
-      Properties:
-        AssumeRolePolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service:
-                  - states.amazonaws.com
-              Action:
-                - 'sts:AssumeRole' 
-        Description: Lambda Role
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - states.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: Lambda Role
