@@ -94,7 +94,7 @@ def set_limit_and_period(events, context):
             {
                 'op': 'replace',
                 'path': '/quota/limit',
-                'value': new_usage_plan_limit
+                'value': str(new_usage_plan_limit)
             },
             {
                 'op': 'replace',

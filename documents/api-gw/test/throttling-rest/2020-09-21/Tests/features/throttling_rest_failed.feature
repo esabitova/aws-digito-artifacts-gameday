@@ -9,7 +9,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>5XXErrorAlarmName}} |
     And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success" for "300" seconds
       | ExecutionId                |
@@ -40,7 +40,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>5XXErrorAlarmName}} |
     And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success" for "300" seconds
       | ExecutionId                |

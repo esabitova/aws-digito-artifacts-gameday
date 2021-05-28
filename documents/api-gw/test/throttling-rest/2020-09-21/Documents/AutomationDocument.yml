@@ -22,7 +22,7 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  SyntheticAlarmName:
+  ApiGw4xxAlarmName:
     type: String
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   RestApiGwUsagePlanId:
@@ -180,7 +180,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ApiGw4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
 
@@ -250,7 +250,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ApiGw4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "ALARM" ]
 
@@ -294,7 +294,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ApiGw4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
     isEnd: true

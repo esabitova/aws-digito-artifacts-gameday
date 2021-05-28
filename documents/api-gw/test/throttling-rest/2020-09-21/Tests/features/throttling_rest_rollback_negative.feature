@@ -9,7 +9,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
 
     Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "BackupThrottlingConfiguration" in status "Success" for "300" seconds
@@ -20,7 +20,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | {{cache:SsmExecutionId>1}} |
 
     Then SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | WrongUsagePlanID     | true       | {{cache:SsmExecutionId>1}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Failed"
       | ExecutionId                |
@@ -42,7 +42,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
 
     Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "BackupThrottlingConfiguration" in status "Success" for "300" seconds
@@ -53,7 +53,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | {{cache:SsmExecutionId>1}} |
 
     Then SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName | RestApiGwId                                  | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName | RestApiGwId                                  | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | WrongStageName     | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | true       | {{cache:SsmExecutionId>1}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Failed"
       | ExecutionId                |
@@ -74,7 +74,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
 
     Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "BackupThrottlingConfiguration" in status "Success" for "240" seconds
@@ -85,7 +85,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | {{cache:SsmExecutionId>1}} |
 
     Then SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId      | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                            | SyntheticAlarmName                                 |
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId      | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | WrongRestApiGwId | true       | {{cache:SsmExecutionId>1}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Failed"
       | ExecutionId                |

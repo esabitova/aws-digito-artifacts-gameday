@@ -16,7 +16,12 @@ HIGH
 
 ## Permission required for AutomationAssumeRole
 * apigateway:GET
-* apigateway:PUT
+* apigateway:PATCH
+* cloudwatch:DescribeAlarms
+* ssm:GetAutomationExecution
+* ssm:StartAutomationExecution
+* ssm:GetParameters
+* iam:PassRole
 
 ## Supports Rollback
 Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback changes from the previous run 
@@ -46,7 +51,7 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
 ### `RestApiGwQuotaLimit`:
   * type: Integer
   * description: (Optional) The value of quota (requests per period).
-  * default: 0
+  * default: 1
 ### `RestApiGwQuotaPeriod`:
   * type: String
   * description: (Optional) The value of quota period. Possible values: DAY, WEEK, MONTH. 
@@ -69,13 +74,17 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
         * `RestApiGwQuotaLimitRestoredValue` returns `rateLimit`
         * `RestApiGwQuotaPeriodRestoredValue` returns `burstLimit`
     * Explanation:
-        * Get values from the previous execution using `PreviousExecutionId`, take values of `BackupQuotaConfigurationAndInputs` step
-            * `quota`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOrignalValue`
-            * `quotaPeriod`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOrignalValue`
+        * Get values from the previous execution using `PreviousExecutionId`, take values
+          of `BackupQuotaConfigurationAndInputs` step
+            * `quota`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOriginalValue`
+            * `quotaPeriod`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOriginalValue`
             * `usagePlanId`=`BackupQuotaConfigurationAndInputs.RestApiGwUsagePlanId`
-        * Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan with the following parameters:
+        *
+        Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan
+        with the following parameters:
             * `usagePlanId`= `RestApiGwUsagePlanId`
-            * `patchOperations`=`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
+            * `patchOperations`
+              =`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
             * Use `quota` sections in the root of the response and return `limit` and `period`
         * isEnd: true
 1. `BackupQuotaConfigurationAndInputs`
@@ -124,13 +133,16 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
         * `RestApiGwQuotaLimitRestoredValue` returns `rateLimit`
         * `RestApiGwQuotaPeriodRestoredValue` returns `burstLimit`
     * Explanation:
-        * Define variables using outputs of `BackupQuotaConfigurationAndInputs`: 
-            * `quota`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOrignalValue`
-            * `burstLimit`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOrignalValue`
+        * Define variables using outputs of `BackupQuotaConfigurationAndInputs`:
+            * `quota`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaLimitOriginalValue`
+            * `burstLimit`=`BackupQuotaConfigurationAndInputs.RestApiGwQuotaPeriodOriginalValue`
             * `usagePlanId`=`BackupQuotaConfigurationAndInputs.RestApiGwUsagePlanId`
-        * Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan with the following parameters:
+        *
+        Execute https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/apigateway.html#APIGateway.Client.update_usage_plan
+        with the following parameters:
             * `usagePlanId`= `RestApiGwUsagePlanId`
-            * `patchOperations`=`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
+            * `patchOperations`
+              =`op="replace",path="/quota/limit",value="<quota>",op="replace",path="/quota/period",value="<quotaPeriod>"`
             * Use `quota` sections in the root of the response and return `limit` and `period`
 1. `AssertAlarmToBeGreen`
     * Type: aws:waitForAwsResourceProperty

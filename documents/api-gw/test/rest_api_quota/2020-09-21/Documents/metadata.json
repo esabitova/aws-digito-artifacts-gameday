@@ -1,15 +1,15 @@
 {
-  "displayName": "Test REST API Gateway throttling",
-  "description": "Test REST API Gateway behavior when hitting throttling threshold",
+  "displayName": "Test REST API Gateway quota",
+  "description": "Test REST API Gateway behavior when hitting quota threshold",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-RestApiGwThrottling_2020-09-21",
+  "documentName": "Digito-RestApiGwQuota_2020-09-21",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "minorVersion": "001",
   "risk": "HIGH",
-  "tag": "api-gw:test:throttling-rest:2020-09-21",
+  "tag": "api-gw:test:rest-api-quota:2020-09-21",
   "recommendedAlarms": {
     "ApiGw4xxAlarmName": "api-gw:alarm:4xx-error:2020-04-01"
   }
