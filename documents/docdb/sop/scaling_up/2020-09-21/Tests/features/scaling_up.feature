@@ -7,12 +7,13 @@ Feature: SSM automation document for scaling up DocDb instances.
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                         | ON_DEMAND    |
       | documents/docdb/sop/scaling_up/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-ScalingUp_2020-09-21" SSM document
+    And cache generated instance identifier as "InstanceId" at step "before"
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And SSM automation document "Digito-ScalingUp_2020-09-21" executed
       | DBClusterIdentifier                              | DBInstanceReplicaIdentifier | AutomationAssumeRole                                                  |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | new-docdb-replica           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingUpAssumeRole}} |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>InstanceId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingUpAssumeRole}} |
 
     When SSM automation document "Digito-ScalingUp_2020-09-21" execution in status "Success"
       | ExecutionId                |
@@ -23,5 +24,5 @@ Feature: SSM automation document for scaling up DocDb instances.
 
     Then assert "NumberOfInstances" at "before" became not equal to "NumberOfInstances" at "after"
     And delete created instance and wait for instance deletion for "600" seconds
-      | DBInstanceIdentifier | DBClusterIdentifier                              |
-      | new-docdb-replica    | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | DBInstanceIdentifier        | DBClusterIdentifier                              |
+      | {{cache:before>InstanceId}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
