@@ -18,7 +18,6 @@ from sttable import parse_str_table
 from publisher.src.publish_documents import PublishDocuments
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.resource_pool import ResourcePool
-from resource_manager.src.resource_model import ResourceModel
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
@@ -103,7 +102,7 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourcePool(cfn_helper, s3_helper, dict(), None)
+        rm = ResourcePool(cfn_helper, s3_helper, dict(), None, None)
         rm.init_ddb_tables(boto3_session)
         # Distributed mode is considered mode when we executing integration tests on multiple testing sessions/machines
         # and targeting same AWS account resources, in this case we should not perform resource fixing, since it
@@ -133,7 +132,7 @@ def pytest_sessionfinish(session, exitstatus):
         boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session)
-        rm = ResourcePool(cfn_helper, s3_helper, dict(), test_session_id)
+        rm = ResourcePool(cfn_helper, s3_helper, dict(), test_session_id, None)
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
             rm.fix_stalled_resources()
@@ -183,18 +182,19 @@ def cfn_installed_alarms(alarm_manager):
 
 
 @pytest.fixture(scope='function')
-def resource_pool(request, boto3_session):
+def resource_pool(request, boto3_session, ssm_test_cache):
     """
     Creates ResourcePool fixture for every test case.
     :param request: The pytest request object
-    :param boto3_session The boto3 session
+    :param boto3_session: The boto3 session
+    :param ssm_test_cache: The ssm test cache
     :return: The resource pool fixture
     """
     test_session_id = request.session.config.option.test_session_id
     cfn_helper = CloudFormationTemplate(boto3_session)
     s3_helper = S3(boto3_session)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
-    rp = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id)
+    rp = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id, ssm_test_cache)
     yield rp
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
@@ -275,30 +275,17 @@ def publish_ssm_document(boto3_session, ssm_document_name):
     p.publish_document(documents_metadata)
 
 
-@given(parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
-def set_up_cfn_template_resources(resource_pool, cfn_input_parameters, ssm_test_cache):
+@given(parse('the cloud formation templates as integration test resources\n{cfn_templates}'))
+def set_up_cfn_template_resources(resource_pool, cfn_templates):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
     :param resource_pool: The resource pool which will take care of managing given template deployment
     and providing resources for tests
-    :param cfn_input_parameters: The table of parameters as input for cloud formation template
-    :param ssm_test_cache The custom test cache
+    :param cfn_templates: The table of parameters as input for cloud formation template
     """
-    for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
-        if cfn_params_row.get('CfnTemplatePath') is None or len(cfn_params_row.get('CfnTemplatePath')) < 1 \
-                or cfn_params_row.get('ResourceType') is None or len(cfn_params_row.get('ResourceType')) < 1:
-            raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
-        cf_template_path = cfn_params_row.pop('CfnTemplatePath')
-        resource_type = cfn_params_row.pop('ResourceType')
-        cf_input_params = {}
-        for param, param_val_ref in cfn_params_row.items():
-            if len(param_val_ref) > 0:
-                value = parse_param_value(param_val_ref, {'cache': ssm_test_cache})
-                cf_input_params[param] = str(value)
-        rm_resource_type = ResourceModel.ResourceType.from_string(resource_type)
-        resource_pool.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
+    resource_pool.add_cfn_templates(cfn_templates)
 
 
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))

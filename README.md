@@ -331,6 +331,7 @@ Given the cloud formation templates as integration test resources
 <b>SHARED</b> type of CFN template resource:
 * Single copy of given cloud formation template stack will be created for every template. 
 * All tests can use same stack of given cloud formation template at the same time (when running in parallel). 
+* IMPORTANT: Test should not modify this resource at test runtime, since other tests which are using this resource will be impacted.
 * SHARED cloud formation templates should be located under folder: ```resource_manager/cloud_formation_templates/shared/```
 
 <b>NOTE:</b> Make your own best judgement when to create cloud formation template as SHARED. 
@@ -403,28 +404,17 @@ Common steps implementation are located in:.../AwsDigitoArtifactsGameday/conftes
 Generic “given“ step implementation which defines resources to be used by integration test scenario for passed parameters. This step is interacting with resource manager and store cloud formation template,  input parameters into resource manager. Those parameters will be used during SSM automation document execution to pull resources. 
 
 ```
-@given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_input_parameters}'))
-def set_up_cfn_template_resources(resource_pool, cfn_input_parameters):
+@given(parsers.parse('the cloud formation templates as integration test resources\n{cfn_templates}'))
+def set_up_cfn_template_resources(resource_pool, cfn_templates):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    :param resource_pool: The resource pool which will take care of managing given template deployment and providing reosurces for tests
-    :param cfn_input_parameters: The table of parameters as input for cloud formation template
+    :param resource_pool: The resource pool which will take care of managing given template deployment
+    and providing resources for tests
+    :param cfn_templates: The table of parameters as input for cloud formation template
     """
-    for cfn_params_row in parse_str_table(cfn_input_parameters).rows:
-        if cfn_params_row.get('CfnTemplatePath') is None or len(cfn_params_row.get('CfnTemplatePath')) < 1 \
-                or cfn_params_row.get('ResourceType') is None or len(cfn_params_row.get('ResourceType')) < 1:
-            raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
-        cf_template_path = cfn_params_row.pop('CfnTemplatePath')
-        resource_type = cfn_params_row.pop('ResourceType')
-        cf_input_params = {}
-        for key, value in cfn_params_row.items():
-            if len(value) > 0:
-                cf_input_params[key] = value
-        rm_resource_type = ResourcePool.ResourceType.from_string(resource_type)
-        resource_pool.add_cfn_template(cf_template_path, rm_resource_type, **cf_input_params)
-
+    resource_pool.add_cfn_templates(cfn_templates)
 ```
 <b>File location:</b>.../AwsDigitoArtifactsGameday/conftest.py
 
@@ -509,7 +499,14 @@ A the moment we are supporting following parameters types:
 * Simple parameters - no reference, just a regular parameter value
 
 ### CFN Parameter References
-Let’s assume that we want to execute SSM automation and SSM automation expects input parameter with name “ClusterId” to be passed. As well we have used cloud formation template with name “RdsAuroraFailoverTestTemplate” as test resources which contains Output with name “ClusterId”. In this case we can define reference which is going to point to “cfn-output” for given CFN template “RdsAuroraFailoverTestTemplate” and template output parameter with name “ClusterId” as shown bellow. 
+It makes it possible to pass "cfn-output" references between given cloud formation templates, when one template output can be input for another template. For example you have VPC template which can be used by EC2 templates:
+```
+Given the cloud formation templates as integration test resources
+      |CfnTemplatePath                                              |ResourceType|InstanceType|                             VpcId|
+      |resource_manager/cloud_formation_templates/MyVPCTemplate.yml |      SHARED|            |                                  |
+      |resource_manager/cloud_formation_templates/MyEC2Template.yml |   ON_DEMAND|    t3.small|{{cfn-output:MyVPCTemplate>VpcId}}|   
+``` 
+For ssm document execution let’s assume that we want to execute SSM automation and SSM automation expects input parameter with name “ClusterId” to be passed. As well we have used cloud formation template with name “RdsAuroraFailoverTestTemplate” as test resources which contains Output with name “ClusterId”. In this case we can define reference which is going to point to “cfn-output” for given CFN template “RdsAuroraFailoverTestTemplate” and template output parameter with name “ClusterId” as shown bellow. 
 <b>NOTE:</b> cfn-output parameters are populated when CFN test resources are available for test.
 ```
 And SSM automation document "Digito-AuroraFailoverCluster" executed
@@ -517,6 +514,16 @@ And SSM automation document "Digito-AuroraFailoverCluster" executed
   |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
 ```
 ### Cache Parameter References
+For cloud formation templates same techinque works for 'cache' referneces as for 'cfn-output' references:
+```
+Given the cached input parameters
+      |AlarmGreaterThanOrEqualToThreshold|InstanceType|CpuLoadPercentage|StressDuration|AlarmNamespace|MetricPeriod|
+      |                                70|    t2.small|               90|           180|       CWAgent|          60|
+And the cloud formation templates as integration test resources
+      |CfnTemplatePath                                                                                  |ResourceType|InstanceType          |AlarmGreaterThanOrEqualToThreshold          |
+      |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                         |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
+      |documents/compute/test/ec2-inject_cpu_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |                                            |   
+``` 
 In order use cached parameter references that data should be cached at some point before fetching it. However same principal is used as with “cfn-output“ parameters except no template name, since it is completely up to a customer how data this case is going to be organized (keep in mind that cache data structure should be python [dictionary](https://docs.python.org/3/tutorial/datastructures.html#dictionaries)).
 ```
 And SSM automation document "Digito-AuroraFailoverCluster" executed

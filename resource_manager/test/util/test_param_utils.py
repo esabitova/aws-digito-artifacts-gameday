@@ -73,3 +73,16 @@ class TestParamUtils(unittest.TestCase):
 
     def test_parse_pool_size_bad_char_fail(self):
         self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,?TemplateB=1,TemplateC=3,S3TemplateC=4')
+
+    def test_parse_cfn_output_val_ref_success(self):
+        cfn_template_name, cfn_output_name = \
+            param_utils.parse_cfn_output_val_ref('{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}')
+        self.assertEqual('RdsAuroraFailoverTestTemplate', cfn_template_name)
+        self.assertEqual('ClusterId', cfn_output_name)
+
+    def test_parse_cfn_output_val_ref_fail_1(self):
+        self.assertRaises(Exception, param_utils.parse_cfn_output_val_ref, '{{a:RdsAuroraFailoverTestTemplate}}')
+
+    def test_parse_cfn_output_val_ref_fail_2(self):
+        self.assertRaises(Exception, param_utils.parse_cfn_output_val_ref,
+                          '{{cfn-output:RdsAuroraFailoverTestTemplate}}')

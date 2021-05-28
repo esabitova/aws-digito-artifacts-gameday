@@ -2,29 +2,39 @@ import os
 import logging
 import time
 import copy
+import re
 import resource_manager.src.config as config
 import resource_manager.src.constants as constants
 import resource_manager.src.util.yaml_util as yaml_util
+import resource_manager.src.util.param_utils as param_utils
 from .cloud_formation import CloudFormationTemplate
 from .s3 import S3
 from .resource_model import ResourceModel
 from pynamodb.exceptions import PutError
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from sttable import parse_str_table
 
 
 class ResourcePool:
-
     """
     Resource Pool to deploy/access/destroy resources created using Cloud Formation for SSM automation document tests.
     """
-    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict, test_session_id: str):
+
+    CFN_TEMPLATE_PATH_PARAM = 'cfn_template_path'
+    CFN_INPUT_PARAMS_PARAM = 'cfn_input_params'
+    CFN_OUTPUT_PARAMS_PARAM = 'cfn_output_params'
+    CFN_RESOURCE_TYPE_PARAM = 'cfn_resource_type'
+    CFN_RESOURCE_PARAM = 'cfn_resource'
+
+    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict,
+                 test_session_id: str, ssm_test_cache: {}):
         self.cfn_helper = cfn_helper
         self.s3_helper = s3_helper
-        self.cfn_templates = dict()
-        self.cfn_resources = dict()
+        self.cfn_templates = {}
         self.custom_pool_size = custom_pool_size
         self.test_session_id = test_session_id
+        self.ssm_test_cache = ssm_test_cache
 
     def init_ddb_tables(self, boto3_session):
         """
@@ -35,16 +45,32 @@ class ResourcePool:
         ResourceModel.configure(boto3_session)
         ResourceModel.create_ddb_table()
 
-    def add_cfn_template(self, cfn_template_path, resource_type: ResourceModel.ResourceType, **cf_input_params):
+    def add_cfn_templates(self, cfn_templates: str):
         """
         Adds cloud formation templates into dict into resource manager instance with input parameters.
-        :param cfn_template_path: CF template file path.
-        :param resource_type The resource type (ASSUME_ROLE, DEDICATED, ON_DEMAND).
-        :param cf_input_params CF stack input parameters.
+        :param cfn_templates: The cfn templates configuration string representation of table:
+
+        |CfnTemplatePath   |ResourceType|TestParamA             |TestParamB                              |
+        |TestTemplateA.yml |      SHARED|test_value             |                                        |
+        |TestTemplateB.yml |   ON_DEMAND|{{cache:ParamA>ParamB}}|{{cfn-output:TestTemplateA>OutputParam}}|
+        |TestTemplateC.yml |   DEDICATED|                       |{{cfn-output:TestTemplateB>OutputParam}}|
         """
-        if self.cfn_templates.get(cfn_template_path):
-            raise Exception(f'Duplicated cfn template for path [{cfn_template_path}].')
-        self.cfn_templates[cfn_template_path] = {'input_params': cf_input_params, 'type': resource_type}
+        for cfn_template in parse_str_table(cfn_templates).rows:
+            if cfn_template.get('CfnTemplatePath') is None or len(cfn_template.get('CfnTemplatePath')) < 1 \
+                    or cfn_template.get('ResourceType') is None or len(cfn_template.get('ResourceType')) < 1:
+                raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
+            cfn_template_path = cfn_template.pop('CfnTemplatePath')
+            resource_type = ResourceModel.ResourceType.from_string(cfn_template.pop('ResourceType'))
+            cfn_template_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
+            if self.cfn_templates.get(cfn_template_name):
+                raise Exception(f'Duplicated cfn template for path [{cfn_template_path}].')
+
+            cfn_input_params = self._parse_cfn_inputs(cfn_template)
+            self.cfn_templates[cfn_template_name] = {ResourcePool.CFN_TEMPLATE_PATH_PARAM: cfn_template_path,
+                                                     ResourcePool.CFN_INPUT_PARAMS_PARAM: cfn_input_params,
+                                                     ResourcePool.CFN_RESOURCE_TYPE_PARAM: resource_type,
+                                                     ResourcePool.CFN_RESOURCE_PARAM: None,
+                                                     ResourcePool.CFN_OUTPUT_PARAMS_PARAM: {}}
 
     def get_cfn_output_params(self):
         """
@@ -58,52 +84,57 @@ class ResourcePool:
         AwsDigitoArtifactsGameday/documents/test/RDS/FailoverAuroraCluster/Tests/step_defs/test_aurora_failover_cluster.py
         :return The cloud formation stack output parameters.
         """
+        cfn_output_params = {}
         resources = self.pull_resources()
-        parameters = {}
-        for resource in resources:
-            resource_type = ResourceModel.ResourceType.from_string(resource.type)
-            template_file_name = self._get_cfn_template_file_name(resource.cf_template_name, resource_type)
-            cfn_output_parameters = resource.attribute_values.get('cf_output_parameters')
-            if cfn_output_parameters is not None:
-                for out in cfn_output_parameters:
-                    if parameters.get(template_file_name) is None:
-                        parameters[template_file_name] = {}
-                    parameters[template_file_name][out['OutputKey']] = out['OutputValue']
-        return parameters
+        for cfn_name, cfn_config in resources.items():
+            resource = cfn_config[ResourcePool.CFN_RESOURCE_PARAM]
+            cfn_output_params[cfn_name] = self._parse_cfn_outputs(resource)
+        return cfn_output_params
 
-    def pull_resources(self):
+    def pull_resources(self) -> []:
         """
         Pulls available resources for all cloud formation templates used by test.
         :return: The available resources.
         """
-        resources = []
-        for cfn_template_path in self.cfn_templates:
-            resource_type = self.cfn_templates[cfn_template_path]['type']
-            if self.cfn_resources.get(cfn_template_path) is None:
-                cf_template_file_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
-                pool_size = self._get_resource_pool_size(cf_template_file_name, resource_type)
+        for cfn_template in self.cfn_templates.items():
+            cfn_temp_config = cfn_template[1]
+            if not cfn_temp_config.get(ResourcePool.CFN_RESOURCE_PARAM):
+                cfn_temp_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
+        return self.cfn_templates
 
-                self.cfn_resources[cfn_template_path] = self.pull_resource_by_template(cfn_template_path,
-                                                                                       pool_size,
-                                                                                       resource_type,
-                                                                                       constants.wait_time_out_secs)
-            resources.append(self.cfn_resources[cfn_template_path])
-        return resources
-
-    def pull_resource_by_template(self, cfn_template_path: str, pool_size: int,
-                                  resource_type: ResourceModel.ResourceType, time_out_sec: int):
+    def pull_resource_by_template(self, cfn_template: ()):
         """
         Pulls 'AVAILABLE' resources from Dynamo DB table by cloud formation template name,
         if resource is not available it waits.
-        :param cfn_template_path: The cloud formation template path
-        :param time_out_sec: The amount of seconds to wait for resource before time out
-        :param pool_size The pool size for resource (limit of available copies of given cloud formation template)
-        :param resource_type The type of the resource.
+        :param cfn_template: The cloud formation template object containing cloud formation configuration.
         :return: The available resources
         """
-        # TODO: Implement logic to handle DEDICATED resource creation/termination:
-        # https://issues.amazon.com/issues/Digito-1204
+        logging.error(cfn_template)
+        cfn_template_name = cfn_template[0]
+        cfn_config = cfn_template[1]
+        resource_type = cfn_config[ResourcePool.CFN_RESOURCE_TYPE_PARAM]
+        cfn_template_path = cfn_config[ResourcePool.CFN_TEMPLATE_PATH_PARAM]
+        cfn_input_params = cfn_config[ResourcePool.CFN_INPUT_PARAMS_PARAM]
+        pool_size = self._get_resource_pool_size(cfn_template_name, resource_type)
+        time_out_sec = constants.wait_time_out_secs
         logging.info('Pulling resources for [{}] template'.format(cfn_template_path))
+
+        # Parsing cfn input parameters, if any of parameters is cfn-output,
+        # then we pull that cfn resource to get parameter value from cfn output.
+        for param, value in cfn_input_params.items():
+            # In case if parameter value refers to cfn output.
+            if re.compile(r'{{2}(cfn-output:).+}{2}').match(value):
+                cfn_template_name, cfn_output_param = param_utils.parse_cfn_output_val_ref(value)
+                cfn_template_config = self.cfn_templates.get(cfn_template_name)
+                if not cfn_template_config or not cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM):
+                    cfn_template = (cfn_template_name, cfn_template_config)
+                    cfn_template_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
+                resource = cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM)
+                cfn_input_params[param] = self._parse_cfn_outputs(resource)[cfn_output_param]
+            # In case if parameter value refers to cache or is regular value.
+            else:
+                cfn_input_params[param] = param_utils.parse_param_value(value, {'cache': self.ssm_test_cache})
+
         waited_time_sec = 0
         while waited_time_sec < time_out_sec:
             cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
@@ -112,7 +143,8 @@ class ResourcePool:
                 resource = self._filter_resource_by_index_and_type(resources, i, resource_type)
                 try:
                     if resource is None:
-                        resource = self._create_resource(i, pool_size, cfn_template_path, resource_type)
+                        resource = self._create_resource(i, pool_size, cfn_template_path,
+                                                         cfn_input_params, resource_type)
                         if resource is not None:
                             return resource
                     # In case if resource is AVAILABLE/FAILED. In case of FAILED we want to
@@ -128,21 +160,22 @@ class ResourcePool:
                             merged_roles = self._merge_assume_roles(existing_assume_roles, cfn_content)
                             if not yaml_util.is_equal(merged_roles, existing_assume_roles) or \
                                     resource.status == ResourceModel.Status.FAILED.name:
-                                resource = self._update_resource(i, cfn_template_path, merged_roles, resource)
+                                resource = self._update_resource(i, cfn_template_path, cfn_input_params,
+                                                                 merged_roles, resource)
                                 if resource is not None:
                                     return resource
                             else:
                                 return resource
                         else:
                             cfn_template_sha1 = yaml_util.get_yaml_file_sha1_hash(cfn_template_path)
-                            cfn_params = self._get_cfn_input_parameters(cfn_template_path)
-                            cfn_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_params)
+                            cfn_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
 
                             if resource.cf_template_sha1 != cfn_template_sha1 \
                                     or resource.cf_input_parameters_sha1 != cfn_params_sha1 \
                                     or resource.status == ResourceModel.Status.FAILED.name \
                                     or resource.status == ResourceModel.Status.DELETED.name:
-                                resource = self._update_resource(i, cfn_template_path, cfn_content, resource)
+                                resource = self._update_resource(i, cfn_template_path, cfn_input_params,
+                                                                 cfn_content, resource)
                                 if resource is not None:
                                     return resource
                             # In case if resource type is ON_DEMAND or DEDICATED
@@ -195,7 +228,8 @@ class ResourcePool:
         Releases resources - updates records in Dynamo DB table with status 'AVAILABLE'.
         """
         logging.info("Releasing test resources.")
-        for resource in self.cfn_resources.values():
+        for cfn_config in self.cfn_templates.values():
+            resource = cfn_config[ResourcePool.CFN_RESOURCE_PARAM]
             # Deleting resource/stack for DEDICATED type.
             if resource.type == ResourceModel.ResourceType.DEDICATED.name:
                 ResourcePool._delete_resource(resource, self.cfn_helper)
@@ -285,19 +319,20 @@ class ResourcePool:
         logging.info("Pool size for [%s] template: %d", cfn_template_name, pool_size)
         return pool_size
 
-    def _update_resource(self, index: int, cfn_template_path: str, cfn_content: dict, resource: ResourceModel):
+    def _update_resource(self, index: int, cfn_template_path: str, cfn_input_params: {},
+                         cfn_content: dict, resource: ResourceModel):
         """
         Updates resource for given cloud formation template.
         :param index: The cloud formation template resource index (should not exceed pool_size limit.)
         :param cfn_template_path: The cloud formation template path
+        :param cfn_input_params: The cloud formation input parameters
         :param cfn_content: The cloud formation content
-        :parma resource: The resource to be updated
+        :param resource: The resource to be updated
         :return The updated cloud formation resource
         """
         try:
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
             resource_type = ResourceModel.ResourceType.from_string(resource.type)
-            cfn_input_params = self._get_cfn_input_parameters(cfn_template_path)
             cfn_input_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
             cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
             cfn_stack_name = self._get_stack_name(cfn_template_name, index, resource_type)
@@ -325,21 +360,21 @@ class ResourcePool:
                 resource.save()
             raise e
 
-    def _create_resource(self, index: int, pool_size: int, cfn_template_path: str,
+    def _create_resource(self, index: int, pool_size: int, cfn_template_path: str, cfn_input_params: {},
                          resource_type: ResourceModel.ResourceType):
         """
         Creates resource for given cloud formation template.
         :param index The cloud formation template resource index (should not exceed pool_size limit.)
         :param pool_size The cloud formation pool size.
         :param cfn_template_path The cloud formation template path
-        :parma resource_type The resource type
+        :param cfn_input_params: The cloud formation input parameters
+        :param resource_type The resource type
         :return The created cloud formation resources
         """
         resource = None
         try:
             cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
-            cfn_input_params = self._get_cfn_input_parameters(cfn_template_path)
             cfn_input_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
             cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
             cfn_stack_name = self._get_stack_name(cfn_template_name, index, resource_type)
@@ -468,11 +503,27 @@ class ResourcePool:
         (file_name, ext) = os.path.splitext(base_name)
         return file_name
 
-    def _get_cfn_input_parameters(self, cfn_template_path):
+    def _parse_cfn_outputs(self, resource: ResourceModel) -> {}:
         """
-        Returns cfn input parameters.
-        :param cfn_template_path: The cloud formation template path
-        :return: The cfn input parameters.
+        Returns cloud formation outputs as dictionary.
+        :param resource: The resource to read cloud formation outputs
+        :return: The cloud formation outputs as dictionary.
         """
-        cfn_template = self.cfn_templates.get(cfn_template_path)
-        return cfn_template['input_params']
+        cfn_output_parameters = resource.attribute_values.get('cf_output_parameters')
+        parsed_cfn_output_parameters = {}
+        if cfn_output_parameters is not None:
+            for out in cfn_output_parameters:
+                parsed_cfn_output_parameters[out['OutputKey']] = out['OutputValue']
+        return parsed_cfn_output_parameters
+
+    def _parse_cfn_inputs(self, cfn_template) -> {}:
+        """
+        Returns cloud formation input parameters in cloud formation acceptable format.
+        :param cfn_template: The cloud formation template object with configuration
+        :return: The cloud formation input parameters in cloud formation acceptable format
+        """
+        cfn_input_params = {}
+        for param, value in cfn_template.items():
+            if len(value) > 0:
+                cfn_input_params[param] = str(value)
+        return cfn_input_params

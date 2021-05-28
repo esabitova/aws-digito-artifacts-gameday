@@ -146,3 +146,6 @@ class TestS3(unittest.TestCase):
 
         self.mock_s3_service.delete_objects.assert_called_once()
         self.mock_s3_service.delete_bucket.assert_called_once()
+
+    def test_abc(self):
+        pass

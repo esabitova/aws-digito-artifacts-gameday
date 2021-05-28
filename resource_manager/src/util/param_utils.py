@@ -52,9 +52,23 @@ def _get_param_value(param_container, param_val_ref):
     for i in range(len(params)):
         value = value.get(params[i])
         if value is None:
-            raise Exception("Parameter reference with name [{}] does not exist. container {} keys are: [{}]".
+            raise Exception("Parameter reference with name [{}] does not exist. Container {} keys are: [{}]".
                             format(param_val_ref, params[0], ','.join(param_container.keys())))
     return value
+
+
+def parse_cfn_output_val_ref(cfn_output_val_ref: str) -> (str, str):
+    if re.compile(r'{{2}cfn-output:(\w+>?)+}{2}').match(cfn_output_val_ref):
+        param_val_ref = re.search(r'[^{cfn\-output:](\w+>?)+[^}]', cfn_output_val_ref).group()
+        if param_val_ref is not None and len(param_val_ref.split('>')) == 2:
+            cfn_template_name = param_val_ref.split('>')[0]
+            cfn_output_param_name = param_val_ref.split('>')[1]
+            return cfn_template_name, cfn_output_param_name
+        else:
+            raise Exception(f'Parameter format "{cfn_output_val_ref}" is not supported for [cfn-output], correct format'
+                            f' is "{{cfn-output:CfnTemplateName>CfnTemplateOutputParamName}}".')
+    raise Exception(f'Parameter format "{cfn_output_val_ref}" is not supported for [cfn-output], correct format'
+                    f' is "{{cfn-output:CfnTemplateName>CfnTemplateOutputParamName}}".')
 
 
 def parse_pool_size(custom_pool_size: str) -> dict:

@@ -2,6 +2,7 @@ import unittest
 import pytest
 import resource_manager.src.config as config
 import resource_manager.src.util.yaml_util as yaml_util
+import resource_manager.src.constants as constants
 from unittest.mock import patch, MagicMock, call, mock_open
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.resource_model import ResourceModel
@@ -13,7 +14,7 @@ class TestResourcePool(unittest.TestCase):
     def setUp(self):
         self.os_path_patcher = patch('os.path')
         self.os_path_mock = self.os_path_patcher.start()
-        self.test_template_name = 'test_cf_template_name'
+        self.test_template_name = 'TestCfnTempName'
         self.test_bucket_name = 'test_bucket_name'
         self.dummy_test_session_id = 'dummy_test_session_id'
         self.os_path_mock.isfile.return_value = True
@@ -22,14 +23,14 @@ class TestResourcePool(unittest.TestCase):
         self.s3_helper_mock.get_file_content.return_value = None
         self.cfn_helper_mock = MagicMock()
 
-        self.rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, dict(), self.dummy_test_session_id)
+        self.rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, dict(), self.dummy_test_session_id, {})
 
         self.file_data_dummy = '{"AWSTemplateFormatVersion": "2010-09-09",' \
                                '"Description": "Assume Roles for SSM automation execution.",' \
                                '"Outputs": {},' \
                                '"Resources": {}}'
         self.cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(yaml_util.loads_yaml(self.file_data_dummy))
-        self.cfn_input_param_sha1 = yaml_util.get_yaml_content_sha1_hash({'test_param': 'test_param_value'})
+        self.cfn_input_param_sha1 = yaml_util.get_yaml_content_sha1_hash({'TestParamA': 'test_value'})
         self.mock_file_patcher = patch('builtins.open', mock_open(read_data=self.file_data_dummy))
         self.mock_file = self.mock_file_patcher.start()
 
@@ -38,11 +39,44 @@ class TestResourcePool(unittest.TestCase):
         self.mock_file_patcher.stop()
         config.pool_size = dict(default=1)
 
+    def test_add_cfn_templates_success(self):
+        self.os_path_mock.splitext.side_effect = [('TestTemplateA', 'yml'),
+                                                  ('TestTemplateB', 'yml')]
+
+        cfn_templates = "|CfnTemplatePath   |ResourceType|TestParamA|\n"\
+                        "|TestTemplateA.yml |  ON_DEMAND |test_value|\n"\
+                        "|TestTemplateB.yml |ASSUME_ROLE |          |"
+        self.rm.add_cfn_templates(cfn_templates)
+        self.assertEqual(len(self.rm.cfn_templates), 2)
+
+    def test_add_cfn_templates_duplicate_name_fail(self):
+        self.os_path_mock.splitext.return_value = ('TestTemplateA', 'yml')
+
+        cfn_templates = "|CfnTemplatePath   |ResourceType|TestParamA|\n" \
+                        "|TestTemplateA.yml |  ON_DEMAND |test_value|\n" \
+                        "|TestTemplateA.yml |ASSUME_ROLE |          |"
+        self.assertRaises(Exception, self.rm.add_cfn_templates, cfn_templates)
+
+    def test_add_cfn_templates_missing_param_fail_1(self):
+        self.os_path_mock.splitext.return_value = ('TestTemplateA', 'yml')
+
+        cfn_templates = "|MyTestParam       |ResourceType|TestParamA|\n" \
+                        "|TestTemplateA.yml |  ON_DEMAND |test_value|\n" \
+                        "|TestTemplateB.yml |ASSUME_ROLE |          |"
+        self.assertRaises(Exception, self.rm.add_cfn_templates, cfn_templates)
+
+    def test_add_cfn_templates_missing_param_fail_2(self):
+        self.os_path_mock.splitext.return_value = ('TestTemplateA', 'yml')
+
+        cfn_templates = "|CfnTemplatePath   |MyTestParam |TestParamA|\n" \
+                        "|TestTemplateA.yml |  ON_DEMAND |test_value|\n" \
+                        "|TestTemplateB.yml |ASSUME_ROLE |          |"
+        self.assertRaises(Exception, self.rm.add_cfn_templates, cfn_templates)
+
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     @patch('resource_manager.src.resource_model.ResourceModel.create')
     def test_pull_resources_on_demand_by_template_name_missing_template_index_success(self, create_mock, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
-
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=1,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -58,11 +92,12 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
         create_mock.return_value = r2
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.ON_DEMAND, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 0)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r2.save.assert_called_once()
@@ -73,6 +108,7 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_on_demand_by_template_name_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -88,11 +124,12 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
         query_mock.return_value = [r1, r2]
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.ON_DEMAND, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r2.save.assert_called_once()
@@ -101,6 +138,7 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_dedicated_by_template_name_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.DEDICATED.name,
@@ -116,11 +154,12 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
         query_mock.return_value = [r1, r2]
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.DEDICATED, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   DEDICATED|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r1.save.assert_not_called()
@@ -144,11 +183,12 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
         query_mock.return_value = [r1, r2]
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.SHARED,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.SHARED, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |      SHARED|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 0)
         self.assertEqual(resource.status, ResourceModel.Status.AVAILABLE.name)
         self.assertEqual(resource.type, ResourceModel.ResourceType.SHARED.name)
@@ -158,6 +198,8 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_on_demand_by_template_name_cfn_param_sha1_not_equal_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -173,11 +215,12 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1="not_equal_param_sha1")
         query_mock.return_value = [r1, r2]
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND.name,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.ON_DEMAND, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         self.assertEqual(r2.save.call_count, 2)
@@ -186,6 +229,8 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_on_demand_by_template_name_cfn_template_sha1_not_equal_success(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -201,11 +246,12 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
         query_mock.return_value = [r1, r2]
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND.name,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.ON_DEMAND, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         self.assertEqual(r2.save.call_count, 2)
@@ -215,6 +261,8 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.create')
     def test_pull_resources_on_demand_by_template_name_create_success(self, create_mock, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -227,10 +275,12 @@ class TestResourcePool(unittest.TestCase):
                           status=ResourceModel.Status.AVAILABLE.name)
         create_mock.return_value = r2
 
-        self.rm.add_cfn_template(self.test_template_name, ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        resource = self.rm.pull_resource_by_template(self.test_template_name, 2,
-                                                     ResourceModel.ResourceType.ON_DEMAND, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        resource = self.rm.pull_resource_by_template(cfn_template)
+
         self.assertEqual(resource.cf_stack_index, 1)
         self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
         r2.save.assert_called_once()
@@ -241,6 +291,10 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_on_demand_by_template_name_timeout_fail(self, query_mock):
         self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        constants.wait_time_out_secs = 2
+        constants.sleep_time_secs = 1
+        config.pool_size[self.test_template_name] = 2
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -252,13 +306,30 @@ class TestResourcePool(unittest.TestCase):
                           status=ResourceModel.Status.LEASED.name)
         query_mock.return_value = [r1, r2]
 
-        self.rm.add_cfn_template(self.test_template_name, ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        self.assertRaises(Exception, self.rm.pull_resource_by_template, self.test_template_name, 2, 5)
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
+        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+
+        self.assertRaises(Exception, self.rm.pull_resource_by_template, cfn_template)
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_pull_resources_on_demand_success(self, query_mock):
-        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
+        config.pool_size[self.test_template_name + '_1'] = 1
+
+        base_names = {
+            self.test_template_name + '.yml': self.test_template_name + '.yml',
+            self.test_template_name + '_1.yml': self.test_template_name + '_1.yml'
+        }
+        self.os_path_mock.basename.side_effect = lambda template_name: base_names.get(template_name)
+
+        file_names = {
+            self.test_template_name + '.yml': (self.test_template_name, 'yml'),
+            self.test_template_name + '_1.yml': (self.test_template_name + '_1', 'yml')
+        }
+        self.os_path_mock.splitext.side_effect = lambda template_name: file_names.get(template_name)
+
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
                           type=ResourceModel.ResourceType.ON_DEMAND.name,
@@ -280,28 +351,43 @@ class TestResourcePool(unittest.TestCase):
                           cf_template_sha1=self.cfn_content_sha1,
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
 
-        client_side_effect_map = {
-            self.test_template_name: [r1, r2],
-            self.test_template_name + '_1': [r3]
+        records_side_effect_map = {
+            self.test_template_name + '.yml': [r1, r2],
+            self.test_template_name + '_1.yml': [r3]
         }
-        query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
+        query_mock.side_effect = lambda cf_template_name: records_side_effect_map.get(cf_template_name)
 
-        self.rm.add_cfn_template(self.test_template_name, ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        self.rm.add_cfn_template(self.test_template_name + '_1', ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|\n'\
+                        '|{}_1.yml       |   ON_DEMAND|test_value|'.format(self.test_template_name,
+                                                                           self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
         resources = self.rm.pull_resources()
         self.assertEqual(len(resources), 2)
-        for resource in resources:
-            self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
+        for cfn_name in resources.keys():
+            self.assertEqual(resources[cfn_name][ResourcePool.CFN_RESOURCE_PARAM].status,
+                             ResourceModel.Status.LEASED.name)
         r3.save.assert_called_once()
         r1.save.assert_called_once()
 
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     @patch('resource_manager.src.resource_model.ResourceModel.create')
     def test_pull_resources_on_demand_create_success(self, create_mock, query_mock):
-        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+
+        config.pool_size[self.test_template_name] = 2
+        config.pool_size[self.test_template_name + '_1'] = 1
+
+        base_names = {
+            self.test_template_name + '.yml': self.test_template_name + '.yml',
+            self.test_template_name + '_1.yml': self.test_template_name + '_1.yml'
+        }
+        self.os_path_mock.basename.side_effect = lambda template_name: base_names.get(template_name)
+
+        file_names = {
+            self.test_template_name + '.yml': (self.test_template_name, 'yml'),
+            self.test_template_name + '_1.yml': (self.test_template_name + '_1', 'yml')
+        }
+        self.os_path_mock.splitext.side_effect = lambda template_name: file_names.get(template_name)
 
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
@@ -317,28 +403,26 @@ class TestResourcePool(unittest.TestCase):
                           cf_template_sha1=self.cfn_content_sha1,
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
 
-        client_side_effect_map = {
-            self.test_template_name: [r1, r2],
-            self.test_template_name + '_1': []
+        records_side_effect_map = {
+            self.test_template_name + '.yml': [r1, r2],
+            self.test_template_name + '_1.yml': []
         }
-        query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
+        query_mock.side_effect = lambda cf_template_name: records_side_effect_map.get(cf_template_name)
 
         mock = MagicMock()
         mock.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
         create_mock.return_value = mock
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        self.rm.add_cfn_template(self.test_template_name + '_1',
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|\n' \
+                        '|{}_1.yml       |   ON_DEMAND|test_value|'.format(self.test_template_name,
+                                                                           self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
         resources = self.rm.pull_resources()
         self.assertEqual(len(resources), 2)
-        for resource in resources:
-            self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
-
+        for cfn_name in resources.keys():
+            self.assertEqual(resources[cfn_name][ResourcePool.CFN_RESOURCE_PARAM].status,
+                             ResourceModel.Status.LEASED.name)
         self.s3_helper_mock.upload_file.assert_called_once()
         self.cfn_helper_mock.deploy_cf_stack.assert_called_once()
 
@@ -367,14 +451,15 @@ class TestResourcePool(unittest.TestCase):
                             cf_input_parameters_sha1=self.cfn_input_param_sha1)
         create_mock.return_value = mock
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.DEDICATED,
-                                 test_param='test_param_value')
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   DEDICATED|test_value|\n'.format(self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
 
         resources = self.rm.pull_resources()
         self.assertEqual(len(resources), 1)
-        for resource in resources:
-            self.assertEqual(resource.status, ResourceModel.Status.LEASED.name)
+        for cfn_name in resources.keys():
+            self.assertEqual(resources[cfn_name][ResourcePool.CFN_RESOURCE_PARAM].status,
+                             ResourceModel.Status.LEASED.name)
 
         self.s3_helper_mock.upload_file.assert_called_once()
         self.cfn_helper_mock.deploy_cf_stack.assert_called_once()
@@ -382,7 +467,20 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     @patch('resource_manager.src.resource_model.ResourceModel.create')
     def test_pull_resources_shared_create_success(self, create_mock, query_mock):
-        self.os_path_mock.splitext.return_value = (self.test_template_name, 'yml')
+        config.pool_size[self.test_template_name] = 2
+        config.pool_size[self.test_template_name + '_1'] = 1
+
+        base_names = {
+            self.test_template_name + '.yml': self.test_template_name + '.yml',
+            self.test_template_name + '_1.yml': self.test_template_name + '_1.yml'
+        }
+        self.os_path_mock.basename.side_effect = lambda template_name: base_names.get(template_name)
+
+        file_names = {
+            self.test_template_name + '.yml': (self.test_template_name, 'yml'),
+            self.test_template_name + '_1.yml': (self.test_template_name + '_1', 'yml')
+        }
+        self.os_path_mock.splitext.side_effect = lambda template_name: file_names.get(template_name)
 
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0,
@@ -391,27 +489,26 @@ class TestResourcePool(unittest.TestCase):
                           cf_template_sha1=self.cfn_content_sha1,
                           cf_input_parameters_sha1=self.cfn_input_param_sha1)
 
-        client_side_effect_map = {
-            self.test_template_name: [r1],
-            self.test_template_name + '_1': []
+        records_side_effect_map = {
+            self.test_template_name + '.yml': [r1],
+            self.test_template_name + '_1.yml': []
         }
-        query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
+        query_mock.side_effect = lambda cf_template_name: records_side_effect_map.get(cf_template_name)
 
         mock = MagicMock()
         mock.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name)
         create_mock.return_value = mock
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.SHARED,
-                                 test_param='test_param_value')
-        self.rm.add_cfn_template(self.test_template_name + '_1',
-                                 ResourceModel.ResourceType.SHARED,
-                                 test_param='test_param_value')
-
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |      SHARED|test_value|\n' \
+                        '|{}_1.yml       |      SHARED|test_value|'.format(self.test_template_name,
+                                                                           self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
         resources = self.rm.pull_resources()
         self.assertEqual(len(resources), 2)
-        for resource in resources:
-            self.assertEqual(resource.status, ResourceModel.Status.AVAILABLE.name)
+        for cfn_name in resources.keys():
+            self.assertEqual(resources[cfn_name][ResourcePool.CFN_RESOURCE_PARAM].status,
+                             ResourceModel.Status.AVAILABLE.name)
 
         self.s3_helper_mock.upload_file.assert_called_once()
         self.cfn_helper_mock.deploy_cf_stack.assert_called_once()
@@ -419,17 +516,20 @@ class TestResourcePool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.query')
     def test_get_cf_output_params_success(self, query_mock):
 
+        config.pool_size[self.test_template_name] = 2
+        config.pool_size[self.test_template_name + '_1'] = 1
+
         base_names = {
-            'test_cf_template_name': self.test_template_name + '.yml',
-            'test_cf_template_name_1': self.test_template_name + '_1.yml'
+            self.test_template_name + '.yml': self.test_template_name + '.yml',
+            self.test_template_name + '_1.yml': self.test_template_name + '_1.yml'
         }
-        self.os_path_mock.basename.side_effect = lambda path: base_names.get(path)
+        self.os_path_mock.basename.side_effect = lambda template_name: base_names.get(template_name)
 
         file_names = {
             self.test_template_name + '.yml': (self.test_template_name, 'yml'),
-            self.test_template_name + '_1.yml': (self.test_template_name + '_1', 'yml'),
+            self.test_template_name + '_1.yml': (self.test_template_name + '_1', 'yml')
         }
-        self.os_path_mock.splitext.side_effect = lambda base_name: file_names.get(base_name)
+        self.os_path_mock.splitext.side_effect = lambda template_name: file_names.get(template_name)
 
         r1 = MagicMock()
         r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
@@ -455,18 +555,17 @@ class TestResourcePool(unittest.TestCase):
                           cf_input_parameters_sha1=self.cfn_input_param_sha1,
                           attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_3',
                                                                       'OutputValue': 'test_value_3'}]})
-        client_side_effect_map = {
-            self.test_template_name: [r1, r2],
-            self.test_template_name + '_1': [r3]
+        records_side_effect_map = {
+            self.test_template_name + '.yml': [r1, r2],
+            self.test_template_name + '_1.yml': [r3]
         }
-        query_mock.side_effect = lambda cf_template_name: client_side_effect_map.get(cf_template_name)
+        query_mock.side_effect = lambda cf_template_name: records_side_effect_map.get(cf_template_name)
 
-        self.rm.add_cfn_template(self.test_template_name,
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
-        self.rm.add_cfn_template(self.test_template_name + '_1',
-                                 ResourceModel.ResourceType.ON_DEMAND,
-                                 test_param='test_param_value')
+        cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
+                        '|{}.yml         |   ON_DEMAND|test_value|\n' \
+                        '|{}_1.yml       |   ON_DEMAND|test_value|'.format(self.test_template_name,
+                                                                           self.test_template_name)
+        self.rm.add_cfn_templates(cfn_templates)
 
         resources_params = self.rm.get_cfn_output_params()
         self.assertEqual(len(resources_params), 2)
@@ -477,6 +576,68 @@ class TestResourcePool(unittest.TestCase):
         self.assertIsNotNone(resources_params.get(self.test_template_name + '_1').get('test_key_3'))
         self.assertEqual(resources_params.get(self.test_template_name + '_1')['test_key_3'], 'test_value_3')
         self.assertEqual(resources_params.get(self.test_template_name)['test_key_1'], 'test_value_1')
+        r3.save.assert_called_once()
+        r1.save.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.query')
+    def test_pull_resources_with_cfn_referenced_params_success(self, query_mock):
+
+        config.pool_size[self.test_template_name] = 2
+        config.pool_size[self.test_template_name + '_1'] = 1
+
+        base_names = {
+            self.test_template_name + '.yml': self.test_template_name + '.yml',
+            self.test_template_name + '_1.yml': self.test_template_name + '_1.yml'
+        }
+        self.os_path_mock.basename.side_effect = lambda template_name: base_names.get(template_name)
+
+        file_names = {
+            self.test_template_name + '.yml': (self.test_template_name, 'yml'),
+            self.test_template_name + '_1.yml': (self.test_template_name + '_1', 'yml')
+        }
+        self.os_path_mock.splitext.side_effect = lambda template_name: file_names.get(template_name)
+
+        r1 = MagicMock()
+        r1.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
+                          cf_template_name=self.test_template_name,
+                          type=ResourceModel.ResourceType.ON_DEMAND.name,
+                          cf_template_sha1=self.cfn_content_sha1,
+                          cf_input_parameters_sha1=self.cfn_input_param_sha1,
+                          attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_1',
+                                                                      'OutputValue': 'test_value'}]})
+        r2 = MagicMock()
+        r2.configure_mock(cf_stack_index=1, status=ResourceModel.Status.LEASED.name,
+                          cf_template_name=self.test_template_name,
+                          type=ResourceModel.ResourceType.ON_DEMAND.name,
+                          cf_template_sha1=self.cfn_content_sha1,
+                          cf_input_parameters_sha1=self.cfn_input_param_sha1,
+                          attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_1',
+                                                                      'OutputValue': 'test_value_2'}]})
+        r3 = MagicMock()
+        r3.configure_mock(cf_stack_index=0, status=ResourceModel.Status.AVAILABLE.name,
+                          cf_template_name=self.test_template_name + '_1',
+                          type=ResourceModel.ResourceType.ON_DEMAND.name,
+                          cf_template_sha1=self.cfn_content_sha1,
+                          cf_input_parameters_sha1=self.cfn_input_param_sha1,
+                          attribute_values={'cf_output_parameters': [{'OutputKey': 'test_key_3',
+                                                                      'OutputValue': 'test_value_3'}]})
+        records_side_effect_map = {
+            self.test_template_name + '.yml': [r1, r2],
+            self.test_template_name + '_1.yml': [r3]
+        }
+        query_mock.side_effect = lambda cf_template_name: records_side_effect_map.get(cf_template_name)
+
+        cfn_templates = '|CfnTemplatePath      |ResourceType|                               TestParamA|\n' \
+                        '|TestCfnTempName.yml  |   ON_DEMAND|                               test_value|\n' \
+                        '|TestCfnTempName_1.yml|   ON_DEMAND|{{cfn-output:TestCfnTempName>test_key_1}}|'
+        self.rm.add_cfn_templates(cfn_templates)
+
+        resources = self.rm.pull_resources()
+        self.assertEqual(len(resources), 2)
+        for cfn_name in resources.keys():
+            self.assertEqual(resources[cfn_name][ResourcePool.CFN_RESOURCE_PARAM].status,
+                             ResourceModel.Status.LEASED.name)
+
         r3.save.assert_called_once()
         r1.save.assert_called_once()
 
@@ -504,7 +665,7 @@ class TestResourcePool(unittest.TestCase):
         r2.configure_mock(status=ResourceModel.Status.CREATING.name,
                           test_session_id='dummy_test_session_id_b')
         scan_mock.return_value = [r1, r2]
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, dict(), None)
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, dict(), None, None)
         rm.fix_stalled_resources()
 
         self.assertEqual(r1.status, ResourceModel.Status.AVAILABLE.name)
@@ -552,7 +713,7 @@ class TestResourcePool(unittest.TestCase):
     def test_get_resource_pool_size_on_demand_custom_success(self):
         expected_pool_size = 10
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -560,7 +721,7 @@ class TestResourcePool(unittest.TestCase):
         expected_pool_size = 10
         config.pool_size['TesTemplateA'] = 5
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -568,7 +729,7 @@ class TestResourcePool(unittest.TestCase):
         expected_pool_size = 10
         config.pool_size['TesTemplateA'] = 5
         custom_pool_size = dict(TesTemplateA=expected_pool_size)
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.DEDICATED)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -576,7 +737,7 @@ class TestResourcePool(unittest.TestCase):
         expected_pool_size = 6
         custom_pool_size = dict()
         config.pool_size['TesTemplateA'] = expected_pool_size
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.ON_DEMAND)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -584,7 +745,7 @@ class TestResourcePool(unittest.TestCase):
         expected_pool_size = 1
         custom_pool_size = dict()
         config.pool_size['TesTemplateA'] = 6
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.SHARED)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -592,7 +753,7 @@ class TestResourcePool(unittest.TestCase):
         expected_pool_size = 6
         custom_pool_size = dict()
         config.pool_size['TesTemplateA'] = 6
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.DEDICATED)
         self.assertEqual(actual_pool_size, expected_pool_size)
 
@@ -600,20 +761,9 @@ class TestResourcePool(unittest.TestCase):
         expected_pool_size = 1
         custom_pool_size = dict()
         config.pool_size['TesTemplateA'] = 6
-        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id')
+        rm = ResourcePool(self.cfn_helper_mock, self.s3_helper_mock, custom_pool_size, 'dummy_test_session_id', None)
         actual_pool_size = rm._get_resource_pool_size('TesTemplateA', ResourceModel.ResourceType.ASSUME_ROLE)
         self.assertEqual(actual_pool_size, expected_pool_size)
-
-    def test_add_cfn_template_duplicate_cfn_fail(self):
-        resource_type = ResourceModel.ResourceType.SHARED
-        self.rm.add_cfn_template(self.test_template_name, resource_type, test_param='test_param_value')
-        self.assertRaises(Exception, self.rm.add_cfn_template, self.test_template_name, resource_type,
-                          test_param='test_param_value')
-
-    def test_add_cfn_template_success(self):
-        resource_type = ResourceModel.ResourceType.SHARED
-        self.rm.add_cfn_template(self.test_template_name, resource_type, test_param='test_param_value')
-        self.rm.add_cfn_template(self.test_template_name + '_1', resource_type, test_param='test_param_value')
 
     def test_release_resources_success(self):
         on_demand = MagicMock()
@@ -641,10 +791,10 @@ class TestResourcePool(unittest.TestCase):
                                    cf_template_sha1=self.cfn_content_sha1,
                                    cf_input_parameters_sha1=self.cfn_input_param_sha1)
 
-        self.rm.cfn_resources['on_demand_template'] = on_demand
-        self.rm.cfn_resources['dedicated_template'] = dedicated
-        self.rm.cfn_resources['shared_template'] = shared
-        self.rm.cfn_resources['assume_role_template'] = assume_role
+        self.rm.cfn_templates['on_demand_template'] = {ResourcePool.CFN_RESOURCE_PARAM: on_demand}
+        self.rm.cfn_templates['dedicated_template'] = {ResourcePool.CFN_RESOURCE_PARAM: dedicated}
+        self.rm.cfn_templates['shared_template'] = {ResourcePool.CFN_RESOURCE_PARAM: shared}
+        self.rm.cfn_templates['assume_role_template'] = {ResourcePool.CFN_RESOURCE_PARAM: assume_role}
 
         self.rm.release_resources()
 
