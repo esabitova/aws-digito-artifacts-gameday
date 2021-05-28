@@ -55,6 +55,10 @@ Resources:
               - 'cloudwatch:DescribeAlarms'
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSimulateAzOutageInAsgAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoSimulateAzOutageInAsgAssumeRole

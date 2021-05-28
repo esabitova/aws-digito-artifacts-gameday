@@ -50,9 +50,13 @@ Resources:
               - ec2:DescribeSubnets
               - cloudwatch:DescribeAlarms
               - ssm:StartAutomationExecution
-              - iam:PassRole
               - ssm:GetAutomationExecution
               - ssm:GetParameters
               - cloudwatch:DescribeAlarms
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSimulateInternetUnavailableAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoSimulateInternetUnavailableAssumeRole

@@ -86,6 +86,8 @@ cache_httpws_route_throttling_settings = 'cache route throttling rate limit as "
                      '\n{input_parameters}'))
 @when(parsers.parse('cache API GW property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
                     '\n{input_parameters}'))
+@then(parsers.parse('cache API GW property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
+                    '\n{input_parameters}'))
 def cache_apigw_property(resource_pool, ssm_test_cache, boto3_session, json_path, cache_property, step_key,
                          input_parameters):
     apigw_usage_plan_id = extract_param_value(input_parameters, 'RestApiGwUsagePlanId', resource_pool,

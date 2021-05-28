@@ -81,13 +81,11 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * `LambdaARN`
     * Outputs:
         * `SecurityGroupList`
-        * `LambdaARN` - backups input
     * Explanation:
         * Query get the list of security groups attached to lambda [get_function_configuration](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.get_function_configuration). Parameters
           * `FunctionName`=`LambdaARN`
         * Validate if given `SecurityGroupId` is in the list. If not, throw an error.
-        * Return list of taken SGs  
-        * Return `LambdaARN`
+        * Return list of taken SGs
 1. `RemoveSecurityGroupAssignment`
     * Type: aws:executeScript
     * Inputs:
@@ -99,7 +97,7 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
         * Execute [update_function_configuration](https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/lambda.html#Lambda.Client.update_function_configuration). Parameters
           * `FunctionName`=`LambdaARN`
           * `VpcConfig`={"SecurityGroupIds":`SecurityGroupListUpdatedValue`}
-    * OnFailure: step: `RollbackChanges` 
+    * OnFailure: step: `RollbackCurrentExecution` 
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:
@@ -107,8 +105,8 @@ Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback
     * Outputs: none
     * Explanation:
         * Wait for `SyntheticAlarmName` alarm to be `ALARM` for 600 seconds
-    * OnFailure: step: `RollbackChanges` 
-1. `RollbackChanges`
+    * OnFailure: step: `RollbackCurrentExecution` 
+1. `RollbackCurrentExecution`
     * Type: aws:executeScript
     * Inputs:
         * `SecurityGroupId`
@@ -138,4 +136,4 @@ if `IsRollback`:
 
 if not `IsRollback`:
 * `RemoveSecurityGroupAssignment.SecurityGroupListUpdatedValue`: an updated list of Security groups (given `SecurityGroupId` has been removed)
-* `RollbackChanges.SecurityGroupListRestoredValue`
+* `RollbackCurrentExecution.SecurityGroupListRestoredValue`

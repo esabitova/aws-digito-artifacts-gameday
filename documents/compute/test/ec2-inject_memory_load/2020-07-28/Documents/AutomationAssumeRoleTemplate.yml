@@ -54,6 +54,10 @@ Resources:
               - 'cloudwatch:DescribeAlarmHistory'
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
-              - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoSimulateHighMemoryLoadInEc2AssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoSimulateHighMemoryLoadInEc2AssumeRole

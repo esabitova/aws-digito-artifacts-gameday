@@ -2,6 +2,7 @@ import random
 import time
 import datetime
 import logging
+import uuid
 
 from pytest_bdd import (
     given,
@@ -44,6 +45,8 @@ cache_earliest_restorable_time_expression = 'cache earliest restorable time as "
                                             '\n{input_parameters}'
 create_snapshot_expression = 'wait for cluster snapshot creation for "{time_to_wait}" seconds\n{input_parameters}'
 delete_snapshot_expression = 'delete cluster snapshot'
+cache_generated_instance_id_expression = 'cache generated instance identifier as "{cache_property}" ' \
+                                         'at step "{step_key}"'
 
 
 @given(parsers.parse(cache_number_of_instances_expression))
@@ -315,3 +318,12 @@ def delete_cluster_snapshot(
 ):
     snapshot_id = ssm_test_cache["before"]['SnapshotId']
     docdb_utils.delete_snapshot(boto3_session, snapshot_id)
+
+
+@given(parsers.parse(cache_generated_instance_id_expression))
+@then(parsers.parse(cache_generated_instance_id_expression))
+def cache_generated_instance_id(
+        resource_pool, ssm_test_cache, cache_property, step_key, boto3_session
+):
+    new_instance_id = 'docdb-replica-' + str(uuid.uuid4())
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, new_instance_id)

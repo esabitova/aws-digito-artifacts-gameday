@@ -1,0 +1,248 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test API Gateway REST API behavior when hitting quota threshold"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  RestApiGwUsagePlanId:
+    type: String
+    description: (Required) The ID of REST API Gateway usage plan.
+  ApiGw4xxAlarmName:
+    type: String
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  RestApiGwQuotaLimit:
+    type: Integer
+    description: (Optional) The value of quota (requests per period).
+    default: 1
+  RestApiGwQuotaPeriod:
+    type: String
+    description: (Optional) The value of quota period. Possible values are DAY, WEEK, MONTH.
+    default: 'DAY'
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: '{{ IsRollback }}'
+          EqualsIgnoreCase: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: RestApiGwUsagePlanId
+        Selector: '$.Payload.RestApiGwUsagePlanId[0]'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertRestApiGwUsagePlanId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRollbackOfPreviousExecution
+          Variable: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
+          StringEquals: '{{ RestApiGwUsagePlanId }}'
+    isEnd: true
+
+  - name: PrepareRollbackOfPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: RestApiGwQuotaLimitOriginalValue
+        Selector: $.Payload.RestApiGwQuotaLimitOriginalValue[0]
+        Type: String
+      - Name: RestApiGwQuotaPeriodOriginalValue
+        Selector: $.Payload.RestApiGwQuotaPeriodOriginalValue[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupQuotaConfiguration'
+        ResponseField: 'RestApiGwQuotaLimitOriginalValue,RestApiGwQuotaPeriodOriginalValue'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    description: Rollback quota limits of given Usage Plan from previous execution
+    outputs:
+      - Name: RestApiGwQuotaLimitRestoredValue
+        Selector: '$.Payload.Limit'
+        Type: Integer
+      - Name: RestApiGwQuotaPeriodRestoredValue
+        Selector: '$.Payload.Period'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: set_limit_and_period
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
+        RestApiGwQuotaLimit: '{{ PrepareRollbackOfPreviousExecution.RestApiGwQuotaLimitOriginalValue }}'
+        RestApiGwQuotaPeriod: '{{ PrepareRollbackOfPreviousExecution.RestApiGwQuotaPeriodOriginalValue }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - '{{ ApiGw4xxAlarmName }}'
+      PropertySelector: '$.MetricAlarms[0].StateValue'
+      DesiredValues: [ "OK" ]
+
+  - name: BackupQuotaConfiguration
+    action: aws:executeScript
+    description: Backup quota configuration of given Usage Plan
+    outputs:
+      - Name: RestApiGwQuotaLimitOriginalValue
+        Selector: '$.Payload.QuotaLimit'
+        Type: Integer
+      - Name: RestApiGwQuotaPeriodOriginalValue
+        Selector: '$.Payload.QuotaPeriod'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_throttling_config
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
+
+  - name: SetQuotaConfiguration
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    description: Update quota configuration of given Usage Plan
+    outputs:
+      - Name: RestApiGwQuotaLimitNewValue
+        Selector: '$.Payload.Limit'
+        Type: Integer
+      - Name: RestApiGwQuotaPeriodNewValue
+        Selector: '$.Payload.Period'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: set_limit_and_period
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwQuotaLimit: '{{ RestApiGwQuotaLimit }}'
+        RestApiGwQuotaPeriod: '{{ RestApiGwQuotaPeriod }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
+
+  - name: AssertAlarmToBeRed
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - '{{ApiGw4xxAlarmName}}'
+      PropertySelector: '$.MetricAlarms[0].StateValue'
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    description: Rollback quota configuration of given Usage Plan
+    maxAttempts: 5
+    outputs:
+      - Name: RestApiGwQuotaLimitRestoredValue
+        Selector: '$.Payload.Limit'
+        Type: Integer
+      - Name: RestApiGwQuotaPeriodRestoredValue
+        Selector: '$.Payload.Period'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: set_limit_and_period
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwQuotaLimit: '{{ BackupQuotaConfiguration.RestApiGwQuotaLimitOriginalValue }}'
+        RestApiGwQuotaPeriod: '{{ BackupQuotaConfiguration.RestApiGwQuotaPeriodOriginalValue }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - '{{ApiGw4xxAlarmName}}'
+      PropertySelector: '$.MetricAlarms[0].StateValue'
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

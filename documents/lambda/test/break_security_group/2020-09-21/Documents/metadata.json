@@ -1,0 +1,13 @@
+{
+  "displayName": "Break Security Group For Lambda",
+  "description": "Test Lambda behavior after breaking security group",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-LambdaBreakSecurityGroup_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "AZ",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "tag": "lambda:test:break_security_group:2020-09-21"
+}

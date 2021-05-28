@@ -1,10 +1,13 @@
 import logging
 import time
+from typing import List
+
+from botocore.exceptions import ClientError
+from sttable import parse_str_table
+
 import resource_manager.src.constants as constants
 import resource_manager.src.util.param_utils as param_utils
-from sttable import parse_str_table
 from .util.boto3_client_factory import client
-from botocore.exceptions import ClientError
 
 
 class SsmDocument:
@@ -194,6 +197,23 @@ class SsmDocument:
         if step:
             return step['StepStatus']
         return 'Pending'
+
+    def get_successfully_executed_steps_by_order(self, execution_id):
+        """
+        Returns successfully executed steps by order of their execution
+        :param execution_id: The SSM document execution id
+        :return: The successfully executed steps
+        """
+        execution = self.ssm_client.get_automation_execution(
+            AutomationExecutionId=execution_id
+        )
+        step_executions = execution['AutomationExecution']['StepExecutions']
+        step_names: List = []
+        if step_executions:
+            for s in step_executions:
+                if s['StepStatus'] == 'Success':
+                    step_names.append(s['StepName'])
+        return step_names
 
     def _get_step_by_status(self, steps, status):
         """

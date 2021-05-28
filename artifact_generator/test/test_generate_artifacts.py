@@ -130,7 +130,7 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}'\
             .format(self.ALARM_PREFIX, self.ALARM_ID)
         self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
-                                     expected_replacements, 'AutomationDocumentForTest.yml',
+                                     expected_replacements, 'AutomationDocumentForTest.yml', 'yes',
                                      ['usual_case_test.feature', 'failed.feature', 'rollback_previous.feature'])
 
     @patch('builtins.input', side_effect=input_for_test_synth_alarm)
@@ -141,7 +141,7 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements['${alarmPrefix}'] = 'Synthetic'
         expected_replacements['${recommendedAlarms}'] = ''
         self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
-                                     expected_replacements, 'AutomationDocumentForTest.yml',
+                                     expected_replacements, 'AutomationDocumentForTest.yml', 'yes',
                                      ['usual_case_test.feature', 'failed.feature', 'rollback_previous.feature'])
 
     @patch('builtins.input', side_effect=input_for_test_no_rollback)
@@ -153,7 +153,7 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}' \
             .format(self.ALARM_PREFIX, self.ALARM_ID)
         self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
-                                     expected_replacements, 'AutomationDocumentForTestNoRollback.yml',
+                                     expected_replacements, 'AutomationDocumentForTestNoRollback.yml', 'no',
                                      ['usual_case_test.feature'])
 
     @patch('builtins.input', side_effect=input_for_sop)
@@ -166,10 +166,11 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements['${recoveryPointOutput}'] = '- {}.RecoveryPoint'.format(self.RECOVERY_POINT_STEP)
         expected_replacements['${recommendedAlarms}'] = ''
         self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
-                                     expected_replacements, 'AutomationDocumentForSop.yml', ['usual_case_sop.feature'])
+                                     expected_replacements, 'AutomationDocumentForSop.yml', 'no',
+                                     ['usual_case_sop.feature'])
 
     def __generate_and_validate(self, mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
-                                expected_replacements: dict, automation_template: str,
+                                expected_replacements: dict, automation_template: str, supports_rollback: str,
                                 feature_templates: list):
         mock_template = Mock(Template)
         mock_is_dir.return_value = False
@@ -193,7 +194,6 @@ class TestGenerateArtifacts(unittest.TestCase):
         mock_open.assert_has_calls([
             call(os.path.join(self.templates_path, 'metadata.json'), 'r'),
             call(os.path.join(documents_path, 'metadata.json'), 'w'),
-            call(os.path.join(self.templates_path, 'AutomationAssumeRoleTemplate.yml'), 'r'),
             call(os.path.join(documents_path, 'AutomationAssumeRoleTemplate.yml'), 'w'),
             call(os.path.join(self.templates_path, automation_template), 'r'),
             call(os.path.join(documents_path, 'AutomationDocument.yml'), 'w')], any_order=True)
@@ -210,12 +210,16 @@ class TestGenerateArtifacts(unittest.TestCase):
         mock_open.assert_has_calls([call(os.path.join(step_def_path,
                                                       'test_{}.py'.format(expected_replacements['${name}']
                                                                           .replace('-', '_'))), 'w')], any_order=True)
+        mock_lookup.get_template.assert_has_calls([call('AutomationAssumeRoleTemplate.yml.mak'),
+                                                   call('step_def.py.mak')], any_order=True)
+        mock_template.render.assert_has_calls([call(documentName=expected_replacements['${documentName}'],
+                                                    roleName=expected_replacements['${roleName}'],
+                                                    policyName=expected_replacements['${policyName}'],
+                                                    supportsRollback=supports_rollback)], any_order=True)
 
         self.__assert_step_def_replacement(mock_lookup, mock_template, step_def_path, target_feature_files)
 
     def __assert_step_def_replacement(self, mock_lookup, mock_template, step_def_path, feature_files):
-        mock_lookup.get_template.assert_called_once_with("step_def.py.mak")
-        mock_template.render.assert_called_once()
         # validate that the scenario names are as expected
         actual_scenarios = set([s.name for s in mock_template.render.call_args[1]['scenarios']])
         expected_scenario = self.scenario_name.replace('Scenario:', '').strip()

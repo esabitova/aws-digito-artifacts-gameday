@@ -39,7 +39,8 @@ class RulesValidatorForTestDocument(RulesValidator):
             if not self._is_step_present(document_steps, self.rollback_branch_steps):
                 violations.append('Missing steps [{}] in [{}]'.format(self.rollback_branch_steps, file_path))
             assert_step_names = list(map(lambda p: 'Assert' + p, parameters))
-            if not self._is_step_present(document_steps, assert_step_names):
+            if not (self._is_step_present(document_steps, assert_step_names)
+                    or self._is_step_present(document_steps, ['AssertInputsFromPreviousExecution'])):
                 violations.append('Missing step to validate equality of parameter value (of relevant parameters) '
                                   'with that of previous execution in [{}]'.format(file_path))
 

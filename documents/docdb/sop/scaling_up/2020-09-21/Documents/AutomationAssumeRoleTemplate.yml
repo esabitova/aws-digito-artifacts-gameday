@@ -49,6 +49,10 @@ Resources:
               - 'rds:CreateDBInstance'
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - 'iam:PassRole'
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoScalingUpDocDbAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoScalingUpDocDbAssumeRole

@@ -22,7 +22,7 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  SyntheticAlarmName:
+  ApiGw4xxAlarmName:
     type: String
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   RestApiGwUsagePlanId:
@@ -100,14 +100,25 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
-  - name: AssertRestApiGwUsagePlanId
-    action: aws:branch
+  - name: AssertInputsFromPreviousExecution
+    action: aws:executeScript
     inputs:
-      Choices:
-        - NextStep: PrepareRollbackOfPreviousExecution
-          Variable: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
-          StringEquals: '{{ RestApiGwUsagePlanId }}'
-    isEnd: true
+      Runtime: python3.7
+      Handler: assert_inputs_before_throttling_rollback
+      InputPayload:
+        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwId: '{{ RestApiGwId }}'
+        RestApiGwStageName: '{{ RestApiGwStageName }}'
+        RestApiGwResourcePath: '{{ RestApiGwResourcePath }}'
+        RestApiGwHttpMethod: '{{ RestApiGwHttpMethod }}'
+        OriginalRestApiGwUsagePlanId: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
+        OriginalRestApiGwId: '{{ GetInputsFromPreviousExecution.RestApiGwId }}'
+        OriginalRestApiGwStageName: '{{ GetInputsFromPreviousExecution.RestApiGwStageName }}'
+        OriginalRestApiGwResourcePath: '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}'
+        OriginalRestApiGwHttpMethod: '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_inputs_before_throttling_rollback
 
   - name: PrepareRollbackOfPreviousExecution
     action: aws:executeScript
@@ -169,7 +180,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ApiGw4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
 
@@ -239,7 +250,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ApiGw4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "ALARM" ]
 
@@ -283,7 +294,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ApiGw4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
     isEnd: true

@@ -195,7 +195,7 @@ Yes.
         * `ActualReadCapacityUnits`: The dynamoDB table actual `ReadCapacityUnits` value from the `ProvisionedThroughput` property
         * `ActualWriteCapacityUnits`: The dynamoDB table actual `WriteCapacityUnits` value from the `ProvisionedThroughput` property
     * Explanation:
-        * Rollback to the the dynamodb table previous `ReadCapacityUnits` provisioned throughput property. `[update_table](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html) method
+        * Rollback to the dynamodb table previous `ReadCapacityUnits` provisioned throughput property. `[update_table](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_UpdateTable.html) method
 
 1. `VerifyDynamoDBTableStatusAfterRollbackToPreviousDynamoDBTableRCU`
     * Type: aws:waitForAwsResourceProperty

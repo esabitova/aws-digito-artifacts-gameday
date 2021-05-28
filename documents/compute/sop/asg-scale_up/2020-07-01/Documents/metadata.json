@@ -1,0 +1,14 @@
+{
+    "displayName": "ASG scale-up",
+    "description": "SOP By Digito. Scale-up ASG by modifying ASG to use larger instances.",
+    "documentName": "Digito-ASG-ScaleUp_2020-04-01",
+    "documentType": "Automation",
+    "documentContentPath": "AutomationDocument.yml",
+    "documentFormat": "YAML",
+    "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+    "tag": "compute:sop:asg-scale_up:2020-11-20",
+    "risk": "SMALL",
+    "failureType": "HARDWARE",
+    "intent": "SOP By Digito. Scale-up ASG by modifying ASG to use larger instances.",
+    "minorVersion": "001"
+}

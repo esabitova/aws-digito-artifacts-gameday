@@ -1,12 +1,19 @@
 import boto3
-from botocore.config import Config
 import logging
+
+from botocore.config import Config
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 CONCURRENT_EXECUTION_QUOTA_CODE = 'L-B99A9384'
 MINIMUM_UNRESERVED_CONCURRENCY = 100
+
+
+def check_required_params(required_params, events):
+    for key in required_params:
+        if key not in events:
+            raise KeyError(f'Requires {key} in events')
 
 
 def get_concurrent_execution_quota(events, context):
@@ -123,3 +130,84 @@ def backup_reserved_concurrent_executions(events: dict, context):
         'ReservedConcurrentExecutionsConfigured': reserved_concurrent_executions_configured,
         'BackupReservedConcurrentExecutionsValue': concurrent_executions_value
     }
+
+
+def remove_sg_assignment(events: dict, context):
+    required_params = [
+        'LambdaARN',
+        'EmptySecurityGroupId',
+        'SecurityGroupId',
+        'ExecutionId'
+    ]
+    check_required_params(required_params, events)
+    lambda_client = boto3.client('lambda')
+    lambda_description = lambda_client.get_function(
+        FunctionName=events['LambdaARN']
+    )
+    security_group_list = lambda_description['Configuration']['VpcConfig']['SecurityGroupIds']
+    subnet_ids = lambda_description['Configuration']['VpcConfig']['SubnetIds']
+
+    logger.info(f'Emptying Security groups for lambda:{events["LambdaARN"]}')
+
+    if events['SecurityGroupId']:
+        if events['SecurityGroupId'] not in security_group_list:
+            raise KeyError(f"Security group {events['SecurityGroupId']} is not in security group list of Lambda: "
+                           f"{security_group_list}")
+        security_group_list.remove(events['SecurityGroupId'])
+    else:
+        security_group_list = []
+    security_group_list.append(events['EmptySecurityGroupId'])
+
+    lambda_client.update_function_configuration(
+        FunctionName=events['LambdaARN'],
+        VpcConfig={
+            'SecurityGroupIds': security_group_list,
+            'SubnetIds': subnet_ids
+        }
+    )
+    return {'SecurityGroupListUpdatedValue': security_group_list}
+
+
+def rollback_security_groups(events: dict, context):
+    required_params = [
+        'LambdaARN',
+        'SecurityGroupList',
+        'ExecutionId'
+    ]
+    check_required_params(required_params, events)
+    lambda_client = boto3.client('lambda')
+    lambda_description = lambda_client.get_function(
+        FunctionName=events['LambdaARN']
+    )
+
+    subnet_ids = lambda_description['Configuration']['VpcConfig']['SubnetIds']
+
+    lambda_client.update_function_configuration(
+        FunctionName=events['LambdaARN'],
+        VpcConfig={
+            'SecurityGroupIds': events['SecurityGroupList'],
+            'SubnetIds': subnet_ids
+        }
+    )
+
+    return {'SecurityGroupListRestoredValue': events['SecurityGroupList']}
+
+
+def assert_lambda_in_vpc_and_backup_sg(events: dict, context):
+    required_params = [
+        'LambdaARN'
+    ]
+    check_required_params(required_params, events)
+
+    lambda_client = boto3.client('lambda')
+    lambda_description = lambda_client.get_function(
+        FunctionName=events['LambdaARN']
+    )
+    result = {}
+    if 'VpcId' in lambda_description['Configuration']['VpcConfig']:
+        result['VpcId'] = lambda_description['Configuration']['VpcConfig']['VpcId']
+        result['SecurityGroupIds'] = lambda_description['Configuration']['VpcConfig']['SecurityGroupIds']
+    else:
+        raise AssertionError(f'Lambda function:{events["LambdaARN"]} is not a member of any VPC')
+
+    return result

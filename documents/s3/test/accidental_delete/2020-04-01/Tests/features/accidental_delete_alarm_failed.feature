@@ -27,7 +27,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
       | BucketName                                   |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
 #    If we don't trigger the alarm, step has to fail and cause rollback, step and ssm will have TimedOut state
-    And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "800" seconds
+    And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1200" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "RollbackCurrentExecution" in status "Success" for "600" seconds

@@ -50,6 +50,10 @@ Resources:
               - ssm:GetParameters
               - ssm:GetAutomationExecution
               - ssm:StartAutomationExecution
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoBlockSQSDeleteMessageAssumeRole.Arn
+            Action:
               - iam:PassRole
       Roles:
         - Ref: DigitoBlockSQSDeleteMessageAssumeRole

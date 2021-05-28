@@ -1,0 +1,186 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: 'SOP By Digito. Scale-up ASG by modifying ASG to use larger instances.
+    The SOP will not change from the instance type used, rather will use a larger version from the same type.'
+schemaVersion: '0.3'
+assumeRole: '{{ AutomationAssumeRole }}'
+parameters:
+  AutoScalingGroupName:
+    type: String
+    description: (Required) The Name of the ASG to scale-up
+  Dryrun:
+    type: Boolean
+    default: true
+    description: '(Optional) Dryrun indicates a testing run, changes will be rolled back.'
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          from datetime import datetime, timezone
+          return datetime.now(timezone.utc).isoformat()
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+  - name: CurrentSetup
+    action: 'aws:executeScript'
+    outputs:
+      - Name: OriginalInstanceType
+        Selector: $.Payload.OriginalInstanceType
+        Type: String
+      - Name: LaunchTemplateVersion
+        Selector: $.Payload.LaunchTemplateVersion
+        Type: String
+      - Name: LaunchTemplateName
+        Selector: $.Payload.LaunchTemplateName
+        Type: String
+      - Name: LaunchConfigurationName
+        Selector: $.Payload.LaunchConfigurationName
+        Type: String
+      - Name: BiggerInstanceType
+        Selector: $.Payload.BiggerInstanceType
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_instance_data
+      Script: |
+        SCRIPT_PLACEHOLDER::asg_util.imports
+        SCRIPT_PLACEHOLDER::asg_util.get_instance_data
+        SCRIPT_PLACEHOLDER::asg_util.get_current_state
+        SCRIPT_PLACEHOLDER::asg_util.get_bigger_instance
+      InputPayload:
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
+    description: Record current set up and gather the larger instance to which we will upgrade the ASG.
+  - name: UpgradeInstanceType
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: update_asg
+      Script: |-
+        SCRIPT_PLACEHOLDER::asg_util.imports
+        SCRIPT_PLACEHOLDER::asg_util.update_asg
+      InputPayload:
+        AutoScalingGroupName: '{{ AutoScalingGroupName }}'
+        LaunchTemplateName: '{{ CurrentSetup.LaunchTemplateName }}'
+        LaunchTemplateVersion: '{{ CurrentSetup.LaunchTemplateVersion }}'
+        BiggerInstanceType: '{{ CurrentSetup.BiggerInstanceType }}'
+    outputs:
+      - Selector: $.Payload.LaunchConfigOrTemplate
+        Name: LaunchConfigOrTemplate
+        Type: String
+    description: 'Upgrade ASG to use the larger instance type. Depending on the configuration of the ASG, this will either upgrade the Launch Template or the Launch Configuration.'
+  - name: RefreshInstances
+    action: 'aws:executeAwsApi'
+    inputs:
+      Service: autoscaling
+      Api: StartInstanceRefresh
+      AutoScalingGroupName: '{{AutoScalingGroupName}}'
+    outputs:
+      - Selector: $.InstanceRefreshId
+        Name: InstanceRefreshId
+        Type: String
+    description: Refresh instances to upgrade to new instance type
+  - name: WaitForRefresh
+    action: 'aws:waitForAwsResourceProperty'
+    inputs:
+      Service: autoscaling
+      Api: DescribeInstanceRefreshes
+      PropertySelector: '$.InstanceRefreshes[0].Status'
+      DesiredValues:
+        - Successful
+      AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      InstanceRefreshIds:
+        - '{{RefreshInstances.InstanceRefreshId}}'
+    description: Wait for RefreshInstances to complete
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: script_handler
+      Script: |-
+        def script_handler(events, context):
+          from datetime import datetime, timezone
+          from dateutil import parser
+          return (datetime.now(timezone.utc) - parser.parse(events['StartTime'])).seconds
+      InputPayload:
+        StartTime: '{{RecordStartTime.StartTime}}'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+  - name: DryrunBranch
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - NextStep: EmptyStepForEnd
+          Variable: '{{Dryrun}}'
+          BooleanEquals: false
+        - NextStep: RollBackScaleUpChange
+          Variable: '{{Dryrun}}'
+          BooleanEquals: true
+    description: 'If this is NOT a dryrun, skip to the end. If it is a dryrun, proceed to rollback.'
+  - name: RollBackScaleUpChange
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: rollback_scaleup
+      Script: |
+        SCRIPT_PLACEHOLDER::asg_util.imports
+        SCRIPT_PLACEHOLDER::asg_util.rollback_scaleup
+      InputPayload:
+        AutoScalingGroupName: '{{ AutoScalingGroupName }}'
+        LaunchTemplateName: '{{ CurrentSetup.LaunchTemplateName }}'
+        LaunchTemplateVersion: '{{ CurrentSetup.LaunchTemplateVersion }}'
+        LaunchConfigurationName: '{{ CurrentSetup.LaunchConfigurationName }}'
+        LaunchConfigOrTemplate: '{{ UpgradeInstanceType.LaunchConfigOrTemplate }}'
+    description: Rollback by updating the ASG to use the previous Launch Template or Launch Configuration
+  - name: RefreshInstancesRollback
+    action: 'aws:executeAwsApi'
+    inputs:
+      Service: autoscaling
+      Api: StartInstanceRefresh
+      AutoScalingGroupName: '{{AutoScalingGroupName}}'
+    outputs:
+      - Name: RollbackInstanceRefreshId
+        Selector: $.InstanceRefreshId
+        Type: String
+    description: Refresh instances to previous version (perform rollback)
+  - name: WaitForRollback
+    action: 'aws:waitForAwsResourceProperty'
+    inputs:
+      Service: autoscaling
+      Api: DescribeInstanceRefreshes
+      PropertySelector: '$.InstanceRefreshes[0].Status'
+      DesiredValues:
+        - Successful
+      AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      InstanceRefreshIds:
+        - '{{RefreshInstancesRollback.RollbackInstanceRefreshId}}'
+    description: Wait for rollback to complete
+  - name: EmptyStepForEnd
+    action: 'aws:sleep'
+    inputs:
+      Duration: PT1S
+    description: End

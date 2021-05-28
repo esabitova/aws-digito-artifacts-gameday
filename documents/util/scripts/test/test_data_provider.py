@@ -83,6 +83,8 @@ ASSUME_ROLE_RESPONSE = {
 BACKUP_PENDING_RECOVERY_ARN = f'arn:aws:backup:eu-south-1:{ACCOUNT_ID}:recovery-point:TestPending'
 BACKUP_COMPLETED_RECOVERY_ARN = f'arn:aws:backup:eu-south-1:{ACCOUNT_ID}:recovery-point:TestCompleted'
 BACKUP_VAULT_NAME = "test-backup-vault"
+SMALLER_INSTANCE = 't3.nano'
+BIGGER_INSTANCE = 't3.micro'
 
 
 def get_sample_ssm_execution_response():
@@ -261,7 +263,7 @@ def get_sample_describe_images_response():
     return describe_images_response
 
 
-def get_sample_describe_auto_scaling_groups_response(lifecycle_state='InService'):
+def get_sample_describe_auto_scaling_groups_response(lifecycle_state='InService', mixed_instances_policy=False):
     describe_auto_scaling_groups_response = {}
 
     instance = {}
@@ -273,6 +275,26 @@ def get_sample_describe_auto_scaling_groups_response(lifecycle_state='InService'
     auto_scaling_group['Instances'] = [instance]
     auto_scaling_group['VPCZoneIdentifier'] = SUBNET_GROUPS
     auto_scaling_group['LaunchConfigurationName'] = LAUNCH_CONFIGURATION_NAME
+    auto_scaling_group['SuspendedProcesses'] = []
+    if mixed_instances_policy:
+        auto_scaling_group['MixedInstancesPolicy'] = {'LaunchTemplate': {}, 'InstancesDistribution': {}}
+
+    describe_auto_scaling_groups_response['AutoScalingGroups'] = [auto_scaling_group]
+
+    return describe_auto_scaling_groups_response
+
+
+def get_sample_describe_asg_w_launch_template_response():
+    describe_auto_scaling_groups_response = {}
+
+    instance = {}
+    instance['InstanceId'] = INSTANCE_ID
+    instance['AvailabilityZone'] = AZ_USW2A
+
+    auto_scaling_group = {}
+    auto_scaling_group['Instances'] = [instance]
+    auto_scaling_group['VPCZoneIdentifier'] = SUBNET_GROUPS
+    auto_scaling_group['LaunchTemplate'] = {'Version': 4, 'LaunchTemplateName': 'MyLaunchTemp'}
     auto_scaling_group['SuspendedProcesses'] = []
 
     describe_auto_scaling_groups_response['AutoScalingGroups'] = [auto_scaling_group]
@@ -302,11 +324,26 @@ def get_sample_describe_auto_scaling_groups_response_with_suspended_processes():
 def get_sample_describe_launch_configurations_response():
     launch_configurations_response = {}
 
-    launch_configuration = {}
+    launch_configuration = {'InstanceType': SMALLER_INSTANCE}
     launch_configuration['SecurityGroups'] = [SECURITY_GROUP]
+    launch_configuration['LaunchConfigurationARN'] = 'LaunchConfigArn'
+    launch_configuration['LaunchConfigurationName'] = 'LaunchConfigName'
+    launch_configuration['CreatedTime'] = '1234'
 
     launch_configurations_response['LaunchConfigurations'] = [launch_configuration]
     return launch_configurations_response
+
+
+def get_sample_create_launch_template_version_response():
+    return {'LaunchTemplateVersion': {'VersionNumber': 5}}
+
+
+def get_sample_describe_instance_type_offerings_response():
+    return {'InstanceTypeOfferings': [{'InstanceType': SMALLER_INSTANCE}, {'InstanceType': BIGGER_INSTANCE}]}
+
+
+def get_sample_describe_launch_template_versions_response():
+    return {'LaunchTemplateVersions': [{'LaunchTemplateData': {'InstanceType': SMALLER_INSTANCE}}]}
 
 
 def get_sample_describe_security_groups_response():

@@ -21,11 +21,11 @@ class ResourcePool:
     Resource Pool to deploy/access/destroy resources created using Cloud Formation for SSM automation document tests.
     """
 
-    CFN_TEMPLATE_PATH_PARAM = 'cfn_template_path'
-    CFN_INPUT_PARAMS_PARAM = 'cfn_input_params'
-    CFN_OUTPUT_PARAMS_PARAM = 'cfn_output_params'
-    CFN_RESOURCE_TYPE_PARAM = 'cfn_resource_type'
-    CFN_RESOURCE_PARAM = 'cfn_resource'
+    CFN_TEMPLATE_PATH_PARAM = 'CfnTemplatePath'
+    CFN_INPUT_PARAMS_PARAM = 'CfnInputParams'
+    CFN_OUTPUT_PARAMS_PARAM = 'CfnOutputParams'
+    CFN_RESOURCE_TYPE_PARAM = 'ResourceType'
+    CFN_RESOURCE_PARAM = 'CfnResource'
 
     def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict,
                  test_session_id: str, ssm_test_cache: {}):
@@ -56,10 +56,12 @@ class ResourcePool:
         |TestTemplateC.yml |   DEDICATED|                       |{{cfn-output:TestTemplateB>OutputParam}}|
         """
         for cfn_template in parse_str_table(cfn_templates).rows:
-            if cfn_template.get('CfnTemplatePath') is None or len(cfn_template.get('CfnTemplatePath')) < 1 \
-                    or cfn_template.get('ResourceType') is None or len(cfn_template.get('ResourceType')) < 1:
+            if cfn_template.get(ResourcePool.CFN_TEMPLATE_PATH_PARAM) is None or \
+                    len(ResourcePool.CFN_TEMPLATE_PATH_PARAM) < 1 \
+                    or cfn_template.get(ResourcePool.CFN_RESOURCE_TYPE_PARAM) is None or \
+                    len(cfn_template.get(ResourcePool.CFN_RESOURCE_TYPE_PARAM)) < 1:
                 raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
-            cfn_template_path = cfn_template.pop('CfnTemplatePath')
+            cfn_template_path = cfn_template.pop(ResourcePool.CFN_TEMPLATE_PATH_PARAM)
             resource_type = ResourceModel.ResourceType.from_string(cfn_template.pop('ResourceType'))
             cfn_template_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
             if self.cfn_templates.get(cfn_template_name):
@@ -109,31 +111,14 @@ class ResourcePool:
         :param cfn_template: The cloud formation template object containing cloud formation configuration.
         :return: The available resources
         """
-        logging.error(cfn_template)
         cfn_template_name = cfn_template[0]
         cfn_config = cfn_template[1]
         resource_type = cfn_config[ResourcePool.CFN_RESOURCE_TYPE_PARAM]
         cfn_template_path = cfn_config[ResourcePool.CFN_TEMPLATE_PATH_PARAM]
-        cfn_input_params = cfn_config[ResourcePool.CFN_INPUT_PARAMS_PARAM]
+        cfn_input_params = self._parse_cfn_input_params(cfn_config[ResourcePool.CFN_INPUT_PARAMS_PARAM])
         pool_size = self._get_resource_pool_size(cfn_template_name, resource_type)
         time_out_sec = constants.wait_time_out_secs
         logging.info('Pulling resources for [{}] template'.format(cfn_template_path))
-
-        # Parsing cfn input parameters, if any of parameters is cfn-output,
-        # then we pull that cfn resource to get parameter value from cfn output.
-        for param, value in cfn_input_params.items():
-            # In case if parameter value refers to cfn output.
-            if re.compile(r'{{2}(cfn-output:).+}{2}').match(value):
-                cfn_template_name, cfn_output_param = param_utils.parse_cfn_output_val_ref(value)
-                cfn_template_config = self.cfn_templates.get(cfn_template_name)
-                if not cfn_template_config or not cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM):
-                    cfn_template = (cfn_template_name, cfn_template_config)
-                    cfn_template_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
-                resource = cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM)
-                cfn_input_params[param] = self._parse_cfn_outputs(resource)[cfn_output_param]
-            # In case if parameter value refers to cache or is regular value.
-            else:
-                cfn_input_params[param] = param_utils.parse_param_value(value, {'cache': self.ssm_test_cache})
 
         waited_time_sec = 0
         while waited_time_sec < time_out_sec:
@@ -439,6 +424,31 @@ class ResourcePool:
             resource.status = ResourceModel.Status.AVAILABLE.name
         resource.save()
         return resource
+
+    def _parse_cfn_input_params(self, cfn_input_params: {}):
+        """
+        Parsing cfn input parameters, if cfn input parameter value is pointing to
+        '{{cfn-output:TemplateName>TemplateOutput}}' parameter, value is parsed from cfn template output, if referring
+        to '{{cfn-output:TemplateName>TemplateOutput}}' parsed from cache, otherwise value is taken as is.
+        :param cfn_input_params:
+        :return: The parsed cfn input patameters.
+        """
+        # Parsing cfn input parameters, if any of parameters is cfn-output,
+        # then we pull that cfn resource to get parameter value from cfn output.
+        for param, value in cfn_input_params.items():
+            # In case if parameter value refers to cfn output.
+            if re.compile(r'{{2}(cfn-output:).+}{2}').match(value):
+                cfn_template_name, cfn_output_param = param_utils.parse_cfn_output_val_ref(value)
+                cfn_template_config = self.cfn_templates.get(cfn_template_name)
+                if not cfn_template_config or not cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM):
+                    cfn_template = (cfn_template_name, cfn_template_config)
+                    cfn_template_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
+                resource = cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM)
+                cfn_input_params[param] = self._parse_cfn_outputs(resource)[cfn_output_param]
+            # In case if parameter value refers to cache or is regular value.
+            else:
+                cfn_input_params[param] = param_utils.parse_param_value(value, {'cache': self.ssm_test_cache})
+        return cfn_input_params
 
     def _get_cfn_template_name_by_type(self, cfn_template_path: str, resource_type: ResourceModel.ResourceType):
         """

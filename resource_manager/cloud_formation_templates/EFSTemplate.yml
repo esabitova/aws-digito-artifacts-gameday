@@ -498,6 +498,8 @@ Resources:
       BackupPolicy:
         Status: ENABLED
       PerformanceMode: generalPurpose
+      ThroughputMode: provisioned
+      ProvisionedThroughputInMibps: 10
       Encrypted: true
       FileSystemTags:
         - Key: Name

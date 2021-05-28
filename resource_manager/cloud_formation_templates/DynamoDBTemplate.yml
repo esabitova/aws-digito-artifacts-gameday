@@ -24,9 +24,6 @@ Outputs:
   WriteThrottleEventsAlarmName:
     Description: Alarm
     Value: !Ref WriteThrottleEventsAlarm
-  ReadThrottleEventsAlarmName:
-    Description: Alarm
-    Value: !Ref ReadThrottleEventsAlarm
   ThrottledRequestsAlarmName:
     Description: Alarm
     Value: !Ref ThrottledRequestsAlarm
@@ -89,25 +86,6 @@ Resources:
       AlarmDescription: "dynamodb:alarm:health-write_throttle_events:2020-04-01"
       ActionsEnabled: false
       MetricName: WriteThrottleEvents
-      Namespace: AWS/DynamoDB
-      Statistic: Sum
-      Dimensions:
-        - Name: TableName
-          Value: !Ref DynamoDBTable
-      Period: 60
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      Unit: Count
-
-  ReadThrottleEventsAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "dynamodb:alarm:health-read_throttle_events:2020-04-01"
-      ActionsEnabled: false
-      MetricName: ReadThrottleEvents
       Namespace: AWS/DynamoDB
       Statistic: Sum
       Dimensions:

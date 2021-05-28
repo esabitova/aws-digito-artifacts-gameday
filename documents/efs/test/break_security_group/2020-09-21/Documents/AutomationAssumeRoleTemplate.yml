@@ -53,6 +53,10 @@ Resources:
               - cloudwatch:DescribeAlarms
               - ssm:GetAutomationExecution
               - ssm:StartAutomationExecution
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoEFSBreakSecurityGroupAssumeRole.Arn
+            Action:
               - iam:PassRole
       Roles:
         - Ref: DigitoEFSBreakSecurityGroupAssumeRole

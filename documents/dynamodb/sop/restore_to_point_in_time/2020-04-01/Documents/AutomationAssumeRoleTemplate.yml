@@ -71,7 +71,10 @@ Resources:
               - "dynamodb:DescribeContinuousBackups"
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - "iam:PassRole"
-
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoRestoreFromPointInTimeAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

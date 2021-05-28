@@ -1,4 +1,3 @@
-import time
 import unittest
 import pytest
 from datetime import datetime
@@ -105,7 +104,7 @@ def get_list_versions_not_versioned_response():
 
 def list_object_versions_side_effect(Bucket, Prefix='', MaxKeys=None):
     # Imitate some working time
-    time.sleep(1)
+    # time.sleep(1)
     if Bucket == S3_EMPTY_BUCKET:
         return {}
     if Prefix == S3_OBJECT_KEY_NO_VERSIONS:

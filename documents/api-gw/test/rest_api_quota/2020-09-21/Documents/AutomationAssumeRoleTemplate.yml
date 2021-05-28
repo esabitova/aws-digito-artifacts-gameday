@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for ${documentName}
+Description: Role for Digito-RestApiGwQuota_2020-09-21
 Outputs:
-  ${roleName}:
-    Description: ${documentName} Automation Assume Role ARN
-    Value: !GetAtt ${roleName}.Arn
+  DigitoRestApiGwQuotaAssumeRole:
+    Description: Digito-RestApiGwQuota_2020-09-21 Automation Assume Role ARN
+    Value: !GetAtt DigitoRestApiGwQuotaAssumeRole.Arn
 Resources:
-  ${roleName}:
+  DigitoRestApiGwQuotaAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,16 +34,29 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  ${policyName}:
+  DigitoRestApiGwQuotaAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: ${policyName}
+      PolicyName: DigitoRestApiGwQuotaAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: "*"
             Action:
-              # add permissions required by automation document here
+              - apigateway:GET
+              - apigateway:PATCH
+              - cloudwatch:DescribeAlarms
+              - ssm:GetAutomationExecution
+              - ssm:StartAutomationExecution
+              - ssm:GetParameters
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoRestApiGwQuotaAssumeRole.Arn
+            Action:
+              - iam:PassRole
       Roles:
-        - Ref: ${roleName}
+        - Ref: DigitoRestApiGwQuotaAssumeRole

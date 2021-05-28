@@ -22,7 +22,7 @@ class InputValidator:
         :param input_text: input text
         :return: input text
         """
-        return InputValidator.validate_input(input_text, "[a-z_]+")
+        return InputValidator.validate_input(input_text, "[a-z]{1}[a-z0-9_]+")
 
     @staticmethod
     def validate_alpha(input_text: str):

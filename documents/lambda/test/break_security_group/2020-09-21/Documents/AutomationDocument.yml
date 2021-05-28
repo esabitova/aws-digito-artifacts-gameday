@@ -1,0 +1,314 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test Lambda behavior after breaking security group"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  LambdaARN:
+    type: String
+    description: (Required) LambdaARN
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  LambdaErrorAlarmName:
+    type: String
+    description: >-
+      (Required) Alarm which should be red after injection of the failure
+      and green after the rollback process in the end of the test.
+  SecurityGroupId:
+    type: String
+    description: >-
+      (Optional) The identifier of the security group that allows communication
+      between give Lambda function and another AWS Service (e.g. DynamoDB, RDS, and etc.)
+      SSM document will try to remove this SG from Lambda
+    default: ''
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`).
+      Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+outputs:
+  - AssertLambdaInVPCAndBackupLambdaSecurityGroups.SecurityGroupList
+  - RemoveSecurityGroupAssignment.SecurityGroupListUpdatedValue
+  - RollbackCurrentExecution.SecurityGroupListRestoredValue
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: LambdaARN
+        Selector: $.Payload.LambdaARN[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: GetSecurityGroupsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: SecurityGroupList
+        Selector: $.Payload.SecurityGroupList
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'AssertLambdaInVPCAndBackupLambdaSecurityGroups'
+        ResponseField: 'SecurityGroupList'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: GetEmptySecurityGroupFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: EmptySecurityGroupId
+        Selector: $.Payload.EmptySecurityGroupId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'CreateEmptySecurityGroup'
+        ResponseField: 'EmptySecurityGroupId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: AssertLambdaARN
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RollbackPreviousExecution
+          Variable: "{{ GetInputsFromPreviousExecution.LambdaARN }}"
+          StringEquals: '{{ LambdaARN }}'
+    isEnd: true
+
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: rollback_security_groups
+      InputPayload:
+        SecurityGroupList: '{{GetSecurityGroupsFromPreviousExecution.SecurityGroupList}}'
+        LambdaARN: '{{GetInputsFromPreviousExecution.LambdaARN}}'
+        ExecutionId: '{{PreviousExecutionId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::lambda_util.imports
+
+        SCRIPT_PLACEHOLDER::lambda_util.check_required_params
+
+        SCRIPT_PLACEHOLDER::lambda_util.rollback_security_groups
+
+  - name: ClearEmptySecurityGroupOnRollback
+    action: aws:executeScript
+    timeoutSeconds: 900
+    maxAttempts: 3
+    inputs:
+      Runtime: python3.7
+      Handler: remove_empty_security_group
+      InputPayload:
+        EmptySecurityGroupId: '{{GetEmptySecurityGroupFromPreviousExecution.EmptySecurityGroupId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{LambdaErrorAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: AssertLambdaInVPCAndBackupLambdaSecurityGroups
+    action: aws:executeScript
+    onFailure: Abort
+    outputs:
+      - Name: SecurityGroupList
+        Selector: $.Payload.SecurityGroupIds
+        Type: StringList
+      - Name: VpcId
+        Selector: $.Payload.VpcId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: assert_lambda_in_vpc_and_backup_sg
+      InputPayload:
+        LambdaARN: '{{LambdaARN}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::lambda_util.imports
+
+        SCRIPT_PLACEHOLDER::lambda_util.check_required_params
+
+        SCRIPT_PLACEHOLDER::lambda_util.assert_lambda_in_vpc_and_backup_sg
+
+  - name: CreateEmptySecurityGroup
+    action: 'aws:executeScript'
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    outputs:
+      - Name: EmptySecurityGroupId
+        Selector: $.Payload.EmptySecurityGroupId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: create_empty_security_group
+      InputPayload:
+        VpcId: '{{AssertLambdaInVPCAndBackupLambdaSecurityGroups.VpcId}}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+
+        SCRIPT_PLACEHOLDER::common_util.create_empty_security_group
+
+  - name: RemoveSecurityGroupAssignment
+    action: 'aws:executeScript'
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    outputs:
+      - Name: SecurityGroupListUpdatedValue
+        Selector: $.Payload.SecurityGroupListUpdatedValue
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: remove_sg_assignment
+      InputPayload:
+        SecurityGroupId: '{{SecurityGroupId}}'
+        EmptySecurityGroupId: '{{CreateEmptySecurityGroup.EmptySecurityGroupId}}'
+        LambdaARN: '{{LambdaARN}}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::lambda_util.imports
+
+        SCRIPT_PLACEHOLDER::lambda_util.check_required_params
+
+        SCRIPT_PLACEHOLDER::lambda_util.remove_sg_assignment
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{LambdaErrorAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["ALARM"]
+
+  - name: RollbackCurrentExecution
+    action: 'aws:executeScript'
+    maxAttempts: 5
+    onCancel: step:TriggerRollback
+    outputs:
+      - Name: SecurityGroupListRestoredValue
+        Selector: $.Payload.SecurityGroupListRestoredValue
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: rollback_security_groups
+      InputPayload:
+        SecurityGroupList: '{{AssertLambdaInVPCAndBackupLambdaSecurityGroups.SecurityGroupList}}'
+        LambdaARN: '{{LambdaARN}}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::lambda_util.imports
+
+        SCRIPT_PLACEHOLDER::lambda_util.check_required_params
+
+        SCRIPT_PLACEHOLDER::lambda_util.rollback_security_groups
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{LambdaErrorAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: ClearEmptySecurityGroup
+    action: aws:executeScript
+    timeoutSeconds: 900
+    maxAttempts: 3
+    inputs:
+      Runtime: python3.7
+      Handler: remove_empty_security_group
+      InputPayload:
+        EmptySecurityGroupId: '{{CreateEmptySecurityGroup.EmptySecurityGroupId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

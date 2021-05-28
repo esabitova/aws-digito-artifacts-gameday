@@ -16,5 +16,8 @@
       "2": "Start a memory load for the amount of memory in bytes on instance for X minutes.",
       "3": "Verify alarm (a) is triggered."
   },
+  "recommendedAlarms": {
+    "MemoryUtilizationAlarmName": "compute:alarm:ec2-cloudwatch-mem-util:2021-04-05"
+  },
   "minorVersion": "001"
 }

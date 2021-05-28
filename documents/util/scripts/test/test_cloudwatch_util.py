@@ -159,7 +159,8 @@ class TestCloudWatchUtil(unittest.TestCase):
         end_time = time.time()
         self.assertEqual(round(end_time - start_time), 0)
 
-    def test_verify_ec2_stress_metric_wait_time_1_success(self):
+    @patch('documents.util.scripts.src.cloudwatch_util.time.sleep')
+    def test_verify_ec2_stress_metric_wait_time_1_success(self, patch_sleep):
         expected_cpu_load = 95
         actual_cpu_load = '95'
         latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
@@ -176,11 +177,9 @@ class TestCloudWatchUtil(unittest.TestCase):
         instance_ids = get_instance_ids_by_count(5)
         metric_delay_secs = 6
 
-        start_time = time.time()
         verify_ec2_stress(instance_ids, stress_duration, expected_cpu_load, metric_delay_secs, 'CPUUtilization',
                           exp_recovery_time)
-        end_time = time.time()
-        self.assertEqual(round(end_time - start_time), 2)
+        patch_sleep.assert_called_once()
 
     def test_describe_metric_alarm_state_ok_success(self):
         self.cw_mock.describe_alarms.return_value = {'MetricAlarms': [{'StateValue': 'OK'}]}

@@ -12,6 +12,8 @@ from resource_manager.src.util.dynamo_db_utils import (
     drop_and_wait_dynamo_db_table_if_exists,
     get_earliest_recovery_point_in_time,
     remove_global_table_and_wait_for_active, wait_table_to_be_active)
+from concurrent.futures import ThreadPoolExecutor
+import logging
 
 
 @given(parsers.parse('cache table property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
@@ -173,3 +175,31 @@ def delete_all_alarms_for_dynamodb_table(ssm_test_cache,
                                                {'cache': ssm_test_cache})
     delete_alarms_for_dynamo_db_table(boto3_session=boto3_session,
                                       table_name=table_name)
+
+
+@given(parsers.parse('put test item with attribute "{attribute}" and value "{value}"\n{input_parameters}'))
+def put_item(boto3_session, resource_pool, ssm_test_cache, attribute, value, input_parameters):
+    dynamo_db_client = boto3_session.client('dynamodb')
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    dynamo_db_client.put_item(TableName=table_name, Item={attribute: {"S": value}})
+
+
+def get_item(boto3_session, table_name, key):
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.get_item(TableName=table_name, Key=key, ConsistentRead=True)
+
+
+@given(parsers.parse('get test item with attribute "{attribute}" and value "{value}" "{number}" times'
+                     '\n{input_parameters}'))
+@when(parsers.parse('get test item with attribute "{attribute}" and value "{value}" "{number}" times'
+                    '\n{input_parameters}'))
+def get_items(boto3_session, resource_pool, ssm_test_cache, attribute, value, number, input_parameters):
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    futures = []
+    logging.info(f'Start DynamoDB read items stress test, read {number} times')
+    with ThreadPoolExecutor() as executor:
+        for i in range(int(number)):
+            futures.append(
+                executor.submit(get_item, boto3_session, table_name, {attribute: {"S": value}})
+            )
+    logging.info('DynamoDB read items stress test done')

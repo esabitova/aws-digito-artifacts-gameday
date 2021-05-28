@@ -568,6 +568,37 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
 
+    def test_set_throttling_config_without_provided_stage_name_for_rollback_case(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT,
+            'RestApiGwStageName': '{{ GetInputsFromPreviousExecution.RestApiGwStageName }}',
+            'RestApiGwId': '{{ GetInputsFromPreviousExecution.RestApiGwId }}',
+            'RestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'RestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        output = apigw_utils.set_throttling_config(events, None)
+        self.mock_apigw.update_usage_plan.assert_called_with(
+            usagePlanId=USAGE_PLAN_ID,
+            patchOperations=[
+                {
+                    'op': 'replace',
+                    'path': '/throttle/rateLimit',
+                    'value': str(NEW_THROTTLE_RATE_LIMIT)
+                },
+                {
+                    'op': 'replace',
+                    'path': '/throttle/burstLimit',
+                    'value': str(NEW_THROTTLE_BURST_LIMIT)
+                }
+            ]
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
     def test_set_throttling_config_with_huge_rate_limit(self):
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
@@ -650,6 +681,36 @@ class TestApigwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+
+    def test_assert_inputs_before_throttling_rollback(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': '',
+            'RestApiGwId': '',
+            'RestApiGwResourcePath': '*',
+            'RestApiGwHttpMethod': '*',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': '{{ GetInputsFromPreviousExecution.RestApiGwStageName }}',
+            'OriginalRestApiGwId': '{{ GetInputsFromPreviousExecution.RestApiGwId }}',
+            'OriginalRestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'OriginalRestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        apigw_utils.assert_inputs_before_throttling_rollback(events, None)
+
+    def test_assert_inputs_before_throttling_rollback_with_provided_stage_name(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwResourcePath': '*',
+            'RestApiGwHttpMethod': '*',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'OriginalRestApiGwId': REST_API_GW_ID,
+            'OriginalRestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'OriginalRestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        apigw_utils.assert_inputs_before_throttling_rollback(events, None)
 
 
 @pytest.mark.unit_test
@@ -1003,3 +1064,93 @@ class TestApigwUtilKeyExceptions(unittest.TestCase):
         with pytest.raises(KeyError) as exception_info:
             apigw_utils.get_throttling_config(events, None)
         self.assertTrue(exception_info.match('RestApiGwId should not be empty'))
+
+    def test_assert_inputs_before_throttling_rollback_error_input_1(self):
+        events = {
+            'RestApiGwUsagePlanId': 'WrongRestApiGwUsagePlanId',
+            'RestApiGwStageName': '',
+            'RestApiGwId': '',
+            'RestApiGwResourcePath': '*',
+            'RestApiGwHttpMethod': '*',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': '{{ GetInputsFromPreviousExecution.RestApiGwStageName }}',
+            'OriginalRestApiGwId': '{{ GetInputsFromPreviousExecution.RestApiGwId }}',
+            'OriginalRestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'OriginalRestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        with pytest.raises(AssertionError) as exception_info:
+            apigw_utils.assert_inputs_before_throttling_rollback(events, None)
+        self.assertTrue(exception_info.match(f'Provided RestApiGwUsagePlanId: WrongRestApiGwUsagePlanId is not equal to'
+                                             f' original RestApiGwUsagePlanId: {USAGE_PLAN_ID}'))
+
+    def test_assert_inputs_before_throttling_rollback_error_input_2(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': 'WrongRestApiGwStageName',
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwResourcePath': '*',
+            'RestApiGwHttpMethod': '*',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'OriginalRestApiGwId': REST_API_GW_ID,
+            'OriginalRestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'OriginalRestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        with pytest.raises(AssertionError) as exception_info:
+            apigw_utils.assert_inputs_before_throttling_rollback(events, None)
+        self.assertTrue(exception_info.match(f'Provided RestApiGwStageName: WrongRestApiGwStageName is not equal to '
+                                             f'original RestApiGwStageName: {REST_API_GW_STAGE_NAME}'))
+
+    def test_assert_inputs_before_throttling_rollback_error_input_3(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': 'WrongRestApiGwId',
+            'RestApiGwResourcePath': '*',
+            'RestApiGwHttpMethod': '*',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'OriginalRestApiGwId': REST_API_GW_ID,
+            'OriginalRestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'OriginalRestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        with pytest.raises(AssertionError) as exception_info:
+            apigw_utils.assert_inputs_before_throttling_rollback(events, None)
+        self.assertTrue(exception_info.match(f'Provided RestApiGwId: WrongRestApiGwId is not equal to '
+                                             f'original RestApiGwId: {REST_API_GW_ID}'))
+
+    def test_assert_inputs_before_throttling_rollback_error_input_4(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwResourcePath': 'WrongRestApiGwResourcePath',
+            'RestApiGwHttpMethod': '*',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'OriginalRestApiGwId': REST_API_GW_ID,
+            'OriginalRestApiGwResourcePath': 'app',
+            'OriginalRestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
+        }
+        with pytest.raises(AssertionError) as exception_info:
+            apigw_utils.assert_inputs_before_throttling_rollback(events, None)
+        self.assertTrue(exception_info.match('Provided RestApiGwResourcePath: WrongRestApiGwResourcePath is not equal '
+                                             'to original RestApiGwResourcePath: app'))
+
+    def test_assert_inputs_before_throttling_rollback_error_input_5(self):
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'RestApiGwId': REST_API_GW_ID,
+            'RestApiGwResourcePath': '*',
+            'RestApiGwHttpMethod': 'PUT',
+            'OriginalRestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'OriginalRestApiGwStageName': REST_API_GW_STAGE_NAME,
+            'OriginalRestApiGwId': REST_API_GW_ID,
+            'OriginalRestApiGwResourcePath': '{{ GetInputsFromPreviousExecution.RestApiGwResourcePath }}',
+            'OriginalRestApiGwHttpMethod': 'GET'
+        }
+        with pytest.raises(AssertionError) as exception_info:
+            apigw_utils.assert_inputs_before_throttling_rollback(events, None)
+        self.assertTrue(exception_info.match('Provided RestApiGwHttpMethod: PUT is not equal to '
+                                             'original RestApiGwHttpMethod: GET'))

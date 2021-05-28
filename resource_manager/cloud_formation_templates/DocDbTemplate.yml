@@ -76,6 +76,7 @@ Resources:
                   - !Ref "AWS::StackId"
       MasterUsername: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
       MasterUserPassword: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::password}}'
+      StorageEncrypted: true
       EngineVersion: 4.0.0
   DBInstancePrimary:
     Type: "AWS::DocDB::DBInstance"

@@ -46,7 +46,6 @@ Resources:
             Action:
               - lambda:UpdateFunctionConfiguration
               - ssm:StartAutomationExecution
-              - iam:PassRole
               - ssm:GetAutomationExecution
       Roles:
         - Ref: DigitoLambdaChangeMemorySizeAssumeRole

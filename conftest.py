@@ -1,12 +1,15 @@
 import logging
-import time
-import uuid
-import re
 import random
+import re
 import string
+import time
+import unittest
+import uuid
+from datetime import datetime
+from typing import List
+
 import boto3
 import pytest
-from datetime import datetime
 from pytest import ExitCode
 from pytest_bdd import (
     when,
@@ -15,25 +18,26 @@ from pytest_bdd import (
 )
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
+
 from publisher.src.publish_documents import PublishDocuments
+from resource_manager.src.alarm_manager import AlarmManager
 from resource_manager.src.cloud_formation import CloudFormationTemplate
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
+from resource_manager.src.util.cw_util import get_metric_alarm_state
+from resource_manager.src.util.cw_util import wait_for_metric_data_point
+from resource_manager.src.util.enums.alarm_state import AlarmState
+from resource_manager.src.util.enums.operator import Operator
 from resource_manager.src.util.param_utils import parse_param_value, parse_param_values_from_table
 from resource_manager.src.util.param_utils import parse_pool_size
-from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
-from resource_manager.src.util.sts_utils import assume_role_session
-from resource_manager.src.util.enums.alarm_state import AlarmState
-from resource_manager.src.util.cw_util import get_metric_alarm_state
-from resource_manager.src.util.ssm_utils import send_step_approval
-from resource_manager.src.alarm_manager import AlarmManager
-from resource_manager.src.util.enums.operator import Operator
-from resource_manager.src.util.cw_util import wait_for_metric_data_point
-from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
 from resource_manager.src.util.role_session import RoleSession
+from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
+from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
+from resource_manager.src.util.ssm_utils import send_step_approval
+from resource_manager.src.util.sts_utils import assume_role_session
 
 
 def pytest_addoption(parser):
@@ -341,8 +345,7 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
-    if ssm_execution_id is None:
-        raise Exception('Parameter with name [ExecutionId] should be provided')
+    __validate_ssm_execution_id(ssm_execution_id)
     actual_status = ssm_document.wait_for_execution_completion(ssm_execution_id, ssm_document_name)
     assert expected_status == actual_status
 
@@ -370,8 +373,7 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
-    if ssm_execution_id is None:
-        raise Exception('Parameter with name [ExecutionId] should be provided')
+    __validate_ssm_execution_id(ssm_execution_id)
 
     int_time_to_wait = int(time_to_wait)
     logging.info(f'Waiting for {expected_status} status of {ssm_step_name} step in {ssm_document_name} document '
@@ -470,8 +472,7 @@ def approve_automation(cfn_output_params, ssm_test_cache, boto3_session, input_p
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
     role_arn = parameters[0].get('RoleArn')
-    if ssm_execution_id is None:
-        raise Exception('Parameter with name [ExecutionId] should be provided')
+    __validate_ssm_execution_id(ssm_execution_id)
     if role_arn is None:
         raise Exception('Parameter with name [RoleArn] should be provided')
     assumed_role_session = assume_role_session(role_arn, boto3_session)
@@ -491,8 +492,7 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
     role_arn = parameters[0].get('RoleArn')
-    if ssm_execution_id is None:
-        raise Exception('Parameter with name [ExecutionId] should be provided')
+    __validate_ssm_execution_id(ssm_execution_id)
     if role_arn is None:
         raise Exception('Parameter with name [RoleArn] should be provided')
     assumed_role_session = assume_role_session(role_arn, boto3_session)
@@ -667,3 +667,19 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
     ssm_execution_id = re.search(r'SsmExecutionId>\d+', execution_id_ref).group().split('>')[1]
     ssm_test_cache['SsmStepExecutionInterval'] = {ssm_execution_id: {step_name: {'StartTime': exec_start,
                                                                                  'EndTime': exec_end}}}
+
+
+@then(parse('assert "{steps_string}" steps are successfully executed in order\n{input_parameters}'))
+def assert_steps_are_successfully_executed_in_order(ssm_document, ssm_test_cache, steps_string, input_parameters):
+    parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache})
+    ssm_execution_id = parameters[0].get('ExecutionId')
+    __validate_ssm_execution_id(ssm_execution_id)
+    expected_steps: List = re.findall("\\w+", steps_string)
+    actual_steps = ssm_document.get_successfully_executed_steps_by_order(ssm_execution_id)
+    tc = unittest.TestCase()
+    tc.assertListEqual(expected_steps, actual_steps)
+
+
+def __validate_ssm_execution_id(ssm_execution_id):
+    if ssm_execution_id is None:
+        raise Exception('Parameter with name [ExecutionId] should be provided')
