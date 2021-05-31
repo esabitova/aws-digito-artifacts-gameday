@@ -20,7 +20,8 @@ Description: Role for recovering the database into a known good state
 Outputs:
   DigitoDocDbRestoreFromBackupAssumeRole:
     Description: DigitoDocDbRestoreFromBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoDocDbRestoreFromBackupAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoDocDbRestoreFromBackupAssumeRole.Arn
 Resources:
   DigitoDocDbRestoreFromBackupAssumeRole:
     Type: AWS::IAM::Role

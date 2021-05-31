@@ -20,7 +20,8 @@ Description: Role for SSM SimulateInternetUnavailable
 Outputs:
   DigitoSimulateInternetUnavailableAssumeRole:
     Description: DigitoSimulateInternetUnavailable Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateInternetUnavailableAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoSimulateInternetUnavailableAssumeRole.Arn
 Resources:
   DigitoSimulateInternetUnavailableAssumeRole:
     Type: AWS::IAM::Role
@@ -55,7 +56,7 @@ Resources:
               - cloudwatch:DescribeAlarms
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoSimulateInternetUnavailableAssumeRole.Arn
+              - Fn::GetAtt: DigitoSimulateInternetUnavailableAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

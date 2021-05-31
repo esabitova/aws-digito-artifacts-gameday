@@ -20,7 +20,8 @@ Description: Role for SSM RestoringToPreviousVersion
 Outputs:
   DigitoRestoringToPreviousVersionAssumeRole:
     Description: DigitoRestoringToPreviousVersion Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoringToPreviousVersionAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestoringToPreviousVersionAssumeRole.Arn
 Resources:
   DigitoRestoringToPreviousVersionAssumeRole:
     Type: AWS::IAM::Role

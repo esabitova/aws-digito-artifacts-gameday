@@ -20,7 +20,8 @@ Description: Role for SSM LambdaChangeConcurrencyLimit
 Outputs:
   DigitoLambdaChangeConcurrencyLimitAssumeRoleArn:
     Description: DigitoLambdaChangeConcurrencyLimit Automation Assume Role ARN
-    Value: !GetAtt DigitoLambdaChangeConcurrencyLimitAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoLambdaChangeConcurrencyLimitAssumeRole.Arn
 Resources:
   DigitoLambdaChangeConcurrencyLimitAssumeRole:
     Type: AWS::IAM::Role

@@ -20,7 +20,8 @@ Description: Role for SSM ConsumeMoreRCU
 Outputs:
   DigitoRestoreFromPointInTimeAssumeRole:
     Description: DigitoConsumeMoreRCU Automation Assume Role ARN
-    Value: !GetAtt DigitoConsumeMoreRCUAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoConsumeMoreRCUAssumeRole.Arn
 Resources:
   DigitoConsumeMoreRCUAssumeRole:
     Type: AWS::IAM::Role
@@ -52,7 +53,7 @@ Resources:
               - ssm:GetParameters
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoConsumeMoreRCUAssumeRole.Arn
+              - Fn::GetAtt: DigitoConsumeMoreRCUAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

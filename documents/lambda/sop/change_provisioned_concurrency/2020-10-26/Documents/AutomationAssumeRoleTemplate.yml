@@ -20,7 +20,8 @@ Description: Role for SSM LambdaChangeProvisionedConcurrency
 Outputs:
   DigitoLambdaChangeProvisionedConcurrencyAssumeRoleArn:
     Description: DigitoLambdaChangeProvisionedConcurrency Automation Assume Role ARN
-    Value: !GetAtt DigitoLambdaChangeProvisionedConcurrencyAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoLambdaChangeProvisionedConcurrencyAssumeRole.Arn
 Resources:
   DigitoLambdaChangeProvisionedConcurrencyAssumeRole:
     Type: AWS::IAM::Role

@@ -20,7 +20,8 @@ Description: Role for SSM UpdateProvisionedCapacity
 Outputs:
   DigitoUpdateProvisionedCapacityAssumeRole:
     Description: DigitoUpdateProvisionedCapacity Automation Assume Role ARN
-    Value: !GetAtt DigitoUpdateProvisionedCapacityAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoUpdateProvisionedCapacityAssumeRole.Arn
 Resources:
   DigitoUpdateProvisionedCapacityAssumeRole:
     Type: AWS::IAM::Role

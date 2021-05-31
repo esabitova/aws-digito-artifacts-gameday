@@ -20,7 +20,8 @@ Description: Role for SSM CreateBackup
 Outputs:
   DigitoCreateEfsBackupAssumeRole:
     Description: DigitoCreateBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoCreateEfsBackupAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoCreateEfsBackupAssumeRole.Arn
 Resources:
   DigitoCreateEfsBackupAssumeRole:
     Type: AWS::IAM::Role

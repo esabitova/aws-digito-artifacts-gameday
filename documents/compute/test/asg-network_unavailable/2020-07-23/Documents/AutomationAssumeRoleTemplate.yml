@@ -20,7 +20,8 @@ Description: Role for SSM Network unavailable Simulation
 Outputs:
   DigitoSimulateNetworkUnavailableInAsgAssumeRole:
     Description: DigitoSimulateNetworkUnavailableInAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateNetworkUnavailableInAsgAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoSimulateNetworkUnavailableInAsgAssumeRole.Arn
 Resources:
   DigitoSimulateNetworkUnavailableInAsgAssumeRole:
     Type: AWS::IAM::Role

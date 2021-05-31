@@ -20,7 +20,8 @@ Description: Role for SSM RestoreBackup
 Outputs:
   DigitoEFSRestoreBackupAssumeRole:
     Description: DigitoRestoreBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoEFSRestoreBackupAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoEFSRestoreBackupAssumeRole.Arn
 Resources:
   DigitoEFSRestoreBackupAssumeRole:
     Type: AWS::IAM::Role

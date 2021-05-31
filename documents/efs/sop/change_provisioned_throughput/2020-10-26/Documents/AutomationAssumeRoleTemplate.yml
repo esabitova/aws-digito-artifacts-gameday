@@ -20,7 +20,8 @@ Description: Role for Digito-EFSChangeProvisionedThroughput_2020-10-26
 Outputs:
   DigitoEfsChangeProvisionedThroughputAssumeRole:
     Description: Digito-EFSChangeProvisionedThroughput_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoEfsChangeProvisionedThroughputAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoEfsChangeProvisionedThroughputAssumeRole.Arn
 Resources:
   DigitoEfsChangeProvisionedThroughputAssumeRole:
     Type: AWS::IAM::Role

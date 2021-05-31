@@ -20,7 +20,8 @@ Description: Role for DocDb ScalingDown
 Outputs:
   DigitoScalingDownAssumeRole:
     Description: DigitoScalingDownDocDb Automation Assume Role ARN
-    Value: !GetAtt DigitoScalingDownDocDbAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoScalingDownDocDbAssumeRole.Arn
 Resources:
   DigitoScalingDownDocDbAssumeRole:
     Type: AWS::IAM::Role

@@ -20,7 +20,8 @@ Description: Role for SSM LambdaChangeMemorySize
 Outputs:
   DigitoLambdaChangeMemorySizeAssumeRoleArn:
     Description: DigitoLambdaChangeMemorySize Automation Assume Role ARN
-    Value: !GetAtt DigitoLambdaChangeMemorySizeAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoLambdaChangeMemorySizeAssumeRole.Arn
 Resources:
   DigitoLambdaChangeMemorySizeAssumeRole:
     Type: AWS::IAM::Role

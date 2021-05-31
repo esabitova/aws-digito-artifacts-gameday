@@ -20,7 +20,8 @@ Description: Role for SQS capacity failure
 Outputs:
   DigitoSQSCapacityFailureAssumeRole:
     Description: DigitoSQSCapacityFailureAssumeRole Automation Assume Role ARN
-    Value: !GetAtt DigitoSQSCapacityFailureAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoSQSCapacityFailureAssumeRole.Arn
 Resources:
   DigitoSQSCapacityFailureAssumeRole:
     Type: AWS::IAM::Role
@@ -53,7 +54,7 @@ Resources:
               - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoSQSCapacityFailureAssumeRole.Arn
+              - Fn::GetAtt: DigitoSQSCapacityFailureAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

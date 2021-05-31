@@ -11,7 +11,7 @@ parameters:
   DynamoDBSourceTableAlarmNames:
     type: StringList
     description: (Optional) The DynamoDB Source Table Name Alarm Names.
-    default:
+    default: []
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.

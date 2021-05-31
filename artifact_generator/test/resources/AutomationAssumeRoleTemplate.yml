@@ -3,7 +3,8 @@ Description: Role for Digito-MyTest_2020-04-01
 Outputs:
   DigitoMyServiceMyTestAssumeRole:
     Description: Digito-MyTest_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoMyServiceMyTestAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoMyServiceMyTestAssumeRole.Arn
 Resources:
   DigitoMyServiceMyTestAssumeRole:
     Type: AWS::IAM::Role

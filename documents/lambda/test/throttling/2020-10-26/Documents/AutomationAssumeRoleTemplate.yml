@@ -20,7 +20,8 @@ Description: Role for Digito-Throttling_2020-10-26
 Outputs:
   DigitoLambdaThrottlingAssumeRole:
     Description: Digito-Throttling_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoLambdaThrottlingAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoLambdaThrottlingAssumeRole.Arn
 Resources:
   DigitoLambdaThrottlingAssumeRole:
     Type: AWS::IAM::Role

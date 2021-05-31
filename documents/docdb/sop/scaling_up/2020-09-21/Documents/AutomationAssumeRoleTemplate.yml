@@ -20,7 +20,8 @@ Description: Role for DocDb ScalingUp
 Outputs:
   DigitoScalingUpAssumeRole:
     Description: DigitoScalingUpDocDb Automation Assume Role ARN
-    Value: !GetAtt DigitoScalingUpDocDbAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoScalingUpDocDbAssumeRole.Arn
 Resources:
   DigitoScalingUpDocDbAssumeRole:
     Type: AWS::IAM::Role
@@ -51,7 +52,7 @@ Resources:
               - 'ssm:StartAutomationExecution'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoScalingUpDocDbAssumeRole.Arn
+              - Fn::GetAtt: DigitoScalingUpDocDbAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

@@ -20,7 +20,8 @@ Description: Role for recovering the database into a known good state
 Outputs:
   DigitoRebootDbInstanceAssumeRole:
     Description: DigitoRebootDbInstance Automation Assume Role ARN
-    Value: !GetAtt DigitoRebootDbInstanceAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRebootDbInstanceAssumeRole.Arn
 Resources:
   DigitoRebootDbInstanceAssumeRole:
     Type: AWS::IAM::Role

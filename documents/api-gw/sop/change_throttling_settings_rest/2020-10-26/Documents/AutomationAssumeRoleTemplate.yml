@@ -20,7 +20,8 @@ Description: Role for SSM DigitoRestApiGwChangeThrottlingSettings
 Outputs:
   DigitoRestApiGwChangeThrottlingSettingsAssumeRoleArn:
     Description: DigitoRestApiGwChangeThrottlingSettings Automation Assume Role ARN
-    Value: !GetAtt DigitoRestApiGwChangeThrottlingSettingsAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestApiGwChangeThrottlingSettingsAssumeRole.Arn
 Resources:
   DigitoRestApiGwChangeThrottlingSettingsAssumeRole:
     Type: AWS::IAM::Role

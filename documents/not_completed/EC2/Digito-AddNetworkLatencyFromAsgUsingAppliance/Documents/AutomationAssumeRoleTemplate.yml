@@ -20,7 +20,8 @@ Description: Role for SSM Add Network Latency From Asg Using Appliance
 Outputs:
   DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole:
     Description: DigitoAddNetworkLatencyFromAsgUsingAppliance Automation Assume Role ARN
-    Value: !GetAtt DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole.Arn
 Resources:
   DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole:
     Type: AWS::IAM::Role
@@ -65,7 +66,7 @@ Resources:
               - 'ec2:ReplaceRoute'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole.Arn
+              - Fn::GetAtt: DigitoAddNetworkLatencyFromAsgUsingApplianceAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

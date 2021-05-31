@@ -20,7 +20,8 @@ Description: Role for creating a new instance in a specified AZ/Region
 Outputs:
   DigitoCreateNewInstanceAssumeRole:
     Description: DigitoCreateNewInstance Automation Assume Role ARN
-    Value: !GetAtt DigitoCreateNewInstanceAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoCreateNewInstanceAssumeRole.Arn
 Resources:
   DigitoCreateNewInstanceAssumeRole:
     Type: AWS::IAM::Role

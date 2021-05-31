@@ -20,7 +20,8 @@ Description: Role for SSM RESTAPIGWChangeQuotaLimit
 Outputs:
   DigitoRESTAPIGWChangeQuotaLimitAssumeRoleArn:
     Description: DigitoRESTAPIGWChangeQuotaLimit Automation Assume Role ARN
-    Value: !GetAtt DigitoRESTAPIGWChangeQuotaLimitAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRESTAPIGWChangeQuotaLimitAssumeRole.Arn
 Resources:
   DigitoRESTAPIGWChangeQuotaLimitAssumeRole:
     Type: AWS::IAM::Role

@@ -59,7 +59,7 @@ Resources:
               - 'autoscaling:DescribeAutoScalingGroups'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+              - Fn::GetAtt: DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

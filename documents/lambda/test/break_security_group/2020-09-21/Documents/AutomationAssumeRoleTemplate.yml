@@ -20,7 +20,8 @@ Description: Role for Digito-LambdaBreakSecurityGroup_2020-09-21
 Outputs:
   DigitoLambdaBreakSecurityGroupAssumeRole:
     Description: Digito-LambdaBreakSecurityGroup_2020-09-21 Automation Assume Role ARN
-    Value: !GetAtt DigitoLambdaBreakSecurityGroupAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoLambdaBreakSecurityGroupAssumeRole.Arn
 Resources:
   DigitoLambdaBreakSecurityGroupAssumeRole:
     Type: AWS::IAM::Role
@@ -57,7 +58,7 @@ Resources:
               - lambda:UpdateFunctionConfiguration
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoLambdaBreakSecurityGroupAssumeRole.Arn
+              - Fn::GetAtt: DigitoLambdaBreakSecurityGroupAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
