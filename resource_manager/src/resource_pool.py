@@ -432,7 +432,7 @@ class ResourcePool:
         '{{cfn-output:TemplateName>TemplateOutput}}' parameter, value is parsed from cfn template output, if referring
         to '{{cfn-output:TemplateName>TemplateOutput}}' parsed from cache, otherwise value is taken as is.
         :param cfn_input_params:
-        :return: The parsed cfn input patameters.
+        :return: The parsed cfn input parameters.
         """
         # Parsing cfn input parameters, if any of parameters is cfn-output,
         # then we pull that cfn resource to get parameter value from cfn output.

@@ -19,9 +19,10 @@ phases:
       - export AWS_ACCESS_KEY_ID=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.AccessKeyId')
       - export AWS_SECRET_ACCESS_KEY=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.SecretAccessKey')
       - export AWS_SESSION_TOKEN=$(echo "${TEMP_ROLE}" | jq -r '.Credentials.SessionToken')
+      - export AWS_STS_REGIONAL_ENDPOINTS=regional
       - mkdir -p ~/.aws
       - touch ~/.aws/credentials
-      - printf "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\naws_session_token=$AWS_SESSION_TOKEN" > ~/.aws/credentials
+      - printf "[default]\naws_access_key_id=$AWS_ACCESS_KEY_ID\naws_secret_access_key=$AWS_SECRET_ACCESS_KEY\naws_session_token=$AWS_SESSION_TOKEN\nsts_regional_endpoints=$AWS_STS_REGIONAL_ENDPOINTS" > ~/.aws/credentials
   build:
     commands:
       - echo "Executing test group [`echo $TEST_GROUP`] with [`echo $WORKERS`] workers."
