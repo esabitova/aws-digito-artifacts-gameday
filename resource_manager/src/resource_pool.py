@@ -60,7 +60,8 @@ class ResourcePool:
                     len(ResourcePool.CFN_TEMPLATE_PATH_PARAM) < 1 \
                     or cfn_template.get(ResourcePool.CFN_RESOURCE_TYPE_PARAM) is None or \
                     len(cfn_template.get(ResourcePool.CFN_RESOURCE_TYPE_PARAM)) < 1:
-                raise Exception('Required parameters [CfnTemplatePath] and [ResourceType] should be presented.')
+                raise Exception(f'Required parameters [{ResourcePool.CFN_TEMPLATE_PATH_PARAM}] '
+                                f'and [{ResourcePool.CFN_RESOURCE_TYPE_PARAM}] should be presented.')
             cfn_template_path = cfn_template.pop(ResourcePool.CFN_TEMPLATE_PATH_PARAM)
             resource_type = ResourceModel.ResourceType.from_string(cfn_template.pop('ResourceType'))
             cfn_template_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
