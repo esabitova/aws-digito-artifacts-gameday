@@ -56,7 +56,7 @@ mainSteps:
         - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
-      Default: GetPreviousExecutionInstanceIds
+      Default: GetPreviousExecutionInstanceId
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:assertAwsResourceProperty
     inputs:
@@ -100,13 +100,13 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
     isEnd: true
-  - name: GetPreviousExecutionInstanceIds
+  - name: GetPreviousExecutionInstanceId
     action: 'aws:executeScript'
     onFailure: Abort
     outputs:
-      - Name: InstanceIds
-        Selector: $.Payload.InstanceIds
-        Type: StringList
+      - Name: InstanceId
+        Selector: $.Payload.InstanceIds[0]
+        Type: String
     inputs:
       Runtime: python3.6
       Handler: get_inputs_from_ssm_step_execution
@@ -118,6 +118,14 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+  - name: AssertInstanceId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: CancelCommandExecution
+          Variable: "{{ GetPreviousExecutionInstanceId.InstanceId }}"
+          StringEquals: '{{ InstanceId }}'
+    isEnd: true
   - name: CancelCommandExecution
     action: 'aws:executeScript'
     onFailure: Abort
@@ -127,7 +135,8 @@ mainSteps:
       InputPayload:
         ExecutionId: '{{PreviousExecutionId}}'
         StepName: 'RunMemoryStress'
-        InstanceIds: '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
+        InstanceIds:
+            - '{{GetPreviousExecutionInstanceId.InstanceId}}'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
@@ -140,7 +149,7 @@ mainSteps:
     inputs:
       DocumentName: Digito-KillStressCommand_2020-07-28
       InstanceIds:
-          - '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
+          - '{{GetPreviousExecutionInstanceId.InstanceId}}'
     isEnd: true
   - name: TriggerRollback
     action: 'aws:executeScript'

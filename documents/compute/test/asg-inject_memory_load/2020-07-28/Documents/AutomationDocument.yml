@@ -64,7 +64,7 @@ mainSteps:
         - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
-      Default: GetPreviousExecutionDetails
+      Default: GetInputsFromPreviousExecution
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
     inputs:
@@ -125,6 +125,18 @@ mainSteps:
     onFailure: Abort
     inputs:
       Duration: 'PT{{ExpectedRecoveryTime}}S'
+  - name: AssertAlarmTriggered
+    action: 'aws:executeScript'
+    inputs:
+      Runtime: python3.6
+      Handler: verify_alarm_triggered
+      InputPayload:
+        AlarmName: '{{MemoryUtilizationAlarmName}}'
+        DurationInMinutes: '{{Duration}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
     maxAttempts: 10
@@ -152,6 +164,29 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util.imports
 
         SCRIPT_PLACEHOLDER::cloudwatch_util.verify_memory_stress
+    isEnd: true
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: AutoScalingGroupName
+        Selector: $.Payload.AutoScalingGroupName[0]
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+  - name: AssertAutoScalingGroupName
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionDetails
+          Variable: "{{ GetInputsFromPreviousExecution.AutoScalingGroupName }}"
+          StringEquals: '{{ AutoScalingGroupName }}'
     isEnd: true
   - name: GetPreviousExecutionDetails
     action: 'aws:executeScript'

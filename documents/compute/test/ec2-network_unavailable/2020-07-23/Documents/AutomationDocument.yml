@@ -48,7 +48,7 @@ mainSteps:
         - NextStep: SimulateNetworkUnavailable
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
-      Default: GetPreviousExecutionInstanceIds
+      Default: GetPreviousExecutionInstanceId
   - name: SimulateNetworkUnavailable
     action: aws:runCommand
     onFailure: Continue
@@ -99,13 +99,14 @@ mainSteps:
       Service: ec2
       Api: RebootInstances
       InstanceIds: ['{{InstanceId}}']
-  - name: GetPreviousExecutionInstanceIds
+    isEnd: true
+  - name: GetPreviousExecutionInstanceId
     action: 'aws:executeScript'
     onFailure: Abort
     outputs:
-      - Name: InstanceIds
-        Selector: $.Payload.InstanceIds
-        Type: StringList
+      - Name: InstanceId
+        Selector: $.Payload.InstanceIds[0]
+        Type: String
     inputs:
       Runtime: python3.6
       Handler: get_inputs_from_ssm_step_execution
@@ -117,12 +118,21 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+  - name: AssertInstanceId
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RebootInstancePreviousExecution
+          Variable: "{{ GetPreviousExecutionInstanceId.InstanceId }}"
+          StringEquals: '{{ InstanceId }}'
+    isEnd: true
   - name: RebootInstancePreviousExecution
     action: aws:executeAwsApi
     inputs:
       Service: ec2
       Api: RebootInstances
-      InstanceIds: '{{GetPreviousExecutionInstanceIds.InstanceIds}}'
+      InstanceIds:
+          - '{{GetPreviousExecutionInstanceId.InstanceId}}'
     isEnd: true
   - name: TriggerRollback
     action: 'aws:executeScript'

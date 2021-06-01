@@ -32,7 +32,7 @@ mainSteps:
         - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
-      Default: CancelInstanceRefresh
+      Default: GetInputsFromPreviousExecution
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
     inputs:
@@ -105,9 +105,9 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::asg_util.wait_for_refresh_to_finish
   - name: AssertAlarmToBeGreen
-    action: aws:assertAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
     onFailure: Abort
     inputs:
       Service: cloudwatch
@@ -116,6 +116,29 @@ mainSteps:
       - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
+    isEnd: true
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: AutoScalingGroupName
+        Selector: $.Payload.AutoScalingGroupName[0]
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+  - name: AssertAutoScalingGroupName
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: CancelInstanceRefresh
+          Variable: "{{ GetInputsFromPreviousExecution.AutoScalingGroupName }}"
+          StringEquals: '{{ AutoScalingGroupName }}'
     isEnd: true
   - name: CancelInstanceRefresh
     action: 'aws:executeScript'
