@@ -1,0 +1,11 @@
+{
+  "displayName": "NumberOfMessagesSentBand",
+  "description": "Alarm by Digito that detects anomalies of high and low values of NumberOfMessagesSent",
+  "alarmName": "Digito-NumberOfMessagesSentBand_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:health_alarm_number_of_messages_sent_band:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
