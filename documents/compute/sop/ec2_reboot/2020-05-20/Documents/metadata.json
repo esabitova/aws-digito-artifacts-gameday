@@ -1,0 +1,13 @@
+{
+  "displayName": "EC2 Reboot",
+  "description": "Reboots the ec2 instance",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-Ec2Reboot_2020-05-20",
+  "documentType": "Automation",
+  "failureType": "HARDWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "compute:sop:ec2_reboot:2020-05-20"
+}
