@@ -20,7 +20,8 @@ Description: Role for SSM DigitoEFSBreakSecurityGroup
 Outputs:
   DigitoEFSBreakSecurityGroupAssumeRole:
     Description: DigitoEFSBreakSecurityGroup Automation Assume Role ARN
-    Value: !GetAtt DigitoEFSBreakSecurityGroupAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoEFSBreakSecurityGroupAssumeRole.Arn
 Resources:
   DigitoEFSBreakSecurityGroupAssumeRole:
     Type: AWS::IAM::Role
@@ -55,7 +56,7 @@ Resources:
               - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoEFSBreakSecurityGroupAssumeRole.Arn
+              - Fn::GetAtt: DigitoEFSBreakSecurityGroupAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

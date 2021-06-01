@@ -20,7 +20,8 @@ Description: Role for SSM MoveMessagesBetweenQueues
 Outputs:
   DigitoMoveMessagesBetweenQueuesAssumeRole:
     Description: DigitoMoveMessagesBetweenQueues Automation Assume Role ARN
-    Value: !GetAtt DigitoMoveMessagesBetweenQueuesAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoMoveMessagesBetweenQueuesAssumeRole.Arn
 Resources:
   DigitoMoveMessagesBetweenQueuesAssumeRole:
     Type: AWS::IAM::Role

@@ -20,7 +20,8 @@ Description: Role for SSM QueueStateFailureDlqFifo
 Outputs:
   DigitoQueueStateFailureDlqFifoAssumeRole:
     Description: DigitoQueueStateFailureDlqFifo Automation Assume Role ARN
-    Value: !GetAtt DigitoQueueStateFailureDlqFifoAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoQueueStateFailureDlqFifoAssumeRole.Arn
 Resources:
   DigitoQueueStateFailureDlqFifoAssumeRole:
     Type: AWS::IAM::Role
@@ -60,7 +61,7 @@ Resources:
               - logs:DescribeLogStreams
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoQueueStateFailureDlqFifoAssumeRole.Arn
+              - Fn::GetAtt: DigitoQueueStateFailureDlqFifoAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

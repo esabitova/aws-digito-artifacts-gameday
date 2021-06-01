@@ -20,7 +20,8 @@ Description: Role for SSM BreakingThePolicyForSQS
 Outputs:
   DigitoBreakingThePolicyForSQSAssumeRole:
     Description: DigitoBreakingThePolicyForSQS Automation Assume Role ARN
-    Value: !GetAtt DigitoBreakingThePolicyForSQSAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoBreakingThePolicyForSQSAssumeRole.Arn
 Resources:
   DigitoBreakingThePolicyForSQSAssumeRole:
     Type: AWS::IAM::Role
@@ -55,7 +56,7 @@ Resources:
               - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoBreakingThePolicyForSQSAssumeRole.Arn
+              - Fn::GetAtt: DigitoBreakingThePolicyForSQSAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

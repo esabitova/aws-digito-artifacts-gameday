@@ -71,7 +71,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{MemoryUtilizationAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
   - name: GetAsgInstanceIds
@@ -134,7 +134,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-          - "{{SyntheticAlarmName}}"
+          - "{{MemoryUtilizationAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
   - name: VerifyMemoryStress

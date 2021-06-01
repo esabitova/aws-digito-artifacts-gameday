@@ -20,7 +20,8 @@ Description: Role for SSM Add Network Latency From Asg
 Outputs:
   DigitoAddNetworkLatencyFromAsgAssumeRole:
     Description: DigitoAddNetworkLatencyFromAsg Automation Assume Role ARN
-    Value: !GetAtt DigitoAddNetworkLatencyFromAsgAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoAddNetworkLatencyFromAsgAssumeRole.Arn
 Resources:
   DigitoAddNetworkLatencyFromAsgAssumeRole:
     Type: AWS::IAM::Role

@@ -20,7 +20,8 @@ Description: Role for Digito-ChangeExecutionTimeLimit_2021-05-20
 Outputs:
   DigitoLambdaChangeExecutionTimeLimitAssumeRole:
     Description: Digito-ChangeExecutionTimeLimit_2021-05-20 Automation Assume Role ARN
-    Value: !GetAtt DigitoLambdaChangeExecutionTimeLimitAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoLambdaChangeExecutionTimeLimitAssumeRole.Arn
 Resources:
   DigitoLambdaChangeExecutionTimeLimitAssumeRole:
     Type: AWS::IAM::Role

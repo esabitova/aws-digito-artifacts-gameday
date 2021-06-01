@@ -20,7 +20,8 @@ Description: Role for SSM Asg High Memory Simulation
 Outputs:
   DigitoSimulateHighMemoryLoadInEc2AssumeRole:
     Description: DigitoSimulateHighMemoryLoadInEc2 Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateHighMemoryLoadInEc2AssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoSimulateHighMemoryLoadInEc2AssumeRole.Arn
 Resources:
   DigitoSimulateHighMemoryLoadInEc2AssumeRole:
     Type: AWS::IAM::Role
@@ -56,7 +57,7 @@ Resources:
               - 'cloudwatch:GetMetricStatistics'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoSimulateHighMemoryLoadInEc2AssumeRole.Arn
+              - Fn::GetAtt: DigitoSimulateHighMemoryLoadInEc2AssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

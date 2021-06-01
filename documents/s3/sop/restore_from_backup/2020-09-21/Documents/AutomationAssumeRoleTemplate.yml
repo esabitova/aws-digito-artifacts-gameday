@@ -20,7 +20,8 @@ Description: Role for SSM RestoreFromBackup
 Outputs:
   DigitoRestoreFromBackupAssumeRole:
     Description: DigitoRestoreFromBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoreFromBackupAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestoreFromBackupAssumeRole.Arn
 Resources:
   DigitoRestoreFromBackupAssumeRole:
     Type: AWS::IAM::Role
@@ -56,7 +57,7 @@ Resources:
               - SNS:Publish
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoRestoreFromBackupAssumeRole.Arn
+              - Fn::GetAtt: DigitoRestoreFromBackupAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

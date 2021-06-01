@@ -20,7 +20,8 @@ Description: Role for promoting Read replica to the Primary instance
 Outputs:
   DigitoPromoteReadReplicaAssumeRole:
     Description: DigitoPromoteReadReplica Automation Assume Role ARN
-    Value: !GetAtt DigitoPromoteReadReplicaAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoPromoteReadReplicaAssumeRole.Arn
 Resources:
   DigitoPromoteReadReplicaAssumeRole:
     Type: AWS::IAM::Role

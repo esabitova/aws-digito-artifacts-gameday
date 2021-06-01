@@ -20,7 +20,8 @@ Description: Role for SSM PurgeQueue
 Outputs:
   DigitoPurgeQueueAssumeRole:
     Description: DigitoPurgeQueue Automation Assume Role ARN
-    Value: !GetAtt DigitoPurgeQueueAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoPurgeQueueAssumeRole.Arn
 Resources:
   DigitoPurgeQueueAssumeRole:
     Type: AWS::IAM::Role

@@ -20,7 +20,8 @@ Description: Role for SSM RestApiGwUpdateVersionRest
 Outputs:
   DigitoRestApiGwUpdateVersionRestAssumeRoleArn:
     Description: DigitoRestApiGwUpdateVersionRest Automation Assume Role ARN
-    Value: !GetAtt DigitoRestApiGwUpdateVersionRestAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestApiGwUpdateVersionRestAssumeRole.Arn
 Resources:
   DigitoRestApiGwUpdateVersionRestAssumeRole:
     Type: AWS::IAM::Role

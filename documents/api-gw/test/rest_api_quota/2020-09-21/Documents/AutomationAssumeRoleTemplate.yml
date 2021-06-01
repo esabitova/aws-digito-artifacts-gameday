@@ -20,7 +20,8 @@ Description: Role for Digito-RestApiGwQuota_2020-09-21
 Outputs:
   DigitoRestApiGwQuotaAssumeRole:
     Description: Digito-RestApiGwQuota_2020-09-21 Automation Assume Role ARN
-    Value: !GetAtt DigitoRestApiGwQuotaAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestApiGwQuotaAssumeRole.Arn
 Resources:
   DigitoRestApiGwQuotaAssumeRole:
     Type: AWS::IAM::Role
@@ -55,7 +56,7 @@ Resources:
               - logs:DescribeLogStreams
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoRestApiGwQuotaAssumeRole.Arn
+              - Fn::GetAtt: DigitoRestApiGwQuotaAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

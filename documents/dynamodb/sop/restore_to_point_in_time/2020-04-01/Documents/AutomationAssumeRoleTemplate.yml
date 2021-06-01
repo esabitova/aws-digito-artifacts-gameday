@@ -20,7 +20,8 @@ Description: Role for SSM Digito-RestoreToPointInTime_2020-04-01
 Outputs:
   DigitoRestoreFromPointInTimeAssumeRole:
     Description: Digito-RestoreToPointInTime_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoreFromPointInTimeAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
 Resources:
   DigitoRestoreFromPointInTimeAssumeRole:
     Type: AWS::IAM::Role
@@ -73,7 +74,7 @@ Resources:
               - 'ssm:StartAutomationExecution'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoRestoreFromPointInTimeAssumeRole.Arn
+              - Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

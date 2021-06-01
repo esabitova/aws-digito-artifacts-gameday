@@ -20,7 +20,8 @@ Description: Role for SSM Network unavailable Simulation
 Outputs:
   DigitoSimulateNetworkUnavailableInEc2AssumeRole:
     Description: DigitoSimulateNetworkUnavailableInEc2 Automation Assume Role ARN
-    Value: !GetAtt DigitoSimulateNetworkUnavailableInEc2AssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoSimulateNetworkUnavailableInEc2AssumeRole.Arn
 Resources:
   DigitoSimulateNetworkUnavailableInEc2AssumeRole:
     Type: AWS::IAM::Role
@@ -56,7 +57,7 @@ Resources:
               - 'ec2:RebootInstances'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoSimulateNetworkUnavailableInEc2AssumeRole.Arn
+              - Fn::GetAtt: DigitoSimulateNetworkUnavailableInEc2AssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

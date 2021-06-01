@@ -20,7 +20,8 @@ Description: Role for SSM RestoreFromPointInTime
 Outputs:
   DigitoRestoreFromPointInTimeAssumeRole:
     Description: DigitoRestoreFromPointInTime Automation Assume Role ARN
-    Value: !GetAtt DigitoRestoreFromPointInTimeAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
 Resources:
   DigitoRestoreFromPointInTimeAssumeRole:
     Type: AWS::IAM::Role

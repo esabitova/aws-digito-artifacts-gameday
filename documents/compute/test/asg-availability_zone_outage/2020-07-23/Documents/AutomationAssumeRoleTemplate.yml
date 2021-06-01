@@ -57,7 +57,7 @@ Resources:
               - 'ssm:StartAutomationExecution'
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoSimulateAzOutageInAsgAssumeRole.Arn
+              - Fn::GetAtt: DigitoSimulateAzOutageInAsgAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

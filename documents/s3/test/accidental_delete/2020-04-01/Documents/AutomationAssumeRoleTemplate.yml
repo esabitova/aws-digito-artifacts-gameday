@@ -20,7 +20,8 @@ Description: Role for SSM AccidentalDelete
 Outputs:
   DigitoAccidentalDeleteAssumeRole:
     Description: DigitoAccidentalDelete Automation Assume Role ARN
-    Value: !GetAtt DigitoAccidentalDeleteAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoAccidentalDeleteAssumeRole.Arn
 Resources:
   DigitoAccidentalDeleteAssumeRole:
     Type: AWS::IAM::Role
@@ -60,7 +61,7 @@ Resources:
               - cloudwatch:DescribeAlarms
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoAccidentalDeleteAssumeRole.Arn
+              - Fn::GetAtt: DigitoAccidentalDeleteAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

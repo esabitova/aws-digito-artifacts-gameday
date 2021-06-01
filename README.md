@@ -533,7 +533,7 @@ And SSM automation document "Digito-AuroraFailoverCluster" executed
   |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
 ```
 ### Cache Parameter References
-For cloud formation templates same techinque works for 'cache' referneces as for 'cfn-output' references:
+For cloud formation templates same technique works for 'cache' references as for 'cfn-output' references:
 ```
 Given the cached input parameters
       |AlarmGreaterThanOrEqualToThreshold|InstanceType|CpuLoadPercentage|StressDuration|AlarmNamespace|MetricPeriod|

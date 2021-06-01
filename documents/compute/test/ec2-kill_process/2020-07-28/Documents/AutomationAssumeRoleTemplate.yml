@@ -20,7 +20,8 @@ Description: Role for SSM Asg High Memory Simulation
 Outputs:
   DigitoKillProcessEc2AssumeRole:
     Description: DigitoKillProcessEc2 Automation Assume Role ARN
-    Value: !GetAtt DigitoKillProcessEc2AssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoKillProcessEc2AssumeRole.Arn
 Resources:
   DigitoKillProcessEc2AssumeRole:
     Type: AWS::IAM::Role
