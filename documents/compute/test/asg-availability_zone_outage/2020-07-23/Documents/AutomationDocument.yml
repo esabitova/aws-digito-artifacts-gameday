@@ -32,7 +32,7 @@ mainSteps:
         - NextStep: AssertNoSuspendedProcesses
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
-      Default: ResumeLaunchProcessInAsg
+      Default: GetInputsFromPreviousExecution
   - name: AssertNoSuspendedProcesses
     action: 'aws:executeScript'
     onFailure: Abort
@@ -118,6 +118,29 @@ mainSteps:
       AutoScalingGroupName: '{{AutoScalingGroupName}}'
       ScalingProcesses:
       - 'Launch'
+    isEnd: true
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: AutoScalingGroupName
+        Selector: $.Payload.AutoScalingGroupName[0]
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+  - name: AssertAutoScalingGroupName
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: ResumeLaunchProcessInAsg
+          Variable: "{{ GetInputsFromPreviousExecution.AutoScalingGroupName }}"
+          StringEquals: '{{ AutoScalingGroupName }}'
     isEnd: true
   - name: TriggerRollback
     action: 'aws:executeScript'

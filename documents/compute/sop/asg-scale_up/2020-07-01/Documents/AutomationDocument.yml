@@ -19,6 +19,8 @@ description: 'SOP By Digito. Scale-up ASG by modifying ASG to use larger instanc
     The SOP will not change from the instance type used, rather will use a larger version from the same type.'
 schemaVersion: '0.3'
 assumeRole: '{{ AutomationAssumeRole }}'
+outputs:
+  - OutputRecoveryTime.RecoveryTime
 parameters:
   AutoScalingGroupName:
     type: String

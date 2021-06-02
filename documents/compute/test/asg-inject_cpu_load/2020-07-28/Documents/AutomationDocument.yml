@@ -64,7 +64,7 @@ mainSteps:
         - NextStep: AssertAlarmToBeGreenBeforeTest
           Variable: '{{IsRollback}}'
           StringEquals: 'false'
-      Default: GetPreviousExecutionDetails
+      Default: GetInputsFromPreviousExecution
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
     inputs:
@@ -160,6 +160,29 @@ mainSteps:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
         InstanceIds: '{{GetInstancesByPercentage.InstanceIds}}'
+    isEnd: true
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: AutoScalingGroupName
+        Selector: $.Payload.AutoScalingGroupName[0]
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+  - name: AssertAutoScalingGroupName
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionDetails
+          Variable: "{{ GetInputsFromPreviousExecution.AutoScalingGroupName }}"
+          StringEquals: '{{ AutoScalingGroupName }}'
     isEnd: true
   - name: GetPreviousExecutionDetails
     action: 'aws:executeScript'
