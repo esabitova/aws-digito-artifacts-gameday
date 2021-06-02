@@ -49,12 +49,22 @@ class TestResourcePool(unittest.TestCase):
         self.rm.add_cfn_templates(cfn_templates)
         self.assertEqual(len(self.rm.cfn_templates), 2)
 
+    def test_add_cfn_templates_duplicated_assume_roles_success(self):
+        self.os_path_mock.splitext.side_effect = [('TestTemplateA', 'yml'),
+                                                  ('TestTemplateB', 'yml')]
+
+        cfn_templates = "|CfnTemplatePath        |ResourceType|TestParamA|\n"\
+                        "|path/TestTemplateA.yml |ASSUME_ROLE |test_value|\n"\
+                        "|path1/TestTemplateA.yml|ASSUME_ROLE |          |"
+        self.rm.add_cfn_templates(cfn_templates)
+        self.assertEqual(len(self.rm.cfn_templates), 2)
+
     def test_add_cfn_templates_duplicate_name_fail(self):
         self.os_path_mock.splitext.return_value = ('TestTemplateA', 'yml')
 
         cfn_templates = "|CfnTemplatePath   |ResourceType|TestParamA|\n" \
                         "|TestTemplateA.yml |  ON_DEMAND |test_value|\n" \
-                        "|TestTemplateA.yml |ASSUME_ROLE |          |"
+                        "|TestTemplateA.yml |  DEDICATED |          |"
         self.assertRaises(Exception, self.rm.add_cfn_templates, cfn_templates)
 
     def test_add_cfn_templates_missing_param_fail_1(self):

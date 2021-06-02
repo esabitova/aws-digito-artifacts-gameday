@@ -65,8 +65,10 @@ class ResourcePool:
             cfn_template_path = cfn_template.pop(ResourcePool.CFN_TEMPLATE_PATH_PARAM)
             resource_type = ResourceModel.ResourceType.from_string(cfn_template.pop('ResourceType'))
             cfn_template_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
-            if self.cfn_templates.get(cfn_template_name):
-                raise Exception(f'Duplicated cfn template for path [{cfn_template_path}].')
+            # For assume roles we are combining template content into a single cfn stack,
+            # no collision will happen for same template name.
+            if self.cfn_templates.get(cfn_template_name) and ResourceModel.ResourceType.ASSUME_ROLE != resource_type:
+                raise Exception(f'Duplicated cfn template [{cfn_template_name}] name for path [{cfn_template_path}].')
 
             cfn_input_params = self._parse_cfn_inputs(cfn_template)
             self.cfn_templates[cfn_template_name] = {ResourcePool.CFN_TEMPLATE_PATH_PARAM: cfn_template_path,
@@ -123,7 +125,7 @@ class ResourcePool:
 
         waited_time_sec = 0
         while waited_time_sec < time_out_sec:
-            cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
+            cfn_template_name = self._get_cfn_template_path_by_type(cfn_template_path, resource_type)
             resources = ResourceModel.query(cfn_template_name)
             for i in range(pool_size):
                 resource = self._filter_resource_by_index_and_type(resources, i, resource_type)
@@ -216,11 +218,12 @@ class ResourcePool:
         logging.info("Releasing test resources.")
         for cfn_config in self.cfn_templates.values():
             resource = cfn_config[ResourcePool.CFN_RESOURCE_PARAM]
-            # Deleting resource/stack for DEDICATED type.
-            if resource.type == ResourceModel.ResourceType.DEDICATED.name:
-                ResourcePool._delete_resource(resource, self.cfn_helper)
-            elif resource.status == ResourceModel.Status.LEASED.name:
-                ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
+            if resource:
+                # Deleting resource/stack for DEDICATED type.
+                if resource.type == ResourceModel.ResourceType.DEDICATED.name:
+                    ResourcePool._delete_resource(resource, self.cfn_helper)
+                elif resource.status == ResourceModel.Status.LEASED.name:
+                    ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
     def fix_stalled_resources(self):
         """
@@ -320,8 +323,8 @@ class ResourcePool:
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
             resource_type = ResourceModel.ResourceType.from_string(resource.type)
             cfn_input_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
-            cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
-            cfn_stack_name = self._get_stack_name(cfn_template_name, index, resource_type)
+            cfn_template_path_by_type = self._get_cfn_template_path_by_type(cfn_template_path, resource_type)
+            cfn_stack_name = self._get_stack_name(cfn_template_path_by_type, index, resource_type)
 
             # Changing status to UPDATING/CREATING to block other threads to use it.
             if resource.status == ResourceModel.Status.DELETED.name:
@@ -335,7 +338,7 @@ class ResourcePool:
             logging.info("Updating stack [%s:%s] input params: [%s]", resource_type.name, cfn_stack_name,
                          cfn_input_params)
             return self._update_resource_stack(resource, resource_type, cfn_content, cfn_content_sha1,
-                                               cfn_template_name, cfn_stack_name, cfn_input_params_sha1,
+                                               cfn_template_path_by_type, cfn_stack_name, cfn_input_params_sha1,
                                                cfn_input_params)
         except PutError:
             return None
@@ -362,12 +365,12 @@ class ResourcePool:
             cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
             cfn_input_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
-            cfn_template_name = self._get_cfn_template_name_by_type(cfn_template_path, resource_type)
-            cfn_stack_name = self._get_stack_name(cfn_template_name, index, resource_type)
+            cfn_template_path_by_type = self._get_cfn_template_path_by_type(cfn_template_path, resource_type)
+            cfn_stack_name = self._get_stack_name(cfn_template_path_by_type, index, resource_type)
 
             resource = ResourceModel.create(
                 cf_stack_index=index,
-                cf_template_name=cfn_template_name,
+                cf_template_name=cfn_template_path_by_type,
                 pool_size=pool_size,
                 cf_stack_name=cfn_stack_name,
                 type=resource_type.name,
@@ -382,7 +385,7 @@ class ResourcePool:
             logging.info("Creating stack [%s:%s] with input params [%s]", resource_type.name, cfn_stack_name,
                          cfn_input_params)
             return self._update_resource_stack(resource, resource_type, cfn_content, cfn_content_sha1,
-                                               cfn_template_name, cfn_stack_name, cfn_input_params_sha1,
+                                               cfn_template_path, cfn_stack_name, cfn_input_params_sha1,
                                                cfn_input_params)
         except PutError:
             return None
@@ -394,7 +397,7 @@ class ResourcePool:
             raise e
 
     def _update_resource_stack(self, resource: ResourceModel, resource_type: ResourceModel.ResourceType,
-                               cfn_content: dict, cfn_content_sha1: str, cfn_template_name: str, cfn_stack_name: str,
+                               cfn_content: dict, cfn_content_sha1: str, cfn_template_path: str, cfn_stack_name: str,
                                cfn_input_params_sha1: str, cfn_input_params):
         """
         Updating resource stack and state based on given parameters.
@@ -406,7 +409,7 @@ class ResourcePool:
         :param cfn_input_params The cloud formation input parameters
         """
 
-        cfn_template_s3_url = self.s3_helper.upload_file(cfn_template_name, cfn_content)
+        cfn_template_s3_url = self.s3_helper.upload_file(cfn_template_path, cfn_content)
         cf_output_params = self.cfn_helper.deploy_cf_stack(cfn_template_s3_url,
                                                            cfn_stack_name,
                                                            **cfn_input_params)
@@ -451,7 +454,7 @@ class ResourcePool:
                 cfn_input_params[param] = param_utils.parse_param_value(value, {'cache': self.ssm_test_cache})
         return cfn_input_params
 
-    def _get_cfn_template_name_by_type(self, cfn_template_path: str, resource_type: ResourceModel.ResourceType):
+    def _get_cfn_template_path_by_type(self, cfn_template_path: str, resource_type: ResourceModel.ResourceType):
         """
         Returns template name used in DDB based on resource type.
         For ASSUME_ROLE type we use static path defined 'config.ssm_assume_role_cfn_s3_path'.
