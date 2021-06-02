@@ -786,7 +786,18 @@ Resources:
           - TargetURL: !GetAtt WebLoadBalancer.DNSName
       FailureRetentionPeriod: 5
       ExecutionRoleArn: !GetAtt CanaryExecutionRole.Arn
-      Name: asg_cfn_canary
+      Name: !Join
+        - "_"
+        - - "asg_cnr"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       RuntimeVersion: syn-nodejs-puppeteer-3.1
       Schedule:
         Expression: rate(1 minute)
