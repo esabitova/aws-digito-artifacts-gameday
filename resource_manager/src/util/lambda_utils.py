@@ -208,3 +208,15 @@ def delete_function_version(lambda_arn: str, version: str, session: Session):
         FunctionName=lambda_arn,
         Qualifier=version
     )
+
+
+def get_function_execution_time_limit(lambda_arn: str, session: Session):
+    """
+    Calls AWS API to get function execution time limit
+    :param lambda_arn: The ARN of Lambda Function
+    :param session The boto3 session
+    :return: None
+    """
+    lambda_client = client('lambda', session)
+    function_configuration = lambda_client.get_function_configuration(FunctionName=lambda_arn)
+    return function_configuration.get('Timeout')

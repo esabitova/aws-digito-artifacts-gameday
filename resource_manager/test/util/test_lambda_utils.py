@@ -194,3 +194,12 @@ class TestLambdaUtil(unittest.TestCase):
         }, 'Error': {}}, "Invoke")
         self.assertRaises(Exception, lambda_utils.trigger_throttled_lambda, LAMBDA_ARN, self.session_mock)
         self.mock_lambda.invoke.assert_called_once_with(FunctionName=LAMBDA_ARN)
+
+    def test_get_function_execution_time_limit(self):
+        timeout = 600
+        self.mock_lambda.get_function_configuration.return_value = {'Timeout': timeout}
+        response = lambda_utils.get_function_execution_time_limit(LAMBDA_ARN, self.session_mock)
+        self.mock_lambda.get_function_configuration.assert_called_once_with(
+            FunctionName=LAMBDA_ARN
+        )
+        self.assertEqual(response, timeout)

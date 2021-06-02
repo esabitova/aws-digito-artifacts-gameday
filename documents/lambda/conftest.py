@@ -28,6 +28,9 @@ publish_function_version_expression = 'published function version and cached ver
 assert_alias_version_expression = 'assert version in alias changed\n{input_parameters}'
 delete_function_version_expression = 'delete function version\n{input_parameters}'
 invoke_throttled_function_expression = 'invoke throttled function\n{input_parameters}'
+cache_current_time_limit_expression = 'cached current execution time limit as "{cache_property}" at step "{step_key}"' \
+                                      '\n{input_parameters}'
+assert_execution_time_limit_expression = 'assert execution time limit is equal to input value\n{input_parameters}'
 
 
 def __populate_cache_with_memory_size(
@@ -191,3 +194,26 @@ def invoke_throttled_function(
 ):
     lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
     lambda_utils.trigger_throttled_lambda(lambda_arn, boto3_session)
+
+
+@given(parsers.parse(cache_current_time_limit_expression))
+@then(parsers.parse(cache_current_time_limit_expression))
+@when(parsers.parse(cache_current_time_limit_expression))
+def cache_current_time_limit(
+        resource_pool, ssm_test_cache, cache_property, step_key, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    time_limit_value = lambda_utils.get_function_execution_time_limit(lambda_arn, boto3_session)
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, time_limit_value)
+
+
+@given(parsers.parse(assert_execution_time_limit_expression))
+@then(parsers.parse(assert_execution_time_limit_expression))
+@when(parsers.parse(assert_execution_time_limit_expression))
+def assert_execution_time_limit(
+        resource_pool, ssm_test_cache, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    expected_time_limit = extract_param_value(input_parameters, "ExpectedValue", resource_pool, ssm_test_cache)
+    actual_time_limit = lambda_utils.get_function_execution_time_limit(lambda_arn, boto3_session)
+    assert int(expected_time_limit) == int(actual_time_limit)

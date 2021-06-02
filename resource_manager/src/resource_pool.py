@@ -21,6 +21,7 @@ class ResourcePool:
     Resource Pool to deploy/access/destroy resources created using Cloud Formation for SSM automation document tests.
     """
 
+    CFN_TEMPLATE_NAME_PARAM = 'CfnTemplateName'
     CFN_TEMPLATE_PATH_PARAM = 'CfnTemplatePath'
     CFN_INPUT_PARAMS_PARAM = 'CfnInputParams'
     CFN_OUTPUT_PARAMS_PARAM = 'CfnOutputParams'
@@ -62,20 +63,23 @@ class ResourcePool:
                     len(cfn_template.get(ResourcePool.CFN_RESOURCE_TYPE_PARAM)) < 1:
                 raise Exception(f'Required parameters [{ResourcePool.CFN_TEMPLATE_PATH_PARAM}] '
                                 f'and [{ResourcePool.CFN_RESOURCE_TYPE_PARAM}] should be presented.')
-            cfn_template_path = cfn_template.pop(ResourcePool.CFN_TEMPLATE_PATH_PARAM)
-            resource_type = ResourceModel.ResourceType.from_string(cfn_template.pop('ResourceType'))
-            cfn_template_name = self._get_cfn_template_file_name(cfn_template_path, resource_type)
-            # For assume roles we are combining template content into a single cfn stack,
-            # no collision will happen for same template name.
-            if self.cfn_templates.get(cfn_template_name) and ResourceModel.ResourceType.ASSUME_ROLE != resource_type:
-                raise Exception(f'Duplicated cfn template [{cfn_template_name}] name for path [{cfn_template_path}].')
 
-            cfn_input_params = self._parse_cfn_inputs(cfn_template)
-            self.cfn_templates[cfn_template_name] = {ResourcePool.CFN_TEMPLATE_PATH_PARAM: cfn_template_path,
-                                                     ResourcePool.CFN_INPUT_PARAMS_PARAM: cfn_input_params,
-                                                     ResourcePool.CFN_RESOURCE_TYPE_PARAM: resource_type,
-                                                     ResourcePool.CFN_RESOURCE_PARAM: None,
-                                                     ResourcePool.CFN_OUTPUT_PARAMS_PARAM: {}}
+            res_type = ResourceModel.ResourceType.from_string(cfn_template.pop(ResourcePool.CFN_RESOURCE_TYPE_PARAM))
+            cfn_temp_path = cfn_template.pop(ResourcePool.CFN_TEMPLATE_PATH_PARAM)
+            cfn_temp_name = self._get_cfn_template_file_name(cfn_temp_path, res_type)
+
+            # For assume roles we are combining template content into a single cfn stack,
+            # no collision will happen for same template name, however no duplicated cfn path is allowed.
+            if self.cfn_templates.get(cfn_temp_path) or (self._get_cfn_temp_path_by_name(cfn_temp_name) is not None
+                                                         and ResourceModel.ResourceType.ASSUME_ROLE != res_type):
+                raise Exception(f'Duplicated cfn template [{cfn_temp_name}] name for path [{cfn_temp_path}].')
+
+            cfn_in_params = self._parse_cfn_inputs(cfn_template)
+            self.cfn_templates[cfn_temp_path] = {ResourcePool.CFN_TEMPLATE_NAME_PARAM: cfn_temp_name,
+                                                 ResourcePool.CFN_INPUT_PARAMS_PARAM: cfn_in_params,
+                                                 ResourcePool.CFN_RESOURCE_TYPE_PARAM: res_type,
+                                                 ResourcePool.CFN_RESOURCE_PARAM: None,
+                                                 ResourcePool.CFN_OUTPUT_PARAMS_PARAM: {}}
 
     def get_cfn_output_params(self):
         """
@@ -91,8 +95,9 @@ class ResourcePool:
         """
         cfn_output_params = {}
         resources = self.pull_resources()
-        for cfn_name, cfn_config in resources.items():
+        for cfn_config in resources.values():
             resource = cfn_config[ResourcePool.CFN_RESOURCE_PARAM]
+            cfn_name = cfn_config[ResourcePool.CFN_TEMPLATE_NAME_PARAM]
             cfn_output_params[cfn_name] = self._parse_cfn_outputs(resource)
         return cfn_output_params
 
@@ -102,9 +107,9 @@ class ResourcePool:
         :return: The available resources.
         """
         for cfn_template in self.cfn_templates.items():
-            cfn_temp_config = cfn_template[1]
-            if not cfn_temp_config.get(ResourcePool.CFN_RESOURCE_PARAM):
-                cfn_temp_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
+            cfn_config = cfn_template[1]
+            if not cfn_config.get(ResourcePool.CFN_RESOURCE_PARAM):
+                cfn_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
         return self.cfn_templates
 
     def pull_resource_by_template(self, cfn_template: ()):
@@ -114,10 +119,10 @@ class ResourcePool:
         :param cfn_template: The cloud formation template object containing cloud formation configuration.
         :return: The available resources
         """
-        cfn_template_name = cfn_template[0]
+        cfn_template_path = cfn_template[0]
         cfn_config = cfn_template[1]
+        cfn_template_name = cfn_config[ResourcePool.CFN_TEMPLATE_NAME_PARAM]
         resource_type = cfn_config[ResourcePool.CFN_RESOURCE_TYPE_PARAM]
-        cfn_template_path = cfn_config[ResourcePool.CFN_TEMPLATE_PATH_PARAM]
         cfn_input_params = self._parse_cfn_input_params(cfn_config[ResourcePool.CFN_INPUT_PARAMS_PARAM])
         pool_size = self._get_resource_pool_size(cfn_template_name, resource_type)
         time_out_sec = constants.wait_time_out_secs
@@ -443,9 +448,10 @@ class ResourcePool:
             # In case if parameter value refers to cfn output.
             if re.compile(r'{{2}(cfn-output:).+}{2}').match(value):
                 cfn_template_name, cfn_output_param = param_utils.parse_cfn_output_val_ref(value)
-                cfn_template_config = self.cfn_templates.get(cfn_template_name)
+                cfn_template_path = self._get_cfn_temp_path_by_name(cfn_template_name)
+                cfn_template_config = self.cfn_templates.get(cfn_template_path)
                 if not cfn_template_config or not cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM):
-                    cfn_template = (cfn_template_name, cfn_template_config)
+                    cfn_template = (cfn_template_path, cfn_template_config)
                     cfn_template_config[ResourcePool.CFN_RESOURCE_PARAM] = self.pull_resource_by_template(cfn_template)
                 resource = cfn_template_config.get(ResourcePool.CFN_RESOURCE_PARAM)
                 cfn_input_params[param] = self._parse_cfn_outputs(resource)[cfn_output_param]
@@ -541,3 +547,16 @@ class ResourcePool:
             if len(value) > 0:
                 cfn_input_params[param] = str(value)
         return cfn_input_params
+
+    def _get_cfn_temp_path_by_name(self, cfn_template_name: str) -> str:
+        """
+        Returns cfn template path by given cfn template name:
+           - path: path/to/my/my_test_template.yml
+           - name: my_test_template
+        :param cfn_template_name: The given cfn template name
+        :return: The cfn template path
+        """
+        for cfn_path, cfn_config in self.cfn_templates.items():
+            if cfn_template_name == cfn_config.get(ResourcePool.CFN_TEMPLATE_NAME_PARAM):
+                return cfn_path
+        return None

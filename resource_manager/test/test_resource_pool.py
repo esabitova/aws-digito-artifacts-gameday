@@ -105,7 +105,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 0)
@@ -137,7 +137,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 1)
@@ -167,7 +167,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   DEDICATED|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 1)
@@ -196,7 +196,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |      SHARED|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 0)
@@ -228,7 +228,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 1)
@@ -259,7 +259,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 1)
@@ -288,7 +288,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
         resource = self.rm.pull_resource_by_template(cfn_template)
 
         self.assertEqual(resource.cf_stack_index, 1)
@@ -319,7 +319,7 @@ class TestResourcePool(unittest.TestCase):
         cfn_templates = '|CfnTemplatePath|ResourceType|TestParamA|\n' \
                         '|{}.yml         |   ON_DEMAND|test_value|'.format(self.test_template_name)
         self.rm.add_cfn_templates(cfn_templates)
-        cfn_template = (self.test_template_name, self.rm.cfn_templates[self.test_template_name])
+        cfn_template = (self.test_template_name + ".yml", self.rm.cfn_templates[self.test_template_name + ".yml"])
 
         self.assertRaises(Exception, self.rm.pull_resource_by_template, cfn_template)
 
@@ -644,8 +644,8 @@ class TestResourcePool(unittest.TestCase):
 
         resources = self.rm.pull_resources()
         self.assertEqual(len(resources), 2)
-        for cfn_name in resources.keys():
-            self.assertEqual(resources[cfn_name][ResourcePool.CFN_RESOURCE_PARAM].status,
+        for cfn_path in resources.keys():
+            self.assertEqual(resources[cfn_path][ResourcePool.CFN_RESOURCE_PARAM].status,
                              ResourceModel.Status.LEASED.name)
 
         r3.save.assert_called_once()
