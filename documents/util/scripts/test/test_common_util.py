@@ -5,13 +5,13 @@ from unittest.mock import patch, MagicMock
 
 from botocore.exceptions import ClientError
 
+from documents.util.scripts.test.mock_sleep import MockSleep
 import documents.util.scripts.test.test_data_provider as test_data_provider
-# from documents.util.scripts.test.test_lambda_util import get_lambda_function
 import documents.util.scripts.src.common_util as common_util
 
 
 @pytest.mark.unit_test
-class TestLambdaUtil(unittest.TestCase):
+class TestCommonUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()
@@ -141,18 +141,225 @@ class TestLambdaUtil(unittest.TestCase):
 
         assert 'CouldNotRevoke' in str(error.value)
 
-    #
-    # def test_remove_empty_security_group(self):
-    #     events = {
-    #         'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP
-    #     }
-    #
-    #     self.mock_ec2.describe_security_groups.return_value = get_lambda_function()
+    def test_remove_empty_security_group(self):
+        events = {
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP
+        }
+
+        self.mock_ec2.describe_security_groups.return_value = {
+            'SecurityGroups': [
+                {
+                    'Description': 'Test',
+                    'GroupName': 'Test',
+                    'GroupId': test_data_provider.SECURITY_GROUP,
+                    'VpcId': test_data_provider.VPC_ID
+                }
+            ]
+        }
+        self.mock_ec2.delete_security_group.return_value = {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200
+            }
+        }
+        common_util.remove_empty_security_group(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_once_with(
+            Filters=[
+                {
+                    'Name': 'group-id',
+                    'Values': [
+                        test_data_provider.SECURITY_GROUP,
+                    ]
+                },
+            ]
+        )
+        self.mock_ec2.delete_security_group.assert_called_once_with(GroupId=test_data_provider.SECURITY_GROUP)
+
+    def test_remove_empty_security_group_with_timeout(self):
+        events = {
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+            'Timeout': 1800
+        }
+
+        self.mock_ec2.describe_security_groups.return_value = {
+            'SecurityGroups': [
+                {
+                    'Description': 'Test',
+                    'GroupName': 'Test',
+                    'GroupId': test_data_provider.SECURITY_GROUP,
+                    'VpcId': test_data_provider.VPC_ID
+                }
+            ]
+        }
+        self.mock_ec2.delete_security_group.side_effect = [
+            ClientError(error_response={'Error': {'Type': 'Sender', 'Code': 'DependencyViolation'}},
+                        operation_name='DeleteFunction'
+                        ),
+            ClientError(error_response={'Error': {'Type': 'Sender', 'Code': 'RequestLimitExceeded'}},
+                        operation_name='DeleteFunction'
+                        ),
+            {
+                'ResponseMetadata': {
+                    'HTTPStatusCode': 200
+                }
+            }
+        ]
+        common_util.remove_empty_security_group(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_with(
+            Filters=[
+                {
+                    'Name': 'group-id',
+                    'Values': [
+                        test_data_provider.SECURITY_GROUP,
+                    ]
+                },
+            ]
+        )
+        self.mock_ec2.delete_security_group.assert_called_with(GroupId=test_data_provider.SECURITY_GROUP)
+
+    def test_remove_empty_security_group_catch_not_found(self):
+        events = {
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+            'Timeout': 1800
+        }
+
+        self.mock_ec2.describe_security_groups.return_value = {
+            'SecurityGroups': [
+                {
+                    'Description': 'Test',
+                    'GroupName': 'Test',
+                    'GroupId': test_data_provider.SECURITY_GROUP,
+                    'VpcId': test_data_provider.VPC_ID
+                }
+            ]
+        }
+        self.mock_ec2.delete_security_group.side_effect = [
+            ClientError(error_response={'Error': {'Type': 'Sender', 'Code': 'InvalidGroup.NotFound'}},
+                        operation_name='DeleteFunction'
+                        ),
+        ]
+        common_util.remove_empty_security_group(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_once_with(
+            Filters=[
+                {
+                    'Name': 'group-id',
+                    'Values': [
+                        test_data_provider.SECURITY_GROUP,
+                    ]
+                },
+            ]
+        )
+        self.mock_ec2.delete_security_group.assert_called_once_with(GroupId=test_data_provider.SECURITY_GROUP)
+
+    def test_remove_empty_security_group_catch_error(self):
+        events = {
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+            'Timeout': 1800
+        }
+
+        self.mock_ec2.describe_security_groups.return_value = {
+            'SecurityGroups': [
+                {
+                    'Description': 'Test',
+                    'GroupName': 'Test',
+                    'GroupId': test_data_provider.SECURITY_GROUP,
+                    'VpcId': test_data_provider.VPC_ID
+                }
+            ]
+        }
+        self.mock_ec2.delete_security_group.side_effect = [
+            ClientError(error_response={'Error': {'Type': 'Sender', 'Code': 'failpols'}},
+                        operation_name='DeleteFunction'
+                        ),
+        ]
+        with pytest.raises(ClientError) as error:
+            common_util.remove_empty_security_group(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_once_with(
+            Filters=[
+                {
+                    'Name': 'group-id',
+                    'Values': [
+                        test_data_provider.SECURITY_GROUP,
+                    ]
+                },
+            ]
+        )
+        self.mock_ec2.delete_security_group.assert_called_once_with(GroupId=test_data_provider.SECURITY_GROUP)
+        assert 'An error occurred (failpols) when calling the DeleteFunction operation: Unknown' in str(error.value)
+
+    def test_remove_empty_security_group_no_sg_found(self):
+        events = {
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP
+        }
+
+        self.mock_ec2.describe_security_groups.return_value = {
+            'SecurityGroups': []
+        }
+        self.mock_ec2.delete_security_group.return_value = {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200
+            }
+        }
+        common_util.remove_empty_security_group(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_once_with(
+            Filters=[
+                {
+                    'Name': 'group-id',
+                    'Values': [
+                        test_data_provider.SECURITY_GROUP,
+                    ]
+                },
+            ]
+        )
+        self.mock_ec2.delete_security_group.assert_not_called()
 
     def test_remove_empty_security_group_wrong_params(self):
         events = {}
 
         with pytest.raises(KeyError) as error:
-            common_util.create_empty_security_group(events, None)
+            common_util.remove_empty_security_group(events, None)
 
-        assert 'Requires VpcId in events' in str(error.value)
+        assert 'Requires EmptySecurityGroupId in events' in str(error.value)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_remove_empty_security_group_timeout(self, patched_time, patched_sleep):
+        events = {
+            'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+            'Timeout': 1800
+        }
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+
+        self.mock_ec2.describe_security_groups.return_value = {
+            'SecurityGroups': [
+                {
+                    'Description': 'Test',
+                    'GroupName': 'Test',
+                    'GroupId': test_data_provider.SECURITY_GROUP,
+                    'VpcId': test_data_provider.VPC_ID
+                }
+            ]
+        }
+        self.mock_ec2.delete_security_group.side_effect = ClientError(
+            error_response={'Error': {'Type': 'Sender', 'Code': 'DependencyViolation'}},
+            operation_name='DeleteFunction'
+        )
+
+        with pytest.raises(TimeoutError) as error:
+            common_util.remove_empty_security_group(events, None)
+        self.mock_ec2.describe_security_groups.assert_called_with(
+            Filters=[
+                {
+                    'Name': 'group-id',
+                    'Values': [
+                        test_data_provider.SECURITY_GROUP,
+                    ]
+                },
+            ]
+        )
+        self.mock_ec2.delete_security_group.assert_called_with(GroupId=test_data_provider.SECURITY_GROUP)
+        self.assertEqual(
+            f"Security group {events['EmptySecurityGroupId']} couldn't be deleted in {events['Timeout']} seconds",
+            str(error.value)
+        )

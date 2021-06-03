@@ -205,6 +205,9 @@ def get_lambda_function(is_vpc):
     return result
 
 
+# def update_function_configuration_side_effect():
+
+
 @pytest.mark.unit_test
 class TestLambdaUtil(unittest.TestCase):
     def setUp(self):
@@ -400,7 +403,11 @@ class TestLambdaUtil(unittest.TestCase):
             'SecurityGroupId': ''
         }
         self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
-        self.mock_lambda.update_function_configuration.return_value = {}
+        self.mock_lambda.update_function_configuration.return_value = {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200
+            }
+        }
 
         result = lambda_util.remove_sg_assignment(events, None)
 
@@ -425,7 +432,11 @@ class TestLambdaUtil(unittest.TestCase):
             'SecurityGroupId': test_data_provider.SECURITY_GROUP
         }
         self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
-        self.mock_lambda.update_function_configuration.return_value = {}
+        self.mock_lambda.update_function_configuration.return_value = {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200
+            }
+        }
 
         result = lambda_util.remove_sg_assignment(events, None)
 
@@ -490,7 +501,11 @@ class TestLambdaUtil(unittest.TestCase):
             'SecurityGroupList': [test_data_provider.SECURITY_GROUP]
         }
         self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
-        self.mock_lambda.update_function_configuration.return_value = {}
+        self.mock_lambda.update_function_configuration.return_value = {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200
+            }
+        }
 
         result = lambda_util.rollback_security_groups(events, None)
 
@@ -498,6 +513,66 @@ class TestLambdaUtil(unittest.TestCase):
             FunctionName=events['LambdaARN']
         )
         self.mock_lambda.update_function_configuration.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            VpcConfig={
+                'SecurityGroupIds': [test_data_provider.SECURITY_GROUP],
+                'SubnetIds': [test_data_provider.APPLICATION_SUBNET_ID]
+            }
+        )
+        self.assertEqual(result, {'SecurityGroupListRestoredValue': events['SecurityGroupList']})
+
+    def test_rollback_security_groups_with_timeout(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'SecurityGroupList': [test_data_provider.SECURITY_GROUP],
+            'Timeout': 900
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+        self.mock_lambda.update_function_configuration.return_value = {
+            'ResponseMetadata': {
+                'HTTPStatusCode': 200
+            }
+        }
+
+        result = lambda_util.rollback_security_groups(events, None)
+
+        self.mock_lambda.get_function.assert_called_once_with(
+            FunctionName=events['LambdaARN']
+        )
+        self.mock_lambda.update_function_configuration.assert_called_once_with(
+            FunctionName=LAMBDA_ARN,
+            VpcConfig={
+                'SecurityGroupIds': [test_data_provider.SECURITY_GROUP],
+                'SubnetIds': [test_data_provider.APPLICATION_SUBNET_ID]
+            }
+        )
+        self.assertEqual(result, {'SecurityGroupListRestoredValue': events['SecurityGroupList']})
+
+    def test_rollback_security_groups_not_first_time(self):
+        events = {
+            'LambdaARN': LAMBDA_ARN,
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'SecurityGroupList': [test_data_provider.SECURITY_GROUP]
+        }
+        self.mock_lambda.get_function.return_value = get_lambda_function(is_vpc=True)
+        self.mock_lambda.update_function_configuration.side_effect = [
+            ClientError(error_response={'Error': {'Type': 'Sender', 'Code': 'ResourceConflictException'}},
+                        operation_name='UpdateFunction'
+                        ),
+            {
+                'ResponseMetadata': {
+                    'HTTPStatusCode': 200
+                }
+            }
+        ]
+
+        result = lambda_util.rollback_security_groups(events, None)
+
+        self.mock_lambda.get_function.assert_called_with(
+            FunctionName=events['LambdaARN']
+        )
+        self.mock_lambda.update_function_configuration.assert_called_with(
             FunctionName=LAMBDA_ARN,
             VpcConfig={
                 'SecurityGroupIds': [test_data_provider.SECURITY_GROUP],

@@ -1,7 +1,11 @@
+import time
+from datetime import datetime
+
 import boto3
 import logging
 
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -182,14 +186,25 @@ def rollback_security_groups(events: dict, context):
 
     subnet_ids = lambda_description['Configuration']['VpcConfig']['SubnetIds']
 
-    lambda_client.update_function_configuration(
-        FunctionName=events['LambdaARN'],
-        VpcConfig={
-            'SecurityGroupIds': events['SecurityGroupList'],
-            'SubnetIds': subnet_ids
-        }
-    )
-
+    time_to_wait = 900
+    if 'Timeout' in events:
+        time_to_wait = events['Timeout']
+    timeout_timestamp = datetime.timestamp(datetime.now()) + int(time_to_wait)
+    while datetime.timestamp(datetime.now()) < timeout_timestamp:
+        try:
+            response = lambda_client.update_function_configuration(
+                FunctionName=events['LambdaARN'],
+                VpcConfig={
+                    'SecurityGroupIds': events['SecurityGroupList'],
+                    'SubnetIds': subnet_ids
+                }
+            )
+            if response['ResponseMetadata']['HTTPStatusCode'] < 400:
+                break
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'ResourceConflictException':
+                logger.info(f'Function {events["LambdaARN"]} is still updating, waiting...')
+            time.sleep(5)
     return {'SecurityGroupListRestoredValue': events['SecurityGroupList']}
 
 
