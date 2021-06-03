@@ -23,6 +23,3 @@ Resources:
       Statistic: Maximum
       Threshold: ${Threshold}
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'compute:alarm:lambda-errors:2020-07-13'
