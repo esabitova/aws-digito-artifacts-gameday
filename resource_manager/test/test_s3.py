@@ -25,15 +25,12 @@ class TestS3(unittest.TestCase):
         self.session_mock = MagicMock()
         self.session_mock.configure_mock(region_name=self.mock_region_name)
 
-        self.mock_sts_service = MagicMock()
         self.mock_s3_service = MagicMock()
         self.client_side_effect_map = {
-            'sts': self.mock_sts_service,
             's3': self.mock_s3_service
         }
         self.session_mock.client.side_effect = lambda service_name, config=None: \
             self.client_side_effect_map.get(service_name)
-        self.mock_sts_service.get_caller_identity.return_value = dict(Account=self.mock_aws_account)
 
         self.mock_s3_resource = MagicMock()
         self.resource_side_effect_map = {
@@ -42,7 +39,7 @@ class TestS3(unittest.TestCase):
         self.session_mock.resource.side_effect = lambda service_name, config=None: \
             self.resource_side_effect_map.get(service_name)
 
-        self.s3_helper = S3(self.session_mock)
+        self.s3_helper = S3(self.session_mock, self.mock_aws_account)
 
     def tearDown(self):
         # Clean client factory cache after each test.

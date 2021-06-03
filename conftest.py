@@ -102,10 +102,11 @@ def pytest_sessionstart(session):
         session.config.option.test_session_id = test_session_id
         aws_role_arn = session.config.option.aws_role_arn
         aws_profile_name = session.config.option.aws_profile
-
         boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
+        session.config.option.aws_account_id = boto3_session.client('sts').get_caller_identity().get('Account')
+
         cfn_helper = CloudFormationTemplate(boto3_session)
-        s3_helper = S3(boto3_session)
+        s3_helper = S3(boto3_session, session.config.option.aws_account_id)
         rm = ResourcePool(cfn_helper, s3_helper, dict(), None, None)
         rm.init_ddb_tables(boto3_session)
         # Distributed mode is considered mode when we executing integration tests on multiple testing sessions/machines
@@ -132,10 +133,11 @@ def pytest_sessionfinish(session, exitstatus):
         test_session_id = session.config.option.test_session_id
         aws_role_arn = session.config.option.aws_role_arn
         aws_profile_name = session.config.option.aws_profile
+        aws_account_id = session.config.option.aws_account_id
 
         boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
         cfn_helper = CloudFormationTemplate(boto3_session)
-        s3_helper = S3(boto3_session)
+        s3_helper = S3(boto3_session, aws_account_id)
         rm = ResourcePool(cfn_helper, s3_helper, dict(), test_session_id, None)
         if session.config.option.keep_test_resources:
             # In case if test execution was canceled/failed we want to make resources available for next execution.
@@ -195,8 +197,10 @@ def resource_pool(request, boto3_session, ssm_test_cache):
     :return: The resource pool fixture
     """
     test_session_id = request.session.config.option.test_session_id
+    aws_account_id = request.session.config.option.aws_account_id
+
     cfn_helper = CloudFormationTemplate(boto3_session)
-    s3_helper = S3(boto3_session)
+    s3_helper = S3(boto3_session, aws_account_id)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
     rp = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id, ssm_test_cache)
     yield rp
@@ -234,13 +238,14 @@ def ssm_test_cache():
 
 
 @pytest.fixture
-def alarm_manager(boto3_session):
+def alarm_manager(request, boto3_session):
     """
     Container for alarms deployed during a test. Alarms created during a test
     are destroyed at the end of the test.
     """
+    aws_account_id = request.session.config.option.aws_account_id
     cfn_helper = CloudFormationTemplate(boto3_session)
-    s3_helper = S3(boto3_session)
+    s3_helper = S3(boto3_session, aws_account_id)
     unique_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
     manager = AlarmManager(unique_suffix, boto3_session, cfn_helper, s3_helper)
     yield manager

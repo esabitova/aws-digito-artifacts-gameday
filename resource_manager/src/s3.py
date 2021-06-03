@@ -10,12 +10,11 @@ class S3:
     Class to manipulate with S3 ResourcePool created buckets/files.
     """
 
-    def __init__(self, boto3_session):
+    def __init__(self, boto3_session, aws_account_id):
         self.session = boto3_session
+        self.aws_account_id = aws_account_id
         self.client = client('s3', boto3_session)
         self.resource = resource('s3', boto3_session)
-        self.sts_client = client('sts', boto3_session)
-        self.account_id = self._get_account_id()
 
     def upload_file(self, file_name: str, content: dict):
         """
@@ -66,16 +65,12 @@ class S3:
             'Key': key
         }, ExpiresIn=3600)
 
-    def _get_account_id(self):
-        caller_id = self.sts_client.get_caller_identity()
-        return caller_id.get('Account')
-
     def get_bucket_name(self):
         """
         Returns S3 bucket name.
         :return: The S3 bucket name
         """
-        account_id = self.account_id
+        account_id = self.aws_account_id
         region_name = self.session.region_name
         return s3_bucket_name_pattern.replace('<account_id>', account_id).replace('<region_name>', region_name)
 
@@ -88,9 +83,9 @@ class S3:
             if self.bucket_exists(bucket_name):
                 logging.info('Deleting CF bucket with name [%s]', bucket_name)
                 bucket = self.resource.Bucket(bucket_name)
-                bucket.objects.delete(ExpectedBucketOwner=self.account_id)
+                bucket.objects.delete(ExpectedBucketOwner=self.aws_account_id)
                 self.client.delete_bucket(Bucket=bucket_name,
-                                          ExpectedBucketOwner=self.account_id)
+                                          ExpectedBucketOwner=self.aws_account_id)
         except ClientError as e:
             logging.error('Failed to delete S3 bucket with name [%s]', bucket_name, e)
             raise e
@@ -105,7 +100,7 @@ class S3:
         try:
             self.client.head_object(Bucket=bucket_name,
                                     Key=key,
-                                    ExpectedBucketOwner=self.account_id)
+                                    ExpectedBucketOwner=self.aws_account_id)
             return True
         except ClientError:
             return False
@@ -128,7 +123,7 @@ class S3:
         '''
         try:
             s3_object = self.resource.Object(bucket_name, file_name)
-            return s3_object.get(ExpectedBucketOwner=self.account_id)['Body'].read().decode('utf-8')
+            return s3_object.get(ExpectedBucketOwner=self.aws_account_id)['Body'].read().decode('utf-8')
         except ClientError as e:
             if e.response['Error']['Code'] == "404" or e.response['Error']['Code'] == 'NoSuchKey':
                 return None
@@ -143,4 +138,4 @@ class S3:
         :param content The content of the file to be uploaded
         '''
         s3_object = self.resource.Object(bucket_name, file_name)
-        s3_object.put(ExpectedBucketOwner=self.account_id, Body=(bytes(dump_yaml(content).encode('UTF-8'))))
+        s3_object.put(ExpectedBucketOwner=self.aws_account_id, Body=(bytes(dump_yaml(content).encode('UTF-8'))))
