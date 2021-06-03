@@ -30,6 +30,3 @@ Resources:
             Stat: Sum
       ThresholdMetricId: ad1
       TreatMissingData: missing
-    Metadata:
-      'AWS::Digito::Monitoring':
-        recommendationId: 'compute:alarm:lambda-invocations:2020-07-13'

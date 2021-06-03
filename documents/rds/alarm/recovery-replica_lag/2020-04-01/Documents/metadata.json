@@ -5,7 +5,7 @@
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
-  "tag": "rds:alarms:recovery-replica_lag:2020-04-01",
+  "tag": "rds:alarm:recovery-replica_lag:2020-04-01",
   "failureType": "SOFTWARE",
   "minorVersion": "001"
 }
