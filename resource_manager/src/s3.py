@@ -14,6 +14,7 @@ class S3:
         self.session = boto3_session
         self.client = client('s3', boto3_session)
         self.resource = resource('s3', boto3_session)
+        self.sts_client = client('sts', boto3_session)
         self.account_id = self._get_account_id()
 
     def upload_file(self, file_name: str, content: dict):
@@ -66,8 +67,7 @@ class S3:
         }, ExpiresIn=3600)
 
     def _get_account_id(self):
-        sts_client = self.session.client('sts')
-        caller_id = sts_client.get_caller_identity()
+        caller_id = self.sts_client.get_caller_identity()
         return caller_id.get('Account')
 
     def get_bucket_name(self):
