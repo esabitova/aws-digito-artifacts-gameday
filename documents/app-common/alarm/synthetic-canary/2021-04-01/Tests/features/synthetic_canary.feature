@@ -5,7 +5,7 @@ Feature: Alarm Setup - Application Synthetics Canary
       |CfnTemplatePath                                                       |ResourceType|InstanceType |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml         |ON_DEMAND   |t2.small     |
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml    |SHARED      |             |
-    When alarm "common-app:alarm:synthetic-canary:2021-04-01" is installed
+    When alarm "app-common:alarm:synthetic-canary:2021-04-01" is installed
       |alarmId    |CanaryName                               | Threshold | SNSTopicARN
       |under_test |{{cfn-output:AsgCfnTemplate>CanaryName}} | 90        | {{cfn-output:SnsForAlarms>Topic}}
     Then assert metrics for all alarms are populated
