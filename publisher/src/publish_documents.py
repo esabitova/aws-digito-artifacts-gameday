@@ -34,9 +34,7 @@ class PublishDocuments:
             try:
                 if self.document_exists(doc_name):
                     if self.has_document_content_changed(doc_name, doc_format, document_content):
-                        update_document_version = self.update_document(doc_name, document_content, doc_format,
-                                                                       tag_value)
-                        self.update_document_default_version(doc_name, update_document_version)
+                        self.update_document(doc_name, document_content, doc_format, tag_value)
                         logger.info('Updated document %s' % doc_name)
                     else:
                         logger.info('Document content has not changed for document name, %s' % doc_name)
@@ -44,10 +42,8 @@ class PublishDocuments:
                     self.create_document(doc_name, document_content, doc_type, doc_format, tag_value)
                     logger.info('Created document %s' % doc_name)
             except ClientError as error:
-                if error.response['Error']['Code'] == 'DocumentAlreadyExists':
-                    logger.warning(error.response['Error']['Message'])
-                else:
-                    raise error
+                logger.error('Failed to publish [{}] document.'.format(doc_name))
+                raise error
 
     def get_document_content(self, document_metadata):
         updated_document_content = ""
@@ -74,12 +70,14 @@ class PublishDocuments:
                     },
                 ]
             )
-        except ClientError as e:
-            logger.error('Failed to create [{}] document.'.format(name))
-            raise e
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'DocumentAlreadyExists':
+                logger.warning(error.response['Error']['Message'])
+            else:
+                logger.error('Failed to create [{}] document.'.format(name))
+                raise error
 
     def update_document(self, name, content, doc_format, tag_value):
-        update_document_response = {}
         try:
             update_document_response = self.ssm.update_document(
                 Content=content,
@@ -87,10 +85,14 @@ class PublishDocuments:
                 DocumentVersion='$LATEST',
                 DocumentFormat=doc_format
             )
-            return update_document_response['DocumentDescription']['DocumentVersion']
-        except ClientError as e:
-            logger.error('Failed to update [{}] document.'.format(name))
-            raise e
+            document_version = update_document_response['DocumentDescription']['DocumentVersion']
+            self.update_document_default_version(name, document_version)
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'DuplicateDocumentContent':
+                logger.warning(error.response['Error']['Message'])
+            else:
+                logger.error('Failed to update [{}] document.'.format(name))
+                raise error
 
     def update_document_default_version(self, name, version):
         self.ssm.update_document_default_version(
