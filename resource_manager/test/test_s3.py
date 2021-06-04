@@ -148,3 +148,56 @@ class TestS3(unittest.TestCase):
         self.mock_s3_service.head_object.side_effect = ClientError({}, "ops")
         key_exists = self.s3_helper.bucket_key_exist("test_bucket", "test_file")
         self.assertFalse(key_exists)
+
+    def test_upload_local_file_if_bucket_exist(self):
+        # Result - bucket exist and will NOT be created
+        mock_existing_bucket = MagicMock()
+        mock_existing_bucket.configure_mock(name=self.mock_s3_bucket_name)
+        self.mock_s3_resource.buckets.all.return_value = [mock_existing_bucket]
+        mock_s3_object = MagicMock()
+        mock_s3_object.configure_mock(name='test_s3_object')
+        self.mock_s3_resource.Object.return_value = mock_s3_object
+
+        self.mock_s3_service.generate_presigned_url.return_value = "pre_signed_url"
+        url, bucket_name, object_key, version_id = \
+            self.s3_helper.upload_local_file(self.mock_file_name,
+                                             'resource_manager/test/local_file_to_upload.txt')
+
+        self.assertEqual(url, "pre_signed_url")
+        self.mock_s3_service.create_bucket.assert_not_called()
+        self.mock_s3_service.put_object.assert_called_once()
+        self.mock_s3_service.generate_presigned_url.assert_called_once()
+
+    def test_upload_local_file_if_bucket_not_exist(self):
+        # Result - bucket exist and will NOT be created
+        mock_existing_bucket = MagicMock()
+        mock_existing_bucket.configure_mock(name=self.mock_s3_bucket_name)
+        self.mock_s3_resource.buckets.all.return_value = [mock_existing_bucket]
+        mock_s3_object = MagicMock()
+        mock_s3_object.configure_mock(name='test_s3_object')
+        self.mock_s3_resource.Object.return_value = mock_s3_object
+
+        self.mock_s3_service.generate_presigned_url.return_value = "pre_signed_url"
+        url, bucket_name, object_key, version_id = \
+            self.s3_helper.upload_local_file(self.mock_file_name,
+                                             'resource_manager/test/local_file_to_upload.txt')
+
+        self.assertEqual(url, "pre_signed_url")
+        self.mock_s3_service.create_bucket.assert_not_called()
+        self.mock_s3_service.put_object.assert_called_once()
+        self.mock_s3_service.generate_presigned_url.assert_called_once()
+
+    def test_upload_local_file_client_error(self):
+        mock_existing_bucket = MagicMock()
+        mock_existing_bucket.configure_mock(name=self.mock_s3_bucket_name)
+        self.mock_s3_resource.buckets.all.return_value = [mock_existing_bucket]
+
+        mock_s3_object = MagicMock()
+        mock_s3_object.configure_mock(name='test_s3_object')
+
+        self.mock_s3_service.put_object.side_effect = ClientError({}, "put_object")
+        self.mock_s3_resource.Object.return_value = mock_s3_object
+
+        with pytest.raises(ClientError):
+            self.s3_helper.upload_local_file(self.mock_file_name,
+                                             'resource_manager/test/local_file_to_upload.txt')

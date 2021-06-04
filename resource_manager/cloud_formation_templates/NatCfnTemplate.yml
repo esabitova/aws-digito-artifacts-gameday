@@ -237,7 +237,7 @@ Resources:
     Properties:
       AlarmName: "BytesOutToSourceZero"
       AlarmDescription: "nat-gw:alarm:bytes_out_to_source:2020-09-21"
-      ActionsEnabled: true
+      ActionsEnabled: false
       MetricName: "BytesOutToSource"
       Namespace: "AWS/NATGateway"
       Statistic: "Sum"

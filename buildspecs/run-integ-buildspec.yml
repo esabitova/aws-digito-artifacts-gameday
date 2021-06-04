@@ -12,6 +12,11 @@ phases:
       - python -m pip install -r requirements.txt
       - pip install --upgrade awscli
       - aws --version
+      - rm -rf documents/docdb/test/database_alarm/2020-09-21/Test/canary/package # Clean canary package files before creation of a new distribution package for database_alarm.feature test of DocumentDB
+      - rm -f documents/docdb/test/database_alarm/2020-09-21/Test/canary/*.zip #todo DIG-977 create CW Canary distribution package in database_alarm.feature
+      - pip install --target documents/docdb/test/database_alarm/2020-09-21/Test/canary/package/python -r documents/docdb/test/database_alarm/2020-09-21/Test/canary/requirements.txt # Install all requirements for database_alarm.feature test of DocumentDB
+      - zip -r documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip documents/docdb/test/database_alarm/2020-09-21/Test/canary/package # Zip all dependencies and source files for
+      - zip -g documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip documents/docdb/test/database_alarm/2020-09-21/Test/canary/python/*
   pre_build:
     commands:
       - TEMP_ROLE=`aws sts assume-role --role-arn $ASSUME_ROLE_ARN --role-session-name test`

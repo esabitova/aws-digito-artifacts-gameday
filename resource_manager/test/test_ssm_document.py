@@ -1,10 +1,13 @@
 import unittest
-import pytest
-import resource_manager.src.util.boto3_client_factory as client_factory
+from typing import List
 from unittest.mock import MagicMock, call, patch
-from resource_manager.src.ssm_document import SsmDocument
-from documents.util.scripts.test.mock_sleep import MockSleep
+
+import pytest
+
 import resource_manager.src.constants as constants
+import resource_manager.src.util.boto3_client_factory as client_factory
+from documents.util.scripts.test.mock_sleep import MockSleep
+from resource_manager.src.ssm_document import SsmDocument
 
 SSM_EXECUTION_ID = '123456'
 SSM_OUTPUT_KEY = 'RollbackExecutionId'
@@ -31,6 +34,39 @@ def prepare_execution_description(step_name, status):
                 ]
             }
     }
+
+
+def prepare_execution_description_with_multiple_steps():
+    initial: dict = {
+        'AutomationExecution':
+            {
+                'DocumentName': SSM_DOCUMENT_NAME,
+                'AutomationExecutionStatus': 'Success',
+                'StepExecutions': []
+            }
+    }
+    step_executions: List = initial['AutomationExecution']['StepExecutions']
+    for i in range(1, 5):
+        step_executions.append({
+            'StepStatus': 'Success',
+            'StepName': str(i),
+            'StepExecutionId': '11111',
+            'Outputs': {
+                SSM_OUTPUT_KEY: [SSM_OUTPUT_VALUE]
+            }
+        }
+        )
+    step_executions.append({
+        'StepStatus': 'Failed',
+        'StepName': '5',
+        'StepExecutionId': '11111',
+        'Outputs': {
+            SSM_OUTPUT_KEY: [SSM_OUTPUT_VALUE]
+        }
+    }
+    )
+
+    return initial
 
 
 @pytest.mark.unit_test
@@ -220,3 +256,9 @@ class TestSsmDocument(unittest.TestCase):
                                                                  call(AutomationExecutionId='test_execution_id'),
                                                                  call(AutomationExecutionId='test_execution_id')])
         self.assertEqual(self.mock_ssm.get_automation_execution.call_count, 3)
+
+    def test_get_successfully_executed_steps_by_order(self):
+        self.mock_ssm.get_automation_execution.return_value = prepare_execution_description_with_multiple_steps()
+        steps = self.ssm_document.get_successfully_executed_steps_by_order('test_execution_id')
+        self.mock_ssm.get_automation_execution.assert_called_once_with(AutomationExecutionId='test_execution_id')
+        self.assertEqual(steps, ['1', '2', '3', '4'])
