@@ -12,18 +12,32 @@ clean_test_artifacts:
 	rm -rf deps.json && \
 	rm -rf .pytest-incremental*
 
+clean_canary_artifacts:
+	rm -rf documents/docdb/test/database_alarm/2020-09-21/Test/canary/package  && \
+	rm -f documents/docdb/test/database_alarm/2020-09-21/Test/canary/*.zip
+
+clean_all: clean clean_test_artifacts clean_canary_artifacts
 
 enable_git_hooks:
 	cp -R ./.githooks/* ./.git/hooks/ && \
 	chmod +x ./.git/hooks/*
 
-venv: clean clean_test_artifacts enable_git_hooks
+install_virtualenv:
+	python3.7 -m pip install virtualenv
+
+venv: clean clean_test_artifacts enable_git_hooks install_virtualenv
 	python3.7 -m virtualenv venv
 
-pip_install: enable_git_hooks
+pip_install: venv
 	source venv/bin/activate && \
 	pip3 install -r requirements.txt && \
 	deactivate
+
+# Check versions updates of requirements
+check_pip_updates:
+	source venv/bin/activate && \
+    pip-check --local --ascii --hide-unchanged --not-required && \
+    deactivate
 
 publish_all_ssm_docs:
 	# Move to parent working directory
@@ -41,11 +55,24 @@ test_linter:
 	deactivate
 
 # Execute unit tests
-unit_test:
+unit_test: clean_test_artifacts
 	# If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
 	cd "$(CWD)/" && \
 	source venv/bin/activate && \
-	python3 -m pytest -m unit_test --workers auto && \
+	python3 -m pytest -m unit_test --reruns 5 --timeout=50 --disable-socket && \
+	deactivate
+
+# Execute unit tests multiple times randomly which increases the chance to find the error when test cases have dependencies between each other
+unit_test_multiple_times: clean_test_artifacts
+	# If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
+	cd "$(CWD)/" && \
+	source venv/bin/activate && \
+	python3 -m pytest -m unit_test --reruns 5 --count=100 -x --timeout=50 --disable-socket && \
+	deactivate
+
+find_unused_fixtures:
+	source venv/bin/activate && \
+	python3 -m pytest --dead-fixtures&& \
 	deactivate
 
 # Execute unit tests only for changed files usually as part of the pre-push git hook. It is useful to save time
@@ -54,6 +81,12 @@ unit_test_incrementally:
 	python3 -m pytest -m unit_test --inc --cov-append --suppress-no-test-exit-code --workers auto && \
 	deactivate
 
+destroy_all_cfn_resources:
+	source venv/bin/activate && \
+	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL && \
+	deactivate
+
+# Find validation errors in SSM Documents
 style_validator:
 	source venv/bin/activate && \
     python -m pytest -m style_validator --no-cov && \
@@ -61,3 +94,13 @@ style_validator:
 
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles
 linter_and_unit_test: test_linter unit_test
+
+#todo DIG-977 create CW Canary distribution package in database_alarm.feature
+build_canary_artifacts: clean_canary_artifacts test_linter
+	source venv/bin/activate && \
+	cd documents/docdb/test/database_alarm/2020-09-21/Test/canary && \
+	pip install --target ./package/python -r requirements.txt && \
+	cd package && \
+	zip -r ../database-alarm-canary.zip . && \
+	cd  .. && \
+	zip -g database-alarm-canary.zip python/*

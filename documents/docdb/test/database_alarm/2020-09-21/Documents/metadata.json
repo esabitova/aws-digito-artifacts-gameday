@@ -1,0 +1,13 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "displayName": "Test - DocumentDB Inaccessible Alarm",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-DocDbDatabaseAlarm_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "description": "Test that the network-based alarm setup alerts when cluster becomes unreachable",
+  "minorVersion": "001",
+  "tag": "docdb:test:database_alarm:2020-09-21",
+  "risk": "MEDIUM"
+}

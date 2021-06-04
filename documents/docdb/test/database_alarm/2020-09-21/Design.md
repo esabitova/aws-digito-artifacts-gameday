@@ -12,7 +12,7 @@ Medium
 
 ## Requirements
 * Available DocumentDB Cluster
-* There is a synthetic alarm setup for application
+* There is an alarm setup for application
 * Application should be able to reconnect to db instance after temporary network errors.
 
 ## Permission required for AutomationAssumeRole
@@ -26,14 +26,14 @@ Yes.
 ## Inputs
 ### DBClusterIdentifier:
 * type: String
-* description: (Required) DocDb Cluster Identifier
-### SyntheticAlarmName
-* Description: (Required) Name of Synthetic alarm for application. This should be green after the test.
+* description: (Required) DocDb Cluster Identifier.
+### DatabaseConnectionAttemptAlarmName
+* Description: (Required) Name of the alarm for application. This should be green after the test.
 * Type: String
 ### IsRollback:
   type: String
   description: >-
-  (Optional) Set true to 
+  (Optional) Set true to start the rollback.
   default: 'false'
 ### PreviousExecutionId:
   type: String
@@ -77,7 +77,7 @@ Yes.
             * `IsRollback` it true, continue with step 11
 5. aws:assertAwsResourceProperty - Assert alarm to be green before test
         * Inputs:
-            * SyntheticAlarmName
+            * DatabaseConnectionAttemptAlarmName
 6. aws:executeScript - Backup initial Security group Id, VPC Id
         * Inputs:
             * DBClusterIdentifier
@@ -96,7 +96,7 @@ Yes.
             * TempSecurityGroupId
 9. aws:waitForAwsResourceProperty - Wait for alarms to trigger
         * Inputs:
-            * SyntheticAlarmName
+            * DatabaseConnectionAttemptAlarmName
 10. aws:executeScript - execute Script to switch to the initial Security group
         * Inputs:
             * DBClusterIdentifier
@@ -106,4 +106,4 @@ Yes.
             * TempSGId
 12. aws:waitForAwsResourceProperty - Wait for alarms to be green
         * Inputs:
-            * SyntheticAlarmName
+            * DatabaseConnectionAttemptAlarmName

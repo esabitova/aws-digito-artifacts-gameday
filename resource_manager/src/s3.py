@@ -1,6 +1,9 @@
 import logging
+import os
+
 from botocore.exceptions import ClientError
 from cfn_tools import dump_yaml
+
 from .constants import s3_bucket_name_pattern
 from .util.boto3_client_factory import client, resource
 
@@ -24,8 +27,7 @@ class S3:
         """
         bucket_name = self.get_bucket_name()
         try:
-            if not self.bucket_exists(bucket_name):
-                self._create_bucket(bucket_name)
+            self._create_bucket_if_not_exist(bucket_name)
             # In case if template already exist it is possible that we want to update it.
             self.logger.info('Uploading CF template [%s] to S3 bucket [%s]', file_name, bucket_name)
             self._put_object_as_yaml(bucket_name, file_name, content)
@@ -34,6 +36,38 @@ class S3:
             self.logger.error('Failed to upload CF template [%s] to S3 bucket [%s]:\n %s', file_name,
                               bucket_name, e.response)
             raise e
+
+    def upload_local_file(self, object_key: str, file_relative_path: str):
+        """
+        Uploads file to S3 from the local disk
+        :param object_key: the name of future S3 object
+        :param file_relative_path: relative path to the file from the project's absolute path
+        :return: Url, bucket name, object key, version id
+        """
+        bucket_name = self.get_bucket_name()
+        try:
+            self._create_bucket_if_not_exist(bucket_name)
+            # In case if template already exist it is possible that we want to update it.
+            file_abs_path = os.getcwd() + ("/" if not file_relative_path.startswith("/") else "") + file_relative_path
+            logging.info('Uploading file [%s] to S3 bucket [%s]', file_abs_path, bucket_name)
+            version_id = self._upload_local_file(bucket_name, object_key, file_abs_path)['VersionId']
+            url = self._get_file_url(bucket_name, object_key)
+            logging.info(f'File uploaded: url = {url}, bucket_name = {bucket_name}, object_key = {object_key}, '
+                         f'version_id = {version_id}')
+            return url, bucket_name, object_key, version_id
+        except ClientError as e:
+            logging.error('Failed to upload file [%s] to S3 bucket [%s]:\n %s', object_key,
+                          bucket_name, e.response)
+            raise e
+
+    def _create_bucket_if_not_exist(self, bucket_name):
+        """
+        Create bucket if not exist
+        :param bucket_name: bucket to create
+        :return:  None
+        """
+        if not self.bucket_exists(bucket_name):
+            self._create_bucket(bucket_name)
 
     def _create_bucket(self, bucket_name):
         """
@@ -56,10 +90,12 @@ class S3:
             else:
                 raise e
 
+        self.client.put_bucket_versioning(Bucket=bucket_name, VersioningConfiguration={'Status': 'Enabled'})
+
     def _get_file_url(self, bucket_name, key):
         """
-        Returns cloud formation template URL located in S3 bucket.
-        :return: The cloud formation template URL
+        Returns file URL located in S3 bucket.
+        :return: The file URL
         """
         return self.client.generate_presigned_url('get_object', Params={
             'Bucket': bucket_name,
@@ -93,7 +129,7 @@ class S3:
 
     def bucket_key_exist(self, bucket_name, key):
         """
-        True is S3 bucekt key exist for given bucket name and key.
+        True is S3 bucket key exist for given bucket name and key.
         :param bucket_name The S3 bucket name
         :param key: The S3 bucket key
         :return: True is exist, False otherwise
@@ -117,11 +153,11 @@ class S3:
         return False
 
     def get_file_content(self, bucket_name, file_name):
-        '''
+        """
         Returns S3 file content by given bucket and file name.
         :param bucket_name The S3 bucket name
         :param file_name The S3 file name
-        '''
+        """
         try:
             s3_object = self.resource.Object(bucket_name, file_name)
             return s3_object.get(ExpectedBucketOwner=self.aws_account_id)['Body'].read().decode('utf-8')
@@ -132,11 +168,26 @@ class S3:
                 raise e
 
     def _put_object_as_yaml(self, bucket_name: str, file_name: str, content: dict):
-        '''
-        Uploads yamml file to S3.
+        """
+        Uploads yaml file to S3.
         :param bucket_name The S3 bucket name
         :param file_name The name of the file to uploaded
         :param content The content of the file to be uploaded
-        '''
+        """
         s3_object = self.resource.Object(bucket_name, file_name)
         s3_object.put(ExpectedBucketOwner=self.aws_account_id, Body=(bytes(dump_yaml(content).encode('UTF-8'))))
+
+    def _upload_local_file(self, bucket_name: str, object_key: str, file_abs_path: str) -> dict:
+        """
+        Upload the file from local disk
+        :param bucket_name: S3 bucket where the file will be uploaded
+        :param object_key: S3 key where the file will be uploaded
+        :param file_abs_path: Absolute path to the file
+        :return Response from put_object method
+        """
+        with open(file_abs_path, 'rb') as file:
+            return self.client.put_object(
+                Bucket=bucket_name,
+                Key=object_key,
+                Body=file
+            )

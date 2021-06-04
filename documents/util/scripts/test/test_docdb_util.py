@@ -1,3 +1,4 @@
+import copy
 import unittest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, call
@@ -8,14 +9,170 @@ import pytest
 from documents.util.scripts.src.docdb_util import count_cluster_instances, verify_db_instance_exist, \
     verify_cluster_instances, get_cluster_az, create_new_instance, get_recovery_point_input, \
     backup_cluster_instances_type, restore_to_point_in_time, restore_db_cluster_instances, rename_replaced_db_cluster, \
-    rename_replaced_db_instances, rename_restored_db_instances, get_latest_snapshot_id, restore_db_cluster
+    rename_replaced_db_instances, rename_restored_db_instances, get_latest_snapshot_id, restore_db_cluster, \
+    restore_security_group_ids, get_db_cluster_properties, wait_for_available_instances
+from documents.util.scripts.test.common_test_util import assert_having_all_not_empty_arguments_in_events
 
-DOCDB_AZ = 'docdb-az'
+DOCDB_AZ = "eu-central-1b"
 DOCDB_CLUSTER_ID = 'docdb-cluster-id'
 DOCDB_INSTANCE_ID = 'docdb-instance-id'
-DOCDB_INSTANCE_STATUS = 'docdb-instance-status'
+DOCDB_INSTANCE_STATUS = 'available'
 DOCDB_ENGINE = 'docdb'
 DOCDB_INSTANCE_CLASS = 'db.r5.large'
+SG_ID = "sg-20a5c047"
+
+DBSUBNET_GROUP = "default-vpc-2305ca49"
+DB_CLUSER = {
+    "AllocatedStorage": 1,
+    "AvailabilityZones": [
+        DOCDB_AZ,
+        "eu-central-1c",
+        "eu-central-1a"
+    ],
+    "BackupRetentionPeriod": 14,
+    "DatabaseName": "",
+    "DBClusterIdentifier": DOCDB_CLUSTER_ID,
+    "DBClusterParameterGroup": DOCDB_INSTANCE_CLASS,
+    "DBSubnetGroup": DBSUBNET_GROUP,
+    "Status": "available",
+    "EarliestRestorableTime": "2020-06-03T02:07:29.637Z",
+    "Endpoint": "cluster-2.cluster-############.eu-central-1.docdb.amazonaws.com",
+    "ReaderEndpoint": "cluster-2.cluster-ro-############.eu-central-1.docdb.amazonaws.com",
+    "MultiAZ": "false",
+    "Engine": DOCDB_ENGINE,
+    "EngineVersion": "5.6.10a",
+    "LatestRestorableTime": "2020-06-04T15:11:25.748Z",
+    "Port": 21017,
+    "MasterUsername": "admin",
+    "PreferredBackupWindow": "01:55-02:25",
+    "PreferredMaintenanceWindow": "thu:21:14-thu:21:44",
+    "ReadReplicaIdentifiers": [],
+    "DBClusterMembers": [
+        {
+            "DBInstanceIdentifier": DOCDB_INSTANCE_ID,
+            "IsClusterWriter": "true",
+            "DBClusterParameterGroupStatus": "in-sync",
+            "PromotionTier": 1
+        }
+    ],
+    "VpcSecurityGroups": [
+        {
+            "VpcSecurityGroupId": SG_ID,
+            "Status": "active"
+        }
+    ],
+    "HostedZoneId": "Z1RLNU0EXAMPLE",
+    "StorageEncrypted": "true",
+    "KmsKeyId": "arn:aws:kms:eu-central-1:123456789012:key/d1bd7c8f-5cdb-49ca-8a62-a1b2c3d4e5f6",
+    "DbClusterResourceId": "cluster-AGJ7XI77XVIS6FUXHU1EXAMPLE",
+    "DBClusterArn": "arn:aws:docdb:eu-central-1:123456789012:cluster:cluster-2",
+    "AssociatedRoles": [],
+    "IAMDatabaseAuthenticationEnabled": "false",
+    "ClusterCreateTime": "2020-04-03T14:44:02.764Z",
+    "EngineMode": "provisioned",
+    "DeletionProtection": "false",
+    "HttpEndpointEnabled": "false",
+    "CopyTagsToSnapshot": "true",
+    "CrossAccountClone": "false",
+    "DomainMemberships": []
+}
+MODIFY_DB_CLUSTER_RESPONSE = {
+    "DBCluster": DB_CLUSER
+}
+DESCRIBE_DB_CLUSTER_RESPONSE = {
+    "DBClusters": [DB_CLUSER]
+}
+DESCRIBE_DB_INSTANCES_RESPONSE = {
+    "DBInstances": [
+        {
+            "DBInstanceIdentifier": DOCDB_INSTANCE_ID,
+            "DBInstanceClass": "db.t3.medium",
+            "Engine": DOCDB_ENGINE,
+            "DBInstanceStatus": DOCDB_INSTANCE_STATUS,
+            "MasterUsername": "admindb",
+            "Endpoint": {
+                "Address": "dbinstance02-eu-central-1-435978235123-845de9e0.cfthigcesefy"
+                           ".eu-central-1.docdb.amazonaws.com",
+                "Port": 27017,
+                "HostedZoneId": "Z1ZKU8ZZR6T7FW"
+            },
+            "AllocatedStorage": 1,
+            "InstanceCreateTime": "2021-05-27T11:01:56.171Z",
+            "PreferredBackupWindow": "22:42-23:12",
+            "BackupRetentionPeriod": 1,
+            "DBSecurityGroups": [],
+            "VpcSecurityGroups": [
+                {
+                    "VpcSecurityGroupId": SG_ID,
+                    "Status": "active"
+                }
+            ],
+            "DBParameterGroups": [
+                {
+                    "DBParameterGroupName": "default.docdb4.0",
+                    "ParameterApplyStatus": "in-sync"
+                }
+            ],
+            "AvailabilityZone": "eu-central-1a",
+            "DBSubnetGroup": {
+                "DBSubnetGroupName": "docdbclustersubnetgroup-sgadyke9fwu9",
+                "DBSubnetGroupDescription": "DocumentDB cluster subnet group",
+                "VpcId": "vpc-013045c82df0a77c2",
+                "SubnetGroupStatus": "Complete",
+                "Subnets": [
+                    {
+                        "SubnetIdentifier": "subnet-0d9c4e55fb8ea7012",
+                        "SubnetAvailabilityZone": {
+                            "Name": "eu-central-1b"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-074979f248ea62162",
+                        "SubnetAvailabilityZone": {
+                            "Name": "eu-central-1a"
+                        },
+                        "SubnetOutpost": {},
+                        "SubnetStatus": "Active"
+                    }
+                ]
+            },
+            "PreferredMaintenanceWindow": "sun:21:03-sun:21:33",
+            "PendingModifiedValues": {},
+            "MultiAZ": "false",
+            "EngineVersion": "4.0.0",
+            "AutoMinorVersionUpgrade": "false",
+            "ReadReplicaDBInstanceIdentifiers": [],
+            "LicenseModel": "na",
+            "OptionGroupMemberships": [
+                {
+                    "OptionGroupName": "default:docdb-4-0",
+                    "Status": "in-sync"
+                }
+            ],
+            "PubliclyAccessible": "false",
+            "StorageType": "aurora",
+            "DbInstancePort": 0,
+            "DBClusterIdentifier": "dbcluster-eu-central-1-435978235123-845de9e0",
+            "StorageEncrypted": "true",
+            "KmsKeyId": "arn:aws:kms:eu-central-1:435978235123:key/4cb327f0-5695-466a-a9c2-5e3e7d2fd68f",
+            "DbiResourceId": "db-J6MA4FYSBEKWOJXAJGDYPFK7K4",
+            "CACertificateIdentifier": "rds-ca-2019",
+            "DomainMemberships": [],
+            "CopyTagsToSnapshot": "false",
+            "MonitoringInterval": 0,
+            "PromotionTier": 1,
+            "DBInstanceArn": "arn:aws:rds:eu-central-1:435978235123:db:dbinstance02-eu-central-1-435978235123-845de9e0",
+            "IAMDatabaseAuthenticationEnabled": "false",
+            "PerformanceInsightsEnabled": "false",
+            "DeletionProtection": "false",
+            "AssociatedRoles": [],
+            "TagList": [],
+            "CustomerOwnedIpEnabled": "false"
+        }
+    ]
+}
 
 
 def get_docdb_clusters_side_effect(number_of_instances=1):
@@ -127,6 +284,12 @@ DOCDB_INSTANCES = {
         }
     ]
 }
+
+
+def get_unavailable_instance_side_effect(DBInstanceIdentifier):
+    response = copy.deepcopy(DESCRIBE_DB_INSTANCES_RESPONSE)
+    response['DBInstances'][0]['DBInstanceStatus'] = 'unavailable'
+    return response
 
 
 @pytest.mark.unit_test
@@ -734,7 +897,6 @@ class TestDocDBUtil(unittest.TestCase):
     def test_get_latest_snapshot_id_empty_events(self):
         self.assertRaises(Exception, get_latest_snapshot_id, {}, None)
 
-    # Test restore_db_cluster
     def test_restore_db_cluster_no_snapshot_identifier(self):
         events = {
             'DBClusterIdentifier': DOCDB_CLUSTER_ID,
@@ -791,3 +953,67 @@ class TestDocDBUtil(unittest.TestCase):
 
     def test_restore_db_cluster_empty_events(self):
         self.assertRaises(Exception, restore_db_cluster, {}, None)
+
+    def test_restore_security_group_ids_not_all_arguments(self):
+        assert_having_all_not_empty_arguments_in_events(Exception, restore_security_group_ids,
+                                                        ['VpcSecurityGroupIds', 'DBClusterIdentifier'])
+
+    def test_restore_security_group_ids(self):
+        self.mock_docdb.modify_db_cluster.return_value = MODIFY_DB_CLUSTER_RESPONSE
+        sgs = [SG_ID]
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'VpcSecurityGroupIds': sgs,
+        }
+        response = restore_security_group_ids(events, None)
+        self.mock_docdb.modify_db_cluster.assert_called_once_with(
+            DBClusterIdentifier=DOCDB_CLUSTER_ID,
+            VpcSecurityGroupIds=sgs
+        )
+        self.assertEqual({'VpcSecurityGroupIds': sgs}, response)
+
+    def test_get_db_cluster_properties_not_all_arguments(self):
+        assert_having_all_not_empty_arguments_in_events(Exception, get_db_cluster_properties,
+                                                        ['DBClusterIdentifier'])
+
+    def test_get_db_cluster_properties(self):
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
+        sgs = [SG_ID]
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+        }
+        response = get_db_cluster_properties(events, None)
+        self.mock_docdb.describe_db_clusters.assert_called_once_with(
+            DBClusterIdentifier=DOCDB_CLUSTER_ID
+        )
+        self.assertEqual({'DBInstanceIdentifiers': [DOCDB_INSTANCE_ID],
+                          'DBSubnetGroup': DBSUBNET_GROUP,
+                          'VpcSecurityGroupIds': sgs},
+                         response)
+
+    def test_wait_for_available_instances_not_all_arguments(self):
+        assert_having_all_not_empty_arguments_in_events(Exception, wait_for_available_instances,
+                                                        ['DBInstanceIdentifiers', 'WaitTimeout', ])
+
+    def test_wait_for_available_instances(self):
+        self.mock_docdb.describe_db_instances.return_value = DESCRIBE_DB_INSTANCES_RESPONSE
+
+        events = {
+            'DBInstanceIdentifiers': [DOCDB_INSTANCE_ID],
+            'WaitTimeout': 5
+        }
+        wait_for_available_instances(events, None)
+        self.mock_docdb.describe_db_instances.assert_called_with(
+            DBInstanceIdentifier=DOCDB_INSTANCE_ID
+        )
+
+    def test_wait_for_available_instances_timeout(self):
+        self.mock_docdb.describe_db_instances.side_effect = get_unavailable_instance_side_effect
+        self.assertRaises(TimeoutError, wait_for_available_instances,
+                          {
+                              'DBInstanceIdentifiers': [DOCDB_INSTANCE_ID],
+                              'WaitTimeout': 21
+                          }, None)
+        self.mock_docdb.describe_db_instances.assert_called_with(
+            DBInstanceIdentifier=DOCDB_INSTANCE_ID
+        )

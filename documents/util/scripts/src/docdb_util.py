@@ -1,8 +1,20 @@
+import logging
 import random
-import boto3
+import time
 from datetime import datetime
 from operator import itemgetter
+from typing import List
+
+import boto3
 from botocore.config import Config
+
+if len(logging.getLogger().handlers) > 0:
+    # The Lambda environment pre-configures a handler logging to stderr. If a handler is already configured,
+    # `.basicConfig` does not execute. Thus we set the level directly.
+    logging.getLogger().setLevel(logging.INFO)
+else:
+    logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def get_cluster_az(events, context):
@@ -303,3 +315,82 @@ def rename_replaced_db_instances(events, context):
     except Exception as e:
         print(f'Error: {e}')
         raise
+
+
+def restore_security_group_ids(events, context):
+    """
+    Restore security group IDs for DB cluster
+    :return: restored vpc security groups
+    """
+    if not events.get('VpcSecurityGroupIds'):
+        raise KeyError('Requires VpcSecurityGroupIds in events')
+    if not events.get('DBClusterIdentifier'):
+        raise KeyError('Requires DBClusterIdentifier in events')
+
+    vpc_security_group_ids: List = events['VpcSecurityGroupIds']
+    db_cluster_identifier: str = events['DBClusterIdentifier']
+    docdb = boto3.client('docdb')
+    response = docdb.modify_db_cluster(DBClusterIdentifier=db_cluster_identifier,
+                                       VpcSecurityGroupIds=vpc_security_group_ids)
+    return {'VpcSecurityGroupIds': [member['VpcSecurityGroupId']
+                                    for member in response['DBCluster']['VpcSecurityGroups']]}
+
+
+def get_db_cluster_properties(events, context):
+    """
+    Get db cluster properties.
+    """
+    if not events.get('DBClusterIdentifier'):
+        raise KeyError('Requires DBClusterIdentifier in events')
+
+    db_cluster_identifier: str = events['DBClusterIdentifier']
+    docdb = boto3.client('docdb')
+    response = docdb.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    return {'DBInstanceIdentifiers': [member['DBInstanceIdentifier']
+                                      for member in response['DBClusters'][0]['DBClusterMembers']],
+            'DBSubnetGroup': response['DBClusters'][0]['DBSubnetGroup'],
+            'VpcSecurityGroupIds': [member['VpcSecurityGroupId']
+                                    for member in response['DBClusters'][0]['VpcSecurityGroups']]}
+
+
+def wait_for_available_instances(events, context):
+    """
+    Wait for available instances
+    """
+    required_params = [
+        'DBInstanceIdentifiers',
+        'WaitTimeout',
+    ]
+    for key in required_params:
+        if not events.get(key):
+            raise KeyError(f'Requires {key} in events')
+
+    initial_loop_timeout: int = events['WaitTimeout']
+    db_instance_identifiers: List = events['DBInstanceIdentifiers']
+
+    docdb = boto3.client('docdb')
+
+    loop_timeout = initial_loop_timeout
+    start_time = time.time()
+    timeout_between_calls = 20
+    response = None
+    while loop_timeout > 0 and len(db_instance_identifiers) != 0:
+        for identifier in db_instance_identifiers:
+            response = docdb.describe_db_instances(DBInstanceIdentifier=identifier)
+            status = response['DBInstances'][0]['DBInstanceStatus']
+            if status == 'available':
+                db_instance_identifiers.remove(identifier)
+
+        # Leave the loop if remained time less that timeout_between_calls
+        loop_timeout = loop_timeout - (time.time() - start_time)
+        if timeout_between_calls <= loop_timeout:
+            time.sleep(timeout_between_calls)
+        else:
+            break
+
+    if len(db_instance_identifiers) != 0:
+        message = f'DB Instances with identifier(-s) {db_instance_identifiers} ' \
+                  f'are not available after {initial_loop_timeout} second(-s).'
+        logger.debug(f'{message} describe_db_instances response: {response}, db_instance_identifiers:'
+                     f' {db_instance_identifiers}')
+        raise TimeoutError(message)

@@ -29,9 +29,6 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
     And get the "0.txt" object from bucket "20" times with error
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
-    And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1200" seconds
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
     And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "RollbackCurrentExecution" in status "Success" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -50,3 +47,6 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
 
     Then assert "NumberOfFiles" at "before" became not equal to "ActualNumberOfFiles" at "after_delete"
     Then assert "NumberOfFiles" at "before" became equal to "ActualNumberOfFiles" at "after"
+    And assert "CheckIsRollback, BackupS3BucketWhereObjectsWillBeDeletedFrom, CleanS3BucketWhereObjectsWillBeDeletedFrom, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |

@@ -717,6 +717,22 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
                                                                                  'EndTime': exec_end}}}
 
 
+@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to ssm-test-resources S3 bucket '
+             'and save locations to "{cache_property}" cache property'))
+def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref,
+                      cache_property):
+    file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
+    s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
+    aws_account_id = request.session.config.option.aws_account_id
+    s3_helper = S3(boto3_session, aws_account_id)
+    uri, bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path)
+    ssm_test_cache[cache_property] = {'URI': uri, 'S3Key': s3_key,
+                                      'S3Bucket': bucket_name, 'S3ObjectVersion': version_id}
+    logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '
+                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {bucket_name}, S3ObjectVersion: {version_id}. '
+                  f'ssm_test_cache now is {ssm_test_cache}')
+
+
 @then(parse('assert "{steps_string}" steps are successfully executed in order\n{input_parameters}'))
 def assert_steps_are_successfully_executed_in_order(ssm_document, ssm_test_cache, steps_string, input_parameters):
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache})
