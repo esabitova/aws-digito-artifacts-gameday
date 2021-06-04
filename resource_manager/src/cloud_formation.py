@@ -10,9 +10,10 @@ class CloudFormationTemplate:
     Cloud formation template manipulation functionality.
     """
 
-    def __init__(self, boto3_session):
+    def __init__(self, boto3_session, logger=logging.getLogger()):
         self.client = client('cloudformation', boto3_session)
         self.resource = resource('cloudformation', boto3_session)
+        self.logger = logger
 
     def deploy_cf_stack(self, cfn_template_s3_url, stack_name, **kwargs):
         """
@@ -47,10 +48,10 @@ class CloudFormationTemplate:
             self._create(stack_name, cf_template_s3_url, parameters)
         except ClientError as e:
             if e.response['Error']['Code'] == 'AlreadyExistsException':
-                logging.info('Stack [%s] already exists, updating...', stack_name)
+                self.logger.info('Stack [%s] already exists, updating...', stack_name)
                 self._update(stack_name, cf_template_s3_url, parameters)
             else:
-                logging.error(e)
+                self.logger.error(e)
                 raise e
 
     def _create(self, stack_name, cf_template_s3_url, parameters):
@@ -86,9 +87,9 @@ class CloudFormationTemplate:
         except ClientError as e:
             err_message = e.response['Error']['Message']
             if 'No updates are to be performed.' in err_message and e.response['Error']['Code'] == 'ValidationError':
-                logging.info("Stack [{}] already updated.".format(stack_name))
+                self.logger.info("Stack [{}] already updated.".format(stack_name))
             else:
-                logging.error(e)
+                self.logger.error(e)
                 raise e
 
     def _update_termination_protection(self, stack_name, enable_termination_protection):
@@ -123,8 +124,8 @@ class CloudFormationTemplate:
             response = self.client.describe_stacks(StackName=stack_name)
             stack_status = response['Stacks'][0]['StackStatus']
             while not stack_status or 'IN_PROGRESS' in stack_status:
-                logging.info("Waiting for stack [%s] event [%s] to be completed, sleeping [%d] seconds.", stack_name,
-                             stack_status, constants.cf_operation_sleep_time_secs)
+                self.logger.info("Waiting for stack [%s] event [%s] to be completed, sleeping [%d] seconds.",
+                                 stack_name, stack_status, constants.cf_operation_sleep_time_secs)
                 time.sleep(constants.cf_operation_sleep_time_secs)
                 response = self.client.describe_stacks(StackName=stack_name)
                 stack_status = response['Stacks'][0]['StackStatus']

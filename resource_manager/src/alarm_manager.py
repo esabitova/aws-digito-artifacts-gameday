@@ -15,7 +15,8 @@ class AlarmManager:
     a test and cleans them as soon as the test completes
     """
 
-    def __init__(self, unique_suffix, boto3_session, cfn_helper, s3_helper, datetime_helper=datetime):
+    def __init__(self, unique_suffix, boto3_session, cfn_helper, s3_helper, datetime_helper=datetime,
+                 logger=logging.getLogger()):
         self.unique_suffix = unique_suffix
         self.session = boto3_session
         self.cfn_helper = cfn_helper
@@ -23,6 +24,7 @@ class AlarmManager:
         # datetime_helper just datetime but allows tests to replace the provider
         self.datetime_helper = datetime_helper
         self.deployed_alarms = {}
+        self.logger = logger
 
     def deploy_alarm(self, alarm_reference_id, input_params):
 
@@ -79,13 +81,13 @@ class AlarmManager:
         }
 
     def destroy_deployed_alarms(self):
-        logging.info(f"Destroying [{len(self.deployed_alarms)}] alarms stacks.")
+        self.logger.info(f"Destroying [{len(self.deployed_alarms)}] alarms stacks.")
         with ThreadPoolExecutor(max_workers=10) as t_executor:
             for alarm_id, v in self.deployed_alarms.items():
                 t_executor.submit(self._destroy_single_alarm, alarm_id, v["alarm_name"])
 
     def _destroy_single_alarm(self, alarm_id, alarm_name):
-        logging.info(f"Destroying [{alarm_id}] alarm_stack {alarm_name}.")
+        self.logger.info(f"Destroying [{alarm_id}] alarm_stack {alarm_name}.")
         self.cfn_helper.delete_cf_stack(alarm_name)
 
     def collect_alarms_without_data(self, data_period_seconds):

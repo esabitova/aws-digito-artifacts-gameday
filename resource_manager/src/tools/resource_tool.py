@@ -7,23 +7,11 @@ from enum import Enum
 from botocore.exceptions import ClientError
 from resource_manager.src.resource_model import ResourceModel
 from concurrent.futures import ThreadPoolExecutor
-from resource_manager.src.constants import s3_bucket_name_pattern
+from resource_manager.src.constants import s3_bucket_name_pattern, BgColors
 
 logger = logging.getLogger('resource_tool')
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s:%(message)s', level=logging.INFO,
                     handlers=[logging.StreamHandler(sys.stdout)])
-
-
-class BgColors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
 
 
 class Command(Enum):

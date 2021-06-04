@@ -15,9 +15,10 @@ class SsmDocument:
     Class for SSM automation document manipulation.
     """
 
-    def __init__(self, boto3_session):
+    def __init__(self, boto3_session, logger=logging.getLogger()):
         self.ssm_client = client('ssm', boto3_session)
         self.region = boto3_session.region_name
+        self.logger = logger
 
     def execute(self, document_name, input_params):
         """
@@ -27,18 +28,18 @@ class SsmDocument:
         :return: The SSM execution final status
         """
         if self._document_exists(document_name):
-            logging.info("Executing SSM document [%s] with parameters: [%s]", document_name, input_params)
+            self.logger.info("Executing SSM document [%s] with parameters: [%s]", document_name, input_params)
             # Executing SSM document
             execution_id = self.ssm_client.start_automation_execution(
                 DocumentName=document_name,
                 # DocumentVersion=version,
                 Parameters=input_params
             )['AutomationExecutionId']
-            logging.info(f'SSM execution URL: {self._build_execution_step_url(execution_id, None, None)}')
+            self.logger.info(f'SSM execution URL: {self._build_execution_step_url(execution_id, None, None)}')
             return execution_id
         else:
             error_msg = "SSM document with name [{}] does not exist.".format(document_name)
-            logging.error(error_msg)
+            self.logger.error(error_msg)
             raise Exception(error_msg)
 
     def wait_for_execution_completion(self, execution_id, document_name=None):
@@ -76,7 +77,7 @@ class SsmDocument:
         # Wait for execution step to resolve in waiting or one of terminating statuses
         while step_status == 'InProgress' or step_status == 'Pending' or step_status == 'Cancelling':
             if elapsed_time > time_to_wait:
-                logging.exception(f'Execution step {step_name} for document {document_name} timed out')
+                self.logger.exception(f'Execution step {step_name} for document {document_name} timed out')
                 return 'WaitTimedOut'
             time.sleep(constants.sleep_time_secs)
             step_status = self._get_execution_step_status(execution_id, step_name)
@@ -99,7 +100,7 @@ class SsmDocument:
         # Wait for execution step to resolve in waiting or one of terminating statuses
         while step_status == 'Pending':
             if elapsed_time > time_to_wait:
-                logging.exception(f'Execution step {step_name} for document {document_name} timed out')
+                self.logger.exception(f'Execution step {step_name} for document {document_name} timed out')
                 return 'WaitTimedOut'
             time.sleep(constants.sleep_time_secs)
             step_status = self._get_execution_step_status(execution_id, step_name)
@@ -147,17 +148,17 @@ class SsmDocument:
         """
         execution_url = self._build_execution_step_url(execution_id)
         try:
-            logging.info("Canceling SSM execution: {}".format(execution_url))
+            self.logger.info("Canceling SSM execution: {}".format(execution_url))
             self.ssm_client.stop_automation_execution(AutomationExecutionId=execution_id, Type='Cancel')
             self.wait_for_execution_completion(execution_id)
             rollback_execution_id = self.get_step_output(execution_id, constants.rollback_step_name,
                                                          constants.rollback_execution_id_output_name)
             if rollback_execution_id:
                 rollback_execution_url = self._build_execution_step_url(rollback_execution_id)
-                logging.info("Waiting [RollbackExecution] completed SSM execution: {}".format(rollback_execution_url))
+                self.logger.info(f"Waiting [RollbackExecution] completed SSM execution: {rollback_execution_url}")
                 self.wait_for_execution_completion(rollback_execution_id)
         except ClientError as e:
-            logging.error("Failed to cancel SSM execution [%s] due to: %s", execution_url, e.response)
+            self.logger.error("Failed to cancel SSM execution [%s] due to: %s", execution_url, e.response)
             raise e
 
     def _get_execution_status(self, execution_id, document_name=None):
@@ -178,8 +179,8 @@ class SsmDocument:
             step_name = step['StepName']
             step_execution_id = step['StepExecutionId']
             step_index = self._get_step_execution_index(step_executions, step_name)
-            logging.info(f'Waiting SSM document step [{document_name}>{step_name}] to be completed: '
-                         f'{self._build_execution_step_url(execution_id, step_index, step_execution_id)}')
+            self.logger.info(f'Waiting SSM document step [{document_name}>{step_name}] to be completed: '
+                             f'{self._build_execution_step_url(execution_id, step_index, step_execution_id)}')
         return execution['AutomationExecution']['AutomationExecutionStatus']
 
     def _get_execution_step_status(self, execution_id, step_name):

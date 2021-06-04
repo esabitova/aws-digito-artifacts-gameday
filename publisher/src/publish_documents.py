@@ -11,16 +11,17 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 SCRIPT_DIR = '/documents/util/scripts/src'
-logger = logging.getLogger('PublishDocuments')
+default_logger = logging.getLogger('PublishDocuments')
 
 
 class PublishDocuments:
 
-    def __init__(self, boto3_session):
+    def __init__(self, boto3_session, logger=None):
         self.root_dir = os.getcwd()
         config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
         self.ssm = boto3_session.client('ssm', config=config)
         self.document_validator = DocumentValidator()
+        self.logger = logger if logger else default_logger
 
     def publish_document(self, list_document_metadata):
         for document_metadata in list_document_metadata:
@@ -35,14 +36,14 @@ class PublishDocuments:
                 if self.document_exists(doc_name):
                     if self.has_document_content_changed(doc_name, doc_format, document_content):
                         self.update_document(doc_name, document_content, doc_format, tag_value)
-                        logger.info('Updated document %s' % doc_name)
+                        self.logger.info('Updated document %s' % doc_name)
                     else:
-                        logger.info('Document content has not changed for document name, %s' % doc_name)
+                        self.logger.info('Document content has not changed for document name, %s' % doc_name)
                 else:
                     self.create_document(doc_name, document_content, doc_type, doc_format, tag_value)
-                    logger.info('Created document %s' % doc_name)
+                    self.logger.info('Created document %s' % doc_name)
             except ClientError as error:
-                logger.error('Failed to publish [{}] document.'.format(doc_name))
+                self.logger.error('Failed to publish [{}] document.'.format(doc_name))
                 raise error
 
     def get_document_content(self, document_metadata):
@@ -72,9 +73,9 @@ class PublishDocuments:
             )
         except ClientError as error:
             if error.response['Error']['Code'] == 'DocumentAlreadyExists':
-                logger.warning(error.response['Error']['Message'])
+                self.logger.warning(error.response['Error']['Message'])
             else:
-                logger.error('Failed to create [{}] document.'.format(name))
+                self.logger.error('Failed to create [{}] document.'.format(name))
                 raise error
 
     def update_document(self, name, content, doc_format, tag_value):
@@ -89,9 +90,9 @@ class PublishDocuments:
             self.update_document_default_version(name, document_version)
         except ClientError as error:
             if error.response['Error']['Code'] == 'DuplicateDocumentContent':
-                logger.warning(error.response['Error']['Message'])
+                self.logger.warning(error.response['Error']['Message'])
             else:
-                logger.error('Failed to update [{}] document.'.format(name))
+                self.logger.error('Failed to update [{}] document.'.format(name))
                 raise error
 
     def update_document_default_version(self, name, version):
@@ -136,7 +137,7 @@ class PublishDocuments:
         list_document_metadata = []
         files = glob.glob(self.root_dir + '/documents/**/metadata.json', recursive=True)
 
-        logger.info('Desired documents list %s' % desired_documents_list)
+        self.logger.info('Desired documents list %s' % desired_documents_list)
         # Find additional documents that are needed for desired documents
         for file in files:
             document_metadata = self.read_metadata(file)
@@ -146,7 +147,7 @@ class PublishDocuments:
                     if dependent_document not in desired_documents_list:
                         desired_documents_list.append(dependent_document)
 
-        logger.info('Desired documents list including required documents : %s' % desired_documents_list)
+        self.logger.info('Desired documents list including required documents : %s' % desired_documents_list)
         existing_document_names = []
         for file in files:
             # Skipping alarms (alarms are not SSM automation documents):
@@ -158,7 +159,7 @@ class PublishDocuments:
                     document_metadata['location'] = os.path.dirname(file)
                     list_document_metadata.append(document_metadata)
                 else:
-                    logger.debug('Not publishing %s' % document_metadata['documentName'])
+                    self.logger.debug('Not publishing %s' % document_metadata['documentName'])
 
         for desired_document_name in desired_documents_list:
             if desired_document_name not in existing_document_names:
@@ -260,11 +261,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hr:l:f:", ["region=", "log-level=", "file-name="])
     except getopt.GetoptError:
-        logger.info('usage: publish_document.py -r <region> -l <log-level> -f <file-name>')
+        default_logger.info('usage: publish_document.py -r <region> -l <log-level> -f <file-name>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            logger.info('usage: publish_document.py -r <region> -l <log-level> -f <file-name>')
+            default_logger.info('usage: publish_document.py -r <region> -l <log-level> -f <file-name>')
             sys.exit()
         elif opt in ("-r", "--region"):
             region = arg
@@ -280,7 +281,7 @@ def main(argv):
             logging.StreamHandler(sys.stdout)
         ])
 
-    logger.info('Publishing documents in region %s' % region)
+    default_logger.info('Publishing documents in region %s' % region)
     p = PublishDocuments(boto3.Session(region_name=region))
 
     # get list of documents from manifest file and their required documents

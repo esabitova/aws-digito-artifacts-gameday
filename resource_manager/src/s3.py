@@ -10,11 +10,12 @@ class S3:
     Class to manipulate with S3 ResourcePool created buckets/files.
     """
 
-    def __init__(self, boto3_session, aws_account_id):
+    def __init__(self, boto3_session, aws_account_id, logger=logging.getLogger()):
         self.session = boto3_session
         self.aws_account_id = aws_account_id
         self.client = client('s3', boto3_session)
         self.resource = resource('s3', boto3_session)
+        self.logger = logger
 
     def upload_file(self, file_name: str, content: dict):
         """
@@ -26,12 +27,12 @@ class S3:
             if not self.bucket_exists(bucket_name):
                 self._create_bucket(bucket_name)
             # In case if template already exist it is possible that we want to update it.
-            logging.info('Uploading CF template [%s] to S3 bucket [%s]', file_name, bucket_name)
+            self.logger.info('Uploading CF template [%s] to S3 bucket [%s]', file_name, bucket_name)
             self._put_object_as_yaml(bucket_name, file_name, content)
             return self._get_file_url(bucket_name, file_name)
         except ClientError as e:
-            logging.error('Failed to upload CF template [%s] to S3 bucket [%s]:\n %s', file_name,
-                          bucket_name, e.response)
+            self.logger.error('Failed to upload CF template [%s] to S3 bucket [%s]:\n %s', file_name,
+                              bucket_name, e.response)
             raise e
 
     def _create_bucket(self, bucket_name):
@@ -51,7 +52,7 @@ class S3:
 
         except ClientError as e:
             if e.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
-                logging.warning("Bucket with name [{}] for region [{}] already exist.".format(bucket_name, region_name))
+                self.logger.warning(f"Bucket with name [{bucket_name}] for region [{region_name}] already exist.")
             else:
                 raise e
 
@@ -81,13 +82,13 @@ class S3:
         """
         try:
             if self.bucket_exists(bucket_name):
-                logging.info('Deleting CF bucket with name [%s]', bucket_name)
+                self.logger.info('Deleting CF bucket with name [%s]', bucket_name)
                 bucket = self.resource.Bucket(bucket_name)
                 bucket.objects.delete(ExpectedBucketOwner=self.aws_account_id)
                 self.client.delete_bucket(Bucket=bucket_name,
                                           ExpectedBucketOwner=self.aws_account_id)
         except ClientError as e:
-            logging.error('Failed to delete S3 bucket with name [%s]', bucket_name, e)
+            self.logger.error('Failed to delete S3 bucket with name [%s]', bucket_name, e)
             raise e
 
     def bucket_key_exist(self, bucket_name, key):

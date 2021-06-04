@@ -28,21 +28,22 @@ class ResourcePool:
     CFN_RESOURCE_TYPE_PARAM = 'ResourceType'
     CFN_RESOURCE_PARAM = 'CfnResource'
 
-    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict,
-                 test_session_id: str, ssm_test_cache: {}):
+    def __init__(self, cfn_helper: CloudFormationTemplate, s3_helper: S3, custom_pool_size: dict, test_session_id: str,
+                 ssm_test_cache: {}, logger=logging.getLogger()):
         self.cfn_helper = cfn_helper
         self.s3_helper = s3_helper
         self.cfn_templates = {}
         self.custom_pool_size = custom_pool_size
         self.test_session_id = test_session_id
         self.ssm_test_cache = ssm_test_cache
+        self.logger = logger
 
     def init_ddb_tables(self, boto3_session):
         """
         Creates DDB tables to be used by tests.
         :param boto3_session The AWS boto3 session
         """
-        logging.info("Creating DDB tables.")
+        self.logger.info("Creating DDB tables.")
         ResourceModel.configure(boto3_session)
         ResourceModel.create_ddb_table()
 
@@ -126,7 +127,7 @@ class ResourcePool:
         cfn_input_params = self._parse_cfn_input_params(cfn_config[ResourcePool.CFN_INPUT_PARAMS_PARAM])
         pool_size = self._get_resource_pool_size(cfn_template_name, resource_type)
         time_out_sec = constants.wait_time_out_secs
-        logging.info('Pulling resources for [{}] template'.format(cfn_template_path))
+        self.logger.info('Pulling resources for [{}] template'.format(cfn_template_path))
 
         waited_time_sec = 0
         while waited_time_sec < time_out_sec:
@@ -188,19 +189,19 @@ class ResourcePool:
                     # In case if object already exist, do nothing
                     pass
                 except Exception as e:
-                    logging.error(e)
+                    self.logger.error(e)
                     raise e
 
-            logging.info("No template [%s] resource available with pool size [%d], sleeping for [%d] seconds...",
-                         cfn_template_path,
-                         pool_size,
-                         constants.sleep_time_secs)
+            self.logger.info("No template [%s] resource available with pool size [%d], sleeping for [%d] seconds...",
+                             cfn_template_path,
+                             pool_size,
+                             constants.sleep_time_secs)
             time.sleep(constants.sleep_time_secs)
             waited_time_sec = waited_time_sec + constants.sleep_time_secs
 
         err_message = "Resource retrieving operation timed out in [{}] seconds for [{}] template."\
             .format(time_out_sec, cfn_template_path)
-        logging.error(err_message)
+        self.logger.error(err_message)
         raise Exception(err_message)
 
     def _filter_resource_by_index_and_type(self, resources: [], index: int,
@@ -220,13 +221,13 @@ class ResourcePool:
         """
         Releases resources - updates records in Dynamo DB table with status 'AVAILABLE'.
         """
-        logging.info("Releasing test resources.")
+        self.logger.info("Releasing test resources.")
         for cfn_config in self.cfn_templates.values():
             resource = cfn_config[ResourcePool.CFN_RESOURCE_PARAM]
             if resource:
                 # Deleting resource/stack for DEDICATED type.
                 if resource.type == ResourceModel.ResourceType.DEDICATED.name:
-                    ResourcePool._delete_resource(resource, self.cfn_helper)
+                    ResourcePool._delete_resource(resource, self.cfn_helper, self.logger)
                 elif resource.status == ResourceModel.Status.LEASED.name:
                     ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
 
@@ -235,7 +236,7 @@ class ResourcePool:
         Releases stalled resources - in case if test was cancelled or
         failed we want to release resources for next test iteration.
         """
-        logging.info("Releasing all stalled resources.")
+        self.logger.info("Releasing all stalled resources.")
         for resource in ResourceModel().scan():
             if not self.test_session_id or resource.test_session_id == self.test_session_id:
                 # If resource was not released because of failure or cancellation
@@ -246,7 +247,7 @@ class ResourcePool:
                         resource.status != ResourceModel.Status.FAILED.name:
                     cfn_stack_name = resource.cf_stack_name
                     status = resource.status
-                    logging.info(f'Deleting resource for stack name [{cfn_stack_name}] in status [{status}].')
+                    self.logger.info(f'Deleting resource for stack name [{cfn_stack_name}] in status [{status}].')
                     resource.delete()
 
     def destroy_all_resources(self):
@@ -261,14 +262,14 @@ class ResourcePool:
         for resource in ResourceModel.scan():
             resources.append(resource)
         resource_count = len(resources)
-        logging.info("Destroying [%d] cloud formation stacks.", resource_count)
+        self.logger.info("Destroying [%d] cloud formation stacks.", resource_count)
         with ThreadPoolExecutor(max_workers=10) as t_executor:
             for index in range(resource_count):
                 resource = resources[index]
-                t_executor.submit(ResourcePool._delete_resource, resource, self.cfn_helper)
+                t_executor.submit(ResourcePool._delete_resource, resource, self.cfn_helper, self.logger)
 
         # Deleting tables
-        logging.info("Deleting DDB table [%s].", ResourceModel.Meta.table_name)
+        self.logger.info("Deleting DDB table [%s].", ResourceModel.Meta.table_name)
         ResourceModel.delete_table()
 
         # Deleting S3 bucket
@@ -276,7 +277,7 @@ class ResourcePool:
         self.s3_helper.delete_bucket(bucket_name)
 
     @staticmethod
-    def _delete_resource(resource, cfn_helper):
+    def _delete_resource(resource, cfn_helper, logger=logging.getLogger()):
         """
         Deletes resource stack and record DynamoDB.
         :param resource: The resource to be deleted.
@@ -285,7 +286,7 @@ class ResourcePool:
         ResourceModel.update_resource_status(resource, ResourceModel.Status.DELETING)
 
         cfn_stack_name = resource.cf_stack_name
-        logging.info(f"Deleting [{cfn_stack_name}] stack.")
+        logger.info(f"Deleting [{cfn_stack_name}] stack.")
         cfn_helper.delete_cf_stack(cfn_stack_name)
 
         ResourceModel.update_resource_status(resource, ResourceModel.Status.DELETED)
@@ -308,9 +309,9 @@ class ResourcePool:
             pool_size = config.pool_size.get(cfn_template_name)
             if pool_size is None:
                 pool_size = config.pool_size['default']
-                logging.warning("Pool size for [%s] template not found, using default: %d",
-                                cfn_template_name, pool_size)
-        logging.info("Pool size for [%s] template: %d", cfn_template_name, pool_size)
+                self.logger.warning("Pool size for [%s] template not found, using default: %d",
+                                    cfn_template_name, pool_size)
+        self.logger.info("Pool size for [%s] template: %d", cfn_template_name, pool_size)
         return pool_size
 
     def _update_resource(self, index: int, cfn_template_path: str, cfn_input_params: {},
@@ -340,8 +341,8 @@ class ResourcePool:
             resource.save()
 
             # Updating cloud formation stack stack
-            logging.info("Updating stack [%s:%s] input params: [%s]", resource_type.name, cfn_stack_name,
-                         cfn_input_params)
+            self.logger.info("Updating stack [%s:%s] input params: [%s]", resource_type.name, cfn_stack_name,
+                             cfn_input_params)
             return self._update_resource_stack(resource, resource_type, cfn_content, cfn_content_sha1,
                                                cfn_template_path_by_type, cfn_stack_name, cfn_input_params_sha1,
                                                cfn_input_params)
@@ -387,8 +388,8 @@ class ResourcePool:
             )
 
             # Creating cloud formation stack stack
-            logging.info("Creating stack [%s:%s] with input params [%s]", resource_type.name, cfn_stack_name,
-                         cfn_input_params)
+            self.logger.info("Creating stack [%s:%s] with input params [%s]", resource_type.name, cfn_stack_name,
+                             cfn_input_params)
             return self._update_resource_stack(resource, resource_type, cfn_content, cfn_content_sha1,
                                                cfn_template_path, cfn_stack_name, cfn_input_params_sha1,
                                                cfn_input_params)

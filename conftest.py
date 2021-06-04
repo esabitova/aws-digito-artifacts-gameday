@@ -5,9 +5,6 @@ import string
 import time
 import unittest
 import uuid
-from datetime import datetime
-from typing import List
-
 import boto3
 import pytest
 from pytest import ExitCode
@@ -16,9 +13,10 @@ from pytest_bdd import (
     given,
     then
 )
+from datetime import datetime
+from typing import List
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
-
 from publisher.src.publish_documents import PublishDocuments
 from resource_manager.src.alarm_manager import AlarmManager
 from resource_manager.src.cloud_formation import CloudFormationTemplate
@@ -38,6 +36,7 @@ from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from resource_manager.src.util.ssm_utils import send_step_approval
 from resource_manager.src.util.sts_utils import assume_role_session
+from resource_manager.src.constants import BgColors
 
 
 def pytest_addoption(parser):
@@ -188,21 +187,45 @@ def cfn_installed_alarms(alarm_manager):
 
 
 @pytest.fixture(scope='function')
-def resource_pool(request, boto3_session, ssm_test_cache):
+def test_name_log(request):
+    """
+    Returns name of the test for logging in following format:
+    [test_file_name.py::test_case_name]
+    :param request: The request object
+    :return: The name of the test for logging
+    """
+    full_test_path = str(request.fspath + '::' + request.node.name)
+    return full_test_path[full_test_path.rindex('/') + 1:len(full_test_path)]
+
+
+@pytest.fixture(scope='function')
+def function_logger(test_name_log):
+    """
+    Returns logger to be used in tests.
+    :param test_name_log: The name of the test for logging
+    :return: The logger to be used in tests.
+    """
+    return logging.getLogger(BgColors.OKBLUE + '[' + test_name_log + ']' + BgColors.ENDC)
+
+
+@pytest.fixture(scope='function')
+def resource_pool(request, boto3_session, ssm_test_cache, function_logger):
     """
     Creates ResourcePool fixture for every test case.
     :param request: The pytest request object
     :param boto3_session: The boto3 session
     :param ssm_test_cache: The ssm test cache
+    :param function_logger: The function level logger
     :return: The resource pool fixture
     """
+
     test_session_id = request.session.config.option.test_session_id
     aws_account_id = request.session.config.option.aws_account_id
 
-    cfn_helper = CloudFormationTemplate(boto3_session)
-    s3_helper = S3(boto3_session, aws_account_id)
+    cfn_helper = CloudFormationTemplate(boto3_session, function_logger)
+    s3_helper = S3(boto3_session, aws_account_id, function_logger)
     custom_pool_size = parse_pool_size(request.session.config.option.pool_size)
-    rp = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id, ssm_test_cache)
+    rp = ResourcePool(cfn_helper, s3_helper, custom_pool_size, test_session_id, ssm_test_cache, function_logger)
     yield rp
     # Release resources after test execution is completed if test was not manually
     # interrupted/cancelled. In case of interruption resources will be
@@ -212,11 +235,11 @@ def resource_pool(request, boto3_session, ssm_test_cache):
 
 
 @pytest.fixture(scope='function')
-def ssm_document(request, boto3_session, ssm_test_cache):
+def ssm_document(request, boto3_session, ssm_test_cache, function_logger):
     """
     Creates SsmDocument fixture to for every test case.
     """
-    ssm = SsmDocument(boto3_session)
+    ssm = SsmDocument(boto3_session, function_logger)
     yield ssm
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
@@ -238,16 +261,16 @@ def ssm_test_cache():
 
 
 @pytest.fixture
-def alarm_manager(request, boto3_session):
+def alarm_manager(request, boto3_session, function_logger):
     """
     Container for alarms deployed during a test. Alarms created during a test
     are destroyed at the end of the test.
     """
     aws_account_id = request.session.config.option.aws_account_id
-    cfn_helper = CloudFormationTemplate(boto3_session)
-    s3_helper = S3(boto3_session, aws_account_id)
+    cfn_helper = CloudFormationTemplate(boto3_session, function_logger)
+    s3_helper = S3(boto3_session, aws_account_id, function_logger)
     unique_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
-    manager = AlarmManager(unique_suffix, boto3_session, cfn_helper, s3_helper)
+    manager = AlarmManager(unique_suffix, boto3_session, cfn_helper, s3_helper, logger=function_logger)
     yield manager
     manager.destroy_deployed_alarms()
 
@@ -273,13 +296,13 @@ def get_boto3_session(aws_profile_name, aws_role_arn):
 
 
 @given(parse('published "{ssm_document_name}" SSM document'))
-def publish_ssm_document(boto3_session, ssm_document_name):
+def publish_ssm_document(boto3_session, ssm_document_name, function_logger):
     """
     Publish SSM document using 'publisher.publish_documents.PublishDocuments'.
     :param boto3_session The boto3 session
     :param ssm_document_name The SSM document name
     """
-    p = PublishDocuments(boto3_session)
+    p = PublishDocuments(boto3_session, function_logger)
     documents_metadata = p.get_documents_list_by_names([ssm_document_name])
     p.publish_document(documents_metadata)
 
@@ -337,7 +360,8 @@ def _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache):
 @then(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
             '\n{input_parameters}'))
 def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_name, expected_status,
-                                              ssm_document, input_parameters, ssm_test_cache):
+                                              ssm_document, input_parameters, ssm_test_cache, boto3_session,
+                                              test_name_log):
     """
     Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
     :param cfn_output_params The cfn output params from resource manager
@@ -346,13 +370,19 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     :param expected_status The expected SSM document execution status
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_test_cache The custom test cache
+    :param boto3_session The boto3 session
+    :param test_name_log The name of the test for logging
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
+    region = boto3_session.region_name
     ssm_execution_id = parameters[0].get('ExecutionId')
     __validate_ssm_execution_id(ssm_execution_id)
     actual_status = ssm_document.wait_for_execution_completion(ssm_execution_id, ssm_document_name)
-    assert expected_status == actual_status
+    assert expected_status == actual_status, f'[{test_name_log}] SSM document assertion failed ' \
+                                             f'[{ssm_document_name}] with execution: ' \
+                                             f'https://{region}.console.aws.amazon.com' \
+                                             f'/systems-manager/automation/execution/{ssm_execution_id}'
 
 
 wait_for_execution_step_with_params_description = \
@@ -363,7 +393,8 @@ wait_for_execution_step_with_params_description = \
 @when(parse(wait_for_execution_step_with_params_description))
 @then(parse(wait_for_execution_step_with_params_description))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
-                                        expected_status, ssm_document, input_parameters, ssm_test_cache):
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache,
+                                        boto3_session, test_name_log):
     """
     Common step to wait for SSM document execution step waiting of final status
     :param cfn_output_params The cfn output params from resource manager
@@ -374,7 +405,10 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
     :param input_parameters The input parameters
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_test_cache The custom test cache
+    :param boto3_session The boto3 session
+    :param test_name_log The name of the test for logging
     """
+    region = boto3_session.region_name
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
@@ -391,7 +425,10 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
         actual_status = ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
             ssm_execution_id, ssm_document_name, ssm_step_name, int_time_to_wait
         )
-    assert expected_status == actual_status
+    assert expected_status == actual_status, f'[{test_name_log}] SSM document step assertion failed ' \
+                                             f'[{ssm_document_name}>{ssm_step_name}] ' \
+                                             f'with step execution: https://{region}.console.aws.amazon.com' \
+                                             f'/systems-manager/automation/execution/{ssm_execution_id}'
 
 
 @given(parse('the cached input parameters\n{input_parameters}'))
@@ -423,10 +460,15 @@ def sleep_seconds(seconds):
             '\n{parameters}'))
 @then(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
             '\n{parameters}'))
-def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters):
+def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters, test_name_log):
     params = parse_param_values_from_table(parameters, {'cache': ssm_test_cache})
-    current_step_status = get_ssm_step_status(boto3_session, params[0]['ExecutionId'], step_name)
-    assert expected_step_status == current_step_status
+    ssm_execution_id = params[0]['ExecutionId']
+    region = boto3_session.region_name
+    current_step_status = get_ssm_step_status(boto3_session, ssm_execution_id, step_name)
+    assert expected_step_status == current_step_status, f'[{test_name_log}] SSM document step assertion failed ' \
+                                                        f'[{step_name}] ' \
+                                                        f'with step execution: https://{region}.console.aws.amazon.com'\
+                                                        f'/systems-manager/automation/execution/{ssm_execution_id}'
 
 
 @when(parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))
