@@ -400,6 +400,7 @@ def given_cached_input_parameters(ssm_test_cache, input_parameters):
         ssm_test_cache[parm_name] = str(param_val)
 
 
+@when(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
 @then(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
 def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
     ssm = boto3_session.client('ssm')

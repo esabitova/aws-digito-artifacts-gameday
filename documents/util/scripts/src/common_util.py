@@ -1,6 +1,7 @@
 import boto3
 import logging
 from datetime import datetime, timezone
+import time
 
 from botocore.exceptions import ClientError
 from dateutil import parser
@@ -79,9 +80,9 @@ def remove_empty_security_group(events, context):
     ec2_client = boto3.client('ec2')
     if 'Timeout' in events:
         time_to_wait = events['Timeout']
-    timeout_timestamp = datetime.timestamp(datetime.now()) + int(time_to_wait)
+    timeout_timestamp = time.time() + int(time_to_wait)
 
-    while datetime.timestamp(datetime.now()) < timeout_timestamp:
+    while time.time() < timeout_timestamp:
         try:
             logger.info(f'Deleting empty security group: {events["EmptySecurityGroupId"]}')
             group_list = ec2_client.describe_security_groups(
@@ -109,6 +110,7 @@ def remove_empty_security_group(events, context):
                 break
             elif error.response['Error']['Code'] == 'DependencyViolation' \
                     or error.response['Error']['Code'] == 'RequestLimitExceeded':
+                time.sleep(5)
                 continue
             else:
                 raise error

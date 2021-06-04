@@ -13,13 +13,12 @@ Feature: SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
 
     When SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" executed
-      | LambdaARN                               | LambdaErrorAlarmName                      | AutomationAssumeRole                                                                  |
-      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:LambdaTemplate>ErrorsAlarm}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaBreakSecurityGroupAssumeRole}}  |
+      | LambdaARN                               | SecurityGroupId                                   | LambdaErrorAlarmName                      | AutomationAssumeRole                                                                  |
+      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:LambdaTemplate>LambdaSecurityGroup}} | {{cfn-output:LambdaTemplate>ErrorsAlarm}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaBreakSecurityGroupAssumeRole}}  |
 
     Then SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-
     And cache security group list for a lambda as "SecurityGroupList" "after" SSM automation execution
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
