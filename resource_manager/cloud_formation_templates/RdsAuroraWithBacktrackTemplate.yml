@@ -22,6 +22,10 @@ Outputs:
     Description: Database Cluster Id
     Value:
       Ref: DatabaseCluster
+  ReplicaInstanceId:
+    Description: Replica Database Instance Id
+    Value:
+      Ref: DatabaseReplicaInstance
   SyntheticAlarmName:
     Description: Database Alarm based on DMLThroughput metric
     Value: !Ref DatabaseWriterDMLThroughputAlarm

@@ -22,6 +22,10 @@ Outputs:
     Description: Database Instance Id
     Value:
       Ref: DatabaseInstance
+  ReplicaInstanceId:
+    Description: Replica Database Instance Id
+    Value:
+      Ref: ReadReplicaDatabaseInstance
   SyntheticAlarmName:
     Description: Database Alarm based on CPUUtilization metric
     Value: !Ref CPUUtilizationAlarm
@@ -46,6 +50,19 @@ Resources:
     Type: AWS::RDS::DBInstance
     DeletionPolicy: Delete
     Properties:
+      Engine: mysql
+      MultiAZ: true
+      DBInstanceClass: !Ref DBInstanceClass
+      EngineVersion: 5.7
+      StorageType: gp2
+      AllocatedStorage: !Ref AllocatedStorage
+      MasterUsername: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::password}}'
+  ReadReplicaDatabaseInstance:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      SourceDBInstanceIdentifier: !Ref DatabaseInstance
       Engine: mysql
       MultiAZ: true
       DBInstanceClass: !Ref DBInstanceClass

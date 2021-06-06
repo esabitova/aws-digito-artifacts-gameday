@@ -1,7 +1,7 @@
 {
-  "displayName": "Multiple dying hosts CLB",
+  "displayName": "Many dying hosts CLB",
   "description": "Alerts when Auto Scaling group hosts keep dying and require replacing",
-  "alarmName": "Digito-MultipleDyingHostsClb_2020-07-13",
+  "alarmName": "Digito-ManyDyingHostsClb_2020-07-13",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",

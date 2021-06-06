@@ -1,4 +1,4 @@
-@asg @integration @alarm @cpu
+@asg @integration @alarm @many_unhealthy
 Feature: Alarm Setup - ASG Many Unhealthy Hosts
   Scenario: Lease ASG from resource manager and test attach an alarm from Document
     Given the cloud formation templates as integration test resources
