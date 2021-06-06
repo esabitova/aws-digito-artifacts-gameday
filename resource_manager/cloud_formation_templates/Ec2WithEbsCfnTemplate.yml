@@ -250,6 +250,11 @@ Resources:
       ImageId: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
       InstanceType: !Ref InstanceType
       IamInstanceProfile: !Ref EC2InstanceProfile
+      UserData:
+        # Setup cron job to read and write data to EBSVolume every minute
+        Fn::Base64: |
+          #!/bin/bash
+          echo "* * * * * root dd if=/dev/xvdh of=/dev/null bs=8k count=10 iflag=direct; dd if=/dev/random of=/dev/xvdh bs=8k count=10" | sudo tee /etc/cron.d/disk-test
   EBSVolume:
     Type: "AWS::EC2::Volume"
     Properties:
