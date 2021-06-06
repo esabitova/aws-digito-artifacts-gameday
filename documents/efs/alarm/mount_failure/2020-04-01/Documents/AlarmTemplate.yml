@@ -18,7 +18,7 @@ Resources:
       Type: "AWS::CloudWatch::Alarm"
       Properties:
         AlarmName: ${AlarmName}
-        AlarmDescription: "efs:alarm:ec2-mount-failure:2020-04-01"
+        AlarmDescription: This alarm triggers when EFS fails to mount to a filesystem
         AlarmActions:
           - Ref: SNSTopicARN
         MetricName: 'MountFailures'

@@ -1,5 +1,5 @@
 # Id
-docdb:sop:scale_up:2020-09-21
+docdb:sop:scaling_up:2020-09-21
 
 ## Intent
 Used to scale up the cluster has above the threshold utilization

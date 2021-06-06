@@ -5,7 +5,7 @@
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
-  "tag": "efs:alarm:ec2-mount-failure:2020-04-01",
+  "tag": "efs:alarm:mount-failure:2020-04-01",
   "failureType": "SOFTWARE",
   "minorVersion": "001",
   "prerequisites": "Make sure Amazon EFS utils are installed(see the [docs](https://github.com/aws/efs-utils#installation))\n Make sure cloudwatch logs are enabled in efs-utils (see the [docs](hhttps://github.com/aws/efs-utils#step-2-enable-cloudwatch-log-feature-in-efs-utils-config-file-etcamazonefsefs-utilsconf))\nMake sure that you've configured log_group_name in `/etc/amazon/efs/efs-utils.conf`: `log_group_name = /aws/efs/utils`\n Due to limitations of efs_utils and cloudwatch metricFilter this metric can only detect whether some unknown EFS FS failed to mount in a region.\n"
