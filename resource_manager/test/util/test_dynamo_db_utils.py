@@ -14,7 +14,11 @@ from resource_manager.src.util.dynamo_db_utils import (
     create_backup_and_wait_for_available, delete_backup_and_wait,
     drop_and_wait_dynamo_db_table_if_exists,
     get_earliest_recovery_point_in_time,
-    remove_global_table_and_wait_for_active, wait_table_to_be_active)
+    remove_global_table_and_wait_for_active, wait_table_to_be_active,
+    get_item_single, get_item_async_stress_test,
+    _get_random_value, generate_random_item
+)
+from boto3.dynamodb.types import STRING, NUMBER, BINARY, Binary
 
 GENERIC_SUCCESS_RESULT = {
     "ResponseMetadata": {
@@ -28,7 +32,7 @@ UPDATE_TABLE_STREAM_RESPONSE = {
         "StreamViewType": 'NEW_IMAGE'
     }
 }
-DESCRIBE_TABLE_RESPONCE = {
+DESCRIBE_TABLE_RESPONSE = {
     **GENERIC_SUCCESS_RESULT,
     "Table": {
         "AttributeDefinitions": [
@@ -319,7 +323,7 @@ class TestDynamoDbUtil(unittest.TestCase):
             self.client_side_effect_map.get(service_name)
 
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
-        self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONCE
+        self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONSE
         self.dynamodb_client_mock.describe_continuous_backups.return_value = DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE
         self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
         self.dynamodb_client_mock.delete_backup.return_value = DELETE_BACKUP_RESPONSE
@@ -359,7 +363,7 @@ class TestDynamoDbUtil(unittest.TestCase):
         result = _describe_table(boto3_session=self.session_mock,
                                  table_name="my_table")
 
-        self.assertEqual(result, DESCRIBE_TABLE_RESPONCE)
+        self.assertEqual(result, DESCRIBE_TABLE_RESPONSE)
 
     def test__describe_continuous_backups(self):
 
@@ -606,7 +610,7 @@ class TestDynamoDbUtil(unittest.TestCase):
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
-           return_value={**DESCRIBE_TABLE_RESPONCE})
+           return_value={**DESCRIBE_TABLE_RESPONSE})
     @patch('time.sleep')
     @patch('time.time')
     def test_add_global_table_and_wait_to_active(self, patched_time, patched_sleep, describe_mock, update_mock):
@@ -788,3 +792,39 @@ class TestDynamoDbUtil(unittest.TestCase):
             execute_mock.assert_called()
             check_mock.assert_called_with(boto3_session=self.session_mock,
                                           table_name="my_table")
+
+    def test_get_item_single(self):
+        test_key = {'some_key': 'some_value'}
+        get_item_single(boto3_session=self.session_mock, table_name='my_table', key=test_key)
+        self.dynamodb_client_mock.get_item.assert_called_with(
+            TableName='my_table', Key=test_key, ConsistentRead=True
+        )
+
+    @patch('resource_manager.src.util.dynamo_db_utils.get_item_single',
+           return_value=False)
+    def test_get_item_async_stress_test(self, get_item_mock):
+        test_key = {'some_key': 'some_value'}
+        get_item_async_stress_test(
+            boto3_session=self.session_mock, table_name='my_table', number=10, item=test_key
+        )
+        self.assertEqual(get_item_mock.call_count, 10)
+
+    def test_get_random_value_s(self):
+        output = _get_random_value(STRING, 10)
+        self.assertIsInstance(output, str)
+        self.assertEqual(10, len(output))
+
+    def test_get_random_value_n(self):
+        output = _get_random_value(NUMBER, 10)
+        self.assertIsInstance(output, int)
+        self.assertLessEqual(len(str(output)), 10)
+
+    def test_get_random_value_b(self):
+        output = _get_random_value(BINARY, 10)
+        self.assertIsInstance(output, Binary)
+        self.assertEqual(10, len(output.value))
+
+    def test_generate_random_item(self):
+        output = generate_random_item(self.session_mock, 'table_name')
+        self.assertIsInstance(output['id']['S'], str)
+        self.assertEqual(5, len(output['id']['S']))

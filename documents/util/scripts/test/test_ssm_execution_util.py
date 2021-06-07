@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from documents.util.scripts.src.ssm_execution_util import get_output_from_ssm_step_execution, get_step_durations, \
-    get_inputs_from_ssm_execution, start_rollback_execution
+    get_inputs_from_ssm_execution, start_rollback_execution, convert_param_types
 from documents.util.scripts.test import test_data_provider
 
 
@@ -119,3 +119,125 @@ class TestSsmExecutionUtil(unittest.TestCase):
             'ExecutionId': ''
         }
         self.assertRaises(KeyError, start_rollback_execution, events, None)
+
+    def test_convert_param_types_to_int(self):
+        events = {
+            'Parameters': [
+                {
+                    'Name': 'TestName10',
+                    'Value': '10',
+                    'OutputType': 'Integer'
+                }, {
+                    'Name': 'TestName0',
+                    'Value': '0',
+                    'OutputType': 'Integer'
+                }
+            ]
+        }
+        output = convert_param_types(events, {})
+        self.assertEqual(10, output['TestName10'])
+        self.assertEqual(0, output['TestName0'])
+
+    def test_convert_param_types_to_float(self):
+        events = {
+            'Parameters': [
+                {
+                    'Name': 'TestName11',
+                    'Value': '1.1',
+                    'OutputType': 'Float'
+                }, {
+                    'Name': 'TestName0',
+                    'Value': '0.0',
+                    'OutputType': 'Float'
+                }
+            ]
+        }
+        output = convert_param_types(events, {})
+        self.assertEqual(1.1, output['TestName11'])
+        self.assertEqual(0.0, output['TestName0'])
+
+    def test_convert_param_types_to_bool(self):
+        events = {
+            'Parameters': [
+                {
+                    'Name': 'TestNameTrue',
+                    'Value': 'true',
+                    'OutputType': 'Boolean'
+                }, {
+                    'Name': 'TestNameTrueCapitalized',
+                    'Value': 'True',
+                    'OutputType': 'Boolean'
+                }, {
+                    'Name': 'TestNameFalse',
+                    'Value': 'false',
+                    'OutputType': 'Boolean'
+                }, {
+                    'Name': 'TestNameFalseOther',
+                    'Value': 'somevalue',
+                    'OutputType': 'Boolean'
+                }, {
+                    'Name': 'TestNameFalseEmpty',
+                    'Value': '',
+                    'OutputType': 'Boolean'
+                }
+            ]
+        }
+        output = convert_param_types(events, {})
+        self.assertEqual(True, output['TestNameTrue'])
+        self.assertEqual(True, output['TestNameTrueCapitalized'])
+        self.assertEqual(False, output['TestNameFalse'])
+        self.assertEqual(False, output['TestNameFalseOther'])
+        self.assertEqual(False, output['TestNameFalseEmpty'])
+
+    def test_convert_param_types_missing(self):
+        events = {
+            'Parameters': [
+                {}
+            ]
+        }
+        self.assertRaises(ValueError, convert_param_types, events, {})
+
+    def test_convert_param_types_missing_name_field(self):
+        events = {
+            'Parameters': [
+                {
+                    'Value': False,
+                    'OutputType': 'Integer'
+                }
+            ]
+        }
+        self.assertRaises(ValueError, convert_param_types, events, {})
+
+    def test_convert_param_types_missing_type_field(self):
+        events = {
+            'Parameters': [
+                {
+                    'Name': 'Test',
+                    'Value': 1
+                }
+            ]
+        }
+        self.assertRaises(ValueError, convert_param_types, events, {})
+
+    def test_convert_param_types_missing_value_field(self):
+        events = {
+            'Parameters': [
+                {
+                    'Name': 'Test',
+                    'OutputType': 'Integer'
+                }
+            ]
+        }
+        self.assertRaises(ValueError, convert_param_types, events, {})
+
+    def test_convert_param_types_unsupported_type(self):
+        events = {
+            'Parameters': [
+                {
+                    'Name': 'Test',
+                    'Value': '[1, 2, 3]',
+                    'OutputType': 'StringMap'
+                }
+            ]
+        }
+        self.assertRaises(ValueError, convert_param_types, events, {})

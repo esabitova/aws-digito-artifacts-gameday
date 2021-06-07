@@ -1,10 +1,14 @@
 import logging
+import random
+import string
 import time
 import datetime
+from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Any, Callable, List
 
 from boto3 import Session
 from botocore.exceptions import ClientError
+from boto3.dynamodb.types import STRING, NUMBER, BINARY, Binary
 
 log = logging.getLogger()
 
@@ -354,3 +358,73 @@ def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
         time.sleep(delay_sec)
 
     raise TimeoutError(f'Timeout of waiting `{table_name}` deletion')
+
+
+def get_item_single(boto3_session, table_name: str, key: dict):
+    """
+    Single worker for get_item stress test
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param key The item key
+    """
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.get_item(TableName=table_name, Key=key, ConsistentRead=True)
+
+
+def get_item_async_stress_test(boto3_session: Session, table_name: str, number: int, item: dict):
+    """
+    Stress test for dynamo db reading item that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous read requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param number Number of times to read item
+    :param item The item attribute
+    """
+    futures = []
+    logging.info(f'Start DynamoDB read items stress test, read {str(number)} times')
+    logging.info(f'{item}')
+    with ThreadPoolExecutor() as executor:
+        for i in range(number):
+            futures.append(
+                executor.submit(get_item_single, boto3_session, table_name, item)
+            )
+    logging.info('DynamoDB read items stress test done')
+
+
+def _get_random_value(value_type: str, length: int = 5):
+    """
+    Generate random values for basic DynamoDB types
+    :param value_type Type of the attribute
+    :param length Length of the random item
+    :return Random value
+    """
+    if value_type == STRING:
+        return ''.join(random.choice(string.ascii_uppercase) for _ in range(length))
+    if value_type == NUMBER:
+        return random.randint(0, 10**length)
+    if value_type == BINARY:
+        return Binary(bytearray(random.getrandbits(8) for _ in range(length)))
+
+
+def generate_random_item(boto3_session: Session, table_name: str):
+    """
+    Retrieve DynamoDB table schema, get primary key and return item with random values
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :return Random item
+    """
+    table_description = _describe_table(table_name=table_name, boto3_session=boto3_session)['Table']
+    attributes = table_description['AttributeDefinitions']
+    keys = table_description['KeySchema']
+    item = {}
+    # Gather primary key attributes from schema
+    primary_keys = [key['AttributeName'] for key in keys]
+    # Generate minimal random item for schema
+    for attribute in attributes:
+        attribute_name = attribute['AttributeName']
+        if attribute_name in primary_keys:
+            attribute_type = attribute['AttributeType']
+            random_value = _get_random_value(attribute_type)
+            item[attribute_name] = {attribute_type: random_value}
+    logging.info(f'{item}')
+    return item

@@ -44,46 +44,79 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRollbackOfPreviousExecution
+        - NextStep: GetPreviousExecutionInputs
           Variable: "{{ IsRollback }}"
           StringEquals: 'true'
       Default: ValidateReadCapacityUnitsLimit
+
+  - name: GetPreviousExecutionInputs
+    action: aws:executeScript
+    outputs:
+      - Name: ReadCapacityUnitsLimit
+        Selector: $.Payload.ReadCapacityUnitsLimit[0]
+        Type: String
+      - Name: DynamoDBTableName
+        Selector: $.Payload.DynamoDBTableName[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: PrepareRollbackOfPreviousExecution
     action: aws:executeScript
     outputs:
       - Name: BackupReadCapacityUnits
-        Selector: $.Payload.BackupReadCapacityUnits
+        Selector: $.Payload.BackupReadCapacityUnits[0]
         Type: String
       - Name: BackupWriteCapacityUnits
-        Selector: $.Payload.BackupWriteCapacityUnits
+        Selector: $.Payload.BackupWriteCapacityUnits[0]
         Type: String
     inputs:
-      Runtime: python3.6
-      Handler: get_inputs_from_ssm_step_execution
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
         StepName: 'BackupProvisionedThroughput'
         ResponseField: 'BackupReadCapacityUnits,BackupWriteCapacityUnits'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
-        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_step_execution
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
-  - name: AssertReadCapacityUnitsLimit
-    action: aws:branch
+  - name: ConvertParamTypes
+    action: aws:executeScript
+    outputs:
+      - Name: BackupReadCapacityUnits
+        Selector: $.Payload.BackupReadCapacityUnits
+        Type: Integer
+      - Name: BackupWriteCapacityUnits
+        Selector: $.Payload.BackupWriteCapacityUnits
+        Type: Integer
     inputs:
-      Choices:
-        - NextStep: AssertDynamoDbTableName
-          Variable: "{{ PrepareRollbackOfPreviousExecution.ReadCapacityUnitsLimit }}"
-          StringEquals: '{{ ReadCapacityUnitsLimit }}'
-    isEnd: true
+      Runtime: python3.7
+      Handler: convert_param_types
+      InputPayload:
+        Parameters:
+          - Name: BackupReadCapacityUnits
+            Value: '{{ PrepareRollbackOfPreviousExecution.BackupReadCapacityUnits }}'
+            OutputType: Integer
+          - Name: BackupWriteCapacityUnits
+            Value: '{{ PrepareRollbackOfPreviousExecution.BackupWriteCapacityUnits }}'
+            OutputType: Integer
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.convert_param_types
 
-  - name: AssertDynamoDbTableName
+  - name: AssertDynamoDBTableName
     action: aws:branch
     inputs:
       Choices:
         - NextStep: RollbackPreviousExecution
-          Variable: "{{ PrepareRollbackOfPreviousExecution.DynamoDBTableName }}"
+          Variable: "{{ GetPreviousExecutionInputs.DynamoDBTableName }}"
           StringEquals: '{{ DynamoDBTableName }}'
     isEnd: true
 
@@ -95,8 +128,8 @@ mainSteps:
       Api: UpdateTable
       TableName: '{{ DynamoDBTableName }}'
       ProvisionedThroughput:
-        ReadCapacityUnits: '{{ PrepareRollbackOfPreviousExecution.BackupReadCapacityUnits }}'
-        WriteCapacityUnits: '{{ PrepareRollbackOfPreviousExecution.BackupWriteCapacityUnits }}'
+        ReadCapacityUnits: '{{ ConvertParamTypes.BackupReadCapacityUnits }}'
+        WriteCapacityUnits: '{{ ConvertParamTypes.BackupWriteCapacityUnits }}'
 
   - name: ValidateReadCapacityUnitsLimit
     action: aws:branch
@@ -127,9 +160,6 @@ mainSteps:
       - Name: BackupWriteCapacityUnits
         Selector: $.Table.ProvisionedThroughput.WriteCapacityUnits
         Type: Integer
-      - Name: BillingMode
-        Selector: $.Table.BillingMode
-        Type: String
     inputs:
       Service: dynamodb
       Api: DescribeTable
@@ -216,6 +246,5 @@ mainSteps:
         ExecutionId: '{{automation:EXECUTION_ID}}'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
-
         SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
     isEnd: true

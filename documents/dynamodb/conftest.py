@@ -11,14 +11,16 @@ from resource_manager.src.util.dynamo_db_utils import (
     create_backup_and_wait_for_available, delete_backup_and_wait,
     drop_and_wait_dynamo_db_table_if_exists,
     get_earliest_recovery_point_in_time,
-    remove_global_table_and_wait_for_active, wait_table_to_be_active)
-from concurrent.futures import ThreadPoolExecutor
-import logging
+    remove_global_table_and_wait_for_active, wait_table_to_be_active,
+    get_item_async_stress_test, generate_random_item
+)
 
 
 @given(parsers.parse('cache table property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
                      '\n{input_parameters}'))
 @when(parsers.parse('cache table property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
+                    '\n{input_parameters}'))
+@then(parsers.parse('cache table property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
                     '\n{input_parameters}'))
 def cache_table_property(resource_pool, ssm_test_cache, boto3_session, json_path, cache_property, step_key,
                          input_parameters):
@@ -177,29 +179,18 @@ def delete_all_alarms_for_dynamodb_table(ssm_test_cache,
                                       table_name=table_name)
 
 
-@given(parsers.parse('put test item with attribute "{attribute}" and value "{value}"\n{input_parameters}'))
-def put_item(boto3_session, resource_pool, ssm_test_cache, attribute, value, input_parameters):
+@given(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
+def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_parameters):
     dynamo_db_client = boto3_session.client('dynamodb')
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
-    dynamo_db_client.put_item(TableName=table_name, Item={attribute: {"S": value}})
+    item = generate_random_item(boto3_session, table_name)
+    dynamo_db_client.put_item(TableName=table_name, Item=item)
+    ssm_test_cache[item_ref] = item
 
 
-def get_item(boto3_session, table_name, key):
-    dynamo_db_client = boto3_session.client('dynamodb')
-    dynamo_db_client.get_item(TableName=table_name, Key=key, ConsistentRead=True)
-
-
-@given(parsers.parse('get test item with attribute "{attribute}" and value "{value}" "{number}" times'
-                     '\n{input_parameters}'))
-@when(parsers.parse('get test item with attribute "{attribute}" and value "{value}" "{number}" times'
-                    '\n{input_parameters}'))
-def get_items(boto3_session, resource_pool, ssm_test_cache, attribute, value, number, input_parameters):
+@given(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
+@when(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
+def get_items(boto3_session, resource_pool, ssm_test_cache, item_ref, number, input_parameters):
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
-    futures = []
-    logging.info(f'Start DynamoDB read items stress test, read {number} times')
-    with ThreadPoolExecutor() as executor:
-        for i in range(int(number)):
-            futures.append(
-                executor.submit(get_item, boto3_session, table_name, {attribute: {"S": value}})
-            )
-    logging.info('DynamoDB read items stress test done')
+    item: dict = ssm_test_cache[item_ref]
+    get_item_async_stress_test(boto3_session, table_name, int(number), item)

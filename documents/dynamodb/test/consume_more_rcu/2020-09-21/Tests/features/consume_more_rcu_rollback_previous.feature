@@ -1,7 +1,7 @@
 @dynamodb
 Feature: SSM automation document to test dynamodb read throttling
 
-  Scenario: Test that alarm detects when DynamoDB has read throttling events
+  Scenario: Execute SSM automation document Digito-ConsumeMoreRCU_2020-09-21 in rollback
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/DynamoDBTemplateWithProvisionedBilling.yml          | DEDICATED    |
@@ -10,9 +10,6 @@ Feature: SSM automation document to test dynamodb read throttling
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ReadCapacityUnits" "before" SSM automation execution
       | TableName                                                           |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
-    And put random test item and cache it as "TestItem"
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
 
     When SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" executed
       | DynamoDBTableName                                                   | AutomationAssumeRole                                                               | ReadThrottleAlarmName                                                             | ReadCapacityUnitsLimit |
@@ -20,38 +17,22 @@ Feature: SSM automation document to test dynamodb read throttling
     And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1200" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And sleep for "30" seconds
-    And get test item "TestItem" "320" times
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
-    And sleep for "60" seconds
-    And get test item "TestItem" "320" times
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
-    And sleep for "60" seconds
-    And get test item "TestItem" "320" times
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
-
-    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "1200" seconds
+    Then terminate "Digito-ConsumeMoreRCU_2020-09-21" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And sleep for "60" seconds
-    And get test item "TestItem" "320" times
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
-    And sleep for "60" seconds
-    And get test item "TestItem" "320" times
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
-    And sleep for "60" seconds
-    And get test item "TestItem" "320" times
-      | DynamoDBTableName                                                   |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
 
-    Then SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution in status "Success"
+    Then Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution in status "Cancelled"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And cache rollback execution id
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ReadCapacityUnits" "after" SSM automation execution
       | TableName                                                           |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |

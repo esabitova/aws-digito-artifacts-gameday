@@ -159,3 +159,29 @@ def start_rollback_execution(events, context):
     )
     output['RollbackExecutionId'] = rollback_execution_response['AutomationExecutionId']
     return output
+
+
+def convert_param_types(events, context):
+    """
+    Use this script to convert value types from strings to specific OutputTypes
+    All outputs and inputs from SSM steps received through API calls have string type regardless of their actual type
+    On the other hand various AWS APIs expect params to be in types other than strings
+    """
+    output = {}
+    params = events.get('Parameters', [])
+    for param in params:
+        param_name = param.get('Name')
+        value = param.get('Value')
+        output_type = param.get('OutputType')
+        if not param_name or not output_type or 'Value' not in param:
+            raise ValueError(f"Failed to get function parameters from input payload: {param}")
+        if output_type not in ["Float", "Integer", "Boolean"]:
+            raise ValueError(f"Incorrect OutputType in events: {output_type}")
+
+        if output_type == 'Float':
+            output[param_name] = float(value)
+        if output_type == 'Integer':
+            output[param_name] = int(value)
+        if output_type == 'Boolean':
+            output[param_name] = value.lower() == 'true'
+    return output
