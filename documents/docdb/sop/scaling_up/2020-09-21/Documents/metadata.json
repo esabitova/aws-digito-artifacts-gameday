@@ -6,7 +6,7 @@
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-  "tag": "docdb:sop:scale_up:2020-09-21",
+  "tag": "docdb:sop:scaling_up:2020-09-21",
   "failureType": "SOFTWARE",
   "risk": "SMALL",
   "intent": "| Used to scale up when the cluster has above the threshold utilization.",

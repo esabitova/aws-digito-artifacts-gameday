@@ -1,5 +1,5 @@
 # Id
-api-gw:test:rest-api-quota:2020-09-21
+api-gw:test:rest_api_quota:2020-09-21
 
 ## Intent
 Test API Gateway REST API behavior when hitting quota threshold  

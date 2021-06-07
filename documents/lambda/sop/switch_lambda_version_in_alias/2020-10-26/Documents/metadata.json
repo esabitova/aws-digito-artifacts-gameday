@@ -10,5 +10,5 @@
   "intent": "Switch Alias of Lambda functions to another version",
   "minorVersion": "001",
   "risk": "MEDIUM",
-  "tag": "lambda:sop:lambda_switch_lambda_version_in_alias:2020-10-26"
+  "tag": "lambda:sop:switch_lambda_version_in_alias:2020-10-26"
 }

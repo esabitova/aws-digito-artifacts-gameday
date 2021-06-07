@@ -9,5 +9,5 @@
   "description": "Used to recover the database into a known good state",
   "minorVersion": "001",
   "risk": "MEDIUM",
-  "tag": "docdb:sop:docdb_restore_from_backup:2020-09-21"
+  "tag": "docdb:sop:restore_from_backup:2020-09-21"
 }
