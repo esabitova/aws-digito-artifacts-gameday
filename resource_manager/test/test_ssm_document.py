@@ -6,7 +6,7 @@ import pytest
 
 import resource_manager.src.constants as constants
 import resource_manager.src.util.boto3_client_factory as client_factory
-from documents.util.scripts.test.mock_sleep import MockSleep
+from resource_manager.test.util.mock_sleep import MockSleep
 from resource_manager.src.ssm_document import SsmDocument
 
 SSM_EXECUTION_ID = '123456'
@@ -72,8 +72,9 @@ def prepare_execution_description_with_multiple_steps():
 @pytest.mark.unit_test
 class TestSsmDocument(unittest.TestCase):
     def setUp(self):
+        self.region_name = 'test_region'
         self.mock_session = MagicMock()
-        self.mock_session.configure_mock(name='test_session')
+        self.mock_session.configure_mock(name='test_session', region_name=self.region_name)
         self.mock_ssm = MagicMock()
         self.mock_ssm.configure_mock(name='test_ssm')
         self.client_side_effect_map = {
@@ -262,3 +263,56 @@ class TestSsmDocument(unittest.TestCase):
         steps = self.ssm_document.get_successfully_executed_steps_by_order('test_execution_id')
         self.mock_ssm.get_automation_execution.assert_called_once_with(AutomationExecutionId='test_execution_id')
         self.assertEqual(steps, ['1', '2', '3', '4'])
+
+    # execution_id: str, step_name: str, steps: [] = None
+    def test_get_execution_step_url_with_no_passed_execs_success(self):
+        execution_id = 'test_execution_1'
+        step_name = 'test_step'
+        step_id = 'test_step_1'
+        execution = {'AutomationExecution':
+                     {'StepExecutions': [{'StepStatus': 'InProgress',
+                                          'StepName': step_name,
+                                          'StepExecutionId': step_id}],
+                      'AutomationExecutionStatus': 'InProgress'}}
+
+        self.mock_ssm.get_automation_execution.return_value = execution
+
+        expected_url = f'https://{self.region_name}.console.aws.amazon.com/systems-manager/' \
+                       f'automation/execution/{execution_id}/step/1/{step_id}'
+        actual_url = self.ssm_document.get_execution_step_url(execution_id, step_name)
+        self.assertEqual(expected_url, actual_url)
+        self.mock_ssm.get_automation_execution.assert_called_once()
+
+    def test_get_execution_step_url_with_passed_execs_success(self):
+        execution_id = 'test_execution_1'
+        step_name = 'test_step'
+        step_id = 'test_step_1'
+        execution = {'AutomationExecution':
+                     {'StepExecutions': [{'StepStatus': 'InProgress',
+                                          'StepName': step_name,
+                                          'StepExecutionId': step_id}],
+                      'AutomationExecutionStatus': 'InProgress'}}
+
+        expected_url = f'https://{self.region_name}.console.aws.amazon.com/systems-manager/' \
+                       f'automation/execution/{execution_id}/step/1/{step_id}'
+        steps = execution['AutomationExecution']['StepExecutions']
+        actual_url = self.ssm_document.get_execution_step_url(execution_id, step_name, steps)
+        self.assertEqual(expected_url, actual_url)
+        self.mock_ssm.get_automation_execution.assert_not_called()
+
+    def test_get_execution_step_url_with_passed_execs_no_step_fail(self):
+        execution_id = 'test_execution_1'
+        step_name = 'test_step'
+        step_id = 'test_step_1'
+        execution = {'AutomationExecution':
+                     {'StepExecutions': [],
+                      'AutomationExecutionStatus': 'InProgress'}}
+        steps = execution['AutomationExecution']['StepExecutions']
+        self.assertRaises(Exception, self.ssm_document.get_execution_step_url, execution_id, step_name, steps)
+
+    def test_get_execution_url_success(self):
+        execution_id = 'test_execution_1'
+        expected_url = f'https://{self.region_name}.console.aws.amazon.com/systems-manager/' \
+                       f'automation/execution/{execution_id}'
+        actual_url = self.ssm_document.get_execution_url(execution_id)
+        self.assertEqual(expected_url, actual_url)

@@ -360,8 +360,7 @@ def _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache):
 @then(parse('SSM automation document "{ssm_document_name}" execution in status "{expected_status}"'
             '\n{input_parameters}'))
 def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_name, expected_status,
-                                              ssm_document, input_parameters, ssm_test_cache, boto3_session,
-                                              test_name_log):
+                                              ssm_document, input_parameters, ssm_test_cache, test_name_log):
     """
     Common step to wait for SSM document execution completion status. This step can be reused by multiple scenarios.
     :param cfn_output_params The cfn output params from resource manager
@@ -370,19 +369,16 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
     :param expected_status The expected SSM document execution status
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_test_cache The custom test cache
-    :param boto3_session The boto3 session
     :param test_name_log The name of the test for logging
     """
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
-    region = boto3_session.region_name
     ssm_execution_id = parameters[0].get('ExecutionId')
     __validate_ssm_execution_id(ssm_execution_id)
     actual_status = ssm_document.wait_for_execution_completion(ssm_execution_id, ssm_document_name)
-    assert expected_status == actual_status, f'[{test_name_log}] SSM document assertion failed ' \
-                                             f'[{ssm_document_name}] with execution: ' \
-                                             f'https://{region}.console.aws.amazon.com' \
-                                             f'/systems-manager/automation/execution/{ssm_execution_id}'
+    assert expected_status == actual_status, \
+        f'[{test_name_log}] SSM document assertion failed ' \
+        f'[{ssm_document_name}] with execution: {ssm_document.get_execution_url(ssm_execution_id)}'
 
 
 wait_for_execution_step_with_params_description = \
@@ -393,8 +389,7 @@ wait_for_execution_step_with_params_description = \
 @when(parse(wait_for_execution_step_with_params_description))
 @then(parse(wait_for_execution_step_with_params_description))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
-                                        expected_status, ssm_document, input_parameters, ssm_test_cache,
-                                        boto3_session, test_name_log):
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache, test_name_log):
     """
     Common step to wait for SSM document execution step waiting of final status
     :param cfn_output_params The cfn output params from resource manager
@@ -405,10 +400,8 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
     :param input_parameters The input parameters
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_test_cache The custom test cache
-    :param boto3_session The boto3 session
     :param test_name_log The name of the test for logging
     """
-    region = boto3_session.region_name
     parameters = parse_param_values_from_table(input_parameters, {'cache': ssm_test_cache,
                                                                   'cfn-output': cfn_output_params})
     ssm_execution_id = parameters[0].get('ExecutionId')
@@ -425,10 +418,9 @@ def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ss
         actual_status = ssm_document.wait_for_execution_step_status_is_terminal_or_waiting(
             ssm_execution_id, ssm_document_name, ssm_step_name, int_time_to_wait
         )
-    assert expected_status == actual_status, f'[{test_name_log}] SSM document step assertion failed ' \
-                                             f'[{ssm_document_name}>{ssm_step_name}] ' \
-                                             f'with step execution: https://{region}.console.aws.amazon.com' \
-                                             f'/systems-manager/automation/execution/{ssm_execution_id}'
+    assert expected_status == actual_status, \
+        f'[{test_name_log}] SSM document step assertion failed [{ssm_document_name}>{ssm_step_name}] ' \
+        f'with step execution: {ssm_document.get_execution_step_url(ssm_execution_id, ssm_step_name)}'
 
 
 @given(parse('the cached input parameters\n{input_parameters}'))
@@ -460,15 +452,14 @@ def sleep_seconds(seconds):
             '\n{parameters}'))
 @then(parse('assert SSM automation document step "{step_name}" execution in status "{expected_step_status}"'
             '\n{parameters}'))
-def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache, parameters, test_name_log):
+def verify_step_in_status(boto3_session, step_name, expected_step_status, ssm_test_cache,
+                          parameters, test_name_log, ssm_document):
     params = parse_param_values_from_table(parameters, {'cache': ssm_test_cache})
     ssm_execution_id = params[0]['ExecutionId']
-    region = boto3_session.region_name
     current_step_status = get_ssm_step_status(boto3_session, ssm_execution_id, step_name)
-    assert expected_step_status == current_step_status, f'[{test_name_log}] SSM document step assertion failed ' \
-                                                        f'[{step_name}] ' \
-                                                        f'with step execution: https://{region}.console.aws.amazon.com'\
-                                                        f'/systems-manager/automation/execution/{ssm_execution_id}'
+    assert expected_step_status == current_step_status, \
+        f'[{test_name_log}] SSM document step assertion failed ' \
+        f'[{step_name}] with step execution: {ssm_document.get_execution_step_url(ssm_execution_id, step_name)}'
 
 
 @when(parse('assert "{metric_name}" metric point "{operator}" than "{exp_perc}" percent(s)\n{input_params}'))

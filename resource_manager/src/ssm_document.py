@@ -35,7 +35,7 @@ class SsmDocument:
                 # DocumentVersion=version,
                 Parameters=input_params
             )['AutomationExecutionId']
-            self.logger.info(f'SSM execution URL: {self._build_execution_step_url(execution_id, None, None)}')
+            self.logger.info(f'SSM execution URL: {self.get_execution_url(execution_id)}')
             return execution_id
         else:
             error_msg = "SSM document with name [{}] does not exist.".format(document_name)
@@ -146,7 +146,7 @@ class SsmDocument:
         Cancels SSM document execution in waits till 'TriggerRollback' step triggered SSM execution is completed.
         :param execution_id: The SSM execution id.
         """
-        execution_url = self._build_execution_step_url(execution_id)
+        execution_url = self.get_execution_url(execution_id)
         try:
             self.logger.info("Canceling SSM execution: {}".format(execution_url))
             self.ssm_client.stop_automation_execution(AutomationExecutionId=execution_id, Type='Cancel')
@@ -154,7 +154,7 @@ class SsmDocument:
             rollback_execution_id = self.get_step_output(execution_id, constants.rollback_step_name,
                                                          constants.rollback_execution_id_output_name)
             if rollback_execution_id:
-                rollback_execution_url = self._build_execution_step_url(rollback_execution_id)
+                rollback_execution_url = self.get_execution_url(rollback_execution_id)
                 self.logger.info(f"Waiting [RollbackExecution] completed SSM execution: {rollback_execution_url}")
                 self.wait_for_execution_completion(rollback_execution_id)
         except ClientError as e:
@@ -177,10 +177,8 @@ class SsmDocument:
         step = self._get_step_by_status(step_executions, 'InProgress')
         if step:
             step_name = step['StepName']
-            step_execution_id = step['StepExecutionId']
-            step_index = self._get_step_execution_index(step_executions, step_name)
             self.logger.info(f'Waiting SSM document step [{document_name}>{step_name}] to be completed: '
-                             f'{self._build_execution_step_url(execution_id, step_index, step_execution_id)}')
+                             f'{self.get_execution_step_url(execution_id, step_name, step_executions)}')
         return execution['AutomationExecution']['AutomationExecutionStatus']
 
     def _get_execution_step_status(self, execution_id, step_name):
@@ -248,16 +246,32 @@ class SsmDocument:
         """
         return len(self.ssm_client.list_document_versions(Name=document_name)['DocumentVersions']) >= 1
 
-    def _build_execution_step_url(self, execution_id, step_index=None, step_execution_id=None):
+    def get_execution_url(self, execution_id: str) -> str:
         """
-        Build and return URL of SSM Automation Execution page
-        :param execution_id: The SSM document execution id
-        :param step_index The step sequence index in SSM document
-        :param step_execution_id: The SSM document step execution id
-        :return: Built URL of Automation Execution page
+        Returns ssm document execution URL.
+        :param execution_id: The ssm document execution id.
+        :return: The ssm document execution URL.
         """
-        if step_execution_id is None:
-            return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}'
+        return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}'
+
+    def get_execution_step_url(self, execution_id: str, step_name: str, steps: [] = None) -> str:
+        """
+        Return ssm document execution step URL.
+        :param execution_id: The ssm document execution id.
+        :param step_name: The ssm document step name.
+        :param steps: The ssm document execution steps. If not given boto3 API will be called to fetch it.
+        :return: The ssm document execution step URL.
+        """
+        if not steps or len(steps) < 1:
+            execution = self.ssm_client.get_automation_execution(AutomationExecutionId=execution_id)
+            steps = execution['AutomationExecution']['StepExecutions']
+
+        step = self._get_step_by_name(steps, step_name)
+        if not step:
+            raise Exception(f'SSM document step [{step_name}] does not exist in execution: ' 
+                            f'{self.get_execution_url(execution_id)}')
+        step_execution_id = step['StepExecutionId']
+        step_index = self._get_step_execution_index(steps, step_name)
         return f'https://{self.region}.console.aws.amazon.com/systems-manager/automation/execution/{execution_id}' \
                f'/step/{step_index}/{step_execution_id}'
 
