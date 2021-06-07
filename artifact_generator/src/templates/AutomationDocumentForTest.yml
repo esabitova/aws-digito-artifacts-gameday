@@ -138,7 +138,7 @@ mainSteps:
         Selector: $.Payload.RollbackExecutionId
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: start_rollback_execution
       InputPayload:
         ExecutionId: '{{automation:EXECUTION_ID}}'

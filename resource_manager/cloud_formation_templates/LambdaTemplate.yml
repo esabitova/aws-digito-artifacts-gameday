@@ -18,6 +18,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for Lambda and related resources. Contains all alarms
 Outputs:
+  LambdaFunction:
+    Description: Lambda function name
+    Value: !Ref LambdaFunction
   LambdaARN:
     Description: Lambda ARN
     Value: !GetAtt LambdaFunction.Arn

@@ -1,0 +1,15 @@
+{
+    "service": "123",
+    "type": "sop",
+    "name": "my_sop",
+    "date": "2021-05-04",
+    "displayName": "My Display Name",
+    "description": "My Description",
+    "primaryResourceId": "ResourceId",
+    "failureType": "SOFTWARE",
+    "risk": "HIGH",
+    "cfnTemplateName": "MyServiceTemplate",
+    "cfnPrimaryResourceOutput": "ResourceIdOutput",
+    "supportsRecoveryPoint": "yes",
+    "recoveryPointStep": "CalculateRecoveryPoint"
+}

@@ -82,17 +82,30 @@ class TestGenerateArtifacts(unittest.TestCase):
     templates_path = os.path.join(pathlib.Path(__file__).parent.parent, 'src', 'templates')
 
     input_for_test = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID,
-                      FAILURE_TYPE, RISK, 'yes', 'no', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
+                      FAILURE_TYPE, RISK, 'yes', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
                       RESOURCE_ID_CFN_OUTPUT, ALARM_CFN_OUTPUT, 'no']
     input_for_test_synth_alarm = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, DISPLAY_NAME, DESCRIPTION,
-                                  RESOURCE_ID, FAILURE_TYPE, RISK, 'yes', 'yes', CFN_TEMPLATE_NAME,
+                                  RESOURCE_ID, FAILURE_TYPE, RISK, 'yes', 'Synthetic', CFN_TEMPLATE_NAME,
                                   RESOURCE_ID_CFN_OUTPUT, ALARM_CFN_OUTPUT, 'no']
     input_for_test_no_rollback = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID,
-                                  FAILURE_TYPE, RISK, 'no', 'no', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
+                                  FAILURE_TYPE, RISK, 'no', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
                                   RESOURCE_ID_CFN_OUTPUT, ALARM_CFN_OUTPUT, 'no']
     input_for_sop = [SERVICE_NAME, SOP_DOC_TYPE, SOP_NAME, DATE, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID, FAILURE_TYPE,
                      RISK, 'yes', RECOVERY_POINT_STEP, CFN_TEMPLATE_NAME,
                      RESOURCE_ID_CFN_OUTPUT, 'no']
+
+    with open(os.path.join(pathlib.Path(__file__).parent,
+                           'resources/input-overrides-sop-missing-service.json'), 'r') as f:
+        sop_input_overrides_missing_key = f.read()
+    with open(os.path.join(pathlib.Path(__file__).parent,
+                           'resources/input-overrides-sop.json'), 'r') as f:
+        sop_input_overrides = f.read()
+    with open(os.path.join(pathlib.Path(__file__).parent,
+                           'resources/input-overrides-test.json'), 'r') as f:
+        test_input_overrides = f.read()
+    with open(os.path.join(pathlib.Path(__file__).parent,
+                           'resources/input-overrides-sop-invalid-service.json'), 'r') as f:
+        sop_input_overrides_invalid_key = f.read()
 
     @patch('builtins.input', side_effect=[SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, 'no'])
     def test_no_overwrite(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir,
@@ -100,7 +113,7 @@ class TestGenerateArtifacts(unittest.TestCase):
         mock_is_dir.return_value = True
         mock_is_file.return_value = True
         with pytest.raises(SystemExit) as e:
-            main()
+            main([])
         assert e.type == SystemExit
         assert e.value.code == 0
         mock_mkdir.assert_not_called()
@@ -115,7 +128,7 @@ class TestGenerateArtifacts(unittest.TestCase):
         mock_is_dir.return_value = False
         mock_is_file.return_value = False
         mock_re_sub.side_effect = self.__re_sub_side_effect
-        main()
+        main([])
         mock_open.assert_has_calls([
             call(os.path.join(self.templates_path, 'CloudFormationTemplate.yml'), 'r'),
             call(os.path.join(os.path.join(self.package_dir, "resource_manager", "cloud_formation_templates"),
@@ -129,7 +142,8 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements['${alarmPrefix}'] = self.ALARM_PREFIX
         expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}'\
             .format(self.ALARM_PREFIX, self.ALARM_ID)
-        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir, [],
                                      expected_replacements, 'AutomationDocumentForTest.yml', 'yes',
                                      ['usual_case_test.feature', 'failed.feature', 'rollback_previous.feature'])
 
@@ -140,19 +154,20 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements.update(self.expected_replacements_test)
         expected_replacements['${alarmPrefix}'] = 'Synthetic'
         expected_replacements['${recommendedAlarms}'] = ''
-        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir, [],
                                      expected_replacements, 'AutomationDocumentForTest.yml', 'yes',
                                      ['usual_case_test.feature', 'failed.feature', 'rollback_previous.feature'])
 
     @patch('builtins.input', side_effect=input_for_test_no_rollback)
-    def test_generate_test_no_rollbck(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir,
-                                      mock_is_dir):
+    def test_generate_test_no_rollback(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir,
+                                       mock_is_dir):
         expected_replacements = {}
         expected_replacements.update(self.expected_replacements_test)
         expected_replacements['${alarmPrefix}'] = self.ALARM_PREFIX
         expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}' \
             .format(self.ALARM_PREFIX, self.ALARM_ID)
-        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir, [],
                                      expected_replacements, 'AutomationDocumentForTestNoRollback.yml', 'no',
                                      ['usual_case_test.feature'])
 
@@ -165,20 +180,80 @@ class TestGenerateArtifacts(unittest.TestCase):
             .format(self.RECOVERY_POINT_STEP)
         expected_replacements['${recoveryPointOutput}'] = '- {}.RecoveryPoint'.format(self.RECOVERY_POINT_STEP)
         expected_replacements['${recommendedAlarms}'] = ''
-        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir, [],
                                      expected_replacements, 'AutomationDocumentForSop.yml', 'no',
                                      ['usual_case_sop.feature'])
 
+    @patch('builtins.input', side_effect=[])
+    def test_generate_test_non_interactive(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
+                                           mock_mkdir, mock_is_dir):
+        expected_replacements = {}
+        expected_replacements.update(self.expected_replacements_test)
+        expected_replacements['${alarmPrefix}'] = self.ALARM_PREFIX
+        expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}' \
+            .format(self.ALARM_PREFIX, self.ALARM_ID)
+
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+                                     ['-i', 'resources/input-overrides-test.json'],
+                                     expected_replacements, 'AutomationDocumentForTest.yml', 'yes',
+                                     ['usual_case_test.feature', 'failed.feature', 'rollback_previous.feature'])
+
+    @patch('builtins.input', side_effect=[])
+    def test_generate_sop_non_interactive(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
+                                          mock_mkdir, mock_is_dir):
+        expected_replacements = {}
+        expected_replacements.update(self.expected_replacements_sop)
+        expected_replacements['${recoveryPointStep}'] = '- name: {} # step that calculates the recovery point' \
+            .format(self.RECOVERY_POINT_STEP)
+        expected_replacements['${recoveryPointOutput}'] = '- {}.RecoveryPoint'.format(self.RECOVERY_POINT_STEP)
+        expected_replacements['${recommendedAlarms}'] = ''
+
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+                                     ['-i', 'resources/input-overrides-sop.json'],
+                                     expected_replacements, 'AutomationDocumentForSop.yml', 'no',
+                                     ['usual_case_sop.feature'])
+
+    @patch('builtins.input', side_effect=[SERVICE_NAME])
+    def test_generate_sop_missing_override(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
+                                           mock_mkdir, mock_is_dir):
+        expected_replacements = {}
+        expected_replacements.update(self.expected_replacements_sop)
+        expected_replacements['${recoveryPointStep}'] = '- name: {} # step that calculates the recovery point' \
+            .format(self.RECOVERY_POINT_STEP)
+        expected_replacements['${recoveryPointOutput}'] = '- {}.RecoveryPoint'.format(self.RECOVERY_POINT_STEP)
+        expected_replacements['${recommendedAlarms}'] = ''
+
+        self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
+                                     ['-i', 'resources/input-overrides-sop-missing-service.json'],
+                                     expected_replacements, 'AutomationDocumentForSop.yml', 'no',
+                                     ['usual_case_sop.feature'])
+
+    @patch('builtins.input', side_effect=["123"])
+    def test_generate_sop_invalid_override(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
+                                           mock_mkdir, mock_is_dir):
+        mock_open.side_effect = self.__open_side_effect
+        mock_is_file.return_value = True
+        with pytest.raises(ValueError):
+            main(['-i', 'resources/input-overrides-sop-invalid-service.json'])
+
+    @patch('builtins.input', side_effect=[])
+    def test_generate_invalid_options(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
+                                      mock_mkdir, mock_is_dir):
+        with pytest.raises(SystemExit) as e:
+            main(['--invalid'])
+        assert e.value.code == 2
+
     def __generate_and_validate(self, mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir,
-                                expected_replacements: dict, automation_template: str, supports_rollback: str,
-                                feature_templates: list):
+                                args: list, expected_replacements: dict, automation_template: str,
+                                supports_rollback: str, feature_templates: list):
         mock_template = Mock(Template)
         mock_is_dir.return_value = False
-        mock_is_file.return_value = False
+        mock_is_file.side_effect = self.__is_file_side_effect
         mock_re_sub.side_effect = self.__re_sub_side_effect
         mock_open.side_effect = self.__open_side_effect
         mock_lookup.get_template.return_value = mock_template
-        main()
+        main(args)
 
         artifacts_dir = os.path.join(self.package_dir, 'documents', expected_replacements['${serviceName}'],
                                      expected_replacements['${documentType}'], expected_replacements['${name}'],
@@ -239,4 +314,18 @@ class TestGenerateArtifacts(unittest.TestCase):
     def __open_side_effect(self, *args):
         if '/features/' in args[0]:
             return mock_open(read_data=self.scenario_name).return_value
+        if 'input-overrides-sop.json' in args[0]:
+            return mock_open(read_data=self.sop_input_overrides).return_value
+        if 'input-overrides-sop-missing-service.json' in args[0]:
+            return mock_open(read_data=self.sop_input_overrides_missing_key).return_value
+        if 'input-overrides-sop-invalid-service.json' in args[0]:
+            return mock_open(read_data=self.sop_input_overrides_invalid_key).return_value
+        if 'input-overrides-test.json' in args[0]:
+            return mock_open(read_data=self.test_input_overrides).return_value
         return mock_open(read_data='').return_value
+
+    def __is_file_side_effect(self, *args):
+        if 'input-overrides' in args[0]:
+            return True
+        else:
+            return False

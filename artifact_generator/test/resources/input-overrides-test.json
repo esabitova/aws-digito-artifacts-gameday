@@ -1,0 +1,17 @@
+{
+    "service": "my-service",
+    "type": "test",
+    "name": "my_test",
+    "date": "2021-05-04",
+    "displayName": "My Display Name",
+    "description": "My Description",
+    "primaryResourceId": "ResourceId",
+    "failureType": "SOFTWARE",
+    "risk": "HIGH",
+    "cfnTemplateName": "MyServiceTemplate",
+    "cfnPrimaryResourceOutput": "ResourceIdOutput",
+    "supportsRollback": "yes",
+    "alarmPrefix": "UserError",
+    "cfnAlarmOutput": "UserErrorAlarmNameOutput",
+    "alarmId": "my-service:alarm:user-error:2021-05-04"
+}

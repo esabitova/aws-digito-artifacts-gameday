@@ -1,5 +1,5 @@
 # Id
-docdb:sop:scale_down:2020-09-21
+docdb:sop:scaling_down:2020-09-21
 
 ## Intent
 Used to scale down the cluster has below the threshold utilization

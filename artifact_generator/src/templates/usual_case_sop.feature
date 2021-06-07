@@ -13,7 +13,7 @@ Feature: SSM automation document ${documentName}
     # Add other parameter names below
       | ${primaryResourceIdentifier}             | AutomationAssumeRole                                    |
     # Replace parameter values to point to the corresponding outputs in cloudformation template
-      | {{cfn-output:${cfnTemplateName}>${resourceIdOutput}} | {{cfn-output:AutomationAssumeRoleTemplate>${roleName}}} |
+      | {{cfn-output:${cfnTemplateName}>${resourceIdOutput}}} | {{cfn-output:AutomationAssumeRoleTemplate>${roleName}}} |
     # Add other steps that should run parallel to the document here
 
     Then SSM automation document "${documentName}" execution in status "Success"

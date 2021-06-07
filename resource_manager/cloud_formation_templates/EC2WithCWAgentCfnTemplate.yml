@@ -268,9 +268,7 @@ Resources:
                   },
                   "metrics": {
                     "append_dimensions": {
-                      "ImageId": "${!aws:ImageId}",
-                      "InstanceId": "${!aws:InstanceId}",
-                      "InstanceType": "${!aws:InstanceType}"
+                      "InstanceId": "${!aws:InstanceId}"
                     },
                     "aggregation_dimensions" : [["InstanceId"]],
                     "metrics_collected": {
@@ -326,6 +324,14 @@ Resources:
                         ],
                         "metrics_collection_interval": 60
                       },
+                     "procstat": [
+                        {
+                            "pid_file": "/var/run/sshd.pid",
+                            "measurement": [
+                                "pid_count"
+                            ]
+                        }
+                      ],
                       "statsd": {
                         "metrics_aggregation_interval": 60,
                         "metrics_collection_interval": 10,

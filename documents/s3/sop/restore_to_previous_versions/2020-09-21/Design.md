@@ -1,6 +1,6 @@
 # Id
 
-s3:sop:restore_to_previous_version:2020-09-21
+s3:sop:restore_to_previous_versions:2020-09-21
 
 ## Intent
 

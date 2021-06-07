@@ -146,6 +146,59 @@ Sample execution:
   
 ```
 
+Alternatively, you could run the script non-interactively by passing in a file with input overrides:
+```
+>PYTHONPATH=. python3.8 artifact_generator/src/generate_artifacts.py -i ./input-overrides.json
+
+Sample input file for a test -
+
+> cat input-overrides.json
+{
+    "service": "s3",
+    "type": "test",
+    "name": "accidental_delete",
+    "displayName": "Test to accidentally delete files from S3 bucket",
+    "description": "Accidental delete is testing the case where all versions of files in the bucket were deleted, and we are restoring from the backup bucket",
+    "primaryResourceId": "S3BucketWhereObjectsWillBeDeletedFrom",
+    "failureType": "SOFTWARE",
+    "risk": "SMALL",
+    "cfnTemplateName": "S3Template",
+    "cfnPrimaryResourceOutput": "S3BucketName",
+    "supportsRollback": "yes",
+    "alarmPrefix": "S3UserError",
+    "cfnAlarmOutput": "S3AlarmId",
+    "alarmId": "s3:alarm:health-4xxErrors_count:2020-04-01"
+}
+```
+
+Sample input file for SOP -
+
+```
+> cat input-overrides.json
+{
+    "type": "sop",
+    "name": "create_new_instance",
+    "displayName": "Create Document DB Instance",
+    "description": "Used to create a new instance in a specified AZ/Region.",
+    "primaryResourceId": "DBInstanceIdentifier",
+    "failureType": "SOFTWARE",
+    "risk": "SMALL",
+    "cfnTemplateName": "DocDbTemplate",
+    "cfnPrimaryResourceOutput": "DBInstanceIdentifierOutput",
+    "supportsRecoveryPoint": "no"
+}
+```
+
+The full list of supported keys can be found using the --help option -
+
+```
+>PYTHONPATH=. python3.8 artifact_generator/src/generate_artifacts.py --help
+```
+
+You can also find example input files -
+* For Test - artifact_generator/test/resources/input-overrides-test.json
+* For SOP - artifact_generator/test/resources/input-overrides-sop.json
+
 ## Metadata File
 Example:
 ````

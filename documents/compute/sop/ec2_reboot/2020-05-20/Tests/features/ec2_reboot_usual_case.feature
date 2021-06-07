@@ -1,4 +1,4 @@
-@compute @integration @ec2_reboot
+@ec2 @integration @ec2_reboot
 Feature: SSM automation document Digito-Ec2Reboot_2020-05-20
 
   Scenario: Execute SSM automation document Digito-Ec2Reboot_2020-05-20

@@ -22,7 +22,7 @@ Resources:
           MetricStat:
             Metric:
               MetricName: VolumeWriteBytes
-              Namespace: AWS/EC2
+              Namespace: AWS/EBS
               Dimensions:
                 - Name: VolumeId
                   Value: '${VolumeId}'
