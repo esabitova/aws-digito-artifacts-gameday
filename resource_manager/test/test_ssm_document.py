@@ -303,7 +303,6 @@ class TestSsmDocument(unittest.TestCase):
     def test_get_execution_step_url_with_passed_execs_no_step_fail(self):
         execution_id = 'test_execution_1'
         step_name = 'test_step'
-        step_id = 'test_step_1'
         execution = {'AutomationExecution':
                      {'StepExecutions': [],
                       'AutomationExecutionStatus': 'InProgress'}}

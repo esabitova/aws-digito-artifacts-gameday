@@ -268,7 +268,7 @@ class SsmDocument:
 
         step = self._get_step_by_name(steps, step_name)
         if not step:
-            raise Exception(f'SSM document step [{step_name}] does not exist in execution: ' 
+            raise Exception(f'SSM document step [{step_name}] does not exist in execution: '
                             f'{self.get_execution_url(execution_id)}')
         step_execution_id = step['StepExecutionId']
         step_index = self._get_step_execution_index(steps, step_name)
