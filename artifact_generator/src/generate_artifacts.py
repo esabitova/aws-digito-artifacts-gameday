@@ -361,7 +361,6 @@ def __print_help_menu():
 
 
 def main(argv):
-    print(argv)
     input_file = None
     try:
         opts, args = getopt.getopt(argv, "ho:i:", ["help", "input_file="])
@@ -383,6 +382,8 @@ def main(argv):
           'then update these documents as per your requirement.\n'
           'Let\'s get started!\n')
 
+    global input_overrides
+    input_overrides = None
     if input_file is not None:
         print(BgColors.BOLD + BgColors.OKCYAN + 'Reading the input overrides file...' + BgColors.ENDC + '\n')
         __load_input_overrides(input_file)

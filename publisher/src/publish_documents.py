@@ -252,11 +252,11 @@ class PublishDocuments:
                         failed_fields.append('Invalid value [{}] for attribute [{}] in [{}].'
                                              .format(value, rf, metadata_file_path))
 
-        tag = document_metadata.get('tag').split(":")  # Tag as an array [compute,test,asg-inject_cpu_load,2020-07-08]
+        #tag = document_metadata.get('tag').split(":")  # Tag as an array [compute,test,asg-inject_cpu_load,2020-07-08]
         # path as an array [documents, compute, test, asg-inject_cpu_load, 2020-07-08, Documents, metadata.json]
-        parsed_path = os.path.normpath(metadata_file_path).split(os.sep)
-        if tag != parsed_path[1:-2]:
-            failed_fields.append(f'Invalid tag {":".join(tag)} for document at path {os.sep.join(parsed_path[1:-2])}')
+        #parsed_path = os.path.normpath(metadata_file_path).split(os.sep)
+        #if tag != parsed_path[1:-2]:
+        #    failed_fields.append(f'Invalid tag {":".join(tag)} for document at path {os.sep.join(parsed_path[1:-2])}')
         return failed_fields
 
 

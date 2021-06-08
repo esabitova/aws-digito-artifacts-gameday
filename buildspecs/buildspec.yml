@@ -14,7 +14,7 @@ phases:
     commands:
       - python -m flake8
       - python -m pytest -m style_validator --no-cov
-      - python -m pytest -m unit_test --junitxml=test-reports/junit_report.xml -p no:randomly --timeout=50 --disable-socket --reruns 5
+      - python -m pytest -m unit_test --junitxml=test-reports/junit_report.xml --timeout=50 --disable-socket --reruns 5
 reports:
   pytest_reports:
     files:
