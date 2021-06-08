@@ -8,7 +8,7 @@ import pytest
 from documents.util.scripts.src.dynamo_db_util import (_describe_time_to_live, _execute_boto3_dynamodb,
                                                        _describe_contributor_insights,
                                                        _describe_kinesis_destinations,
-                                                       _describe_table,
+                                                       _describe_table, _execute_boto3_dynamodb_paginator,
                                                        _get_global_table_all_regions,
                                                        copy_active_kinesis_destinations,
                                                        _get_global_secondary_indexes,
@@ -257,7 +257,7 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.side_effect_map = {
             'dynamodb': self.dynamodb_client_mock
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config: self.side_effect_map.get(service_name)
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
         self.dynamodb_client_mock.list_tags_of_resource.return_value = LIST_TAG_RESPONCE
         self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
@@ -307,6 +307,32 @@ class TestDynamoDbUtil(unittest.TestCase):
     def test_copy_continuous_backups_properties(self, events, context):
         with self.assertRaises(KeyError) as context:
             copy_continuous_backups_properties(events=events, context=context)
+
+    def test__execute_boto3_dynamodb_paginator(self):
+        paginator_mock = MagicMock()
+        self.dynamodb_client_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_dynamodb_paginator(func_name='my_func', search_exp='Collection[]', value1='abc')
+        self.dynamodb_client_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_called_with('Collection[]')
+
+    def test__execute_boto3_dynamodb_paginator__page_iterator(self):
+        paginator_mock = MagicMock()
+        self.dynamodb_client_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_dynamodb_paginator(func_name='my_func', value1='abc')
+        self.dynamodb_client_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_not_called()
 
     @staticmethod
     def describe_contributor_mock(**kwargs):
@@ -595,11 +621,16 @@ class TestDynamoDbUtil(unittest.TestCase):
         self.assertEqual(result, {'TTLAttribute': '', 'TTLCopied': False})
         update_mock.assert_not_called()
 
-    def test__list_tags(self):
+    @patch('documents.util.scripts.src.dynamo_db_util._execute_boto3_dynamodb_paginator',
+           return_value=iter(LIST_TAG_RESPONCE['Tags']))
+    def test__list_tags(self, paginator_mock):
 
         result = _list_tags(resource_arn="my_table")
 
-        self.assertEqual(result, LIST_TAG_RESPONCE)
+        self.assertEqual(list(result), LIST_TAG_RESPONCE['Tags'])
+        paginator_mock.assert_has_calls([call(func_name='list_tags_of_resource',
+                                              search_exp='Tags[]',
+                                              ResourceArn="my_table")])
 
     def test__update_tags(self):
 
@@ -610,7 +641,7 @@ class TestDynamoDbUtil(unittest.TestCase):
     @patch('documents.util.scripts.src.dynamo_db_util._update_tags',
            return_value=TAG_RESOURCE_RESPONCE)
     @patch('documents.util.scripts.src.dynamo_db_util._list_tags',
-           return_value=LIST_TAG_RESPONCE)
+           return_value=iter(LIST_TAG_RESPONCE['Tags']))
     def test_update_resource_tags(self, list_mock, update_mock):
         events = {
             "SourceTableName": "my_table",

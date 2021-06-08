@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import resource_manager.src.util.boto3_client_factory as client_factory
@@ -7,17 +7,18 @@ from botocore.exceptions import ClientError
 
 from documents.util.scripts.test.mock_sleep import MockSleep
 from resource_manager.src.util.dynamo_db_utils import (
-    _check_if_backup_exists, _check_if_table_deleted, _create_backup,
+    _check_if_backup_exists, _check_if_replicas_exist, _check_if_table_deleted, _create_backup,
     _delete_backup, _delete_backup_if_exist, _describe_backup,
-    _describe_continuous_backups, _describe_table, _execute_boto3_dynamodb,
+    _describe_continuous_backups, _describe_contributor_insights, _describe_table,
+    _execute_boto3_dynamodb, get_secondary_indexes, _get_global_table_all_regions,
     _update_table, add_global_table_and_wait_for_active,
     create_backup_and_wait_for_available, delete_backup_and_wait,
-    drop_and_wait_dynamo_db_table_if_exists,
-    get_earliest_recovery_point_in_time,
-    remove_global_table_and_wait_for_active, wait_table_to_be_active,
     get_item_single, get_item_async_stress_test,
-    _get_random_value, generate_random_item
-)
+    _get_random_value, generate_random_item,
+    drop_and_wait_dynamo_db_table_if_exists, get_continuous_backups_status,
+    get_contributor_insights_status_for_table_and_indexes,
+    get_earliest_recovery_point_in_time, get_kinesis_destinations, get_stream_settings,
+    get_time_to_live, remove_global_table_and_wait_for_active, wait_table_to_be_active)
 from boto3.dynamodb.types import STRING, NUMBER, BINARY, Binary
 
 GENERIC_SUCCESS_RESULT = {
@@ -125,14 +126,6 @@ DESCRIBE_TABLE_RESPONSE = {
                 "ReplicaStatusDescription": "Failed to describe settings for the replica in region: ‘ap-southeast-1’."
             }
         ]
-    }
-}
-DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE = {
-    **GENERIC_SUCCESS_RESULT,
-    'ContinuousBackupsDescription': {
-        'PointInTimeRecoveryDescription': {
-            'EarliestRestorableDateTime': 'some time'
-        }
     }
 }
 UPDATE_TTL_RESPONSE = {
@@ -303,7 +296,57 @@ CREATE_BACKUP_RESPONSE = {
         "BackupCreationDateTime": "2021-04-17T17:03:55.471000+04:00"
     }
 }
-
+DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_AND_INDEX_RESPONCE = {
+    **GENERIC_SUCCESS_RESULT,
+    "TableName": "myable",
+    "IndexName": "Partition_key-index",
+    "ContributorInsightsRuleList": [
+        "DynamoDBContributorInsights-PKC-myable-Partition_key-index-1618028180292",
+        "DynamoDBContributorInsights-PKT-myable-Partition_key-index-1618028180292"
+    ],
+    "ContributorInsightsStatus": "ENABLED",
+    "LastUpdateDateTime": "2021-04-10T08:16:20.426000+04:00"
+}
+DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE = {
+    **GENERIC_SUCCESS_RESULT,
+    "TableName": "myable",
+    "ContributorInsightsRuleList": [
+        "DynamoDBContributorInsights-PKC-myable-Partition_key-index-1618028180292",
+        "DynamoDBContributorInsights-PKT-myable-Partition_key-index-1618028180292"
+    ],
+    "ContributorInsightsStatus": "ENABLED",
+    "LastUpdateDateTime": "2021-04-10T08:16:20.426000+04:00"
+}
+DESCRIBE_KINESIS_DESTINATIONS_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "KinesisDataStreamDestinations": [{
+        "StreamArn": "TestStreamArn1",
+        "DestinationStatus": 'ENABLING',
+        "DestinationStatusDescription": 'Description'
+    },
+        {
+        "StreamArn": "TestStreamArn2",
+        "DestinationStatus": 'ENABLE_FAILED',
+        "DestinationStatusDescription": 'Description'
+    }]
+}
+DESCRIBE_TTL_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "TimeToLiveDescription": {
+        "TimeToLiveStatus": "ENABLED",
+        "AttributeName": "End_Date"
+    }
+}
+DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE = {
+    **GENERIC_SUCCESS_RESULT,
+    "ContinuousBackupsDescription": {
+        "ContinuousBackupsStatus": "ENABLED",
+        "PointInTimeRecoveryDescription": {
+            "EarliestRestorableDateTime": "some time",
+            "PointInTimeRecoveryStatus": "ENABLED"
+        }
+    }
+}
 RESOURCE_NOT_FOUND_ERROR = ClientError({'Error': {'Code': 'ResourceNotFoundException'}}, "")
 BACKUP_NOT_FOUND_ERROR = ClientError({'Error': {'Code': 'BackupNotFoundException'}}, "")
 RESOURCE_IN_USE_ERROR = ClientError({'Error': {'Code': 'ResourceInUseException'}}, "")
@@ -324,11 +367,18 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         self.dynamodb_client_mock.update_table.return_value = UPDATE_TABLE_STREAM_RESPONSE
         self.dynamodb_client_mock.describe_table.return_value = DESCRIBE_TABLE_RESPONSE
-        self.dynamodb_client_mock.describe_continuous_backups.return_value = DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE
+        self.dynamodb_client_mock.describe_continuous_backups.return_value = DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE
         self.dynamodb_client_mock.update_time_to_live.return_value = UPDATE_TTL_RESPONSE
         self.dynamodb_client_mock.delete_backup.return_value = DELETE_BACKUP_RESPONSE
         self.dynamodb_client_mock.describe_backup.return_value = DESCRIBE_BACKUP_RESPONSE
         self.dynamodb_client_mock.create_backup.return_value = CREATE_BACKUP_RESPONSE
+        self.dynamodb_client_mock.describe_time_to_live.return_value = DESCRIBE_TTL_RESPONSE
+        self.dynamodb_client_mock.describe_contributor_insights.return_value = \
+            DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE
+
+        self.dynamodb_client_mock\
+            .describe_kinesis_streaming_destination\
+            .return_value = DESCRIBE_KINESIS_DESTINATIONS_RESPONSE
 
         self.dynamodb_client_mock\
             .enable_kinesis_streaming_destination\
@@ -345,6 +395,11 @@ class TestDynamoDbUtil(unittest.TestCase):
                                     lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
         self.assertTrue(isinstance(context.exception, ValueError))
+
+    def test_get_time_to_live(self):
+        result = get_time_to_live(boto3_session=self.session_mock, table_name='my_table')
+
+        self.assertEqual(result, DESCRIBE_TTL_RESPONSE['TimeToLiveDescription'])
 
     def test__update_table(self):
 
@@ -365,12 +420,93 @@ class TestDynamoDbUtil(unittest.TestCase):
 
         self.assertEqual(result, DESCRIBE_TABLE_RESPONSE)
 
+    def test_get_secondary_indexes(self):
+
+        result = get_secondary_indexes(boto3_session=self.session_mock,
+                                       table_name="my_table")
+
+        self.assertEqual(result, ['Partition_key-index', 'another-fkey-index'])
+
+    def test__describe_contributor_insights_for_table(self):
+
+        result = _describe_contributor_insights(boto3_session=self.session_mock,
+                                                table_name="my_table")
+
+        self.assertEqual(result, DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE)
+        self.dynamodb_client_mock\
+            .describe_contributor_insights\
+            .assert_called_with(TableName='my_table')
+
+    def test__describe_contributor_insights_for_index(self):
+        self.dynamodb_client_mock.describe_contributor_insights.return_value =\
+            DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_AND_INDEX_RESPONCE
+
+        result = _describe_contributor_insights(boto3_session=self.session_mock,
+                                                table_name="my_table",
+                                                index_name="my_index")
+
+        self.assertEqual(result, DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_AND_INDEX_RESPONCE)
+        self.dynamodb_client_mock\
+            .describe_contributor_insights\
+            .assert_called_with(TableName='my_table', IndexName="my_index")
+
+    def test_get_kinesis_destinations(self):
+
+        result = get_kinesis_destinations(boto3_session=self.session_mock, table_name="my_table")
+
+        self.assertEqual(result, DESCRIBE_KINESIS_DESTINATIONS_RESPONSE['KinesisDataStreamDestinations'])
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           return_value=DESCRIBE_TABLE_RESPONSE)
+    def test_get_stream_settings(self, describe_mock):
+        is_enabled, stream_type = get_stream_settings(boto3_session=self.session_mock,
+                                                      table_name="my_table")
+        self.assertTrue(is_enabled)
+        self.assertEqual(stream_type, 'NEW_AND_OLD_IMAGES')
+        describe_mock.assert_has_calls([
+            call(boto3_session=self.session_mock,
+                 table_name='my_table')
+        ])
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_continuous_backups',
+           return_value=DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE)
+    def test_get_continuous_backups_status(self, describe_mock):
+        result = get_continuous_backups_status(boto3_session=self.session_mock,
+                                               table_name="my_table")
+        self.assertEqual(result, 'ENABLED')
+        describe_mock.assert_has_calls([
+            call(boto3_session=self.session_mock,
+                 table_name='my_table')
+        ])
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_contributor_insights',
+           side_effect=[DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_RESPONCE,
+                        DESCRIBE_CONTRIBUTOR_INSIGHTS_FOR_TABLE_AND_INDEX_RESPONCE])
+    @patch('resource_manager.src.util.dynamo_db_utils.get_secondary_indexes',
+           return_value=["Partition_key-index"])
+    def test_get_contributor_insights_status_for_table_and_indexes(self, get_indexes_mock, describe_mock):
+
+        result = get_contributor_insights_status_for_table_and_indexes(boto3_session=self.session_mock,
+                                                                       table_name="my_table")
+
+        self.assertEqual(result, ('ENABLED', [{'IndexName': 'Partition_key-index', 'Status': 'ENABLED'}]))
+        describe_mock.assert_has_calls([
+            call(boto3_session=self.session_mock,
+                 table_name='my_table'),
+            call(boto3_session=self.session_mock,
+                 table_name='my_table',
+                 index_name='Partition_key-index')
+        ])
+
+        get_indexes_mock.assert_called_with(boto3_session=self.session_mock,
+                                            table_name="my_table")
+
     def test__describe_continuous_backups(self):
 
         result = _describe_continuous_backups(boto3_session=self.session_mock,
                                               table_name="my_table")
 
-        self.assertEqual(result, DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE)
+        self.assertEqual(result, DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE)
 
     def test__delete_backup(self):
 
@@ -392,6 +528,29 @@ class TestDynamoDbUtil(unittest.TestCase):
                                 table_name="my_table", backup_name="my_backup")
 
         self.assertEqual(result, CREATE_BACKUP_RESPONSE)
+
+    @patch('resource_manager.src.util.dynamo_db_utils._get_global_table_all_regions',
+           return_value=['my-region-1'])
+    def test__check_if_replicas_exist__exists(self, describe_mock):
+
+        replicas, exists = _check_if_replicas_exist(boto3_session=self.session_mock,
+                                                    table_name="my_table")
+
+        self.assertTrue(exists)
+        self.assertEqual(replicas, ['my-region-1'])
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         table_name="my_table")
+
+    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
+           return_value={'Table': {'Replicas': ['my-region-1']}})
+    def test__get_global_table_all_regions(self, describe_mock):
+
+        result = _get_global_table_all_regions(boto3_session=self.session_mock,
+                                               table_name="my_table")
+
+        self.assertTrue(result)
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         table_name="my_table")
 
     @patch('resource_manager.src.util.dynamo_db_utils._delete_backup',
            return_value={})
@@ -667,7 +826,7 @@ class TestDynamoDbUtil(unittest.TestCase):
                                              )
 
     @patch('resource_manager.src.util.dynamo_db_utils._describe_continuous_backups',
-           return_value=DESCRIBE_CONTINUOUS_BACKUPS_RESPONCE)
+           return_value=DESCRIBE_CONTINUOUS_BACKUPS_RESPONSE)
     def test_get_earliest_recovery_point_in_time(self, describe_backups_mock):
         result = get_earliest_recovery_point_in_time(boto3_session=self.session_mock,
                                                      table_name="my_table"
@@ -687,14 +846,11 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
-    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
-           return_value={'Table': {'Replicas': []}})
-    @patch('time.sleep')
-    @patch('time.time')
-    def test_remove_global_table_and_wait_to_active(self, patched_time, patched_sleep, describe_mock, update_mock):
-        mock_sleep = MockSleep()
-        patched_time.side_effect = mock_sleep.time
-        patched_sleep.side_effect = mock_sleep.sleep
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_replicas_exist',
+           side_effect=[(["Replica"], True), (["Replica"], True), ([], False)])
+    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
+           return_value=None)
+    def test_remove_global_table_and_wait_to_active(self, time_mock, check_mock, update_mock):
         remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                                 table_name="my_table",
                                                 global_table_regions=['region-1'],
@@ -706,21 +862,15 @@ class TestDynamoDbUtil(unittest.TestCase):
                                        table_name="my_table",
                                        ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}]
                                        )
-        describe_mock.assert_called_with(boto3_session=self.session_mock,
-                                         table_name="my_table"
-                                         )
+        check_mock.assert_called_with(boto3_session=self.session_mock,
+                                      table_name="my_table"
+                                      )
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
-    @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
-           return_value={'Table': {'Replicas': [{'Region': 'secondary_region'}]}})
-    @patch('time.sleep')
-    @patch('time.time')
-    def test_remove_global_table_and_wait_to_active_timeout(self, patched_time, patched_sleep, describe_mock,
-                                                            try_remove_mock):
-        mock_sleep = MockSleep()
-        patched_time.side_effect = mock_sleep.time
-        patched_sleep.side_effect = mock_sleep.sleep
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_replicas_exist',
+           return_value=(["Replica"], True))
+    def test_remove_global_table_and_wait_to_active_timeout(self, check_mock, try_remove_mock):
         with self.assertRaises(TimeoutError):
             remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
                                                     table_name="my_table",
@@ -733,9 +883,9 @@ class TestDynamoDbUtil(unittest.TestCase):
                                            table_name="my_table",
                                            ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}]
                                            )
-        describe_mock.assert_called_with(boto3_session=self.session_mock,
-                                         table_name="my_table"
-                                         )
+        check_mock.assert_called_with(boto3_session=self.session_mock,
+                                      table_name="my_table"
+                                      )
 
     @patch('resource_manager.src.util.dynamo_db_utils._execute_boto3_dynamodb',
            return_value={})

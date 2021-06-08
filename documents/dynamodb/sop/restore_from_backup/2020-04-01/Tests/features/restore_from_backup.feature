@@ -12,7 +12,7 @@ Feature: SSM automation document to restore the database from a backup.
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 600 seconds with interval 20 seconds
+    And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
@@ -20,9 +20,6 @@ Feature: SSM automation document to restore the database from a backup.
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Delete backup {{cache:BackupArn}} and wait for 600 seconds with interval 20 seconds
-    And delete all alarms for the table {{cache:TargetTableToRestoreName}}
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
 
   Scenario: Restores table from backup. Stream Enabled
     Given the cloud formation templates as integration test resources
@@ -32,7 +29,7 @@ Feature: SSM automation document to restore the database from a backup.
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 600 seconds with interval 20 seconds
+    And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                    | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
@@ -40,9 +37,6 @@ Feature: SSM automation document to restore the database from a backup.
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Delete backup {{cache:BackupArn}} and wait for 600 seconds with interval 20 seconds
-    And delete all alarms for the table {{cache:TargetTableToRestoreName}}
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
 
 
   Scenario: Restores table from backup. Kinesis Enabled
@@ -53,7 +47,7 @@ Feature: SSM automation document to restore the database from a backup.
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 600 seconds with interval 20 seconds
+    And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                  | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
@@ -61,9 +55,6 @@ Feature: SSM automation document to restore the database from a backup.
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Delete backup {{cache:BackupArn}} and wait for 600 seconds with interval 20 seconds
-    And delete all alarms for the table {{cache:TargetTableToRestoreName}}
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
 
 
   Scenario: Restores table from backup. Contributor Insights
@@ -74,7 +65,7 @@ Feature: SSM automation document to restore the database from a backup.
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 600 seconds with interval 20 seconds
+    And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                                      | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
@@ -82,9 +73,6 @@ Feature: SSM automation document to restore the database from a backup.
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Delete backup {{cache:BackupArn}} and wait for 600 seconds with interval 20 seconds
-    And delete all alarms for the table {{cache:TargetTableToRestoreName}}
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
 
 
   Scenario: Restores table from backup. With Autoscaling
@@ -95,7 +83,7 @@ Feature: SSM automation document to restore the database from a backup.
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 600 seconds with interval 20 seconds
+    And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                      | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
@@ -103,10 +91,6 @@ Feature: SSM automation document to restore the database from a backup.
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Delete backup {{cache:BackupArn}} and wait for 600 seconds with interval 20 seconds
-    And deregister all scaling target for the table {{cache:TargetTableToRestoreName}}
-    And delete all alarms for the table {{cache:TargetTableToRestoreName}}
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds
 
 
   Scenario: Restores table from backup. Global Table
@@ -121,7 +105,7 @@ Feature: SSM automation document to restore the database from a backup.
       | GlobalTableSecondaryRegion |
       | ap-southeast-1             |
     And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 600 seconds with delay 20 seconds
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 600 seconds with interval 20 seconds
+    And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region {{cache:GlobalTableSecondaryRegion}}
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
@@ -129,8 +113,3 @@ Feature: SSM automation document to restore the database from a backup.
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Delete backup {{cache:BackupArn}} and wait for 600 seconds with interval 20 seconds
-    And delete all alarms for the table {{cache:TargetTableToRestoreName}}
-    And disable global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 600 seconds with delay 20 seconds
-    And disable global dynamodb table {{cache:TargetTableToRestoreName}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 600 seconds with delay 20 seconds
-    And Drop Dynamo DB table with the name {{cache:TargetTableToRestoreName}} and wait for 300 seconds with interval 20 seconds

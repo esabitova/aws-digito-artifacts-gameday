@@ -124,6 +124,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util.imports
 
         SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb
+        SCRIPT_PLACEHOLDER::dynamo_db_util._execute_boto3_dynamodb_paginator
         SCRIPT_PLACEHOLDER::dynamo_db_util._update_tags
         SCRIPT_PLACEHOLDER::dynamo_db_util._list_tags
         SCRIPT_PLACEHOLDER::dynamo_db_util.copy_resource_tags
@@ -167,8 +168,10 @@ mainSteps:
         SCRIPT_PLACEHOLDER::auto_scaling_util.imports
 
         SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling
+        SCRIPT_PLACEHOLDER::auto_scaling_util._execute_boto3_auto_scaling_paginator
         SCRIPT_PLACEHOLDER::auto_scaling_util._describe_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util._register_scalable_target
+        SCRIPT_PLACEHOLDER::auto_scaling_util.get_key_attributes_scalable_targets
         SCRIPT_PLACEHOLDER::auto_scaling_util.copy_scaling_targets
   - name: CopyAlarms
     action: aws:executeScript
@@ -187,8 +190,10 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util.imports
 
         SCRIPT_PLACEHOLDER::cloudwatch_util._execute_boto3_cloudwatch
+        SCRIPT_PLACEHOLDER::cloudwatch_util._execute_boto3_cloudwatch_paginator
         SCRIPT_PLACEHOLDER::cloudwatch_util._describe_metric_alarms
         SCRIPT_PLACEHOLDER::cloudwatch_util._put_metric_alarm
+        SCRIPT_PLACEHOLDER::cloudwatch_util.get_metric_alarms_for_table
         SCRIPT_PLACEHOLDER::cloudwatch_util.copy_alarms_for_dynamo_db_table
   - name: CopyReplicationSetting
     action: aws:executeScript
@@ -210,6 +215,17 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util._describe_table
         SCRIPT_PLACEHOLDER::dynamo_db_util._get_global_table_all_regions
         SCRIPT_PLACEHOLDER::dynamo_db_util.copy_global_table_settings
+  - name: WaitTableToBeActiveAfterGlobalTable
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: "{{DynamoDBTableTargetName}}"
+      PropertySelector: "$.Table.TableStatus"
+      DesiredValues:
+        - "ACTIVE"
   - name: WaitActiveStatusOfReplication
     action: aws:executeScript
     outputs:

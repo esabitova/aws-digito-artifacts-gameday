@@ -1,10 +1,12 @@
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable
+from typing import Any, Callable, Iterator, List
 
 import boto3
 from botocore.config import Config
+
+boto3_config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 
 PUT_METRIC_ALARM_PARAMS = ['AlarmName', 'AlarmDescription', 'ActionsEnabled', 'OKActions',
                            'AlarmActions', 'InsufficientDataActions', 'MetricName', 'Namespace', 'Statistic',
@@ -15,7 +17,12 @@ PUT_METRIC_ALARM_PARAMS = ['AlarmName', 'AlarmDescription', 'ActionsEnabled', 'O
 
 
 def _execute_boto3_cloudwatch(delegate: Callable[[Any], dict]) -> dict:
-    cloudwatch_client = boto3.client('cloudwatch')
+    """
+    Executes the given delegate with cloudwatch client parameter
+    :param delegate: The delegate to execute (with boto3 function)
+    :return: The output of the given function
+    """
+    cloudwatch_client = boto3.client('cloudwatch', config=boto3_config)
     response = delegate(cloudwatch_client)
     if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
         logging.error(response)
@@ -23,12 +30,31 @@ def _execute_boto3_cloudwatch(delegate: Callable[[Any], dict]) -> dict:
     return response
 
 
-def _describe_metric_alarms():
+def _execute_boto3_cloudwatch_paginator(func_name: str, search_exp: str = None, **kwargs) -> Iterator[Any]:
+    """
+    Executes the given function with pagination
+    :param func_name: The function name of cloudwatch client
+    :param search_exp: The search expression to return elements
+    :param kwargs: The arguments of `func_name`
+    :return: The iterator over elements on pages
+    """
+    dynamo_db_client = boto3.client('cloudwatch')
+    paginator = dynamo_db_client.get_paginator(func_name)
+    page_iterator = paginator.paginate(**kwargs)
+    if search_exp:
+        return page_iterator.search(search_exp)
+    else:
+        return page_iterator
+
+
+def _describe_metric_alarms(alarm_names: List[str]) -> Iterator[dict]:
     """
     Returns all alarms setup in the current region
     """
-    return _execute_boto3_cloudwatch(
-        delegate=lambda x: x.describe_alarms(AlarmTypes=['MetricAlarm']))
+    return _execute_boto3_cloudwatch_paginator(func_name='describe_alarms',
+                                               search_exp='MetricAlarms[]',
+                                               AlarmTypes=['MetricAlarm'],
+                                               AlarmNames=alarm_names)
 
 
 def _put_metric_alarm(**kwargs):
@@ -38,6 +64,15 @@ def _put_metric_alarm(**kwargs):
     """
     return _execute_boto3_cloudwatch(
         delegate=lambda x: x.put_metric_alarm(**kwargs))
+
+
+def get_metric_alarms_for_table(table_name: str, alarms_names: List[str]) -> Iterator[dict]:
+    source_alarms = _describe_metric_alarms(alarm_names=alarms_names)
+    for alarm in filter(lambda x: x.get('Namespace', '') == 'AWS/DynamoDB', source_alarms):
+        for dimension in alarm['Dimensions']:
+            if dimension['Name'] == 'TableName' and \
+                    dimension['Value'] == table_name:
+                yield alarm
 
 
 def copy_alarms_for_dynamo_db_table(events, context):
@@ -57,29 +92,24 @@ def copy_alarms_for_dynamo_db_table(events, context):
     logging.info(
         f"Coping alarms for dynamodb table. Source: {source_table_name}, "
         f"Target: {target_table_name}. Alarm Names: {alarms_names}")
-    source_alarms = _describe_metric_alarms()
-    logging.info(f"Source Table alarms: {source_alarms}")
+
+    source_alarms = get_metric_alarms_for_table(table_name=source_table_name, alarms_names=alarms_names)
 
     alarms_copied_count: int = 0
 
-    for alarm in filter(lambda x: x.get('Namespace', '') == 'AWS/DynamoDB', source_alarms.get('MetricAlarms', [])):
-        copy_alarm = False
+    for alarm in source_alarms:
         for dimension in alarm['Dimensions']:
             if dimension['Name'] == 'TableName' and \
-                dimension['Value'] == source_table_name and \
-                    any([a for a in alarms_names if a in alarm['AlarmName']]):
-                copy_alarm = True
+                    dimension['Value'] == source_table_name:
                 dimension['Value'] = target_table_name
                 alarm['AlarmName'] = f"{alarm['AlarmName']}_{target_table_name}"
 
-        if copy_alarm:
-            keys = [*alarm.keys()]
-            for key in keys:
-                if key not in PUT_METRIC_ALARM_PARAMS:
-                    del alarm[key]
-            _put_metric_alarm(**alarm)
-            alarms_copied_count += 1
-            copy_alarm = False
+        keys = [*alarm.keys()]
+        for key in keys:
+            if key not in PUT_METRIC_ALARM_PARAMS:
+                del alarm[key]
+        _put_metric_alarm(**alarm)
+        alarms_copied_count += 1
 
     return {
         "AlarmsChanged": alarms_copied_count
@@ -95,8 +125,7 @@ def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_t
     :param end_time_utc: The metric interval end time in UTC
     :return: The highest data point value.
     """
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    cw = boto3.client('cloudwatch', config=config)
+    cw = boto3.client('cloudwatch', config=boto3_config)
     response = cw.get_metric_statistics(
         Namespace="AWS/EC2",
         MetricName=metric_name,
@@ -129,8 +158,7 @@ def describe_metric_alarm_state(alarm_name):
     :param alarm_name: The alarm name
     :return: The alarm state.
     """
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    cw = boto3.client('cloudwatch', config=config)
+    cw = boto3.client('cloudwatch', config=boto3_config)
     response = cw.describe_alarms(
         AlarmNames=[alarm_name],
         AlarmTypes=[
@@ -185,8 +213,7 @@ def verify_alarm_triggered(events, context):
     if 'AlarmName' not in events or ('DurationInMinutes' not in events and 'DurationInSeconds' not in events):
         raise KeyError('Requires AlarmName and either DurationInMinutes or DurationInSeconds in events')
 
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    cw = boto3.client('cloudwatch', config=config)
+    cw = boto3.client('cloudwatch', config=boto3_config)
 
     if 'DurationInMinutes' in events:
         start_date = datetime.now() - timedelta(minutes=int(events['DurationInMinutes']))
@@ -244,8 +271,7 @@ def get_metric_alarm_threshold_values(event, context):
     Get alarm threshold and return values above and below
     """
     alarm_name = event['AlarmName']
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    cw = boto3.client('cloudwatch', config=config)
+    cw = boto3.client('cloudwatch', config=boto3_config)
     response = cw.describe_alarms(
         AlarmNames=[alarm_name],
         AlarmTypes=['MetricAlarm']

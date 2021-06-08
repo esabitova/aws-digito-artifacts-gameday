@@ -70,8 +70,13 @@ Resources:
               - "dynamodb:CreateTableReplica"
               - "dynamodb:CreateTable"
               - "dynamodb:DescribeContinuousBackups"
+              - "dynamodb:UpdateContinuousBackups"
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
+              - 'iam:PassRole' # needed to RegisterScalableTarget with RoleARN
+              - "kinesis:PutRecord" # needed to enabled kinesis destination
+              - "kinesis:PutRecords" # needed to enabled kinesis destination
+              - "kinesis:DescribeStream" # needed to enabled kinesis destination
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn

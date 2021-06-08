@@ -1,9 +1,11 @@
 import logging
 import time
-from typing import Any, Callable, List
+from typing import Any, Callable, Iterator, List
 
 import boto3
+from botocore.config import Config
 
+boto3_config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -17,7 +19,7 @@ def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
     :param delegate: The delegate to execute (with boto3 function)
     :return: The output of the given function
     """
-    dynamo_db_client = boto3.client('dynamodb')
+    dynamo_db_client = boto3.client('dynamodb', config=boto3_config)
     description = delegate(dynamo_db_client)
     if not description['ResponseMetadata']['HTTPStatusCode'] == 200:
         logging.error(description)
@@ -25,12 +27,37 @@ def _execute_boto3_dynamodb(delegate: Callable[[Any], dict]) -> dict:
     return description
 
 
+def _execute_boto3_dynamodb_paginator(func_name: str, search_exp: str = None, **kwargs) -> Iterator[Any]:
+    """
+    Executes the given function with pagination
+    :param func_name: The function name of dynamodb client
+    :param search_exp: The search expression to return elements
+    :param kwargs: The arguments of `func_name`
+    :return: The iterator over elements on pages
+    """
+    dynamo_db_client = boto3.client('dynamodb', config=boto3_config)
+    paginator = dynamo_db_client.get_paginator(func_name)
+    page_iterator = paginator.paginate(**kwargs)
+    if search_exp:
+        return page_iterator.search(search_exp)
+    else:
+        return page_iterator
+
+
 def _describe_continuous_backups(table_name: str):
+    """
+    Describes continuous backups settings for the given table
+    :param table_name: The table name
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.describe_continuous_backups(TableName=table_name))
 
 
 def _enable_continuous_backups(table_name: str):
+    """
+    Enables continuous backups for the given table
+    :param table_name: The table name
+    """
     return _execute_boto3_dynamodb(
         delegate=lambda x: x.update_continuous_backups(TableName=table_name,
                                                        PointInTimeRecoverySpecification={
@@ -48,14 +75,15 @@ def _describe_kinesis_destinations(table_name: str) -> dict:
         delegate=lambda x: x.describe_kinesis_streaming_destination(TableName=table_name))
 
 
-def _list_tags(resource_arn: str) -> dict:
+def _list_tags(resource_arn: str) -> Iterator[dict]:
     """
     Lists tags
     :param table_name: The table name
     :return: The MapList of tags
     """
-    return _execute_boto3_dynamodb(
-        delegate=lambda x: x.list_tags_of_resource(ResourceArn=resource_arn))
+    return _execute_boto3_dynamodb_paginator(func_name='list_tags_of_resource',
+                                             search_exp='Tags[]',
+                                             ResourceArn=resource_arn)
 
 
 def _update_tags(resource_arn: str, tags: List[dict]) -> dict:
@@ -346,7 +374,7 @@ def copy_resource_tags(events: dict, context: dict) -> dict:
     region = events['Region']
     account = events['Account']
     resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{source_table_name}'
-    tags = _list_tags(resource_arn=resource_arn)['Tags']
+    tags = list(_list_tags(resource_arn=resource_arn))
     if tags:
         target_table_name = events['TargetTableName']
         resource_arn = f'arn:aws:dynamodb:{region}:{account}:table/{target_table_name}'

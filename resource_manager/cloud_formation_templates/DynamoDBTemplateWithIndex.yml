@@ -32,14 +32,29 @@ Resources:
       AttributeDefinitions:
         - AttributeName: "USER_ID"
           AttributeType: "S"
+        - AttributeName: "RANGE_ATTRIBUTE"
+          AttributeType: "S"
       KeySchema:
         - AttributeName: "USER_ID"
           KeyType: "HASH"
+        - AttributeName: "RANGE_ATTRIBUTE"
+          KeyType: "RANGE"
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       Tags:
         - Key: Key
           Value: Value
+      
+      LocalSecondaryIndexes:
+        - IndexName: digito-index-local-1
+          KeySchema:
+            - AttributeName: USER_ID
+              KeyType: HASH
+            - AttributeName: "RANGE_ATTRIBUTE"
+              KeyType: "RANGE"
+          Projection: 
+            ProjectionType: ALL
+
       GlobalSecondaryIndexes:
         - IndexName: digito-index-1
           KeySchema:

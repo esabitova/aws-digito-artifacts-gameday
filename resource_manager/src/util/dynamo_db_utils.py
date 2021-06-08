@@ -1,16 +1,23 @@
+import datetime
 import logging
 import random
 import string
 import time
-import datetime
 from concurrent.futures.thread import ThreadPoolExecutor
-from typing import Any, Callable, List
+from enum import Enum, unique
+from typing import Any, Callable, List, Tuple
 
 from boto3 import Session
+from boto3.dynamodb.types import BINARY, NUMBER, STRING, Binary
 from botocore.exceptions import ClientError
-from boto3.dynamodb.types import STRING, NUMBER, BINARY, Binary
 
 log = logging.getLogger()
+
+
+@unique
+class DynamoDbIndexType(Enum):
+    GlobalSecondaryIndexes = 1,
+    LocalSecondaryIndexes = 2
 
 
 def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], dict]) -> dict:
@@ -27,11 +34,102 @@ def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], di
     return description
 
 
+def get_secondary_indexes(boto3_session: Session,
+                          table_name: str,
+                          index_type: DynamoDbIndexType = DynamoDbIndexType.GlobalSecondaryIndexes) -> List[str]:
+    """
+    Returns the list of global indexes
+    :param boto3_session: The boto3 session
+    :param table_name: The table name
+    :return: The list of global secondary index names
+    """
+    result = _describe_table(boto3_session=boto3_session, table_name=table_name)
+    log.debug(result)
+
+    return [gsi['IndexName'] for gsi in result['Table'].get(index_type.name, [])]
+
+
+def _describe_contributor_insights(boto3_session: Session, table_name: str, index_name: str = None) -> dict:
+    """
+    Describes contributor insights for the given table or index
+    :param boto3_session: The boto3 session
+    :param table_name: The table name
+    :param index_name: The index name
+    """
+    if index_name:
+        return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                       delegate=lambda x: x.describe_contributor_insights(TableName=table_name,
+                                                                                          IndexName=index_name))
+
+    return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                   delegate=lambda x: x.describe_contributor_insights(TableName=table_name))
+
+
+def get_stream_settings(boto3_session: Session, table_name: str) -> Tuple[bool, str]:
+    description = _describe_table(boto3_session=boto3_session,
+                                  table_name=table_name)['Table']
+    stream_type = description\
+        .get('StreamSpecification', {})\
+        .get('StreamViewType', '')
+    is_enabled = description\
+        .get('StreamSpecification', {})\
+        .get('StreamEnabled', False)
+    return is_enabled, stream_type
+
+
+def get_contributor_insights_status_for_table_and_indexes(boto3_session: Session,
+                                                          table_name: str) -> Tuple[str, List[dict]]:
+    """
+    Returns contributors insights statuses for the given table and its global secondary indexes
+    :param boto3_session: The boto3 session
+    :param table_name: The table name
+    :return: The list of global secondary index names
+    """
+    STATUS_TAG = 'ContributorInsightsStatus'
+    table_status = _describe_contributor_insights(boto3_session=boto3_session,
+                                                  table_name=table_name)[STATUS_TAG]
+    table_indexes = get_secondary_indexes(boto3_session=boto3_session,
+                                          table_name=table_name)
+    indexes_contributor_insights = [
+        {
+            'IndexName': index_name,
+            'Status': _describe_contributor_insights(boto3_session=boto3_session,
+                                                     table_name=table_name,
+                                                     index_name=index_name)[STATUS_TAG]
+        }
+        for index_name in table_indexes]
+    return table_status, indexes_contributor_insights
+
+
 def _delete_backup(boto3_session: Session, backup_arn: str):
     return _execute_boto3_dynamodb(boto3_session=boto3_session,
                                    delegate=lambda x: x.delete_backup(
                                        BackupArn=backup_arn
                                    ))
+
+
+def get_time_to_live(boto3_session: Session, table_name: str) -> dict:
+    """
+    Describes TTL
+    :param table_name: The table name
+    :return: The dictionary of TTL description
+    """
+    return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                   delegate=lambda x: x.describe_time_to_live(TableName=table_name))[
+                                       'TimeToLiveDescription']
+
+
+def get_kinesis_destinations(boto3_session: Session, table_name: str) -> List[dict]:
+    """
+    Returns the current kinesis destination of the given table
+    :param boto3_session: The boto3 session
+    :param table_name: The table name
+    :return: The dictionary of kinesis destination settings
+    """
+    return _execute_boto3_dynamodb(boto3_session=boto3_session,
+                                   delegate=lambda x:
+                                   x.describe_kinesis_streaming_destination(TableName=table_name))[
+                                       'KinesisDataStreamDestinations']
 
 
 def _delete_backup_if_exist(boto3_session: Session, backup_arn: str):
@@ -125,6 +223,19 @@ def _describe_continuous_backups(table_name: str, boto3_session: Session) -> dic
                                    delegate=lambda x: x.describe_continuous_backups(TableName=table_name))
 
 
+def get_continuous_backups_status(boto3_session: Session, table_name: str) -> str:
+    """
+    Returns continuous backups status
+    :param boto3_session: The boto3 session
+    :param table_name: The table name
+    """
+    continuous_backups = _describe_continuous_backups(table_name=table_name, boto3_session=boto3_session)
+    return continuous_backups\
+        .get('ContinuousBackupsDescription', {})\
+        .get('PointInTimeRecoveryDescription', {})\
+        .get('PointInTimeRecoveryStatus', '')
+
+
 def wait_table_to_be_active(table_name: str,
                             wait_sec: int,
                             delay_sec: int,
@@ -171,6 +282,31 @@ def _check_if_table_deleted(table_name: str, boto3_session: Session) -> bool:
             log.warning(f"Table `{table_name}` has been deleted")
             return True
     return False
+
+
+def _get_global_table_all_regions(boto3_session: Session, table_name: str) -> List[dict]:
+    """
+    Returns all global table regions
+    :param boto3_session: The boto3 session
+    :param table_name: The table name
+    :return : The list of replicas
+    """
+    description = _describe_table(boto3_session=boto3_session, table_name=table_name)
+    replicas = description['Table'].get('Replicas', [])
+    return replicas
+
+
+def _check_if_replicas_exist(boto3_session: Session, table_name: str) -> Tuple[List[str], bool]:
+    """
+    Checks if the tables has replicas
+    :param table_name: The table name
+    :param boto3_session: The boto3 session
+    :return : Tuple of the list of replicas and indication if the list is empty
+    """
+    replicas = _get_global_table_all_regions(table_name=table_name, boto3_session=boto3_session)
+    replicas_exist = replicas != []
+    log.info(f'Replica status `{table_name}`: {replicas_exist}. Replicas:{replicas}')
+    return replicas, replicas_exist
 
 
 def delete_backup_and_wait(backup_arn: str,
@@ -237,28 +373,28 @@ def remove_global_table_and_wait_for_active(table_name: str,
     :param delay_sec: The delay in seconds between pulling atttempts of table status
     :param boto3_session: The boto3 session
     """
-    _update_table(boto3_session=boto3_session,
-                  table_name=table_name,
-                  ReplicaUpdates=[
-                      {'Delete': {'RegionName': region}} for region in global_table_regions])
+    replicas, replicas_exist = _check_if_replicas_exist(table_name=table_name,
+                                                        boto3_session=boto3_session)
+    if replicas_exist:
+        _update_table(boto3_session=boto3_session,
+                      table_name=table_name,
+                      ReplicaUpdates=[
+                          {'Delete': {'RegionName': region}} for region in global_table_regions])
 
-    start = time.time()
-    elapsed = 0
-    replicas = []
-    while elapsed < wait_sec:
-        description = _describe_table(table_name=table_name, boto3_session=boto3_session)
-        replicas = description['Table'].get('Replicas', [])
-        all_deleted = replicas == []
-        log.info(f'Replica deletion status `{table_name}`: {all_deleted}. Replicas:{replicas}')
-        if all_deleted:
-            return
+        start = time.time()
+        elapsed = 0
+        while elapsed < wait_sec:
+            replicas, replicas_exist = _check_if_replicas_exist(table_name=table_name,
+                                                                boto3_session=boto3_session)
+            if not replicas_exist:
+                return
 
-        end = time.time()
-        elapsed = end - start
-        time.sleep(delay_sec)
+            end = time.time()
+            elapsed = end - start
+            time.sleep(delay_sec)
 
-    raise TimeoutError('Timeout waiting for global table being deleted. '
-                       f'Elapsed:{elapsed};The latest State:{replicas}')
+        raise TimeoutError('Timeout waiting for global table being deleted. '
+                           f'Elapsed:{elapsed};The latest State:{replicas}')
 
 
 def add_global_table_and_wait_for_active(table_name: str,

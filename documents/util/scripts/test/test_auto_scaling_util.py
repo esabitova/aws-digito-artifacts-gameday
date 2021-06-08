@@ -5,7 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from documents.util.scripts.src.auto_scaling_util import (
     _describe_scalable_targets, _execute_boto3_auto_scaling,
-    _register_scalable_target, copy_scaling_targets)
+    _register_scalable_target, copy_scaling_targets,
+    _execute_boto3_auto_scaling_paginator)
 from parameterized import parameterized
 
 GENERIC_SUCCESS_RESULT = {
@@ -44,7 +45,7 @@ class TestAutoScalingUtil(unittest.TestCase):
         self.side_effect_map = {
             'application-autoscaling': self.application_autoscaling_client_mock
         }
-        self.client.side_effect = lambda service_name: self.side_effect_map.get(service_name)
+        self.client.side_effect = lambda service_name, config: self.side_effect_map.get(service_name)
 
         self.application_autoscaling_client_mock.describe_scalable_targets.return_value = \
             DESCRIBE_SCALABLE_TARGETS_RESPONSE
@@ -53,6 +54,32 @@ class TestAutoScalingUtil(unittest.TestCase):
 
     def tearDown(self):
         self.patcher.stop()
+
+    def test__execute_boto3_auto_scaling_paginator(self):
+        paginator_mock = MagicMock()
+        self.application_autoscaling_client_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_auto_scaling_paginator(func_name='my_func', search_exp='Collection[]', value1='abc')
+        self.application_autoscaling_client_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_called_with('Collection[]')
+
+    def test__execute_boto3_auto_scaling_paginator__page_iterator(self):
+        paginator_mock = MagicMock()
+        self.application_autoscaling_client_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_auto_scaling_paginator(func_name='my_func', value1='abc')
+        self.application_autoscaling_client_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_not_called()
 
     def test__execute_boto3_dynamodb_raises_exception(self):
         with self.assertRaises(ValueError):
@@ -63,15 +90,17 @@ class TestAutoScalingUtil(unittest.TestCase):
         with self.assertRaises(KeyError):
             copy_scaling_targets(events=events, context=context)
 
-    def test__describe_scalable_targets(self):
+    @patch('documents.util.scripts.src.auto_scaling_util._execute_boto3_auto_scaling_paginator',
+           return_value=iter(DESCRIBE_SCALABLE_TARGETS_RESPONSE['ScalableTargets']))
+    def test__describe_scalable_targets(self, paginator_mock):
 
         result = _describe_scalable_targets(table_name='my_table')
 
-        self.application_autoscaling_client_mock\
-            .describe_scalable_targets\
-            .assert_called_with(ServiceNamespace='dynamodb',
-                                ResourceIds=['table/my_table'])
-        self.assertEquals(result, DESCRIBE_SCALABLE_TARGETS_RESPONSE)
+        paginator_mock(func_name='describe_scalable_targets',
+                       search_exp='ScalableTargets[]',
+                       ServiceNamespace='dynamodb',
+                       ResourceIds=['table/my_table'])
+        self.assertEquals(list(result), DESCRIBE_SCALABLE_TARGETS_RESPONSE['ScalableTargets'])
 
     def test__register_scalable_target(self):
 
@@ -92,7 +121,7 @@ class TestAutoScalingUtil(unittest.TestCase):
         self.assertEquals(result, DESCRIBE_SCALABLE_TARGETS_RESPONSE)
 
     @patch('documents.util.scripts.src.auto_scaling_util._describe_scalable_targets',
-           return_value=DESCRIBE_SCALABLE_TARGETS_RESPONSE)
+           return_value=iter(DESCRIBE_SCALABLE_TARGETS_RESPONSE['ScalableTargets']))
     @patch('documents.util.scripts.src.auto_scaling_util._register_scalable_target',
            return_value={})
     def test_copy_scaling_targets(self, register_mock, describe_mock):

@@ -1,12 +1,12 @@
 import datetime
 import time
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from parameterized import parameterized
 
 import pytest
 from documents.util.scripts.src.cloudwatch_util import (
-    _describe_metric_alarms, _execute_boto3_cloudwatch, _put_metric_alarm,
+    _describe_metric_alarms, _execute_boto3_cloudwatch, _execute_boto3_cloudwatch_paginator, _put_metric_alarm,
     copy_alarms_for_dynamo_db_table, describe_metric_alarm_state,
     get_ec2_metric_max_datapoint, get_metric_alarm_threshold_values,
     verify_alarm_triggered, verify_ec2_stress)
@@ -80,11 +80,43 @@ class TestCloudWatchUtil(unittest.TestCase):
         with self.assertRaises(ValueError):
             _execute_boto3_cloudwatch(lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
 
-    def test__describe_metric_alarms(self):
+    def test__execute_boto3_cloudwatch_paginator(self):
+        paginator_mock = MagicMock()
+        self.cw_mock.get_paginator.return_value = paginator_mock
 
-        result = _describe_metric_alarms()
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
 
-        self.assertEqual(result, DESCRIBE_ALARMS_RESPONSE)
+        _execute_boto3_cloudwatch_paginator(func_name='my_func', search_exp='Collection[]', value1='abc')
+        self.cw_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_called_with('Collection[]')
+
+    def test__execute_boto3_auto_cloudwatch__page_iterator(self):
+        paginator_mock = MagicMock()
+        self.cw_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_cloudwatch_paginator(func_name='my_func', value1='abc')
+        self.cw_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_not_called()
+
+    @patch('documents.util.scripts.src.cloudwatch_util._execute_boto3_cloudwatch_paginator',
+           return_value=iter([{'AlarmName': '1'}]))
+    def test__describe_metric_alarms(self, paginator_mock):
+
+        result = _describe_metric_alarms(alarm_names=['alarm_name1'])
+
+        self.assertEqual(list(result), [{'AlarmName': '1'}])
+        paginator_mock.assert_has_calls([call(func_name='describe_alarms',
+                                              search_exp='MetricAlarms[]',
+                                              AlarmTypes=['MetricAlarm'],
+                                              AlarmNames=['alarm_name1'])])
 
     def test__put_metric_alarm(self):
 
@@ -102,7 +134,7 @@ class TestCloudWatchUtil(unittest.TestCase):
             copy_alarms_for_dynamo_db_table(events=events, context=context)
 
     @patch('documents.util.scripts.src.cloudwatch_util._describe_metric_alarms',
-           return_value=DESCRIBE_ALARMS_RESPONSE)
+           return_value=iter(DESCRIBE_ALARMS_RESPONSE['MetricAlarms']))
     @patch('documents.util.scripts.src.cloudwatch_util._put_metric_alarm',
            return_value=DESCRIBE_ALARMS_RESPONSE)
     def test_copy_alarms_for_dynamo_db_table(self, describe_mock, put_mock):

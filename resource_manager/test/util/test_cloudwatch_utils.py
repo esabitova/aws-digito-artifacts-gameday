@@ -1,10 +1,12 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import resource_manager.src.util.boto3_client_factory as client_factory
 from resource_manager.src.util.cloudwatch_utils import (
-    _delete_alarms, _describe_metric_alarms, delete_alarms_for_dynamo_db_table)
+    _delete_alarms, _describe_metric_alarms,
+    _execute_boto3_cloudwatch, _execute_boto3_cloudwatch_paginator,
+    delete_alarms_for_dynamo_db_table, get_metric_alarms_for_table)
 
 GENERIC_SUCCESS_RESULT = {
     "ResponseMetadata": {
@@ -71,6 +73,40 @@ class TestCloudWatchUtils(unittest.TestCase):
         client_factory.clients = {}
         client_factory.resources = {}
 
+    def test__execute_boto3_cloudwatch_raises_exception(self):
+        with self.assertRaises(ValueError):
+            _execute_boto3_cloudwatch(boto3_session=self.session_mock,
+                                      delegate=lambda x: {'ResponseMetadata': {'HTTPStatusCode': 500}})
+
+    def test__execute_boto3_cloudwatch_paginator(self):
+        paginator_mock = MagicMock()
+        self.cw_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_cloudwatch_paginator(boto3_session=self.session_mock,
+                                            func_name='my_func',
+                                            search_exp='Collection[]',
+                                            value1='abc')
+        self.cw_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_called_with('Collection[]')
+
+    def test__execute_boto3_cloudwatch_paginator__page_iterator(self):
+        paginator_mock = MagicMock()
+        self.cw_mock.get_paginator.return_value = paginator_mock
+
+        paginate_mock = MagicMock()
+        paginator_mock.paginate.return_value = paginate_mock
+        paginate_mock.search.return_value = iter(['some value'])
+
+        _execute_boto3_cloudwatch_paginator(boto3_session=self.session_mock, func_name='my_func', value1='abc')
+        self.cw_mock.get_paginator.assert_called_with('my_func')
+        paginator_mock.paginate.assert_called_with(value1='abc')
+        paginate_mock.search.assert_not_called()
+
     def test__delete_metric_alarms(self):
 
         result = _delete_alarms(boto3_session=self.session_mock, alarms_to_delete=['alarm'])
@@ -78,20 +114,66 @@ class TestCloudWatchUtils(unittest.TestCase):
         self.cw_mock.delete_alarms.assert_called_with(AlarmNames=['alarm'])
         self.assertEqual(result, GENERIC_SUCCESS_RESULT)
 
-    def test__describe_metric_alarms(self):
+    @patch('resource_manager.src.util.cloudwatch_utils._execute_boto3_cloudwatch_paginator',
+           return_value=iter(DESCRIBE_ALARMS_RESPONSE['MetricAlarms']))
+    def test__describe_metric_alarms(self, paginator_mock):
 
         result = _describe_metric_alarms(boto3_session=self.session_mock)
 
-        self.assertEqual(result, DESCRIBE_ALARMS_RESPONSE)
+        self.assertEqual(list(result), DESCRIBE_ALARMS_RESPONSE['MetricAlarms'])
+        paginator_mock.assert_has_calls(
+            [call(boto3_session=self.session_mock,
+                  func_name='describe_alarms',
+                  search_exp='MetricAlarms[]',
+                  AlarmTypes=['MetricAlarm'])])
+
+    @patch('resource_manager.src.util.cloudwatch_utils._execute_boto3_cloudwatch_paginator',
+           return_value=iter(DESCRIBE_ALARMS_RESPONSE['MetricAlarms']))
+    def test__describe_metric_alarms__with_alarm_names(self, paginator_mock):
+
+        result = _describe_metric_alarms(boto3_session=self.session_mock, alarm_names=['alarm_name1'])
+
+        self.assertEqual(list(result), DESCRIBE_ALARMS_RESPONSE['MetricAlarms'])
+        paginator_mock.assert_has_calls(
+            [call(boto3_session=self.session_mock,
+                  func_name='describe_alarms',
+                  search_exp='MetricAlarms[]',
+                  AlarmTypes=['MetricAlarm'],
+                  AlarmNames=['alarm_name1'])])
 
     @patch('resource_manager.src.util.cloudwatch_utils._describe_metric_alarms',
-           return_value=DESCRIBE_ALARMS_RESPONSE)
+           return_value=iter(DESCRIBE_ALARMS_RESPONSE['MetricAlarms']))
+    def test_get_metric_alarms_for_table(self, describe_mock):
+
+        result = get_metric_alarms_for_table(boto3_session=self.session_mock,
+                                             table_name='source_table',
+                                             alarms_names=['alarm_name1'])
+
+        self.assertEqual(list(result), [alarm for alarm in DESCRIBE_ALARMS_RESPONSE['MetricAlarms']])
+        describe_mock.assert_has_calls(
+            [call(boto3_session=self.session_mock,
+                  alarm_names=['alarm_name1'])])
+
+    @patch('resource_manager.src.util.cloudwatch_utils.get_metric_alarms_for_table',
+           return_value=iter([alarm for alarm in DESCRIBE_ALARMS_RESPONSE['MetricAlarms']]))
     @patch('resource_manager.src.util.cloudwatch_utils._delete_alarms',
            return_value=DESCRIBE_ALARMS_RESPONSE)
-    def test_copy_alarms_for_dynamo_db_table(self, describe_mock, delete_mock):
+    def test_delete_alarms_for_dynamo_db_table(self, describe_mock, delete_mock):
 
         delete_alarms_for_dynamo_db_table(boto3_session=self.session_mock,
                                           table_name="source_table")
 
         describe_mock.assert_called()
         delete_mock.assert_called()
+
+    @patch('resource_manager.src.util.cloudwatch_utils.get_metric_alarms_for_table',
+           return_value=iter([]))
+    @patch('resource_manager.src.util.cloudwatch_utils._delete_alarms',
+           return_value=DESCRIBE_ALARMS_RESPONSE)
+    def test_delete_alarms_for_dynamo_db_table__empty_resp(self, delete_mock, describe_mock):
+
+        delete_alarms_for_dynamo_db_table(boto3_session=self.session_mock,
+                                          table_name="source_table")
+
+        describe_mock.assert_called()
+        self.assertFalse(delete_mock.called)

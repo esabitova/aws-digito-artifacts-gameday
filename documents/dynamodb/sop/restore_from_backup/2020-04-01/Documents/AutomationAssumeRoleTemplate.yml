@@ -71,7 +71,7 @@ Resources:
               - "dynamodb:CreateTableReplica"
               - "dynamodb:CreateTable"
               - "dynamodb:DescribeContinuousBackups"
-              - "dynamodb:DescribeContinuousBackups"
+              - "dynamodb:UpdateContinuousBackups"
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
               - "iam:PassRole"
