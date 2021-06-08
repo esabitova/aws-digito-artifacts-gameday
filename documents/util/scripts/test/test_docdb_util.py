@@ -12,6 +12,7 @@ from documents.util.scripts.src.docdb_util import count_cluster_instances, verif
     rename_replaced_db_instances, rename_restored_db_instances, get_latest_snapshot_id, restore_db_cluster, \
     restore_security_group_ids, get_db_cluster_properties, wait_for_available_instances
 from documents.util.scripts.test.common_test_util import assert_having_all_not_empty_arguments_in_events
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 DOCDB_AZ = "eu-central-1b"
 DOCDB_CLUSTER_ID = 'docdb-cluster-id'
@@ -1007,7 +1008,10 @@ class TestDocDBUtil(unittest.TestCase):
             DBInstanceIdentifier=DOCDB_INSTANCE_ID
         )
 
-    def test_wait_for_available_instances_timeout(self):
+    @patch('time.sleep')
+    def test_wait_for_available_instances_timeout(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         self.mock_docdb.describe_db_instances.side_effect = get_unavailable_instance_side_effect
         self.assertRaises(TimeoutError, wait_for_available_instances,
                           {

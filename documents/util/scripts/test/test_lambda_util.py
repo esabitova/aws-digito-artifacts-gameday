@@ -9,6 +9,7 @@ import documents.util.scripts.src.lambda_util as lambda_util
 from documents.util.scripts.src.lambda_util import get_concurrent_execution_quota, check_feasibility, \
     calculate_total_reserved_concurrency, set_reserved_concurrent_executions, backup_reserved_concurrent_executions, \
     check_required_params
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 CONCURRENT_EXECUTION_QUOTA_CODE = 'L-B99A9384'
 LAMBDA_NAME = 'LambdaTemplate-0-LambdaFunction-5UDF2PBK1R'
@@ -549,7 +550,10 @@ class TestLambdaUtil(unittest.TestCase):
         )
         self.assertEqual(result, {'SecurityGroupListRestoredValue': events['SecurityGroupList']})
 
-    def test_rollback_security_groups_not_first_time(self):
+    @patch('time.sleep')
+    def test_rollback_security_groups_not_first_time(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         events = {
             'LambdaARN': LAMBDA_ARN,
             'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,

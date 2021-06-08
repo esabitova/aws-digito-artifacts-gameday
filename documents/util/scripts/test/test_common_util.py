@@ -174,7 +174,10 @@ class TestCommonUtil(unittest.TestCase):
         )
         self.mock_ec2.delete_security_group.assert_called_once_with(GroupId=test_data_provider.SECURITY_GROUP)
 
-    def test_remove_empty_security_group_with_timeout(self):
+    @patch('time.sleep')
+    def test_remove_empty_security_group_with_timeout(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         events = {
             'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
             'Timeout': 1800
