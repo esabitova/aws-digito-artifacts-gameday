@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when a number of 5xxErrors is over ', ${Threshold}, '%' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when a number of 5xxErrors is over ${Threshold}%'
       AlarmName: ${AlarmName}
       MetricName: 5xxErrors
       Namespace: AWS/S3

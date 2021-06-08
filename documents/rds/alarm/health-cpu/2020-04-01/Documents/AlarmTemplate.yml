@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when database CPU utilization is over ', ${Threshold}, '%' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when database CPU utilization is over ${Threshold}%'
       AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       DatapointsToAlarm: 3

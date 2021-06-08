@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when free storage is under ', ${Threshold}, 'GB' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when free storage is under ${Threshold}GB'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanOrEqualToThreshold
       DatapointsToAlarm: 3

@@ -526,10 +526,7 @@ Resources:
       Tags:
         - Key: Name
           Value:
-            Fn::Join:
-              - ''
-              - - WebServerforResiliency-
-                - Ref: VPC
+            Fn::Sub: 'WebServerforResiliency-${VPC}'
           PropagateAtLaunch: 'true'
 Outputs:
   AutoScalingGroupName:
@@ -538,10 +535,7 @@ Outputs:
   WebSiteURL:
     Description: URL of ELB
     Value:
-      Fn::Join:
-        - ''
-        - - http://
-          - !GetAtt WebLoadBalancer.DNSName
+      Fn::Sub: 'http://${WebLoadBalancer.DNSName}'
   LoadBalancer:
     Description: AutoScalingGroup LoadBalancer
     Value: !Ref WebLoadBalancer

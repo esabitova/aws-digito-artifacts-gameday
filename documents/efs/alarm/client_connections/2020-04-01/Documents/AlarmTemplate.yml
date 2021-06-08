@@ -8,13 +8,12 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription:
-        Fn::Join: ['', ['Alarm by Digito that reports when client connections deviation is over ', ${Threshold} ]]
+      AlarmDescription: 'Alarm by Digito that reports when client connections deviation is over ${Threshold}'
       AlarmActions:
         - Ref: SNSTopicARN
       Metrics:
         - Expression:
-            Fn::Join: ['', ["ANOMALY_DETECTION_BAND(m1,", ${Threshold}, ")"]]
+            'ANOMALY_DETECTION_BAND(m1,${Threshold})'
           Id: ad1
         - Id: m1
           MetricStat:

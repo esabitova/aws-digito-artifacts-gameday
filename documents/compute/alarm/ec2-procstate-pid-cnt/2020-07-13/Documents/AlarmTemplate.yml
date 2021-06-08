@@ -10,8 +10,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when a followed process is reported stopped' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when a followed process is reported stopped'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanThreshold
       EvaluationPeriods: 1

@@ -9,7 +9,7 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when over time an ASG has many unhealthy hosts' ] ]
+        'Alarm by Digito that reports when over time an ASG has many unhealthy hosts'
       AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 180

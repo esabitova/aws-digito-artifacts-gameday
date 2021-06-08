@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when database free memory is under ', ${Threshold}, 'MB' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when database free memory is under ${Threshold}MB'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanOrEqualToThreshold
       DatapointsToAlarm: 3

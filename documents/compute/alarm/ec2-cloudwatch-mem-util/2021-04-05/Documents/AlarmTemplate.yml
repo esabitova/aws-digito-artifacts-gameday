@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when memory utilization is anomalous with band width ', ${Threshold}] ]
+      AlarmDescription: 'Alarm by Digito that reports when memory utilization is anomalous with band width ${Threshold}'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       EvaluationPeriods: 3
@@ -19,7 +18,7 @@ Resources:
       Metrics:
         - Id: ad1
           Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${Threshold}, ')' ] ]
+             'ANOMALY_DETECTION_BAND(m1,${Threshold})'
         - Id: m1
           MetricStat:
             Metric:

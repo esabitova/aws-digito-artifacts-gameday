@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when autoscale group CPU utilization is over ', ${Threshold}, '%' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when autoscale group CPU utilization is over ${Threshold}%'
       AlarmName: ${AlarmName}
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 5

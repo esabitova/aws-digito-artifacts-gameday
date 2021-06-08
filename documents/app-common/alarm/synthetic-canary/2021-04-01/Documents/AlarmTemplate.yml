@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that is triggered when synthetic canary SuccessPercent drops below ', ${Threshold}, '%' ] ]
+      AlarmDescription: 'Alarm by Digito that is triggered when synthetic canary SuccessPercent drops below ${Threshold}%'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanThreshold
       EvaluationPeriods: 3

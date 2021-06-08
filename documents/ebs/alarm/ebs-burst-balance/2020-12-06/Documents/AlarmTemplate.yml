@@ -8,8 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when drained burst balance is below ', ${Threshold} ] ]
+      AlarmDescription: 'Alarm by Digito that reports when drained burst balance is below ${Threshold}'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanThreshold
       EvaluationPeriods: 3

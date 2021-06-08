@@ -8,15 +8,14 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when volume read throughput is anomalous with band width ', ${BandWidth} ] ]
+      AlarmDescription: 'Alarm by Digito that reports when volume read throughput is anomalous with band width ${BandWidth}'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
       Metrics:
         - Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${BandWidth}, ')' ] ]
+            'ANOMALY_DETECTION_BAND(m1,${BandWidth})'
           Id: ad1
         - Id: m1
           MetricStat:

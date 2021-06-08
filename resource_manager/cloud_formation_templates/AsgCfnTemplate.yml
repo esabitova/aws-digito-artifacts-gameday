@@ -837,8 +837,7 @@ Resources:
   UnHealthyHostCountAlarm:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when unhealthy host count is over 0' ] ]
+      AlarmDescription: 'Alarm by Digito that reports when unhealthy host count is over 0'
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 1
       DatapointsToAlarm: 1

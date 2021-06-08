@@ -539,10 +539,7 @@ Resources:
       Tags:
       - Key: Name
         Value:
-          Fn::Join:
-          - ''
-          - - WebServerforResiliency-
-            - Ref: VPC
+          Fn::Sub: 'WebServerforResiliency-${VPC}'
         PropagateAtLaunch: 'true'
   InServiceCapacityLessThanThresholdAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -580,7 +577,7 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when unhealthy host count is over 0' ] ]
+        'Alarm by Digito that reports when unhealthy host count is over 0'
       ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -612,10 +609,7 @@ Outputs:
   WebSiteURL:
     Description: URL of ELB
     Value:
-      Fn::Join:
-      - ''
-      - - http://
-        - !GetAtt WebLoadBalancer.DNSName
+      Fn::Sub: 'http://${WebLoadBalancer.DNSName}'
   LoadBalancer:
     Description: AutoScalingGroup LoadBalancer
     Value: !GetAtt WebLoadBalancer.LoadBalancerFullName

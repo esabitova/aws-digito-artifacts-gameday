@@ -8,15 +8,14 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription:
-        Fn::Join: [ '', [ 'Alarm by Digito that reports when invocation count is anomalous with band width ', ${Threshold} ] ]
+      AlarmDescription: 'Alarm by Digito that reports when invocation count is anomalous with band width ${Threshold}'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
       DatapointsToAlarm: 3
       EvaluationPeriods: 3
       Metrics:
         - Expression:
-            Fn::Join: [ '', [ 'ANOMALY_DETECTION_BAND(m1,', ${Threshold}, ')' ] ]
+             'ANOMALY_DETECTION_BAND(m1,${Threshold})'
           Id: ad1
         - Id: m1
           MetricStat:
