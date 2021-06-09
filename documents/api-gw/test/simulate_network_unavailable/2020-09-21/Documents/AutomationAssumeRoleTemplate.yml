@@ -16,14 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-RestApiGwThrottling_2020-09-211
+Description: Role for Digito-ApiGwSimulateNetworkUnavailable_2020-09-21
 Outputs:
-  DigitoRestApiGwThrottlingAssumeRole:
-    Description: Digito-RestApiGwThrottling_2020-09-211 Automation Assume Role ARN
-    Value:
-      !GetAtt DigitoRestApiGwThrottlingAssumeRole.Arn
+  DigitoApiGwSimulateNetworkUnavailableAssumeRole:
+    Description: Digito-ApiGwSimulateNetworkUnavailable_2020-09-21 Automation Assume Role ARN
+    Value: !GetAtt DigitoApiGwSimulateNetworkUnavailableAssumeRole.Arn
 Resources:
-  DigitoRestApiGwThrottlingAssumeRole:
+  DigitoApiGwSimulateNetworkUnavailableAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestApiGwThrottlingAssumePolicy:
+  DigitoApiGwSimulateNetworkUnavailableAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoRestApiGwThrottlingAssumePolicy
+      PolicyName: DigitoApiGwSimulateNetworkUnavailableAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -46,7 +45,10 @@ Resources:
             Resource: "*"
             Action:
               - apigateway:GET
-              - apigateway:PATCH
+              - ec2:ModifyVpcEndpoint
+              - ec2:DescribeVpcEndpoints
+              - ec2:CreateSecurityGroup
+              - ec2:DescribeSecurityGroups
               - cloudwatch:DescribeAlarms
               - ssm:GetAutomationExecution
               - ssm:StartAutomationExecution
@@ -56,8 +58,18 @@ Resources:
               - logs:DescribeLogStreams
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoRestApiGwThrottlingAssumeRole.Arn
+              - !GetAtt DigitoApiGwSimulateNetworkUnavailableAssumeRole.Arn
             Action:
               - iam:PassRole
+          - Effect: Allow
+            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:*/*"
+            Action: ec2:CreateTags
+            Condition:
+              StringEquals: { "ec2:CreateAction": "CreateSecurityGroup" }
+          - Effect: Allow
+            Action: ec2:DeleteSecurityGroup
+            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*"
+            Condition:
+              StringEquals: { "ec2:ResourceTag/Digito": "api-gw:test:simulate_network_unavailable" }
       Roles:
-        - Ref: DigitoRestApiGwThrottlingAssumeRole
+        - Ref: DigitoApiGwSimulateNetworkUnavailableAssumeRole

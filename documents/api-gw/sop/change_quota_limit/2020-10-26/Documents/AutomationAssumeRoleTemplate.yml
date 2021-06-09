@@ -21,7 +21,7 @@ Outputs:
   DigitoRESTAPIGWChangeQuotaLimitAssumeRoleArn:
     Description: DigitoRESTAPIGWChangeQuotaLimit Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRESTAPIGWChangeQuotaLimitAssumeRole.Arn
+      !GetAtt DigitoRESTAPIGWChangeQuotaLimitAssumeRole.Arn
 Resources:
   DigitoRESTAPIGWChangeQuotaLimitAssumeRole:
     Type: AWS::IAM::Role

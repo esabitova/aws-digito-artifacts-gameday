@@ -1,0 +1,16 @@
+{
+  "displayName": "Test REST API Gateway with Private endpoint when network unavailable",
+  "description": "Test REST API Gateway with binding to VPC behavior when security groups are misconfigured. Since API VPC endpoints is not accessible due to certain security groups we can expect bringing down the number of API calls and corresponding alarms fired",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RestApiGwSimulateNetworkUnavailable_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "REGION",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "tag": "api-gw:test:simulate_network_unavailable:2020-09-21",
+  "recommendedAlarms": {
+    "ApiGwCountAlarm": "api-gw:alarm:count:2020-04-01"
+  }
+}

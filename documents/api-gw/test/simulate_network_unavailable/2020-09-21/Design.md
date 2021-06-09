@@ -2,7 +2,9 @@
 api-gw:test:simulate_network_unavailable:2020-09-21
 
 ## Intent
-Test REST API Gateway with binding to VPC behavior when security groups are misconfigured. Since API VPC endpoints is not accessible due to certain security groups we can expected bringing down the number of API calls and corresponding alarms fired 
+Test REST API Gateway with binding to VPC behavior when security groups are misconfigured. Since API VPC endpoints is
+not accessible due to certain security groups we can expect bringing down the number of API calls and corresponding
+alarms fired
 
 ## Type
 AZ Outage Test, Region Outage Test
@@ -15,12 +17,22 @@ High
 * There is a synthetic alarm setup for application (api-gw:alarm:count:2020-04-01)
 
 ## Permission required for AutomationAssumeRole
+
+* apigateway:GET
 * ec2:ModifyVpcEndpoint
 * ec2:DescribeVpcEndpoints
-* apigateway:GET
+* ec2:CreateSecurityGroup
+* ec2:DeleteSecurityGroup
+* ec2:DescribeSecurityGroups
+* ec2:CreateTags
+* cloudwatch:DescribeAlarms
+* ssm:GetAutomationExecution
+* ssm:StartAutomationExecution
+* ssm:GetParameters
 
 ## Supports Rollback
-Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback changes from the previous run 
+
+Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rollback changes from the previous run
 
 ## Input
 ### `AutomationAssumeRole`
@@ -37,11 +49,13 @@ Yes. Users can run the script with `IsRollback` and `PreviousExecutionId` to rol
   * type: String
   * description: (Required) The Id of the REST API Gateway
 ### `SecurityGroupIdListToUnassign`
-  * type: List
-  * description: (Optional) The list of Security Group Ids that should be unassigned from the the API. If not provided, all Security Groups will be unassigned from attached VPC endpoints
+* type: StringList
+* description: (Optional) The list of Security Group Ids that should be unassigned from the the API. If not provided,
+  all Security Groups will be unassigned from attached VPC endpoints
 ### `IsRollback`:
-  * type: Boolean
-  * description: (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`)
+
+* type: String
+* description: (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`)
   * default: False
 ### `PreviousExecutionId`:
   * type: Integer

@@ -1,3 +1,4 @@
+import json
 import logging
 from time import sleep
 
@@ -14,6 +15,8 @@ from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import (
     extract_param_value, put_to_ssm_test_cache, extract_and_cache_param_values
 )
+from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
+from resource_manager.src.util.lambda_utils import trigger_lambda
 
 cache_current_stage_deployment_id_expression = 'cache current deployment id as "{cache_property}" "{step_key}" SSM ' \
                                                'automation execution' \
@@ -72,6 +75,13 @@ cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_li
 get_api_key_and_perform_http_requests_expression = 'get value of API key "{key_id}" and perform "{count}" http ' \
                                                    'requests with delay "{delay}" seconds using stage URL "{url}"' \
                                                    '\n{input_parameters}'
+
+get_api_key_and_invoke_lambda_to_perform_http_requests = 'get API key "{api_key_id_ref}" and invoke lambda ' \
+                                                         '"{lambda_arn_ref}" to perform "{count}" http requests ' \
+                                                         'with interval "{interval}" seconds'
+
+cache_vpc_endpoint_security_groups_map = 'get REST API Gateway endpoints and their security groups, ' \
+                                         'cache map as "{cache_property}" "{step_key}" SSM automation execution'
 
 cache_httpws_default_throttling_settings = 'cache default route throttling rate limit as "{rate_limit_key}" and ' \
                                            'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution' \
@@ -496,3 +506,46 @@ def get_api_key_and_perform_http_requests(
         logging.info(f'Response status code: {response.status_code}')
         sleep(request_delay)
         request_count -= 1
+
+
+@given(parsers.parse(get_api_key_and_invoke_lambda_to_perform_http_requests))
+@when(parsers.parse(get_api_key_and_invoke_lambda_to_perform_http_requests))
+@then(parsers.parse(get_api_key_and_invoke_lambda_to_perform_http_requests))
+def get_api_key_and_invoke_lambda_to_perform_http_requests(
+        resource_pool, boto3_session, api_key_id_ref, lambda_arn_ref, count, interval, ssm_test_cache
+):
+    cache_before = ssm_test_cache['before']
+    lambda_arn = cache_before[lambda_arn_ref]
+    api_key_id = cache_before[api_key_id_ref]
+    request_count = int(count)
+    request_interval = int(interval)
+    apigw_client = client('apigateway', boto3_session)
+    api_key = apigw_client.get_api_key(apiKey=api_key_id, includeValue=True)['value']
+    payload = json.dumps({"api_key": api_key,
+                          "request_interval": request_interval,
+                          "request_count": request_count})
+    logging.info(f'Invoke lambda {lambda_arn} ...')
+    result = trigger_lambda(lambda_arn=lambda_arn,
+                            payload=payload,
+                            invocation_type=LambdaInvocationType.Event,
+                            session=boto3_session)
+    logging.info(f'Lambda StatusCode: {result["StatusCode"]}')
+    logging.info(f'Lambda Request ID: {result["ResponseMetadata"]["RequestId"]}')
+
+
+@given(parsers.parse(cache_vpc_endpoint_security_groups_map))
+@when(parsers.parse(cache_vpc_endpoint_security_groups_map))
+@then(parsers.parse(cache_vpc_endpoint_security_groups_map))
+def cache_vpc_endpoint_security_groups_map(
+        resource_pool, boto3_session, cache_property, step_key, ssm_test_cache
+):
+    gateway_id = ssm_test_cache['before']['RestApiGwId']
+    apigw_client = client('apigateway', boto3_session)
+    ec2_client = client('ec2', boto3_session)
+    vpc_endpoint_ids = apigw_client.get_rest_api(restApiId=gateway_id)['endpointConfiguration']['vpcEndpointIds']
+    vpc_endpoint_configs = ec2_client.describe_vpc_endpoints(VpcEndpointIds=vpc_endpoint_ids)['VpcEndpoints']
+    vpc_endpoint_security_groups_map = {}
+    for vpc_endpoint in vpc_endpoint_configs:
+        vpc_endpoint_security_groups_map[vpc_endpoint['VpcEndpointId']] = vpc_endpoint['Groups']
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, vpc_endpoint_security_groups_map)
+    logging.info(f'VPC endpoint Security Groups map: {repr(vpc_endpoint_security_groups_map)}')

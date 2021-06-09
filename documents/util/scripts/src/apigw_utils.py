@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from random import uniform
@@ -470,3 +471,98 @@ def assert_inputs_before_throttling_rollback(events: dict, context: dict) -> Non
 
     assert http_method == original_http_method, f'Provided RestApiGwHttpMethod: {http_method} is not equal to ' \
                                                 f'original RestApiGwHttpMethod: {original_http_method}'
+
+
+def get_endpoint_security_group_config(events: dict, context: dict) -> dict:
+    if 'RestApiGwId' not in events:
+        raise KeyError('Requires RestApiGwId in events')
+
+    gateway_id: str = events['RestApiGwId']
+    provided_security_group_ids: list = events.get('SecurityGroupIdListToUnassign', [])
+
+    apigw_client = boto3.client('apigateway')
+    ec2_client = boto3.client('ec2')
+    vpc_endpoint_ids: list = apigw_client.get_rest_api(restApiId=gateway_id)['endpointConfiguration']['vpcEndpointIds']
+
+    if not vpc_endpoint_ids:
+        raise Exception('Provided REST API gateway does not have any configured VPC endpoint')
+
+    vpc_endpoint_configs: dict = ec2_client.describe_vpc_endpoints(VpcEndpointIds=vpc_endpoint_ids)['VpcEndpoints']
+    vpc_endpoint_security_groups_map: dict = {}
+
+    for vpc_endpoint in vpc_endpoint_configs:
+        vpc_endpoint_security_groups_map[vpc_endpoint['VpcEndpointId']] = vpc_endpoint['Groups']
+
+    if provided_security_group_ids:
+        security_group_found = False
+        for vpc_endpoint_id, security_groups_config in vpc_endpoint_security_groups_map.items():
+            for security_group in security_groups_config:
+                if security_group['GroupId'] not in provided_security_group_ids:
+                    vpc_endpoint_security_groups_map[vpc_endpoint_id].remove(security_group)
+                else:
+                    security_group_found = True
+        if not security_group_found:
+            raise Exception('Provided security groups are not found in any configured VPC endpoint')
+
+    return {"VpcEndpointsSecurityGroupsMappingOriginalValue": json.dumps(vpc_endpoint_security_groups_map)}
+
+
+def update_endpoint_security_group_config(events: dict, context: dict) -> None:
+    if 'VpcEndpointsSecurityGroupsMapping' not in events:
+        raise KeyError('Requires VpcEndpointsSecurityGroupsMapping in events')
+
+    vpc_endpoint_security_groups_map: dict = json.loads(events.get('VpcEndpointsSecurityGroupsMapping'))
+    action: str = events.get('Action')
+
+    if action not in ['ReplaceWithOriginalSg', 'ReplaceWithDummySg']:
+        raise KeyError('Possible values for Action: ReplaceWithOriginalSg, ReplaceWithDummySg')
+
+    ec2_client = boto3.client('ec2')
+
+    for vpc_endpoint_id, security_groups_config in vpc_endpoint_security_groups_map.items():
+        original_security_group_ids = []
+        for security_group in security_groups_config:
+            original_security_group_ids.append(security_group['GroupId'])
+
+        dummy_sg_name = 'dummy-sg-' + vpc_endpoint_id
+        describe_dummy_sg_args = {'Filters': [dict(Name='group-name', Values=[dummy_sg_name])]}
+        describe_dummy_sg = ec2_client.describe_security_groups(**describe_dummy_sg_args)['SecurityGroups']
+        dummy_sg_id = describe_dummy_sg[0]['GroupId'] if describe_dummy_sg else None
+
+        if action == 'ReplaceWithDummySg':
+            if not dummy_sg_id:
+                vpc_id = ec2_client.describe_vpc_endpoints(VpcEndpointIds=[vpc_endpoint_id])['VpcEndpoints'][0]['VpcId']
+                create_dummy_sg_args = {
+                    'VpcId': vpc_id,
+                    'GroupName': dummy_sg_name,
+                    'Description': 'Dummy SG',
+                    'TagSpecifications': [
+                        {
+                            'ResourceType': 'security-group',
+                            'Tags': [
+                                {
+                                    'Key': 'Digito',
+                                    'Value': 'api-gw:test:simulate_network_unavailable'
+                                }
+                            ]
+                        }
+                    ]
+                }
+                dummy_sg_id = ec2_client.create_security_group(**create_dummy_sg_args)['GroupId']
+
+            add_security_group_ids = [dummy_sg_id]
+            remove_security_group_ids = original_security_group_ids
+
+        if action == 'ReplaceWithOriginalSg':
+            add_security_group_ids = original_security_group_ids
+            remove_security_group_ids = [dummy_sg_id] if dummy_sg_id else []
+
+        response = ec2_client.modify_vpc_endpoint(VpcEndpointId=vpc_endpoint_id,
+                                                  AddSecurityGroupIds=add_security_group_ids,
+                                                  RemoveSecurityGroupIds=remove_security_group_ids)
+        if not response['Return']:
+            log.error(response)
+            raise Exception('Could not modify VPC endpoint')
+
+        if action == 'ReplaceWithOriginalSg' and dummy_sg_id:
+            ec2_client.delete_security_group(GroupId=dummy_sg_id)

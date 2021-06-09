@@ -15,27 +15,24 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Test API Gateway REST API behavior when hitting quota threshold"
+description: "Test REST API Gateway with binding to VPC behavior when security groups are misconfigured. Since API VPC endpoints is not accessible due to certain security groups we can expect bringing down the number of API calls and corresponding alarms fired"
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
-  RestApiGwUsagePlanId:
+  RestApiGwId:
     type: String
-    description: (Required) The ID of REST API Gateway usage plan.
-  ApiGw4xxAlarmName:
-    type: String
-    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+    description: (Required) RestApiGwId
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  RestApiGwQuotaLimit:
-    type: Integer
-    description: (Optional) The value of quota (requests per period).
-    default: 1
-  RestApiGwQuotaPeriod:
+  ApiGwCountAlarmName:
     type: String
-    description: (Optional) The value of quota period. Possible values are DAY, WEEK, MONTH.
-    default: 'DAY'
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  SecurityGroupIdListToUnassign:
+    type: StringList
+    description: (Optional) The list of Security Group Ids that should be unassigned from the the API. If not provided, all Security Groups will be unassigned from attached VPC endpoints
+    maxItems: 15
+    default: [ ]
   IsRollback:
     type: String
     description: >-
@@ -59,8 +56,8 @@ mainSteps:
   - name: GetInputsFromPreviousExecution
     action: aws:executeScript
     outputs:
-      - Name: RestApiGwUsagePlanId
-        Selector: '$.Payload.RestApiGwUsagePlanId[0]'
+      - Name: RestApiGwId
+        Selector: '$.Payload.RestApiGwId[0]'
         Type: String
     inputs:
       Runtime: python3.7
@@ -72,160 +69,136 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
-  - name: AssertRestApiGwUsagePlanId
+  - name: AssertInputsFromPreviousExecution
     action: aws:branch
     inputs:
       Choices:
         - NextStep: PrepareRollbackOfPreviousExecution
-          Variable: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
-          StringEquals: '{{ RestApiGwUsagePlanId }}'
+          Variable: '{{ GetInputsFromPreviousExecution.RestApiGwId }}'
+          StringEquals: '{{ RestApiGwId }}'
     isEnd: true
 
   - name: PrepareRollbackOfPreviousExecution
     action: aws:executeScript
     outputs:
-      - Name: RestApiGwQuotaLimitOriginalValue
-        Selector: $.Payload.RestApiGwQuotaLimitOriginalValue[0]
-        Type: String
-      - Name: RestApiGwQuotaPeriodOriginalValue
-        Selector: $.Payload.RestApiGwQuotaPeriodOriginalValue[0]
+      - Name: VpcEndpointsSecurityGroupsMappingOriginalValue
+        Selector: $.Payload.VpcEndpointsSecurityGroupsMappingOriginalValue[0]
         Type: String
     inputs:
       Runtime: python3.7
       Handler: get_output_from_ssm_step_execution
       InputPayload:
         ExecutionId: '{{ PreviousExecutionId }}'
-        StepName: 'BackupQuotaConfiguration'
-        ResponseField: 'RestApiGwQuotaLimitOriginalValue,RestApiGwQuotaPeriodOriginalValue'
+        StepName: 'BackupCurrentExecution'
+        ResponseField: 'VpcEndpointsSecurityGroupsMappingOriginalValue'
       Script: |-
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
   - name: RollbackPreviousExecution
+    onCancel: step:TriggerRollback
     action: aws:executeScript
-    description: Rollback quota limits of given Usage Plan from previous execution
-    outputs:
-      - Name: RestApiGwQuotaLimitRestoredValue
-        Selector: '$.Payload.Limit'
-        Type: Integer
-      - Name: RestApiGwQuotaPeriodRestoredValue
-        Selector: '$.Payload.Period'
-        Type: String
+    description: Rollback VPC endpoint(s) configuration for REST API Gateway
+    maxAttempts: 5
     inputs:
       Runtime: python3.7
-      Handler: set_limit_and_period
+      Handler: update_endpoint_security_group_config
       InputPayload:
-        RestApiGwUsagePlanId: '{{ GetInputsFromPreviousExecution.RestApiGwUsagePlanId }}'
-        RestApiGwQuotaLimit: '{{ PrepareRollbackOfPreviousExecution.RestApiGwQuotaLimitOriginalValue }}'
-        RestApiGwQuotaPeriod: '{{ PrepareRollbackOfPreviousExecution.RestApiGwQuotaPeriodOriginalValue }}'
+        VpcEndpointsSecurityGroupsMapping: '{{ PrepareRollbackOfPreviousExecution.VpcEndpointsSecurityGroupsMappingOriginalValue }}'
+        Action: 'ReplaceWithOriginalSg'
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
-        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
+
+        SCRIPT_PLACEHOLDER::apigw_utils.update_endpoint_security_group_config
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 300
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - '{{ ApiGw4xxAlarmName }}'
+        - '{{ApiGwCountAlarmName}}'
       PropertySelector: '$.MetricAlarms[0].StateValue'
-      DesiredValues: [ "OK" ]
+      DesiredValues: [ 'OK' ]
 
-  - name: BackupQuotaConfiguration
+  - name: BackupCurrentExecution
     action: aws:executeScript
-    description: Backup quota configuration of given Usage Plan
+    description: Backup security group configuration for REST API Gateway
     outputs:
-      - Name: RestApiGwQuotaLimitOriginalValue
-        Selector: '$.Payload.QuotaLimit'
-        Type: Integer
-      - Name: RestApiGwQuotaPeriodOriginalValue
-        Selector: '$.Payload.QuotaPeriod'
+      - Name: VpcEndpointsSecurityGroupsMappingOriginalValue
+        Selector: '$.Payload.VpcEndpointsSecurityGroupsMappingOriginalValue'
         Type: String
     inputs:
       Runtime: python3.7
-      Handler: get_throttling_config
+      Handler: get_endpoint_security_group_config
       InputPayload:
-        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
+        RestApiGwId: '{{ RestApiGwId }}'
+        SecurityGroupIdListToUnassign: '{{ SecurityGroupIdListToUnassign }}'
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
-        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
-        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
 
-  - name: SetQuotaConfiguration
+        SCRIPT_PLACEHOLDER::apigw_utils.get_endpoint_security_group_config
+
+  - name: InjectFailure
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
     action: aws:executeScript
-    description: Update quota configuration of given Usage Plan
-    outputs:
-      - Name: RestApiGwQuotaLimitNewValue
-        Selector: '$.Payload.Limit'
-        Type: Integer
-      - Name: RestApiGwQuotaPeriodNewValue
-        Selector: '$.Payload.Period'
-        Type: String
+    description: Remove security group(s) from VPC endpoint(s) configuration for REST API Gateway
     inputs:
       Runtime: python3.7
-      Handler: set_limit_and_period
+      Handler: update_endpoint_security_group_config
       InputPayload:
-        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
-        RestApiGwQuotaLimit: '{{ RestApiGwQuotaLimit }}'
-        RestApiGwQuotaPeriod: '{{ RestApiGwQuotaPeriod }}'
+        VpcEndpointsSecurityGroupsMapping: '{{ BackupCurrentExecution.VpcEndpointsSecurityGroupsMappingOriginalValue }}'
+        Action: 'ReplaceWithDummySg'
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
-        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
+
+        SCRIPT_PLACEHOLDER::apigw_utils.update_endpoint_security_group_config
 
   - name: AssertAlarmToBeRed
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 900
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - '{{ApiGw4xxAlarmName}}'
+        - '{{ApiGwCountAlarmName}}'
       PropertySelector: '$.MetricAlarms[0].StateValue'
-      DesiredValues: [ "ALARM" ]
+      DesiredValues: [ 'ALARM' ]
 
   - name: RollbackCurrentExecution
     onCancel: step:TriggerRollback
     action: aws:executeScript
-    description: Rollback quota configuration of given Usage Plan
+    description: Rollback VPC endpoint(s) configuration for REST API Gateway
     maxAttempts: 5
-    outputs:
-      - Name: RestApiGwQuotaLimitRestoredValue
-        Selector: '$.Payload.Limit'
-        Type: Integer
-      - Name: RestApiGwQuotaPeriodRestoredValue
-        Selector: '$.Payload.Period'
-        Type: String
     inputs:
       Runtime: python3.7
-      Handler: set_limit_and_period
+      Handler: update_endpoint_security_group_config
       InputPayload:
-        RestApiGwUsagePlanId: '{{ RestApiGwUsagePlanId }}'
-        RestApiGwQuotaLimit: '{{ BackupQuotaConfiguration.RestApiGwQuotaLimitOriginalValue }}'
-        RestApiGwQuotaPeriod: '{{ BackupQuotaConfiguration.RestApiGwQuotaPeriodOriginalValue }}'
+        VpcEndpointsSecurityGroupsMapping: '{{ BackupCurrentExecution.VpcEndpointsSecurityGroupsMappingOriginalValue }}'
+        Action: 'ReplaceWithOriginalSg'
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
-        SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
+
+        SCRIPT_PLACEHOLDER::apigw_utils.update_endpoint_security_group_config
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 900
+    timeoutSeconds: 600
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - '{{ApiGw4xxAlarmName}}'
-      PropertySelector: '$.MetricAlarms[0].StateValue'
+        - "{{ApiGwCountAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
     isEnd: true
 
@@ -237,7 +210,7 @@ mainSteps:
         Selector: $.Payload.RollbackExecutionId
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: start_rollback_execution
       InputPayload:
         ExecutionId: '{{automation:EXECUTION_ID}}'

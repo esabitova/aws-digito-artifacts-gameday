@@ -4,6 +4,7 @@ import logging
 import boto3
 from pytest_bdd.parsers import parse
 from pytest_bdd.steps import given
+
 from resource_manager.src.util.enums.lambda_invocation_type import \
     LambdaInvocationType
 from resource_manager.src.util.lambda_utils import trigger_lambda
@@ -23,4 +24,4 @@ def trigger_lambda_async(resource_pool,
                             payload=payload,
                             invocation_type=LambdaInvocationType.Event,
                             session=boto3_session)
-    logging.info(result)
+    logging.info(result['Payload'])

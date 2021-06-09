@@ -1,14 +1,16 @@
-import unittest
-import pytest
-import json
 import io
-import resource_manager.src.util.lambda_utils as lambda_utils
-import resource_manager.src.util.boto3_client_factory as client_factory
-from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
+import json
+import unittest
 from unittest.mock import MagicMock
-from botocore.response import StreamingBody
+
+import pytest
 from botocore.exceptions import ClientError
+from botocore.response import StreamingBody
+
+import resource_manager.src.util.boto3_client_factory as client_factory
+import resource_manager.src.util.lambda_utils as lambda_utils
 from documents.util.scripts.test.test_lambda_util import LAMBDA_ARN, LAMBDA_NAME, LAMBDA_VERSION
+from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 
 
 def mock_get_function(status_code, memory=0):
@@ -27,8 +29,10 @@ def mock_get_function(status_code, memory=0):
 def mock_function_invoke(status_code, payload):
     return {
         'ResponseMetadata': {
+            'RequestId': '82056687-8874-49b7-b386-eefd8a7e06c2',
             'HTTPStatusCode': status_code
         },
+        'StatusCode': status_code,
         'Payload': payload
     }
 
@@ -64,10 +68,10 @@ class TestLambdaUtil(unittest.TestCase):
         self.mock_lambda.get_function.assert_called_once_with(FunctionName=LAMBDA_ARN)
 
     def test_trigger_lambda(self):
-        body_encoded = json.dumps({}).encode()
+        response_body_encoded = json.dumps({}).encode()
         response_payload = StreamingBody(
-            io.BytesIO(body_encoded),
-            len(body_encoded)
+            io.BytesIO(response_body_encoded),
+            len(response_body_encoded)
         )
         self.mock_lambda.invoke.return_value = mock_function_invoke(200, response_payload)
         invocation_type = LambdaInvocationType.Event
@@ -78,7 +82,9 @@ class TestLambdaUtil(unittest.TestCase):
             InvocationType=invocation_type.name,
             Payload=bytes(request_payload, 'utf-8')
         )
-        self.assertEqual(request_payload.encode(), response)
+        self.assertEqual(request_payload.encode(), response['Payload'])
+        self.assertEqual(200, response['StatusCode'])
+        self.assertEqual(200, response['ResponseMetadata']['HTTPStatusCode'])
 
     def test_trigger_lambda_exception(self):
         self.mock_lambda.invoke.return_value = mock_function_invoke(404, {})
