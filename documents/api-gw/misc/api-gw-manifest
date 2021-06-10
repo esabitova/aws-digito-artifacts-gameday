@@ -3,4 +3,6 @@ Digito-RestApiGwUpdateVersionRest_2020-10-26
 Digito-RestApiGwChangeThrottlingSettings_2020-10-26
 Digito-RestApiGwThrottling_2020-09-21
 Digito-RestApiGwQuota_2020-09-21
+Digito-ChangeThrottlingSettingsHttpWs_2020-10-26
+Digito-ThrottlingHttpWs_2020-09-21
 Digito-RestApiGwSimulateNetworkUnavailable_2020-09-21

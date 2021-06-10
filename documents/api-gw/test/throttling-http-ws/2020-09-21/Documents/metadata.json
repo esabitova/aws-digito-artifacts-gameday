@@ -1,0 +1,13 @@
+{
+  "displayName": "Test API Gateway HTTP or Web sockets throttling",
+  "description": "Test API Gateway HTTP or Web sockets behavior when hitting throttling threshold",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ThrottlingHttpWs_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "tag": "api-gw:test:throttling-http-ws:2020-09-21"
+}

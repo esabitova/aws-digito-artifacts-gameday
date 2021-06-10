@@ -5,6 +5,8 @@ from time import sleep
 import jsonpath_ng
 import pytest
 import requests
+from websocket import create_connection
+from websocket._exceptions import WebSocketBadStatusException
 from pytest_bdd import (
     given, parsers, when, then
 )
@@ -549,3 +551,50 @@ def cache_vpc_endpoint_security_groups_map(
         vpc_endpoint_security_groups_map[vpc_endpoint['VpcEndpointId']] = vpc_endpoint['Groups']
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, vpc_endpoint_security_groups_map)
     logging.info(f'VPC endpoint Security Groups map: {repr(vpc_endpoint_security_groups_map)}')
+
+
+call_http_endpoint_expression = 'call endpoint "{url}" "{number}" times with delay "{delay}" seconds ' \
+                                'using method "{method}"' \
+                                '\n{input_parameters}'
+
+
+@given(parsers.parse(call_http_endpoint_expression))
+@when(parsers.parse(call_http_endpoint_expression))
+@then(parsers.parse(call_http_endpoint_expression))
+def call_http_endpoint(
+        resource_pool, ssm_test_cache, url, number, delay, method, input_parameters
+):
+    request_url = extract_param_value(input_parameters, url, resource_pool, ssm_test_cache)
+    request_count = int(number)
+    request_delay = int(delay)
+    while request_count > 0:
+        response = requests.request(method, request_url)
+        logging.info(f'Send {method} request to {request_url}')
+        logging.debug(f'Response status code: {response.status_code}')
+        sleep(request_delay)
+        request_count -= 1
+
+
+call_ws_endpoint_expression = 'call ws endpoint "{url}" "{number}" times with delay "{delay}" seconds' \
+                              '\n{input_parameters}'
+
+
+@given(parsers.parse(call_ws_endpoint_expression))
+@when(parsers.parse(call_ws_endpoint_expression))
+@then(parsers.parse(call_ws_endpoint_expression))
+def call_ws_endpoint(
+        resource_pool, ssm_test_cache, url, number, delay, input_parameters
+):
+    ws_url = extract_param_value(input_parameters, url, resource_pool, ssm_test_cache)
+    request_count = int(number)
+    request_delay = int(delay)
+    while request_count > 0:
+        logging.info(f'Try ws handshake with {ws_url}')
+        try:
+            ws = create_connection(ws_url)
+            logging.info('Connected successfully')
+            ws.close()
+        except WebSocketBadStatusException as e:
+            logging.info(f'Handshake failed with {str(e.status_code)}')
+        sleep(request_delay)
+        request_count -= 1
