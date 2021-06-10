@@ -1,0 +1,11 @@
+{
+  "displayName": "Anomalous duration count",
+  "description": "alarm by digito that that reports when lambda duration is less or higher then normal",
+  "alarmName": "Digito-AnomalousDurationCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "lambda:alarm:health-duration:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

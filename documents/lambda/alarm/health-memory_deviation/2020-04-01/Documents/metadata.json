@@ -1,0 +1,11 @@
+{
+  "displayName": "Anomalous average memory consumption",
+  "description": "Reports when average memory consumption is anomalous",
+  "alarmName": "Digito-AnomalousMemoryDeviations_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "lambda:alarm:health-memory_deviation:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -1,6 +1,10 @@
 import logging
+import time
+from botocore.exceptions import ClientError
 
+from datetime import datetime, timedelta
 from boto3 import Session
+from concurrent.futures.thread import ThreadPoolExecutor
 
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from .boto3_client_factory import client
@@ -122,6 +126,67 @@ def trigger_throttled_lambda(lambda_arn: str, session: Session):
         if e.response['ResponseMetadata']['HTTPStatusCode'] != 429:
             raise Exception('Wrong StatusCode in response for throttled function invocation')
     return True
+
+
+def trigger_ordinary_lambda(lambda_arn: str, session: Session, invocation_time='RequestResponse'):
+    """
+    invokes lambda for alarm fata population
+    """
+    lambda_client = client('lambda', session)
+    try:
+        lambda_client.invoke(
+            FunctionName=lambda_arn,
+            InvocationType=invocation_time
+        )
+    except ClientError as ee:
+        raise ee(f"Lambda Function not invoked, StatusCode: {ee.response['ResponseMetadata']['HTTPStatusCode']}")
+    return True
+
+
+def trigger_ordinary_lambda_several_times(lambda_arn: str, session: Session, trigger_attempts: int):
+    """
+    invokes lambda for alarm fata population several times:
+    param:trigger_attempts - attempts to trigger lambda, default = 3
+    """
+    lambda_client = client('lambda', session)
+    i = 0
+    while i < trigger_attempts:
+        try:
+            lambda_client.invoke(
+                FunctionName=lambda_arn
+            )
+            i += 1
+        except ClientError as ee:
+            raise ee(f"Lambda Function not invoked, StatusCode:\
+                            {ee.response['ResponseMetadata']['HTTPStatusCode']}")
+    return True
+
+
+def trigger_lambda_under_stress(lambda_arn: str, boto3_session: Session, overall_stress_time: int,
+                                number_in_each_chunk: int, delay_among_chunks: int):
+    """
+    stress lambda - invokes lambda many times, chunk by chunk, waits among chunks
+    and invokes again, till stress time pass:
+    param:overall_stress_time - overall time (seconds) from stress initiate still completion
+    param:number_in_each_chunk - number of lambda invokes in each stress chunk
+    param:delay_among_chunks - delay seconds among chunks
+    """
+    futures = []
+    logging.info(f'Start Lambda stress invokes, stress time {str(overall_stress_time)} seconds')
+    start_stress = datetime.utcnow()
+    end_stress = start_stress + timedelta(seconds=overall_stress_time)
+    overall_exec = 0
+    with ThreadPoolExecutor() as executor:
+        while datetime.utcnow() < end_stress:
+            for i in range(number_in_each_chunk):
+                futures.append(
+                    executor.submit(trigger_ordinary_lambda, lambda_arn, boto3_session,
+                                    invocation_time='Event')
+                )
+                overall_exec += 1
+            time.sleep(delay_among_chunks)
+    logging.info('Lambda invoke stress test done')
+    return overall_exec
 
 
 def get_function_concurrency(lambda_arn: str, session: Session):
