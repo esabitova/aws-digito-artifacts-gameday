@@ -3,6 +3,6 @@
     "documentType": "Automation",
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
-    "tag": "util:copy_dynamodb_table_properties:2020-04-01",
+    "tag": "util:dynamodb:copy_table_properties:2020-04-01",
     "minorVersion": "002"
 }
