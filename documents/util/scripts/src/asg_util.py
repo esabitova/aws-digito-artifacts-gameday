@@ -165,28 +165,6 @@ def cancel_instance_refresh(events, context):
     )
 
 
-def wait_for_refresh_to_finish(events, context):
-    if 'AutoScalingGroupName' not in events or 'InstanceRefreshId' not in events:
-        raise KeyError('Requires AutoScalingGroupName, InstanceRefreshId in events')
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    autoscaling = boto3.client('autoscaling', config=config)
-    while True:
-        instance_refresh_status = autoscaling.describe_instance_refreshes(
-            AutoScalingGroupName=events['AutoScalingGroupName'],
-            InstanceRefreshIds=[
-                events['InstanceRefreshId']
-            ]
-        )
-        if instance_refresh_status['InstanceRefreshes'][0]['Status'] not in ['Pending', 'InProgress']:
-            if instance_refresh_status['InstanceRefreshes'][0]['Status'] not in ['Successful']:
-                raise Exception('Instance refresh failed, refresh status %, refresh id %',
-                                instance_refresh_status['InstanceRefreshes'][0]['Status'],
-                                instance_refresh_status['InstanceRefreshes'][0]['InstanceRefreshId'])
-            break
-        # Sleep for 30 seconds
-        time.sleep(30)
-
-
 def assert_no_refresh_in_progress(events, context):
     if 'AutoScalingGroupName' not in events:
         raise KeyError('Requires AutoScalingGroupName in events')
