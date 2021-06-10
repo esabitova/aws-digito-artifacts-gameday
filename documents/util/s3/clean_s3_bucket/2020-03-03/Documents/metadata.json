@@ -4,6 +4,6 @@
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "displayName": "Clean S3 bucket",
-  "tag": "util:clean_s3_bucket:2021-03-03",
+  "tag": "util:s3:clean_s3_bucket:2020-03-03",
   "minorVersion": "001"
 }
