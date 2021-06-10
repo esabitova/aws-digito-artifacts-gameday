@@ -3,6 +3,6 @@
   "documentType": "Command",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "tag": "util:network_unavailable_command:2020-07-23",
+  "tag": "util:ec2:network_unavailable:2020-07-23",
   "minorVersion": "001"
 }
