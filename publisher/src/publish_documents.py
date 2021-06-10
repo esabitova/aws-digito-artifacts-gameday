@@ -253,8 +253,8 @@ class PublishDocuments:
                                              .format(value, rf, metadata_file_path))
             if rf in metadata_attrs.metadata_attrs_max_size:
                 if len(value) > metadata_attrs.metadata_attrs_max_size.get(rf):
-                    failed_fields.append(f'Attribute [${rf}] in [${metadata_file_path}] is [{value}], length exceeds '
-                                         f'limit of [${metadata_attrs.metadata_attrs_max_size.get(rf)}].')
+                    failed_fields.append(f'Attribute [{rf}] in [{metadata_file_path}] is [{value}], length exceeds '
+                                         f'limit of [{metadata_attrs.metadata_attrs_max_size.get(rf)}].')
 
         tag = document_metadata.get('tag').split(":")  # Tag as an array [compute,test,asg-inject_cpu_load,2020-07-08]
         # path as an array [???, ..., documents, compute,test,asg-inject_cpu_load,2020-07-08,Documents,metadata.json]

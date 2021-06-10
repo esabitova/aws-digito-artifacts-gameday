@@ -1,44 +1,35 @@
-import json
-import os
 import re
+from collections import defaultdict
 
 
 class GlobalMetadataValidator:
-    unique_attributes = {}
+    attrs_map = defaultdict(set)
+    unique_attributes = ['tag']
+    unique_cfn_attributes = ['alarmName', 'documentName']
 
-    def __init__(self):
-        pass
+    def iterate_file(self, metadata_content, filepath):
+        self._register_unique_attributes(metadata_content, filepath)
+        self._register_unique_cfn_attributes(metadata_content, filepath)
 
-    def get_metadata_violations(self, root, files):
+    def get_metadata_violations(self):
         violations = []
-        self._validate_unique_tag(root, files, violations)
+        self._validate_unique_values(violations)
         return violations
 
-    def _validate_unique_tag(self, root, files, violations):
-        for f in files:
-            if f == 'metadata.json':
-                with open(os.path.join(root, f)) as metadata_file:
-                    metadata_content = json.load(metadata_file)
-                    self._validate_unique_attribute(metadata_content, "tag", violations)
-                    self._validate_unique_cfn_attribute(metadata_content, "alarmName", violations)
-                    self._validate_unique_cfn_attribute(metadata_content, "documentName", violations)
+    def _register_unique_attributes(self, metadata_content, filepath):
+        for attribute in self.unique_attributes:
+            if attribute in metadata_content:
+                self.attrs_map[(attribute, metadata_content[attribute])].add(filepath)
 
-    def _validate_unique_attribute(self, metadata_content, type, violations):
-        if type not in metadata_content:
-            return
-        self._validate_unique_value(type, metadata_content[type], violations)
+    def _register_unique_cfn_attributes(self, metadata_content, filepath):
+        for attribute in self.unique_cfn_attributes:
+            if attribute in metadata_content:
+                self.attrs_map[(f'cfn-{attribute}', self._cfn_resource_name(metadata_content[attribute]))].add(filepath)
 
-    def _validate_unique_cfn_attribute(self, metadata_content, type, violations):
-        if type not in metadata_content:
-            return
-        self._validate_unique_value(f'cfn-{type}', self._cfn_resource_name(metadata_content[type]), violations)
-
-    def _validate_unique_value(self, type, value, violations):
-        if type not in self.unique_attributes:
-            self.unique_attributes[type] = []
-        if value in self.unique_attributes[type]:
-            violations.append(f"Found non-unique {type}: {value}")
-        self.unique_attributes[type].append(value)
+    def _validate_unique_values(self, violations):
+        for (type, value), files in self.attrs_map.items():
+            if len(files) > 1:
+                violations.append(f"Found non-unique {type} for {value} in files: {files}")
 
     def _cfn_resource_name(self, str):
         return re.sub(r"[^a-zA-Z0-9]", "", str)
