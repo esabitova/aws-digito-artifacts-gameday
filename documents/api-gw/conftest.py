@@ -77,6 +77,9 @@ cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_li
 get_api_key_and_perform_https_requests_expression = 'get API key and perform "{count}" https "{method}" requests ' \
                                                     'with interval "{interval}" seconds'
 
+get_api_key_and_perform_https_post_requests_expression = 'provide API key and perform "{count}" https "{method}" ' \
+                                                         'requests with interval "{interval}" seconds'
+
 get_api_key_and_invoke_lambda_to_perform_https_requests = 'get API key "{api_key_id_ref}" and invoke lambda ' \
                                                           '"{lambda_arn_ref}" to perform "{count}" http requests ' \
                                                           'with interval "{interval}" seconds'
@@ -91,6 +94,9 @@ cache_httpws_default_throttling_settings = 'cache default route throttling rate 
 cache_httpws_route_throttling_settings = 'cache route throttling rate limit as "{rate_limit_key}" and ' \
                                          'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution' \
                                          '\n{input_parameters}'
+
+call_api_gw_several_times_on_period = 'call test method "{api_method}" api-gw "{call_apigw_times:d}" times ' \
+                                      'with "{call_apigw_delay:d}" seconds delay\n{input_parameters}'
 
 
 @given(parsers.parse('cache API GW property "{json_path}" as "{cache_property}" "{step_key}" SSM automation execution'
@@ -610,3 +616,17 @@ def call_ws_endpoint(
             logging.info(f'Handshake failed with {str(e.status_code)}')
         sleep(request_delay)
         request_count -= 1
+
+
+@when(parsers.parse(get_api_key_and_perform_https_post_requests_expression))
+def get_api_key_and_perform_https_post_requests_expression(
+        resource_pool, ssm_test_cache, boto3_session, count, method, interval
+):
+    api_key_id = ssm_test_cache['before']['ApiKeyId']
+    api_host = ssm_test_cache['before']['ApiHost']
+    api_path = ssm_test_cache['before']['ApiPath']
+    api_url = 'https://' + api_host + api_path
+    count = int(count)
+    interval = int(interval)
+    apigw_utils.invoke_several_post_api_gw(boto3_session, api_key_id, api_host, api_url, count,
+                                           interval)

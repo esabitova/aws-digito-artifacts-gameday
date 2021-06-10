@@ -8,11 +8,12 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription: 'Alarm by Digito that reports when invocation count is anomalous with band width ${Threshold}'
+      AlarmDescription: 'Digito alarm that tracks the invocation anomalities.'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
+      EvaluationPeriods: 5
       DatapointsToAlarm: 3
-      EvaluationPeriods: 3
+      TreatMissingData: missing
       Metrics:
         - Expression:
              'ANOMALY_DETECTION_BAND(m1,${Threshold})'
@@ -20,13 +21,11 @@ Resources:
         - Id: m1
           MetricStat:
             Metric:
-              MetricName: Invocations
-              Namespace: AWS/Lambda
+              MetricName: Count
+              Namespace: AWS/ApiGateway
               Dimensions:
-                - Name: FunctionName
-                  Value: '${FunctionName}'
-            Period: 300
-            Stat: Sum
+                - Name: ApiName
+                  Value: ${ApiName}
+            Period: 60
+            Stat: Average
       ThresholdMetricId: ad1
-      TreatMissingData: missing
-

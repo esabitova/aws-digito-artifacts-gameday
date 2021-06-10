@@ -1,0 +1,15 @@
+{
+  "displayName": "Number of requests from ApiGateway",
+  "description": "Digito alarm that tracks the invocation anomalities, when requests count from API-Gateway abnormally spike or drop.",
+  "alarmName": "Digito-count-error:api-gw:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "api-gw:alarm:health-count_error:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "api-gw:sop:update_version_http_ws:2020-10-26",
+    "api-gw:sop:update_version_rest:2020-10-26"
+]
+}

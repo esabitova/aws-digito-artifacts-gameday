@@ -25,6 +25,9 @@ Outputs:
   RestApiGwId:
     Description: The ID of the REST API Gateway
     Value: !Ref ApplicationsApi
+  ApiName:
+    Description: Export ApiName dimension
+    Value: !Join ["-", ["RestApiGateway-Digito", !Ref "AWS::Region", !Ref "AWS::AccountId", !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref "AWS::StackId"]]]]]]
   RestApiGwStageName:
     Description: The stage name of the REST API Gateway
     Value: !Ref ApplicationsApiStage
@@ -46,6 +49,18 @@ Outputs:
   5XXErrorAlarmName:
     Description: REST API GW Alarm based on HTTP5xx metric
     Value: !Ref 5XXErrorAlarm
+  CountAlarmName:
+    Description: REST API GW Alarm based on anomaly detection in total requests count metric
+    Value: !Ref CountAlarm
+  SimpleCountAlarmName:
+    Description: REST API GW Alarm based on total requests count metric
+    Value: !Ref SimpleCountAlarm
+  LatencyAlarmName:
+    Description: REST API GW Alarm based on latency metric 
+    Value: !Ref LatencyAlarm
+  IntegrationLatencyAlarmName:
+    Description: REST API GW Alarm based on IntegrationLatency metric 
+    Value: !Ref IntegrationLatencyAlarm
   ApiKeyId:
     Description: The ID of API key
     Value: !Ref ApiKey
@@ -61,6 +76,18 @@ Parameters:
     Description: Usage Plan limit value
     Type: String
     Default: WEEK
+  AverageInvocationsThreshold:
+    Type: String
+    Description: AverageInvocations * 0.05 per 1 minute
+    Default: 5
+  ExternalBackendUri:
+    Type: String
+    Description: External url to test backend response when POST method is invoked
+    Default: https://httpbin.org/post
+  IntegrationLatencyAlarmThreshold:
+    Type: String
+    Description: Threshold for IntegrationLatency Alarm
+    Default: 250
 Resources:
   UsagePlan:
     Type: AWS::ApiGateway::UsagePlan
@@ -197,6 +224,34 @@ Resources:
             application/json: !Ref ApiGatewayModel
           StatusCode: '200'
 
+  ApiGatewayMethodPost:
+    Type: AWS::ApiGateway::Method 
+    Properties:
+      HttpMethod: POST
+      ResourceId: !Ref ApiGatewayResource
+      RestApiId:
+        !Ref ApplicationsApi
+      OperationName: 'app1'
+      ApiKeyRequired: True
+      AuthorizationType: AWS_IAM
+      RequestParameters:
+        method.request.querystring.params: true
+      Integration:
+        Type: HTTP_PROXY
+        IntegrationHttpMethod: POST        
+        RequestParameters:
+          integration.request.querystring.params: method.request.querystring.params
+        IntegrationResponses:
+          - ResponseTemplates:
+              application/json: '{"message": "hello dyno"}'
+            SelectionPattern: '2\d{2}'          
+            StatusCode: '200'
+        Uri: !Ref ExternalBackendUri
+        ConnectionType: "INTERNET"
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+
   ApiGatewayPushToCloudWatchRole:
     Type: AWS::IAM::Role
     Properties:
@@ -218,7 +273,9 @@ Resources:
       CloudWatchRoleArn: !Sub ${ApiGatewayPushToCloudWatchRole.Arn}
 
   ApplicationsApiDeployment:
-    DependsOn: ApiGatewayMethodGet
+    DependsOn: 
+      - ApiGatewayMethodPost
+      - ApiGatewayMethodGet
     Type: AWS::ApiGateway::Deployment
     Properties:
       RestApiId: !Ref ApplicationsApi
@@ -268,7 +325,7 @@ Resources:
       MetricName: 4XXError
       Namespace: AWS/ApiGateway
       Period: 60
-      ExtendedStatistic: p20
+      ExtendedStatistic: p80
       Threshold: 0
       TreatMissingData: notBreaching
 
@@ -301,6 +358,156 @@ Resources:
       MetricName: 5XXError
       Namespace: AWS/ApiGateway
       Period: 60
-      ExtendedStatistic: p10
+      ExtendedStatistic: p90
       Threshold: 0
       TreatMissingData: notBreaching
+
+  CountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api Anomaly detection Count alarm for test'
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      TreatMissingData: missing
+      ComparisonOperator: "LessThanLowerOrGreaterThanUpperThreshold"
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "AWS/ApiGateway"
+              MetricName: "Count"
+              Dimensions:
+                - Name: ApiName
+                  Value: !Join
+                    - "-"
+                    - - "RestApiGateway-Digito"
+                      - !Ref "AWS::Region"
+                      - !Ref "AWS::AccountId"
+                      - !Select
+                        - 0
+                        - !Split
+                          - "-"
+                          - !Select
+                            - 2
+                            - !Split
+                              - "/"
+                              - !Ref "AWS::StackId"
+                - Name: Stage
+                  Value: !Ref ApplicationsApiStage
+            Period: 60
+            Stat: "Average"
+          ReturnData: true
+        - Id: "ad1"
+          Expression:
+            !Join [
+            "",
+              [
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageInvocationsThreshold,
+                ")",
+              ],
+            ]
+          Label: "Count (expected)"
+          ReturnData: true
+      ThresholdMetricId: "ad1"
+  
+  SimpleCountAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api Count alarm for test'
+      ComparisonOperator: LessThanThreshold
+      EvaluationPeriods: 3
+      DatapointsToAlarm: 1
+      TreatMissingData: missing
+      Dimensions:
+        - Name: ApiName
+          Value: !Join
+            - "-"
+            - - "RestApiGateway-Digito"
+              - !Ref "AWS::Region"
+              - !Ref "AWS::AccountId"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+        - Name: Stage
+          Value: !Ref ApplicationsApiStage
+      
+      MetricName: Count
+      Namespace: AWS/ApiGateway
+      Period: 60
+      Statistic: Average
+      Threshold: 1
+      
+
+  LatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api Latency alarm for test'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Join
+            - "-"
+            - - "RestApiGateway-Digito"
+              - !Ref "AWS::Region"
+              - !Ref "AWS::AccountId"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+        - Name: Stage
+          Value: !Ref ApplicationsApiStage
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      MetricName: Latency
+      Namespace: AWS/ApiGateway
+      Period: 60
+      ExtendedStatistic: p90
+      Threshold: 250
+      TreatMissingData: missing
+  
+  IntegrationLatencyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'Api Integration Latency alarm for test'
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ApiName
+          Value: !Join
+            - "-"
+            - - "RestApiGateway-Digito"
+              - !Ref "AWS::Region"
+              - !Ref "AWS::AccountId"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+        - Name: Stage
+          Value: !Ref ApplicationsApiStage
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
+      MetricName: IntegrationLatency
+      Namespace: AWS/ApiGateway
+      Period: 60
+      ExtendedStatistic: p90
+      Threshold: !Ref IntegrationLatencyAlarmThreshold
