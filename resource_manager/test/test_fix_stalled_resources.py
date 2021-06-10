@@ -10,7 +10,9 @@ from resource_manager.src.s3 import S3
 class TestFixIntegTestStalledResources(unittest.TestCase):
 
     def test_fix_integ_test_stalled_resources(self):
-        boto3_session = boto3.Session(profile_name='default')
+        # We are using 'Instance metadata service on an Amazon EC2 instance that has an IAM role configured'
+        # in CodeCommit Pipeline: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+        boto3_session = boto3.Session()
         aws_account_id = boto3_session.client('sts').get_caller_identity().get('Account')
 
         cfn_helper = CloudFormationTemplate(boto3_session)

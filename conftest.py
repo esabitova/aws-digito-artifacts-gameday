@@ -104,6 +104,13 @@ def pytest_sessionstart(session):
         boto3_session = get_boto3_session(aws_profile_name, aws_role_arn)
         session.config.option.aws_account_id = boto3_session.client('sts').get_caller_identity().get('Account')
 
+        logging.info(BgColors.OKBLUE + 'Starting testing session with following parameters:' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - test session id: {test_session_id}' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - aws account id: {session.config.option.aws_account_id}' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - aws region: {boto3_session.region_name}' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - aws profile: {aws_profile_name}' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - aws role arn: {aws_role_arn}' + BgColors.ENDC)
+
         cfn_helper = CloudFormationTemplate(boto3_session)
         s3_helper = S3(boto3_session, session.config.option.aws_account_id)
         rm = ResourcePool(cfn_helper, s3_helper, dict(), None, None)
@@ -285,7 +292,10 @@ def get_boto3_session(aws_profile_name, aws_role_arn):
     :param aws_profile_name: The AWS profile name as credential provider.
     :param aws_role_arn: The AWS IAM role arn to be used as credential provider.
     """
-    session = boto3.Session(profile_name=aws_profile_name)
+    # If aws_profile_name == 'no_profile' we are using
+    # 'Instance metadata service on an Amazon EC2 instance that has an IAM role configured'
+    #  in CodeCommit Pipeline: https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+    session = boto3.Session() if aws_profile_name == 'no_profile' else boto3.Session(profile_name=aws_profile_name)
     if aws_role_arn:
         logging.info(f"Creating boto3 session with [{aws_profile_name}] profile and [{aws_role_arn}] role credentials.")
         return RoleSession(iam_role_arn=aws_role_arn, session_name='integration_test', credential_session=session,
@@ -301,6 +311,7 @@ def publish_ssm_document(boto3_session, ssm_document_name, function_logger):
     Publish SSM document using 'publisher.publish_documents.PublishDocuments'.
     :param boto3_session The boto3 session
     :param ssm_document_name The SSM document name
+    :param function_logger The function logger
     """
     p = PublishDocuments(boto3_session, function_logger)
     documents_metadata = p.get_documents_list_by_names([ssm_document_name])
