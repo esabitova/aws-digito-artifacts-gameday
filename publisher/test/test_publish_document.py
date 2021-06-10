@@ -8,6 +8,7 @@ from publisher.src.publish_documents import PublishDocuments
 from publisher.src.document_validator import DocumentValidator
 import publisher.src.document_metadata_attrs as metadata_attrs
 import boto3
+from publisher.src.global_metadata_validator import GlobalMetadataValidator
 
 
 @pytest.mark.style_validator
@@ -28,6 +29,10 @@ class TestPublishDocuments(unittest.TestCase):
                 dirs.remove('not_completed')
             if "util" in dirs:
                 dirs.remove('util')
+
+            global_metadata_validator = GlobalMetadataValidator()
+            violations = global_metadata_validator.get_metadata_violations(root, files)
+            fail_messages.extend(violations)
 
             for f in files:
                 if f == 'metadata.json':

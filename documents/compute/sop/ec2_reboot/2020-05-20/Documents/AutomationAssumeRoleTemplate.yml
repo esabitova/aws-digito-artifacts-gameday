@@ -20,7 +20,8 @@ Description: Role for Digito-Ec2Reboot_2020-05-20
 Outputs:
   DigitoComputeEc2RebootAssumeRole:
     Description: Digito-Ec2Reboot_2020-05-20 Automation Assume Role ARN
-    Value: !GetAtt DigitoComputeEc2RebootAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoComputeEc2RebootAssumeRole.Arn
 Resources:
   DigitoComputeEc2RebootAssumeRole:
     Type: AWS::IAM::Role
