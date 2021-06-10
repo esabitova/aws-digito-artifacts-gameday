@@ -5,8 +5,7 @@ from time import sleep
 import jsonpath_ng
 import pytest
 import requests
-from websocket import create_connection
-from websocket._exceptions import WebSocketBadStatusException
+from websocket import create_connection, WebSocketBadStatusException
 from pytest_bdd import (
     given, parsers, when, then
 )
