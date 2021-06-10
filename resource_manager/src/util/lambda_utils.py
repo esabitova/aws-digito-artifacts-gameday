@@ -1,5 +1,7 @@
 import logging
+
 from boto3 import Session
+
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from .boto3_client_factory import client
 
@@ -105,8 +107,8 @@ def trigger_lambda(lambda_arn: str, payload: dict,
         log.error(invoke_result)
         raise ValueError('Failed to invoke lambda')
 
-    payload = invoke_result['Payload'].read()
-    return payload
+    invoke_result['Payload'] = invoke_result['Payload'].read()
+    return invoke_result
 
 
 def trigger_throttled_lambda(lambda_arn: str, session: Session):

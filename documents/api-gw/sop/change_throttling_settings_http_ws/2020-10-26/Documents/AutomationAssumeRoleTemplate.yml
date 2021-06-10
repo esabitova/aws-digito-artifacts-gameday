@@ -21,7 +21,7 @@ Outputs:
   DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole:
     Description: Digito-ChangeThrottlingSettingsHttpWs_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole.Arn
+      !GetAtt DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole.Arn
 Resources:
   DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole:
     Type: AWS::IAM::Role

@@ -21,7 +21,7 @@ Outputs:
   DigitoRestApiGwThrottlingAssumeRole:
     Description: Digito-RestApiGwThrottling_2020-09-211 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRestApiGwThrottlingAssumeRole.Arn
+      !GetAtt DigitoRestApiGwThrottlingAssumeRole.Arn
 Resources:
   DigitoRestApiGwThrottlingAssumeRole:
     Type: AWS::IAM::Role
@@ -56,7 +56,7 @@ Resources:
               - logs:DescribeLogStreams
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoRestApiGwThrottlingAssumeRole.Arn
+              - !GetAtt DigitoRestApiGwThrottlingAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

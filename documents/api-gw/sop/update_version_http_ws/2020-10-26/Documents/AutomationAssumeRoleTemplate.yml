@@ -21,7 +21,7 @@ Outputs:
   DigitoApiGwUpdateVersionHttpWsAssumeRole:
     Description: Digito-UpdateVersionHttpWs_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoApiGwUpdateVersionHttpWsAssumeRole.Arn
+      !GetAtt DigitoApiGwUpdateVersionHttpWsAssumeRole.Arn
 Resources:
   DigitoApiGwUpdateVersionHttpWsAssumeRole:
     Type: AWS::IAM::Role

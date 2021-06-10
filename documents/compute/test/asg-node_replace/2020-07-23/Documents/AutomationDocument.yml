@@ -85,25 +85,19 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::asg_util.start_instance_refresh
   - name: WaitForRefreshToFinish
-    action: 'aws:executeScript'
+    action: 'aws:waitForAwsResourceProperty'
+    timeoutSeconds: 3600
     onFailure: 'step:CancelInstanceRefresh'
     onCancel: 'step:TriggerRollback'
-    maxAttempts: 10
-    timeoutSeconds: 900
-    outputs:
-      - Name: InstanceRefreshStatus
-        Selector: $.Payload.InstanceRefreshStatus
-        Type: String
     inputs:
-      Runtime: python3.6
-      Handler: wait_for_refresh_to_finish
-      InputPayload:
-        AutoScalingGroupName: '{{AutoScalingGroupName}}'
-        InstanceRefreshId: '{{StartInstanceRefresh.InstanceRefreshId}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::asg_util.imports
-
-        SCRIPT_PLACEHOLDER::asg_util.wait_for_refresh_to_finish
+      Service: autoscaling
+      Api: DescribeInstanceRefreshes
+      PropertySelector: '$.InstanceRefreshes[0].Status'
+      DesiredValues:
+        - Successful
+      AutoScalingGroupName: '{{AutoScalingGroupName}}'
+      InstanceRefreshIds:
+        - '{{StartInstanceRefresh.InstanceRefreshId}}'
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1

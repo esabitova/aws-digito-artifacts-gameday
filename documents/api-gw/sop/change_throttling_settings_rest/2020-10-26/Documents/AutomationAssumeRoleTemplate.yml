@@ -21,7 +21,7 @@ Outputs:
   DigitoRestApiGwChangeThrottlingSettingsAssumeRoleArn:
     Description: DigitoRestApiGwChangeThrottlingSettings Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRestApiGwChangeThrottlingSettingsAssumeRole.Arn
+      !GetAtt DigitoRestApiGwChangeThrottlingSettingsAssumeRole.Arn
 Resources:
   DigitoRestApiGwChangeThrottlingSettingsAssumeRole:
     Type: AWS::IAM::Role

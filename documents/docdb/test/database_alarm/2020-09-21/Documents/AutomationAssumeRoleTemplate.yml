@@ -20,7 +20,8 @@ Description: Role for SSM DocDbDatabaseAlarm
 Outputs:
   DigitoDocDbDatabaseAlarmAssumeRole:
     Description: DigitoDocDbDatabaseAlarm Automation Assume Role ARN
-    Value: !GetAtt DigitoDocDbDatabaseAlarmAssumeRole.Arn
+    Value:
+      Fn::GetAtt: DigitoDocDbDatabaseAlarmAssumeRole.Arn
 Resources:
   DigitoDocDbDatabaseAlarmAssumeRole:
     Type: AWS::IAM::Role
@@ -58,7 +59,7 @@ Resources:
               - ssm:GetParameters
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoDocDbDatabaseAlarmAssumeRole.Arn
+              - Fn::GetAtt: DigitoDocDbDatabaseAlarmAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

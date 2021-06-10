@@ -8,6 +8,7 @@ from publisher.src.publish_documents import PublishDocuments
 from publisher.src.document_validator import DocumentValidator
 import publisher.src.document_metadata_attrs as metadata_attrs
 import boto3
+from publisher.src.global_metadata_validator import GlobalMetadataValidator
 
 
 @pytest.mark.style_validator
@@ -23,6 +24,7 @@ class TestPublishDocuments(unittest.TestCase):
         pd = PublishDocuments(boto3.Session())
         meta_attrs_map = metadata_attrs.metadata_attrs_map
         fail_messages = []
+        global_metadata_validator = GlobalMetadataValidator()
         for root, dirs, files in os.walk("documents"):
             if "not_completed" in dirs:
                 dirs.remove('not_completed')
@@ -31,9 +33,9 @@ class TestPublishDocuments(unittest.TestCase):
 
             for f in files:
                 if f == 'metadata.json':
-                    with open(os.path.join(root, f)) as metadata_file:
+                    file_path = os.path.join(root, f)
+                    with open(file_path) as metadata_file:
                         document_metadata = json.load(metadata_file)
-                        file_path = os.path.join(root, f)
                         if not self.__file_in_target_service(file_path):
                             continue
                         violations = []
@@ -47,7 +49,9 @@ class TestPublishDocuments(unittest.TestCase):
                             violations = pd.get_metadata_violations(document_metadata, file_path,
                                                                     meta_attrs_map.get('sop'))
                         fail_messages.extend(violations)
+                        global_metadata_validator.iterate_file(document_metadata, file_path)
 
+        fail_messages.extend(global_metadata_validator.get_metadata_violations())
         for msg in fail_messages:
             logging.error(msg)
         if len(fail_messages) > 0:

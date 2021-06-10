@@ -50,3 +50,9 @@ metadata_valid_values_map = {
     "documentType": ["Automation", "Command"],
     "documentFormat": ["YAML", "JSON"]
 }
+
+metadata_attrs_max_size = {
+    "displayName": 200,
+    "alarmName": 100,
+    "documentName": 100
+}

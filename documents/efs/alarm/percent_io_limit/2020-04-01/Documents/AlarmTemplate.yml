@@ -6,7 +6,8 @@ Parameters:
 Outputs:
   AlarmName:
     Description: Percent IO Limit Alarm Name
-    Value: !Ref ${AlarmLogicalId}
+    Value:
+      Ref: ${AlarmLogicalId}
 Resources:
   ${AlarmLogicalId}:
     Type: "AWS::CloudWatch::Alarm"

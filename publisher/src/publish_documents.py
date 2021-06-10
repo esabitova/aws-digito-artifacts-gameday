@@ -251,12 +251,16 @@ class PublishDocuments:
                     if value not in metadata_attrs.metadata_valid_values_map.get(rf):
                         failed_fields.append('Invalid value [{}] for attribute [{}] in [{}].'
                                              .format(value, rf, metadata_file_path))
+            if rf in metadata_attrs.metadata_attrs_max_size:
+                if len(value) > metadata_attrs.metadata_attrs_max_size.get(rf):
+                    failed_fields.append(f'Attribute [{rf}] in [{metadata_file_path}] is [{value}], length exceeds '
+                                         f'limit of [{metadata_attrs.metadata_attrs_max_size.get(rf)}].')
 
-        # tag = document_metadata.get('tag').split(":")  # Tag as an array [compute,test,asg-inject_cpu_load,2020-07-08]
-        # path as an array [documents, compute, test, asg-inject_cpu_load, 2020-07-08, Documents, metadata.json]
-        # parsed_path = os.path.normpath(metadata_file_path).split(os.sep)
-        # if tag != parsed_path[1:-2]:
-        #    failed_fields.append(f'Invalid tag {":".join(tag)} for document at path {os.sep.join(parsed_path[1:-2])}')
+        tag = document_metadata.get('tag').split(":")  # Tag as an array [compute,test,asg-inject_cpu_load,2020-07-08]
+        # path as an array [???, ..., documents, compute,test,asg-inject_cpu_load,2020-07-08,Documents,metadata.json]
+        parsed_path = os.path.normpath(metadata_file_path).split(os.sep)
+        if tag != parsed_path[-6:-2]:
+            failed_fields.append(f'Invalid tag {":".join(tag)} for document at path {os.sep.join(parsed_path[1:-2])}')
         return failed_fields
 
 

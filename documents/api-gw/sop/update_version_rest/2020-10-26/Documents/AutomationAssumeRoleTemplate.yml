@@ -21,7 +21,7 @@ Outputs:
   DigitoRestApiGwUpdateVersionRestAssumeRoleArn:
     Description: DigitoRestApiGwUpdateVersionRest Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRestApiGwUpdateVersionRestAssumeRole.Arn
+      !GetAtt DigitoRestApiGwUpdateVersionRestAssumeRole.Arn
 Resources:
   DigitoRestApiGwUpdateVersionRestAssumeRole:
     Type: AWS::IAM::Role

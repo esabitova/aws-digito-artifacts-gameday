@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from test import test_data_provider
 from src.asg_util import get_instance_ids_by_percentage, get_instance_ids_in_asg_random_az
 from src.asg_util import start_instance_refresh, cancel_instance_refresh, assert_no_refresh_in_progress
-from src.asg_util import wait_for_refresh_to_finish, assert_no_suspended_process, get_instance_ids_in_asg
+from src.asg_util import assert_no_suspended_process, get_instance_ids_in_asg
 from src.asg_util import get_networking_configuration_from_asg, suspend_launch, wait_for_in_service
 from src.asg_util import get_instance_data, update_asg, rollback_scaleup
 
@@ -79,25 +79,6 @@ class TestAsgUtil(unittest.TestCase):
 
         cancel_instance_refresh(events, None)
         self.mock_autoscaling.cancel_instance_refresh.assert_called_once()
-
-    def test_wait_for_refresh_to_finish_success(self):
-        events = {}
-        events['AutoScalingGroupName'] = test_data_provider.ASG_NAME
-        events['InstanceRefreshId'] = test_data_provider.INSTANCE_REFRESH_ID
-
-        self.mock_autoscaling.describe_instance_refreshes.return_value = \
-            test_data_provider.get_sample_describe_instance_refreshes_response('Successful')
-        wait_for_refresh_to_finish(events, None)
-        self.mock_autoscaling.describe_instance_refreshes.assert_called_once()
-
-    def test_wait_for_refresh_to_finish_cancelled(self):
-        events = {}
-        events['AutoScalingGroupName'] = test_data_provider.ASG_NAME
-        events['InstanceRefreshId'] = test_data_provider.INSTANCE_REFRESH_ID
-
-        self.mock_autoscaling.describe_instance_refreshes.return_value = \
-            test_data_provider.get_sample_describe_instance_refreshes_response('Cancelled')
-        self.assertRaises(Exception, wait_for_refresh_to_finish, events, None)
 
     def test_assert_no_refresh_in_progress_success(self):
         events = {}
