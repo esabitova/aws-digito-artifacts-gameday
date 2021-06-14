@@ -8,16 +8,13 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: !Join
-        - ""
-        - - 'Alarm by Digito that reports when NumberOfMessagesSent deviation is over '
-          - ${Threshold}
-          - '%'
+      AlarmDescription:
+        Fn::Sub: 'Alarm by Digito that reports when NumberOfMessagesSent deviation is over ${Threshold}%'
       AlarmActions:
         - Ref: SNSTopicARN
       Metrics:
         - Expression:
-            Fn::Join: ['', ["ANOMALY_DETECTION_BAND(m1,", ${Threshold}, ")"]]
+            Fn::Sub: "ANOMALY_DETECTION_BAND(m1,${Threshold})"
           Id: ad1
         - Id: m1
           MetricStat:
