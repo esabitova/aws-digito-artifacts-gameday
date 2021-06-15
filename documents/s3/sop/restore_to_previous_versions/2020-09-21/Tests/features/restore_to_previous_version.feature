@@ -1,11 +1,12 @@
-@s3
+@s3 @restore_from_backup
 Feature: SSM automation document to restore an S3 object into previous version
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to restore an S3 object into previous version
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                     | ResourceType |
-      | resource_manager/cloud_formation_templates/S3Template.yml                                           | ON_DEMAND    |
-      | documents/s3/sop/restore_to_previous_versions/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                     | ResourceType |CleanupS3BucketLambdaArn                                     |
+      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml                         | SHARED       |                                                             |
+      | resource_manager/cloud_formation_templates/S3Template.yml                                           | ON_DEMAND    |{{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}}|
+      | documents/s3/sop/restore_to_previous_versions/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                             |
     And published "Digito-RestoringToPreviousVersion_2020-09-21" SSM document
     And put "object-to-restore-version.txt" object "2" times with different content into "S3Bucket" bucket
       | S3Bucket                                        |

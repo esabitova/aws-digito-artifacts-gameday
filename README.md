@@ -462,6 +462,36 @@ pool_size = dict(
 Cloud Formation templates which are used for SSM automation documents integration tests as a resources should have unique name and located under following folder:
 .../AwsDigitoArtifactsGameday/resource_manager/cloud_formation_templates
 
+### Cleaning Un-deletable Resources
+There can be cases when we want to delete cloud formation stacks or destroy integration test resources (cfn stacks), however cloud formation stack can contain resource which cannot be deleted because of different reasons. 
+For example, S3 bucket defined in cloud formation stack is not empty, in this case stack deletion will fail. In order to delete this stack we need to perform S3 bucket cleaning operation before stack deletion. 
+To achieve this goal we are can use benefits of  [aws-cfn-custom-resource](https://docs.aws.amazon.com/es_es/AWSCloudFormation/latest/UserGuide/aws-resource-cfn-customresource.html). 
+For instance we do have "CleanupS3BucketLambda" (SHARED lambda resource to clean S3 buckets) and "S3Template" (ON_DEMAND resource which uses lambda in custom resource to clean S3 buckets before deleting stack).
+
+Cucumber test scenario example:
+```
+Given the cloud formation templates as integration test resources
+      | CfnTemplatePath                                                                           | ResourceType | CleanupS3BucketLambdaArn                                    |
+      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml               | SHARED       |                                                             |
+      | resource_manager/cloud_formation_templates/S3Template.yml                                 | ON_DEMAND    |{{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}}|
+      | documents/s3/test/accidental_delete/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                             |
+```
+<b>File location:</b> documents/s3/test/accidental_delete/2020-04-01/Tests/features/accidental_delete_usual_case.feature
+
+Custom resource definition which is using lambda function example:
+```
+  # To clean S3 buckets before deleting stack.
+  CleanupS3BucketsOnDelete:
+    Type: Custom::CleanupS3BucketsOnDelete
+    Properties:
+      ServiceToken: !Ref CleanupS3BucketLambdaArn
+      BucketNames:
+        - !Ref S3BackupBucket
+        - !Ref S3BucketForReplication
+        - !Ref S3BucketToRestore
+```
+<b>File location:</b> resource_manager/cloud_formation_templates/S3Template.yml
+
 ## Pytest Integration with Resource Pooling
 
 To integrate Resource Manager with pytest we are using following file (more about pytest [fixtures](https://pytest-bdd.readthedocs.io/en/stable/#reusing-fixtures) and [hooks](https://docs.pytest.org/en/stable/reference.html#hooks)):

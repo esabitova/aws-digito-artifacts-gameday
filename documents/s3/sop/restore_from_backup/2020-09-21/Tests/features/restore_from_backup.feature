@@ -3,9 +3,10 @@ Feature: SSM automation document to restore an S3 bucket from a backup bucket
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to restore an S3 bucket from a backup bucket without approval to clean the restore bucket
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                            | ResourceType |
-      | resource_manager/cloud_formation_templates/S3Template.yml                                  | ON_DEMAND    |
-      | documents/s3/sop/restore_from_backup/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                            | ResourceType | CleanupS3BucketLambdaArn                                    |
+      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml                | SHARED       |                                                             |
+      | resource_manager/cloud_formation_templates/S3Template.yml                                  | ON_DEMAND    |{{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}}|
+      | documents/s3/sop/restore_from_backup/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                             |
     And published "Digito-RestoreFromBackup_2020-09-21" SSM document
     And clear the bucket
       | BucketName                                      |

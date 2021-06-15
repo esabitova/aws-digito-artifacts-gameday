@@ -3,9 +3,10 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to accidentally delete files in S3 bucket
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                           | ResourceType |
-      | resource_manager/cloud_formation_templates/S3Template.yml                                 | ON_DEMAND    |
-      | documents/s3/test/accidental_delete/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                           | ResourceType | CleanupS3BucketLambdaArn                                    |
+      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml               | SHARED       |                                                             |
+      | resource_manager/cloud_formation_templates/S3Template.yml                                 | ON_DEMAND    |{{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}}|
+      | documents/s3/test/accidental_delete/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                             |
     And published "Digito-AccidentalDeleteS3Objects_2020-04-01" SSM document
     And clear the bucket
       | BucketName                                   |

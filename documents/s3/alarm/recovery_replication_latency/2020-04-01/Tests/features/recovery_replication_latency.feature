@@ -3,9 +3,10 @@ Feature: Alarm Setup - RecoveryReplicationLatency
 
   Scenario: Create the alarm based on the RecoveryReplicationLatency metric
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                    | ResourceType |
-      | resource_manager/cloud_formation_templates/S3Template.yml          | ON_DEMAND    |
-      | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED       |
+      | CfnTemplatePath                                                             | ResourceType | CleanupS3BucketLambdaArn                                    |
+      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml | SHARED       |                                                             |
+      | resource_manager/cloud_formation_templates/S3Template.yml                   | ON_DEMAND    |{{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}}|
+      | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml          | SHARED       |                                                             |
     And cache bucket replication property "$.ReplicationConfiguration.Rules[0].ID" as "RuleId" "before" SSM automation execution
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
