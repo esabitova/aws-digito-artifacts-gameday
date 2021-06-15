@@ -589,12 +589,13 @@ def wait_for_alarm(cfn_output_params, cfn_installed_alarms, ssm_test_cache, boto
     wait_for_metric_alarm_state(boto3_session, alarm_name, alarm_state, time_to_wait)
 
 
-@given(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+@given(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
              'check every {delay_sec} seconds'))
-@then(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+@then(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
             'check every {delay_sec} seconds'))
-def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, cfn_installed_alarms: dict,
-                           cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
+def wait_until_alarm(alarm_name_ref: str, alarm_expected_state: str, wait_sec: str, delay_sec: str,
+                     cfn_installed_alarms: dict, cfn_output_params: dict,
+                     ssm_test_cache: dict, boto3_session: boto3.Session):
     alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
                                                     'cache': ssm_test_cache,
                                                     'alarm': cfn_installed_alarms})
@@ -603,7 +604,7 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, c
     delay_sec = int(delay_sec)
     logging.info('Inputs:'
                  f'alarm_name:{alarm_name};'
-                 f'alarm_state:{alarm_state};'
+                 f'alarm_expected_state:{alarm_expected_state};'
                  f'wait_sec:{wait_sec};'
                  f'delay_sec:{delay_sec};')
 
@@ -615,7 +616,7 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, c
                                              alarm_name=alarm_name)
         logging.info(f'#{iteration}; Alarm:{alarm_name}; State: {alarm_state};'
                      f'Elapsed: {elapsed} sec;')
-        if alarm_state == AlarmState.OK:
+        if alarm_state == AlarmState[alarm_expected_state]:
             return
         time.sleep(delay_sec)
         end = time.time()
@@ -623,6 +624,7 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, c
         iteration += 1
 
     raise TimeoutError(f'After {wait_sec} alarm {alarm_name} is in {alarm_state} state;'
+                       f'Expected state: {alarm_expected_state}'
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')
 

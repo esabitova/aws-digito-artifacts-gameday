@@ -1,0 +1,11 @@
+{
+  "displayName": "SentMessageSize",
+  "description": "Alarm by Digito that triggers if SentMessageSize became close to allowed Threshold in bytes",
+  "alarmName": "Digito-SentMessageSize_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:health_alarm_sent_message_size:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
