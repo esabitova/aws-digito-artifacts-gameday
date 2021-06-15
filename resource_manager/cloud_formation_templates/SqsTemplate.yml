@@ -54,6 +54,9 @@ Outputs:
   SqsDlqForStandardQueueUrl:
     Description: Dead letter queue URL
     Value: !Ref SqsDlqForStandardQueue
+  SqsDlqForStandardQueueName:
+    Description: Dead letter queue URL
+    Value: !GetAtt SqsDlqForStandardQueue.QueueName
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm

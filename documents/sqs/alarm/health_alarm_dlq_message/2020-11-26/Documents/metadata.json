@@ -1,0 +1,11 @@
+{
+  "displayName": "DLQMessage",
+  "description": "Alarm by Digito that checks is there any message in DLQ? If so, it needs to be investigated as soon as possible.",
+  "alarmName": "Digito-DLQMessage_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:health_alarm_dlq_message:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
