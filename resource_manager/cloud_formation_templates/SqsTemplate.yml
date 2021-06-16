@@ -48,9 +48,15 @@ Outputs:
   SqsStandardQueueUrl:
     Description: Standard queue URL
     Value: !Ref SqsStandardQueue
+  SqsStandardQueueName:
+    Description: Standard queue URL
+    Value: !GetAtt SqsStandardQueue.QueueName
   SqsDlqForStandardQueueUrl:
     Description: Dead letter queue URL
     Value: !Ref SqsDlqForStandardQueue
+  SqsDlqForStandardQueueName:
+    Description: Dead letter queue URL
+    Value: !GetAtt SqsDlqForStandardQueue.QueueName
   NumberOfMessagesSentAlarm:
     Description: Alarm
     Value: !Ref  SQSNumberOfMessagesSentAlarm
@@ -228,11 +234,11 @@ Resources:
         - Id: "ad1"
           Expression:
             !Join [
-                "",
+            "",
               [
-                  "ANOMALY_DETECTION_BAND(m1, ",
-                  !Ref AverageNumberOfMessagesSentThreshold,
-                  ")",
+                "ANOMALY_DETECTION_BAND(m1, ",
+                !Ref AverageNumberOfMessagesSentThreshold,
+                ")",
               ],
             ]
           Label: "NumberOfMessagesSent (expected)"

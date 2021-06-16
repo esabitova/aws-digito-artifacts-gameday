@@ -17,7 +17,7 @@ Feature: SSM automation document to test dynamodb read throttling
     When SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" executed
       | DynamoDBTableName                                                   | AutomationAssumeRole                                                               | ReadThrottleAlarmName                                                             | ReadCapacityUnitsLimit |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>ReadThrottleEventsAlarmName}} | 2                      |
-    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1200" seconds
+    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And sleep for "30" seconds
@@ -33,7 +33,7 @@ Feature: SSM automation document to test dynamodb read throttling
       | DynamoDBTableName                                                   |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
 
-    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "1200" seconds
+    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And sleep for "60" seconds

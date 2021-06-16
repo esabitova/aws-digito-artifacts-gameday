@@ -12,7 +12,7 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                       | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwQuotaAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
 
-    Then Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "BackupQuotaConfiguration" in status "Success" for "300" seconds
+    Then Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "BackupQuotaConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And terminate "Digito-RestApiGwQuota_2020-09-21" SSM automation document

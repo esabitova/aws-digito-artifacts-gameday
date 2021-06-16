@@ -392,13 +392,22 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
         f'[{ssm_document_name}] with execution: {ssm_document.get_execution_url(ssm_execution_id)}'
 
 
-wait_for_execution_step_with_params_description = \
-    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" ' \
-    'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'
+@when(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}"\n{input_parameters}'))
+@then(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}"\n{input_parameters}'))
+def wait_for_execution_step_with_params_default_time_to_wait(cfn_output_params, ssm_document_name, ssm_step_name,
+                                                             expected_status, ssm_document, input_parameters,
+                                                             ssm_test_cache, test_name_log):
+    time_to_wait_default = 1200
+    wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait_default,
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache, test_name_log)
 
 
-@when(parse(wait_for_execution_step_with_params_description))
-@then(parse(wait_for_execution_step_with_params_description))
+@when(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}" for "{time_to_wait:d}" seconds\n{input_parameters}'))
+@then(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}" for "{time_to_wait:d}" seconds\n{input_parameters}'))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
                                         expected_status, ssm_document, input_parameters, ssm_test_cache, test_name_log):
     """
@@ -589,12 +598,13 @@ def wait_for_alarm(cfn_output_params, cfn_installed_alarms, ssm_test_cache, boto
     wait_for_metric_alarm_state(boto3_session, alarm_name, alarm_state, time_to_wait)
 
 
-@given(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+@given(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
              'check every {delay_sec} seconds'))
-@then(parse('Wait until alarm {alarm_name_ref} becomes OK within {wait_sec} seconds, '
+@then(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
             'check every {delay_sec} seconds'))
-def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, cfn_installed_alarms: dict,
-                           cfn_output_params: dict, ssm_test_cache: dict, boto3_session: boto3.Session):
+def wait_until_alarm(alarm_name_ref: str, alarm_expected_state: str, wait_sec: str, delay_sec: str,
+                     cfn_installed_alarms: dict, cfn_output_params: dict,
+                     ssm_test_cache: dict, boto3_session: boto3.Session):
     alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
                                                     'cache': ssm_test_cache,
                                                     'alarm': cfn_installed_alarms})
@@ -603,7 +613,7 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, c
     delay_sec = int(delay_sec)
     logging.info('Inputs:'
                  f'alarm_name:{alarm_name};'
-                 f'alarm_state:{alarm_state};'
+                 f'alarm_expected_state:{alarm_expected_state};'
                  f'wait_sec:{wait_sec};'
                  f'delay_sec:{delay_sec};')
 
@@ -615,7 +625,7 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, c
                                              alarm_name=alarm_name)
         logging.info(f'#{iteration}; Alarm:{alarm_name}; State: {alarm_state};'
                      f'Elapsed: {elapsed} sec;')
-        if alarm_state == AlarmState.OK:
+        if alarm_state == AlarmState[alarm_expected_state]:
             return
         time.sleep(delay_sec)
         end = time.time()
@@ -623,6 +633,7 @@ def wait_until_alarm_green(alarm_name_ref: str, wait_sec: str, delay_sec: str, c
         iteration += 1
 
     raise TimeoutError(f'After {wait_sec} alarm {alarm_name} is in {alarm_state} state;'
+                       f'Expected state: {alarm_expected_state}'
                        f'Elapsed: {elapsed} sec;'
                        f'{iteration} iterations;')
 

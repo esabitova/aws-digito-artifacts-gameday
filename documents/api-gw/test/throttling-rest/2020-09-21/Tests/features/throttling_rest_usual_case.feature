@@ -15,7 +15,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success" for "300" seconds
+    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
@@ -48,7 +48,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success" for "300" seconds
+    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"

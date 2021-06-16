@@ -1,0 +1,13 @@
+{
+  "displayName": "Restores to the latest snapshot and attaches (non-root volume) to the given EC2",
+  "description": "Restores to the latest snapshot and attaches (non-root volume) to the given EC2",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-EBSRestoreFromSnapshot_2020-12-02",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE,AZ",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "ebs:sop:restore_from_snapshot:2020-12-02"
+}

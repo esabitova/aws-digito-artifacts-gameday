@@ -24,7 +24,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>AlwaysOKAlarm}} |
 
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1000" seconds
+    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "AssertAlarmToBeGreen" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "TimedOut"

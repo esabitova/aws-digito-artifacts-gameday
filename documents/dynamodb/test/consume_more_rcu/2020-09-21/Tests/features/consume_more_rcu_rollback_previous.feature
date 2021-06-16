@@ -14,14 +14,14 @@ Feature: SSM automation document to test dynamodb read throttling
     When SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" executed
       | DynamoDBTableName                                                   | AutomationAssumeRole                                                               | ReadThrottleAlarmName                                                             | ReadCapacityUnitsLimit |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>ReadThrottleEventsAlarmName}} | 2                      |
-    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1200" seconds
+    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-ConsumeMoreRCU_2020-09-21" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    Then Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    Then Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution in status "Cancelled"

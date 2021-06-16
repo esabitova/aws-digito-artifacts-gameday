@@ -22,12 +22,12 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
     # Keep sending messages long enough so SSM times out if sending is not stopped by access denied error
-    And send messages for "1200" seconds until access denied
+    And send messages until access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     # Terminate execution
-    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "UpdateQueuePolicy" in status "Success" for "50" seconds
+    When Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "UpdateQueuePolicy" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-BreakingThePolicyForSQS_2020-11-27" SSM automation document
@@ -38,7 +38,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    And Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    And Wait for the SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution is on step "TriggerRollback" in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" execution in status "Cancelled"
@@ -46,7 +46,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | {{cache:SsmExecutionId>1}} |
 
     # Check policy
-    When Wait for alarm to be in state "ALARM" for "600" seconds
+    When Wait for alarm to be in state "ALARM"
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
@@ -61,7 +61,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And send messages for "600" seconds ignoring access denied until "5" sent successfully
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for alarm to be in state "OK" for "50" seconds
+    And Wait for alarm to be in state "OK"
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
     And sleep for "60" seconds

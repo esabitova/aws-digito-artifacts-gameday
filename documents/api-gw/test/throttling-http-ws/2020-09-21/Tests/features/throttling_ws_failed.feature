@@ -14,7 +14,7 @@ Feature: SSM automation document Digito-ThrottlingHttpWs_2020-09-21
     When SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" executed
       | HttpWsApiGwId                                | HttpWsStageName                                         | AutomationAssumeRole                                                              | 4xxAlarmName                                           |
       | {{cfn-output:HTTPWSApiGwTemplate>WsApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>WsStageNameThrottled}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwThrottlingHttpWsAssumeRole}} | {{cfn-output:HTTPWSApiGwTemplate>Ws4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success" for "1200" seconds
+    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And call ws endpoint "WsEndpoint" "12" times with delay "20" seconds

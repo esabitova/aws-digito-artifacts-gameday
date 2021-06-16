@@ -29,7 +29,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "UpdatePolicy" in status "Success" for "1000" seconds
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "UpdatePolicy" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And sleep for "60" seconds
@@ -37,13 +37,13 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
 
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-BlockSQSDeleteMessage_2021-03-09" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "TriggerRollback" in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Cancelled"
@@ -61,7 +61,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
     And sleep for "60" seconds
-    And Wait for alarm to be in state "OK" for "600" seconds
+    And Wait for alarm to be in state "OK"
       | AlarmName                                                            |
       | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumFifoAlarm}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution

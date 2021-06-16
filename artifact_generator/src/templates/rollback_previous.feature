@@ -15,14 +15,14 @@ Feature: SSM automation document ${documentName}
     # Replace parameter values to point to the corresponding outputs in cloudformation template
       | {{cfn-output:${cfnTemplateName}>${resourceIdOutput}}} | {{cfn-output:AutomationAssumeRoleTemplate>${roleName}}} | {{cfn-output:${cfnTemplateName}>${alarmNameOutput}}} |
     # Add other steps that should parallel to the document here
-    And Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    And Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And terminate "${documentName}" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    Then Wait for the SSM automation document "${documentName}" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    Then Wait for the SSM automation document "${documentName}" execution is on step "TriggerRollback" in status "Success"
       | ExecutionId               |
       | {{cache:SsmExecutionId>1}}|
     And SSM automation document "${documentName}" execution in status "Cancelled"

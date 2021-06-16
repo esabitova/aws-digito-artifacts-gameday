@@ -12,14 +12,14 @@ Feature: SSM automation document to simulate internet unavalability through chan
         When SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" executed
             | NatGatewayId                               | BytesOutToSourceAlarm                               | AutomationAssumeRole                                                                    |
             | {{cfn-output:NatCfnTemplate>NatGatewayId}} | {{cfn-output:NatCfnTemplate>BytesOutToSourceAlarm}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateInternetUnavailableAssumeRole}} |
-        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
             | ExecutionId                |
             | {{cache:SsmExecutionId>1}} |
         And terminate "Digito-SimulateInternetUnavailable_2020-09-21" SSM automation document
             | ExecutionId                |
             | {{cache:SsmExecutionId>1}} |
 
-        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "TriggerRollback" in status "Success"
             |ExecutionId               |
             |{{cache:SsmExecutionId>1}}|
 
@@ -32,21 +32,21 @@ Feature: SSM automation document to simulate internet unavalability through chan
             |{{cache:SsmExecutionId>1}}|
 
         # Rollback verification
-        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionInputsNatGw" in status "Success" for "600" seconds
+        Then Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionInputsNatGw" in status "Success"
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |
-        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "AssertNatGatewayId" in status "Success" for "600" seconds
+        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "AssertNatGatewayId" in status "Success"
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |
-        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionInputsSubnet" in status "Success" for "600" seconds
+        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionInputsSubnet" in status "Success"
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |
-        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "AssertPrivateSubnetId" in status "Success" for "600" seconds
+        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "AssertPrivateSubnetId" in status "Success"
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |
-        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionBackupOutputs" in status "Success" for "600" seconds
+        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "GetPreviousExecutionBackupOutputs" in status "Success"
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |
-        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "RollbackPreviousExecution" in status "Success" for "600" seconds
+        And Wait for the SSM automation document "Digito-SimulateInternetUnavailable_2020-09-21" execution is on step "RollbackPreviousExecution" in status "Success"
             | ExecutionId                |
             | {{cache:SsmExecutionId>2}} |

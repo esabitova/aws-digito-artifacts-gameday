@@ -30,13 +30,13 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
 
-    When Wait for the SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    When Wait for the SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-QueueStateFailureDlqFifo_2020-11-27" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Wait for the SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    Then Wait for the SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution is on step "TriggerRollback" in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-QueueStateFailureDlqFifo_2020-11-27" execution in status "Cancelled"

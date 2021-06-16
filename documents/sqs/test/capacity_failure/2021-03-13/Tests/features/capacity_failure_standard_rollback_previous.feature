@@ -19,13 +19,13 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeStandardQueueAlarm}} |
 
     # Terminate execution before rollback
-    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then terminate "Digito-SQSCapacityFailure_2021-03-13" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    And Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "TriggerRollback" in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Cancelled"
@@ -34,7 +34,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
     And sleep for "60" seconds
 
     # Wait until alarm goes on
-    When Wait for alarm to be in state "ALARM" for "300" seconds
+    When Wait for alarm to be in state "ALARM"
       | AlarmName                                                    |
       | {{cfn-output:SqsTemplate>SentMessageSizeStandardQueueAlarm}} |
 
@@ -51,7 +51,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     # Alarm should return to OK
-    When Wait for alarm to be in state "OK" for "600" seconds
+    When Wait for alarm to be in state "OK"
       | AlarmName                                                    |
       | {{cfn-output:SqsTemplate>SentMessageSizeStandardQueueAlarm}} |
 

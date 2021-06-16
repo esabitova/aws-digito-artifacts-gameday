@@ -14,13 +14,13 @@ Feature: SSM automation document Digito-ThrottlingHttpWs_2020-09-21
     When SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" executed
       | HttpWsApiGwId                                  | HttpWsStageName                                           | AutomationAssumeRole                                                              | 4xxAlarmName                                             |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwThrottlingHttpWsAssumeRole}} | {{cfn-output:HTTPWSApiGwTemplate>Http4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "900" seconds
+    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And call endpoint "HttpEndpoint" "12" times with delay "20" seconds using method "POST"
       | HttpEndpoint                                                |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiThrottledEndpoint}} |
-    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "900" seconds
+    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And call endpoint "HttpEndpoint" "12" times with delay "20" seconds using method "POST"
