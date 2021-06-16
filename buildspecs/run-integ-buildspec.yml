@@ -20,7 +20,7 @@ phases:
   build:
     commands:
       - echo "Executing test group [`echo $TEST_GROUP`] with [`echo $WORKERS`] workers."
-      - python -m pytest --run_integration_tests --keep_test_resources --distributed_mode -m `echo $TEST_GROUP` --workers `echo $WORKERS` --pool_size AsgCfnTemplate=8,EC2WithCWAgentCfnTemplate=8,SqsTemplate=8,RestApiGwTemplate=4,EFSTemplate=8,DynamoDBTemplateWithProvisionedBilling=2,DynamoDBTemplate=4,DynamoDBTemplateWithStream=2,DynamoDBTemplateWithKinesis=2,DynamoDBTemplateWithIndexAndContributorInsights=2,DynamoDBTemplateWithAutoScaling=2 --cucumberjson=integration-tests-report.json --aws_profile no_profile
+      - python -m pytest --run_integration_tests --keep_test_resources --distributed_mode -m `echo $TEST_GROUP` --workers `echo $WORKERS` --pool_size AsgCfnTemplate=8,EC2WithCWAgentCfnTemplate=8,SqsTemplate=8,RestApiGwTemplate=4,EFSTemplate=8,DynamoDBTemplateWithProvisionedBilling=2,DynamoDBTemplate=4,DynamoDBTemplateWithStream=2,DynamoDBTemplateWithKinesis=2,DynamoDBTemplateWithIndexAndContributorInsights=2,DynamoDBTemplateWithAutoScaling=2,LambdaTemplate=4 --cucumberjson=integration-tests-report.json --aws_profile no_profile
 reports:
   integration-tests-report:
     files:
