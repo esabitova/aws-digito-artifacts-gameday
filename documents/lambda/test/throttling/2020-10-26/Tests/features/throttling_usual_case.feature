@@ -12,7 +12,7 @@ Feature: SSM automation document throttling
       | LambdaARN                               | AutomationAssumeRole                                                         | ThrottlesAlarmName                           |
       | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaThrottlingAssumeRole}} | {{cfn-output:LambdaTemplate>ThrottlesAlarm}} |
 
-    And Wait for the SSM automation document "Digito-Throttling_2020-10-26" execution is on step "EnableFunctionThrottling" in status "Success" for "1000" seconds
+    And Wait for the SSM automation document "Digito-Throttling_2020-10-26" execution is on step "EnableFunctionThrottling" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And invoke throttled function

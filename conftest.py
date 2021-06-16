@@ -392,13 +392,22 @@ def wait_for_execution_completion_with_params(cfn_output_params, ssm_document_na
         f'[{ssm_document_name}] with execution: {ssm_document.get_execution_url(ssm_execution_id)}'
 
 
-wait_for_execution_step_with_params_description = \
-    'Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" ' \
-    'in status "{expected_status}" for "{time_to_wait}" seconds\n{input_parameters}'
+@when(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}"\n{input_parameters}'))
+@then(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}"\n{input_parameters}'))
+def wait_for_execution_step_with_params_default_time_to_wait(cfn_output_params, ssm_document_name, ssm_step_name,
+                                                             expected_status, ssm_document, input_parameters,
+                                                             ssm_test_cache, test_name_log):
+    time_to_wait_default = 1200
+    wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait_default,
+                                        expected_status, ssm_document, input_parameters, ssm_test_cache, test_name_log)
 
 
-@when(parse(wait_for_execution_step_with_params_description))
-@then(parse(wait_for_execution_step_with_params_description))
+@when(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}" for "{time_to_wait:d}" seconds\n{input_parameters}'))
+@then(parse('Wait for the SSM automation document "{ssm_document_name}" execution is on step "{ssm_step_name}" '
+            'in status "{expected_status}" for "{time_to_wait:d}" seconds\n{input_parameters}'))
 def wait_for_execution_step_with_params(cfn_output_params, ssm_document_name, ssm_step_name, time_to_wait,
                                         expected_status, ssm_document, input_parameters, ssm_test_cache, test_name_log):
     """

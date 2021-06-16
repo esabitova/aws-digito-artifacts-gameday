@@ -16,7 +16,7 @@ Feature: SSM automation document Digito-RestApiGwSimulateNetworkUnavailable_2020
     When SSM automation document "Digito-RestApiGwSimulateNetworkUnavailable_2020-09-21" executed
       | RestApiGwId                                                 | SecurityGroupIdListToUnassign                                   | AutomationAssumeRole                                                                        | ApiGwCountAlarmName                                            |
       | {{cfn-output:RestApiGwPrivateEndpointTemplate>RestApiGwId}} | {{cfn-output:RestApiGwPrivateEndpointTemplate>SecurityGroupId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwSimulateNetworkUnavailableAssumeRole}} | {{cfn-output:RestApiGwPrivateEndpointTemplate>CountAlarmName}} |
-    And Wait for the SSM automation document "Digito-RestApiGwSimulateNetworkUnavailable_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success" for "1000" seconds
+    And Wait for the SSM automation document "Digito-RestApiGwSimulateNetworkUnavailable_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get API key "ApiKeyId" and invoke lambda "LambdaArn" to perform "60" http requests with interval "10" seconds

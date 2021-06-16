@@ -14,14 +14,14 @@ Feature: SSM automation document Digito-ThrottlingHttpWs_2020-09-21
     When SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" executed
       | HttpWsApiGwId                                  | HttpWsStageName                                           | AutomationAssumeRole                                                              | 4xxAlarmName                                             |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwThrottlingHttpWsAssumeRole}} | {{cfn-output:HTTPWSApiGwTemplate>Http4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "900" seconds
+    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And terminate "Digito-ThrottlingHttpWs_2020-09-21" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    Then Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    Then Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "TriggerRollback" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution in status "Cancelled"

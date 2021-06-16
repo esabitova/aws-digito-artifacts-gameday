@@ -13,11 +13,11 @@ Feature: SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21
     When SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" executed
       | LambdaARN                               |  LambdaErrorAlarmName                                     | AutomationAssumeRole                                                                  |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |  {{cfn-output:LambdaTemplate>ConcurrentExecutionsAlarm}}  | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaBreakSecurityGroupAssumeRole}}  |
-    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1000" seconds
+    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    Then Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1000" seconds
+    Then Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution in status "TimedOut"

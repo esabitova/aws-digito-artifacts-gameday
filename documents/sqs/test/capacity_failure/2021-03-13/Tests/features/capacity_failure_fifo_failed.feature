@@ -18,7 +18,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | QueueUrl                                   | AutomationAssumeRole                                                           | SentMessageSizeAlarmName                                     |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>AlwaysOKAlarm}} |
 
-    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 

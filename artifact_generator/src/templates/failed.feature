@@ -15,12 +15,12 @@ Feature: SSM automation document ${documentName}
     # Replace parameter values to point to the corresponding outputs in cloudformation template
       | {{cfn-output:${cfnTemplateName}>${resourceIdOutput}}} | {{cfn-output:AutomationAssumeRoleTemplate>${roleName}}} | {{cfn-output:${cfnTemplateName}>AlwaysOKAlarm}} |
     # Add other steps that should parallel to the document here
-    And Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1000" seconds
+    And Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     # Add any step required to rectify the alarm here
 
-    Then Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1000" seconds
+    Then Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeGreen" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "${documentName}" execution in status "TimedOut"

@@ -13,13 +13,13 @@ Feature: SSM automation document to test EFS behavior after breaking security gr
     When SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" executed
       | FileSystemId                     | ClientConnectionsAlarmName                            | MountTargetIds                            | AutomationAssumeRole                                                              |
       | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>ClientConnectionsAlarmName}} | {{cfn-output:EFSTemplate>EFSMountTarget}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoEFSBreakSecurityGroupAssumeRole}} |
-    Then Wait for the SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    Then Wait for the SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And terminate "Digito-EFSBreakSecurityGroup_2020-09-21" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Wait for the SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    Then Wait for the SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" execution is on step "TriggerRollback" in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 

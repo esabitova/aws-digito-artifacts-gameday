@@ -19,7 +19,7 @@ Feature: SSM automation document to test dynamodb read throttling
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    Then Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1200" seconds
+    Then Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution in status "TimedOut"

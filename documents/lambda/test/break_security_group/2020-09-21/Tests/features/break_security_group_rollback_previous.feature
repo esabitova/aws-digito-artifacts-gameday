@@ -14,7 +14,7 @@ Feature: SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21
     When SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" executed
       | LambdaARN                               |  LambdaErrorAlarmName                      | AutomationAssumeRole                                                                  |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |  {{cfn-output:LambdaTemplate>ErrorsAlarm}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaBreakSecurityGroupAssumeRole}}  |
-    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
+    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache security group list for a lambda as "SecurityGroupList" "after" SSM automation execution
@@ -25,7 +25,7 @@ Feature: SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21
       | {{cache:SsmExecutionId>1}} |
 
     Then assert "SecurityGroupList" at "before" became not equal to "SecurityGroupList" at "after"
-    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "TriggerRollback" in status "Success" for "240" seconds
+    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "TriggerRollback" in status "Success"
       | ExecutionId               |
       | {{cache:SsmExecutionId>1}}|
     And SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution in status "Cancelled"

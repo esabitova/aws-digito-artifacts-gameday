@@ -26,7 +26,7 @@ Feature: SSM automation document to restore an S3 bucket from a backup bucket
       | S3BackupBucketName                           | S3BucketToRestoreName                           | AutomationAssumeRole                                                          | SNSTopicARNForManualApproval           | IAMPrincipalForManualApproval                       |
       | {{cfn-output:S3Template>S3BackupBucketName}} | {{cfn-output:S3Template>S3BucketToRestoreName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromBackupAssumeRole}} | {{cfn-output:S3Template>SNSTopicName}} | {{cfn-output:S3Template>RoleApproveCleanBucketArn}} |
 
-    When Wait for the SSM automation document "Digito-RestoreFromBackup_2020-09-21" execution is on step "ApproveCleanRestoreBucketOrCancel" in status "Waiting" for "180" seconds
+    When Wait for the SSM automation document "Digito-RestoreFromBackup_2020-09-21" execution is on step "ApproveCleanRestoreBucketOrCancel" in status "Waiting"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And Reject SSM automation document on behalf of the role

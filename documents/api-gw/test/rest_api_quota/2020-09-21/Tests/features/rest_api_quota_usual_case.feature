@@ -17,7 +17,7 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
     When SSM automation document "Digito-RestApiGwQuota_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                       | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwQuotaAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "SetQuotaConfiguration" in status "Success" for "300" seconds
+    And Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "SetQuotaConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"

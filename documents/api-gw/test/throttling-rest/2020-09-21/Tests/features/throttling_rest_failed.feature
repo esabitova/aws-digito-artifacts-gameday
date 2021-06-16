@@ -11,17 +11,17 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>5XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success" for "300" seconds
+    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
       | ApiKeyId                                  | RestApiGwStageUrl                                  |
       | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageUrl}} |
 
-    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "990" seconds
+    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success" for "300" seconds
+    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "TimedOut"
@@ -42,17 +42,17 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | AutomationAssumeRole                                                            | ApiGw4xxAlarmName                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwThrottlingAssumeRole}} | {{cfn-output:RestApiGwTemplate>5XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success" for "300" seconds
+    And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
       | ApiKeyId                                  | RestApiGwStageUrl                                  |
       | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageUrl}} |
 
-    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "990" seconds
+    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success" for "300" seconds
+    Then Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "RollbackCurrentExecution" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "TimedOut"
