@@ -43,7 +43,7 @@ Resources:
         Statement:
           - Effect: Allow
             Resource: "*"
-            Action:
+            Action: []
               # add permissions required by automation document here
       Roles:
         - Ref: DigitoEbsRestoreFromSnapshotAssumeRole
