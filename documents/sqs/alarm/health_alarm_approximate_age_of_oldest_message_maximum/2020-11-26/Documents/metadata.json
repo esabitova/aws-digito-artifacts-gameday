@@ -1,0 +1,11 @@
+{
+  "displayName": "ApproximateAgeOfOldestMessageMaximum",
+  "description": "Alarm by Digito that can be occurred if the age of the oldest message is much higher than the AverageDurationToProcessSentMessage. It notices that messages are not being processed quickly enough.",
+  "alarmName": "Digito-ApproximateAgeOfOldestMessageMaximum_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
