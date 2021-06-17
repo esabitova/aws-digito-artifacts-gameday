@@ -1,0 +1,11 @@
+{
+  "displayName": "Approximate Number of Messages In flight for FIFO queue",
+  "description": "Alarm by Digito that checks have been sent to a client by Fifo queue but have not yet been deleted or have not yet reached the end of their visibility window.",
+  "alarmName": "Digito-ThresholdApproximateNumberOfMessagesNotVisibleFifo_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -121,6 +121,7 @@ class S3:
                 self.logger.info('Deleting CF bucket with name [%s]', bucket_name)
                 bucket = self.resource.Bucket(bucket_name)
                 bucket.objects.delete(ExpectedBucketOwner=self.aws_account_id)
+                bucket.object_versions.delete(ExpectedBucketOwner=self.aws_account_id)
                 self.client.delete_bucket(Bucket=bucket_name,
                                           ExpectedBucketOwner=self.aws_account_id)
         except ClientError as e:
