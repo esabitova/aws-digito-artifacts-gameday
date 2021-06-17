@@ -34,7 +34,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
     And sleep for "60" seconds
 
     # Wait until alarm goes on
-    When Wait for alarm to be in state "ALARM"
+    When Wait for alarm to be in state "ALARM" for "300" seconds
       | AlarmName                                                    |
       | {{cfn-output:SqsTemplate>SentMessageSizeStandardQueueAlarm}} |
 
@@ -51,7 +51,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     # Alarm should return to OK
-    When Wait for alarm to be in state "OK"
+    When Wait for alarm to be in state "OK" for "600" seconds
       | AlarmName                                                    |
       | {{cfn-output:SqsTemplate>SentMessageSizeStandardQueueAlarm}} |
 
