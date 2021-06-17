@@ -16,14 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoreFromPointInTime
+Description: Role for SSM DynamodbRestoreFromBackup
 Outputs:
-  DigitoRestoreFromPointInTimeAssumeRole:
-    Description: DigitoRestoreFromPointInTime Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
+  DigitoDynamodbRestoreFromBackupAssumeRole:
+    Description: DigitoDynamodbRestoreFromBackup Automation Assume Role ARN
+    Value: !GetAtt DigitoDynamodbRestoreFromBackupAssumeRole.Arn
 Resources:
-  DigitoRestoreFromPointInTimeAssumeRole:
+  DigitoDynamodbRestoreFromBackupAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreFromPointInTimeAssumePolicy:
+  DigitoDynamodbRestoreFromBackupAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoRestoreFromPointInTimeAssumePolicy"
+      PolicyName: "DigitoDynamodbRestoreFromBackupAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -77,4 +76,4 @@ Resources:
               - "iam:PassRole"
 
       Roles:
-        - Ref: DigitoRestoreFromPointInTimeAssumeRole
+        - Ref: DigitoDynamodbRestoreFromBackupAssumeRole
