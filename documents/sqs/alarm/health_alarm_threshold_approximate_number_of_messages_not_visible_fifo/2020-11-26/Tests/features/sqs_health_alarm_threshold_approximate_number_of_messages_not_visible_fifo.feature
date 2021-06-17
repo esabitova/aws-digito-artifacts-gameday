@@ -3,7 +3,7 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleFifo
   Scenario: Check Alarm by Digito that checks that amount of inflight messages is not reaching the quota for Fifo queue - green
     Given the cloud formation templates as integration test resources
       |CfnTemplatePath                                                    | ResourceType
-      |resource_manager/cloud_formation_templates/SqsTemplate.yml         | DEDICATED
+      |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
     When alarm "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26" is installed
       | alarmId    | SNSTopicARN                       | QueueName                                   | Threshold |
@@ -25,7 +25,7 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleFifo
   Scenario: Check Alarm by Digito that checks that amount of inflight messages is not reaching the quota for Fifo queue - red
     Given the cloud formation templates as integration test resources
       |CfnTemplatePath                                                    | ResourceType
-      |resource_manager/cloud_formation_templates/SqsTemplate.yml         | DEDICATED
+      |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
     When alarm "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26" is installed
       | alarmId    | SNSTopicARN                       | QueueName                                   | Threshold |
