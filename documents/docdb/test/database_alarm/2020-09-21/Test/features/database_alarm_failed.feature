@@ -1,7 +1,7 @@
 @docdb
 Feature: SSM automation document to test database alarm.
 
-  Scenario: Test database alarm
+  Scenario: Test database alarm SSM execution failure
     Given the cached input parameters
       | DistributionPackageRelativePath                                                      | DistributionPackageS3Key         |
       | documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip | canary/database-alarm-canary.zip |
@@ -19,16 +19,12 @@ Feature: SSM automation document to test database alarm.
     When SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" executed
       | DBClusterIdentifier                              | AutomationAssumeRole                                                           | DatabaseConnectionAttemptAlarmName                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDocDbDatabaseAlarmAssumeRole}} | {{cfn-output:DocDbTemplate>DatabaseConnectionAttemptAlarmName}} |
-    And start canary
-      | CanaryName                                                         |
-      | {{cfn-output:DocDbTemplate>DocumentDbConnectionAttemptCanaryName}} |
+    # Not starting the canary to trigger failure
 
-    Then SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution in status "Success"
+    Then SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertDBClusterExistsInAvailableState, AssertAlarmToBeGreenBeforeTest, BackupDbClusterProperties, GetOneOfSubnets, GetVpc, CreateEmptySecurityGroup, ModifyVpcSecurityGroups, AssertAlarmToBeRed, AssertClusterIsAvailable, AssertInstancesAreAvailable, RestoreSecurityGroupIds, RemoveEmptySecurityGroup, AssertAlarmToBeGreen" steps are successfully executed in order
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
+
     And cache cluster vpc security groups as "VpcSecurityGroupsIds" at step "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |

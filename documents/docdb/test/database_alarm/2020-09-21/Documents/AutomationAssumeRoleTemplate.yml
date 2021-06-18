@@ -57,6 +57,7 @@ Resources:
               - rds:ModifyDBCluster
               - ssm:GetAutomationExecution
               - ssm:GetParameters
+              - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoDocDbDatabaseAlarmAssumeRole.Arn

@@ -1,7 +1,7 @@
 @docdb
 Feature: SSM automation document to test database alarm.
 
-  Scenario: Test database alarm
+  Scenario: Test database alarm SSM execution in rollback
     Given the cached input parameters
       | DistributionPackageRelativePath                                                      | DistributionPackageS3Key         |
       | documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip | canary/database-alarm-canary.zip |
@@ -23,12 +23,26 @@ Feature: SSM automation document to test database alarm.
       | CanaryName                                                         |
       | {{cfn-output:DocDbTemplate>DocumentDbConnectionAttemptCanaryName}} |
 
-    Then SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution in status "Success"
+    And Wait for the SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertDBClusterExistsInAvailableState, AssertAlarmToBeGreenBeforeTest, BackupDbClusterProperties, GetOneOfSubnets, GetVpc, CreateEmptySecurityGroup, ModifyVpcSecurityGroups, AssertAlarmToBeRed, AssertClusterIsAvailable, AssertInstancesAreAvailable, RestoreSecurityGroupIds, RemoveEmptySecurityGroup, AssertAlarmToBeGreen" steps are successfully executed in order
+    And terminate "Digito-DocDbDatabaseAlarm_2020-09-21" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+
+    Then Wait for the SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution is on step "TriggerRollback" in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution in status "Cancelled"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And cache rollback execution id
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
+
     And cache cluster vpc security groups as "VpcSecurityGroupsIds" at step "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
