@@ -16,7 +16,7 @@ Feature: SSM automation document to restore the database from a backup.
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -33,7 +33,7 @@ Feature: SSM automation document to restore the database from a backup.
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                    | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DynamoDBTemplateWithStream>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -51,7 +51,7 @@ Feature: SSM automation document to restore the database from a backup.
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                  | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -69,7 +69,7 @@ Feature: SSM automation document to restore the database from a backup.
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                                      | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DynamoDBTemplateWithIndexAndContributorInsights>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -87,7 +87,7 @@ Feature: SSM automation document to restore the database from a backup.
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                                      | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -109,7 +109,7 @@ Feature: SSM automation document to restore the database from a backup.
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
       | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |

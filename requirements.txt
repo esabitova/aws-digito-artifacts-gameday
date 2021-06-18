@@ -26,3 +26,5 @@ pytest-randomly==3.8.0 #Make sure that all unit tests are isolated and does not 
 pytest-deadfixtures==2.2.1 #List unused or duplicated fixtures in a pytest suite
 pytest-clarity==0.3.0a0 #Improve the readability of pytest output.
 pytest-rerunfailures==10.0 #Re-run multiple times once faied tests to eliminate intermittent failures
+PyYAML~=5.4.1
+

@@ -327,3 +327,15 @@ def cache_generated_instance_id(
 ):
     new_instance_id = 'docdb-replica-' + str(uuid.uuid4())
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, new_instance_id)
+
+
+@given(parsers.parse('cache cluster vpc security groups as "{cache_property}" at step "{step_key}" '
+                     'SSM automation execution\n{input_parameters}'))
+@then(parsers.parse('cache cluster vpc security groups as "{cache_property}" at step "{step_key}" '
+                    'SSM automation execution\n{input_parameters}'))
+def cache_security_groups(resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
+    )
+    vpc_security_groups_ids = docdb_utils.get_cluster_vpc_security_groups(boto3_session, cluster_id)
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, vpc_security_groups_ids)

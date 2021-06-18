@@ -22,7 +22,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
     # Keep sending messages long enough so SSM times out if sending is not stopped by access denied error
-    And send messages until access denied
+    And send messages for "1200" seconds until access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
@@ -46,7 +46,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | {{cache:SsmExecutionId>1}} |
 
     # Check policy
-    When Wait for alarm to be in state "ALARM"
+    When Wait for alarm to be in state "ALARM" for "600" seconds
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
@@ -61,7 +61,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And send messages for "600" seconds ignoring access denied until "5" sent successfully
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And Wait for alarm to be in state "OK"
+    And Wait for alarm to be in state "OK" for "50" seconds
       | AlarmName                                            |
       | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
     And sleep for "60" seconds

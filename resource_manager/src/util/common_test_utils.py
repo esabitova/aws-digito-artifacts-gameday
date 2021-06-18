@@ -3,6 +3,8 @@ import uuid
 
 from resource_manager.src.util import param_utils as param_utils
 from sttable import parse_str_table
+from boto3 import Session
+from .boto3_client_factory import client
 
 
 def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cache) -> str:
@@ -133,3 +135,18 @@ def generate_random_string_with_prefix(prefix: str) -> str:
     """
     random_str = str(uuid.uuid1())[0:8]
     return f"{prefix}{random_str}"
+
+
+def check_security_group_exists(session: Session, security_group_id: str):
+    ec2_client = client('ec2', session)
+    group_list = ec2_client.describe_security_groups(
+        Filters=[
+            {
+                'Name': 'group-id',
+                'Values': [security_group_id]
+            },
+        ]
+    )
+    if 'SecurityGroups' not in group_list or not group_list['SecurityGroups']:
+        return False
+    return True

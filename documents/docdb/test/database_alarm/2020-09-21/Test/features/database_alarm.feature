@@ -12,6 +12,9 @@ Feature: SSM automation document to test database alarm.
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                              | ON_DEMAND    | {{cache:CloudWatchCanary>S3Bucket}}       | {{cache:CloudWatchCanary>S3Key}}       | {{cache:CloudWatchCanary>S3ObjectVersion}}       |
       | documents/docdb/test/database_alarm/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                           |                                        |                                                  |
     And published "Digito-DocDbDatabaseAlarm_2020-09-21" SSM document
+    And cache cluster vpc security groups as "VpcSecurityGroupsIds" at step "before" SSM automation execution
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
 
     When SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" executed
       | DBClusterIdentifier                              | AutomationAssumeRole                                                           | DatabaseConnectionAttemptAlarmName                              |
@@ -23,6 +26,14 @@ Feature: SSM automation document to test database alarm.
     Then SSM automation document "Digito-DocDbDatabaseAlarm_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertDBClusterExistsInAvailableState, AssertAlarmToBeGreenBeforeTest, BackupDbClusterProperties, GetOneOfSubnets, GetVpc, CreateEmptySecurityGroup, ModifyVpcSecurityGroups, AssertAlarmTriggered, AssertClusterIsAvailable, AssertInstancesAreAvailable, RestoreSecurityGroupIds, RemoveEmptySecurityGroup, AssertAlarmToBeGreen" steps are successfully executed in order
+    And assert "CheckIsRollback, AssertDBClusterExistsInAvailableState, AssertAlarmToBeGreenBeforeTest, BackupDbClusterProperties, GetOneOfSubnets, GetVpc, CreateEmptySecurityGroup, ModifyVpcSecurityGroups, AssertAlarmToBeRed, AssertClusterIsAvailable, AssertInstancesAreAvailable, RestoreSecurityGroupIds, RemoveEmptySecurityGroup, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache cluster vpc security groups as "VpcSecurityGroupsIds" at step "after" SSM automation execution
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    When cache execution output value of "CreateEmptySecurityGroup.EmptySecurityGroupId" as "EmptySecurityGroupId" after SSM automation execution
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    Then assert "VpcSecurityGroupsIds" at "before" became equal to "VpcSecurityGroupsIds" at "after"
+    And assert security group "EmptySecurityGroupId" at "after" was removed

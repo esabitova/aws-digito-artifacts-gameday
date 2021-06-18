@@ -18,12 +18,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for SSM Digito-RestoreToPointInTime_2020-04-01
 Outputs:
-  DigitoRestoreFromPointInTimeAssumeRole:
+  DigitoDynamodbRestoreFromPointInTimeAssumeRole:
     Description: Digito-RestoreToPointInTime_2020-04-01 Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
+    Value: !GetAtt DigitoDynamodbRestoreFromPointInTimeAssumeRole.Arn
 Resources:
-  DigitoRestoreFromPointInTimeAssumeRole:
+  DigitoDynamodbRestoreFromPointInTimeAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreFromPointInTimeAssumePolicy:
+  DigitoDynamodbRestoreFromPointInTimeAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoRestoreFromPointInTimeAssumePolicy"
+      PolicyName: "DigitoDynamodbRestoreFromPointInTimeAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -52,6 +51,7 @@ Resources:
               - "dynamodb:UpdateItem"
               - "dynamodb:PutItem"
               - "dynamodb:GetItem"
+               
               - "dynamodb:DeleteItem"
               - "dynamodb:BatchWriteItem"
               - "dynamodb:UpdateTable"
@@ -83,4 +83,4 @@ Resources:
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoRestoreFromPointInTimeAssumeRole
+        - Ref: DigitoDynamodbRestoreFromPointInTimeAssumeRole
