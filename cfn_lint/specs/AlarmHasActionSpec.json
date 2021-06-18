@@ -1,0 +1,11 @@
+{
+  "ResourceTypes": {
+    "AWS::CloudWatch::Alarm": {
+      "Properties": {
+        "AlarmActions": {
+          "Required": true
+        }
+      }
+    }
+  }
+}

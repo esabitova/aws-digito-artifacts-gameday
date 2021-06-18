@@ -170,7 +170,7 @@ Resources:
   EIP:
     Type: AWS::EC2::EIP
     Properties:
-      Domain: VPC
+      Domain: vpc
 
   NATGateway:
     Type: AWS::EC2::NatGateway
@@ -226,9 +226,6 @@ Resources:
 
   NATPrivateRoute:
     Type: AWS::EC2::Route
-    DependsOn:
-      - NATRouteTable
-      - NATGateway
     Properties:
       RouteTableId:
         Ref: NATRouteTable

@@ -202,7 +202,6 @@ Resources:
       ApiId: !Ref WsApi
       Description: Default deployment
   WsStage:
-    DependsOn: WsDefaultDeployment
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref WsApi
@@ -222,7 +221,6 @@ Resources:
                   - "/"
                   - !Ref "AWS::StackId"
   WsStageAutoDeploy:
-    DependsOn: WsDefaultDeployment
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref WsApi
@@ -243,7 +241,6 @@ Resources:
                   - "/"
                   - !Ref "AWS::StackId"
   WsStageThrottled:
-    DependsOn: WsDefaultDeployment
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref WsApi
@@ -351,7 +348,6 @@ Resources:
       ApiId: !Ref HttpApi
       Description: Default deployment
   HttpStage:
-    DependsOn: HttpDefaultDeployment
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref HttpApi
@@ -371,7 +367,6 @@ Resources:
                   - "/"
                   - !Ref "AWS::StackId"
   HttpStageAutoDeploy:
-    DependsOn: HttpDefaultDeployment
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref HttpApi
@@ -392,7 +387,6 @@ Resources:
                   - "/"
                   - !Ref "AWS::StackId"
   HttpStageThrottled:
-    DependsOn: HttpDefaultDeployment
     Type: AWS::ApiGatewayV2::Stage
     Properties:
       ApiId: !Ref HttpApi

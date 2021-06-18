@@ -313,8 +313,8 @@ Resources:
           CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '22'
-          ToPort: '22'
+          FromPort: 22
+          ToPort: 22
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
@@ -366,7 +366,7 @@ Resources:
         - Key: Name
           Value: EFS-Ec2Instance
       NetworkInterfaces:
-        - AssociatePublicIpAddress: "true"
+        - AssociatePublicIpAddress: true
           DeviceIndex: "0"
           GroupSet:
             - Ref: "InstanceSecurityGroup"
@@ -557,11 +557,11 @@ Resources:
       MetricTransformations:
         -
           MetricValue: "1"
-          DefaultValue: "0"
+          DefaultValue: 0.0
           MetricNamespace: "EFSMounts"
           MetricName: !Sub
             - 'MountFailures-${FileSystemId}-${EC2ID}'
-            - {EC2ID: !Ref Ec2Instance, FileSystemId: !Ref FileSystem, MountTargetIp: !GetAtt EFSMountTarget.IpAddress}
+            - {EC2ID: !Ref Ec2Instance, FileSystemId: !Ref FileSystem}
   MountFailureAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -569,7 +569,7 @@ Resources:
       ActionsEnabled: false
       MetricName: !Sub
         - 'MountFailures-${FileSystemId}-${EC2ID}'
-        - {EC2ID: !Ref Ec2Instance, FileSystemId: !Ref FileSystem, MountTargetIp: !GetAtt EFSMountTarget.IpAddress}
+        - {EC2ID: !Ref Ec2Instance, FileSystemId: !Ref FileSystem}
       Namespace: EFSMounts
       Statistic: Maximum
       Period: 60

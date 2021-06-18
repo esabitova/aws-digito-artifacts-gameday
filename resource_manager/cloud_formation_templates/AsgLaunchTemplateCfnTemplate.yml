@@ -300,8 +300,8 @@ Resources:
       GroupId:
         Ref: WebELBSG
       IpProtocol: tcp
-      FromPort: '80'
-      ToPort: '80'
+      FromPort: 80
+      ToPort: 80
       SourceSecurityGroupId:
         Ref: WebELBSG
   WebServerSG:
@@ -312,13 +312,13 @@ Resources:
         Ref: VPC
       SecurityGroupIngress:
       - IpProtocol: tcp
-        FromPort: '80'
-        ToPort: '80'
+        FromPort: 80
+        ToPort: 80
         SourceSecurityGroupId:
           Ref: WebELBSG
       - IpProtocol: tcp
-        FromPort: '443'
-        ToPort: '443'
+        FromPort: 443
+        ToPort: 443
         SourceSecurityGroupId:
           Ref: WebELBSG
   PrivateSubnet1:
@@ -476,18 +476,18 @@ Resources:
   WebLoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthCheckIntervalSeconds: '15'
+      HealthCheckIntervalSeconds: 15
       HealthCheckPath: "/"
       HealthCheckPort: '80'
       HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: '2'
-      HealthyThresholdCount: '2'
+      HealthCheckTimeoutSeconds: 2
+      HealthyThresholdCount: 2
       Matcher:
         HttpCode: '200'
-      Port: '80'
+      Port: 80
       Protocol: HTTP
       TargetType: instance
-      UnhealthyThresholdCount: '2'
+      UnhealthyThresholdCount: 2
       VpcId:
         Ref: VPC
   WebLoadBalancer:
@@ -505,7 +505,7 @@ Resources:
     Properties:
       LoadBalancerArn:
         Ref: WebLoadBalancer
-      Port: '80'
+      Port: 80
       Protocol: HTTP
       DefaultActions:
       - TargetGroupArn:
@@ -524,7 +524,7 @@ Resources:
       MinSize: '2'
       MaxSize: '2'
       HealthCheckType: ELB
-      HealthCheckGracePeriod: '60'
+      HealthCheckGracePeriod: 60
       Cooldown: '60'
       MetricsCollection:
       - Granularity: '1Minute'
@@ -540,15 +540,15 @@ Resources:
       - Key: Name
         Value:
           Fn::Sub: 'WebServerforResiliency-${VPC}'
-        PropagateAtLaunch: 'true'
+        PropagateAtLaunch: true
   InServiceCapacityLessThanThresholdAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      EvaluationPeriods: '1'
+      EvaluationPeriods: 1
       Statistic: Average
-      Threshold: '2'
+      Threshold: 2.0
       AlarmDescription: Alarm if in service capacity less than 2
-      Period: '60'
+      Period: 60
       Namespace: AWS/AutoScaling
       Dimensions:
       - Name: AutoScalingGroupName

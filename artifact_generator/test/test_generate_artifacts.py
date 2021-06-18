@@ -120,20 +120,6 @@ class TestGenerateArtifacts(unittest.TestCase):
         mock_re_sub.assert_not_called()
         mock_open.assert_not_called()
 
-    @patch('builtins.input', side_effect=[SERVICE_NAME, SOP_DOC_TYPE, SOP_NAME, DATE, DISPLAY_NAME, DESCRIPTION,
-                                          RESOURCE_ID, FAILURE_TYPE, RISK, 'yes', RECOVERY_POINT_STEP,
-                                          CFN_TEMPLATE_NAME, RESOURCE_ID_CFN_OUTPUT, 'yes'])
-    def test_generate_cfn_template(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
-                                   mock_mkdir, mock_is_dir):
-        mock_is_dir.return_value = False
-        mock_is_file.return_value = False
-        mock_re_sub.side_effect = self.__re_sub_side_effect
-        main([])
-        mock_open.assert_has_calls([
-            call(os.path.join(self.templates_path, 'CloudFormationTemplate.yml'), 'r'),
-            call(os.path.join(os.path.join(self.package_dir, "resource_manager", "cloud_formation_templates"),
-                              self.CFN_TEMPLATE_NAME + '.yml'), 'w')], any_order=True)
-
     @patch('builtins.input', side_effect=input_for_test)
     def test_generate_test_with_recommended_alarm(self, mock_inputs, mock_lookup, mock_re_sub, mock_open, mock_is_file,
                                                   mock_mkdir, mock_is_dir):

@@ -1,4 +1,4 @@
-# Table of Contents  
+# Table of Contents
 1. [Digito Failure Injection Documents](#digito-failure-injection-documents) 
 2. [Contributing To This Package](#contributing-to-this-package)
    1. [Package Organization](#package-organization)
@@ -366,6 +366,14 @@ Tests with recommended alarms would have following three mandatory steps. See do
 ## Code Style
 * Run 'python3 -m flake8' to validate code style. Check setup.cfg for flake8 rules/overrides.
 
+## CloudFormation style check
+We use cfn-lint library with some custom rules setup, for validating CloudFormation templates. Please run the following to validate -
+```
+make -f common.mk cfn_lint
+```
+### Adding a new custom rule
+* Check if the new rule can be covered by a [custom specification](https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/customize_specifications.md). If yes, add it under cfn_lint/specs and add it to the -o arguments in common.mk cfn_lint target and to the right command in buildspec.yml
+* If not, add a [custom rule](https://github.com/aws-cloudformation/cfn-lint/blob/main/docs/rules.md) in the correct folder under cfn_lint/rules.
 
 # Integration Tests
 * In order to verify SSM automation document validity we want to have way to test documents against real AWS resources. 

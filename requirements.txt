@@ -20,11 +20,11 @@ parameterized==0.8.1 #Allow to use annotations with arguments to test
 requests==2.25.1
 websocket-client==0.57.0
 pytest-icdiff==0.5 #Better diffs in pytest assertion error messages
-pytest-socket==0.4.0 #Restrict socket calls during unit tests to prevent actions with AWS resources if a mock is not created properly
+pytest-socket==0.4.0 #Restcrict socket calls during unit tests to prevent actions with AWS resources if a mock is not created properly
 pytest-timeout==1.4.2 #Kills tests if they went to inginite loop
 pytest-randomly==3.8.0 #Make sure that all unit tests are isolated and does not affect the system state
 pytest-deadfixtures==2.2.1 #List unused or duplicated fixtures in a pytest suite
 pytest-clarity==0.3.0a0 #Improve the readability of pytest output.
 pytest-rerunfailures==10.0 #Re-run multiple times once faied tests to eliminate intermittent failures
 PyYAML~=5.4.1
-
+cfn-lint==0.48.3

@@ -278,14 +278,14 @@ Resources:
           - ResponseTemplates:
               application/json: '{"message": "OK"}'
             SelectionPattern: '2\d{2}'
-            StatusCode: 200
+            StatusCode: "200"
         PassthroughBehavior: WHEN_NO_TEMPLATES
         RequestTemplates:
           application/json: '{"statusCode": 200}'
       MethodResponses:
         - ResponseModels:
             application/json: !Ref ApiGatewayModel
-          StatusCode: 200
+          StatusCode: "200"
 
   ApiGatewayPushToCloudWatchRole:
     Type: AWS::IAM::Role

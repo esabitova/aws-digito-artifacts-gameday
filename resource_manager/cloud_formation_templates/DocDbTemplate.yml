@@ -120,8 +120,8 @@ Resources:
   VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
-      EnableDnsSupport: 'true'
-      EnableDnsHostnames: 'true'
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
       CidrBlock:
         Ref: VPCCIDR
   PrivateSubnet01:
@@ -669,7 +669,7 @@ Resources:
       ExecutionRoleArn: !GetAtt RoleDocumentDbConnectionAttempt.Arn
       Schedule:
         Expression: "rate(1 minute)"
-        DurationInSeconds: 0
+        DurationInSeconds: '0'
       RunConfig:
         TimeoutInSeconds: 60
         MemoryInMB: 960
@@ -691,7 +691,7 @@ Resources:
         ]
       RuntimeVersion: syn-python-selenium-1.0
       StartCanaryAfterCreation: false
-      VpcConfig:
+      VPCConfig:
         SecurityGroupIds:
           - Ref: VPCSecurityGroup
         SubnetIds:

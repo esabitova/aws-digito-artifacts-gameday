@@ -33,9 +33,6 @@ Parameters:
   DBInstanceClass:
     Description: DB-Instance Class (e.g. db.m1.small, db.r3.8xlarge, etc.)
     Type: String
-  AllocatedStorage:
-    Description: Specifies the allocated storage size specified in gibibytes
-    Type: String
 Resources:
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret
