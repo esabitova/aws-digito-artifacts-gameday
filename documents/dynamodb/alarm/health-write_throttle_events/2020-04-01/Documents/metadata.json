@@ -1,0 +1,11 @@
+{
+  "displayName": "Write throttle events",
+  "description": "Reports when write throttle events is less than threshold",
+  "alarmName": "Digito-WriteThrottleEventsAlarm_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "dynamodb:alarm:health-write_throttle_events:2020-04-01",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}
