@@ -13,6 +13,7 @@ from resource_manager.src.util.common_test_utils import generate_and_cache_diffe
     extract_param_value
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
 from resource_manager.src.util.common_test_utils import generate_random_string_with_prefix
+from resource_manager.src.util.common_test_utils import check_security_group_exists
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,12 @@ def assert_equal_to_value(ssm_test_cache, expected_property, step_key_for_expect
 def assert_less_than(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
            < ssm_test_cache[step_key_for_actual][actual_property]
+
+
+@then(parsers.parse('assert security group "{expected_property}" at "{step_key_for_expected}" was removed'))
+def assert_security_group_removed(ssm_test_cache, boto3_session, expected_property, step_key_for_expected):
+    security_group_id = ssm_test_cache[step_key_for_expected][expected_property]
+    assert check_security_group_exists(boto3_session, security_group_id) is False
 
 
 @given(parsers.parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" to'

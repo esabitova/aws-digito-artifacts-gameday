@@ -218,3 +218,15 @@ def delete_cluster_instances(session: Session, db_cluster_identifier, wait: bool
             time.sleep(constants.sleep_time_secs)
             number_of_cluster_members = len(get_cluster_members(session, db_cluster_identifier))
             elapsed_time = time.time() - start_time
+
+
+def get_cluster_vpc_security_groups(session: Session, db_cluster_identifier: str):
+    """
+    Use describe_db_clusters aws method to get cluster's VpcSecurityGroups
+    :param session boto3 client session
+    :param db_cluster_identifier DocDB cluster ID
+    :return Vpc Security Group Ids of cluster
+    """
+    docdb_client = client('docdb', session)
+    response = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    return [security_group['VpcSecurityGroupId'] for security_group in response['DBClusters'][0]['VpcSecurityGroups']]
