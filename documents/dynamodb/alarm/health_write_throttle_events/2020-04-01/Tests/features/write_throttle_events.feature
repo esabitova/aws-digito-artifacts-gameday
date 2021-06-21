@@ -19,20 +19,26 @@ Feature: Alarm Setup - Write Throttle Events Alarm
     And SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" executed
       | DynamoDBTableName                             | DynamoDBTableRCU                         | DynamoDBTableWCU | AutomationAssumeRole                                                                  |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:before>ActualReadCapacityUnits}} | 0                | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateProvisionedCapacityAssumeRole}} |
+    And SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" execution in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
     # putItem
+    And put random test item and cache it as "TestItem"
+      | DynamoDBTableName                             |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} |
+    And put random test item and cache it as "TestItem"
+      | DynamoDBTableName                             |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} |
     And put random test item and cache it as "TestItem"
       | DynamoDBTableName                             |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} |
 
     Then assert metrics for all alarms are populated
-    And put random test item and cache it as "TestItem"
-      | DynamoDBTableName                             |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} |
-    And put random test item and cache it as "TestItem"
-      | DynamoDBTableName                             |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} |
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
     # rollback
     And SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" executed
       | DynamoDBTableName                             | DynamoDBTableRCU                         | DynamoDBTableWCU                       | AutomationAssumeRole                                                                  |
       | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:before>ActualReadCapacityUnits}} | {{cache:before>OldWriteCapacityUnits}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateProvisionedCapacityAssumeRole}} |
+    And SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" execution in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
