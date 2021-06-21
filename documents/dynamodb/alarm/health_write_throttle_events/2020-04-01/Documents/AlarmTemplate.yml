@@ -14,7 +14,7 @@ Resources:
       Statistic: Sum
       Dimensions:
         - Name: TableName
-          Value: !Ref ${DynamoDbTable}
+          Value: ${DynamoDbTable}
       Period: 60
       EvaluationPeriods: 1
       DatapointsToAlarm: 1
@@ -25,4 +25,3 @@ Resources:
     Metadata:
       'AWS::Digito::Monitoring':
         recommendationId: 'dynamodb:alarm:health-write_throttle_events:2020-04-01'
-

@@ -219,6 +219,7 @@ def assert_global_table_copied(resource_pool, ssm_test_cache, boto3_session,
 
 
 @given(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
+@when(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
 def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_parameters):
     dynamo_db_client = boto3_session.client('dynamodb')
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
@@ -229,6 +230,7 @@ def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_param
 
 @given(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
 @when(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
+@then(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
 def get_items(boto3_session, resource_pool, ssm_test_cache, item_ref, number, input_parameters):
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
     item: dict = ssm_test_cache[item_ref]
