@@ -1,4 +1,4 @@
-@dynamodb @integration @alarm @write_throttle
+@dynamodb @integration @alarm
 Feature: Alarm Setup - Write Throttle Events Alarm
   Scenario: Reports when write throttle events is less than a threshold
     Given the cloud formation templates as integration test resources
