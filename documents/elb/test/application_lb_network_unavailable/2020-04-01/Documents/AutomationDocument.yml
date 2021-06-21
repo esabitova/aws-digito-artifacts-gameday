@@ -1,0 +1,171 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test ALB when network unavailable"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  LoadBalancerArn:
+    type: String
+    description: (Required) LoadBalancerArn
+  SecurityGroupIdsToDelete:
+    type: StringList
+    description: (Optional) The list of security group ids to delete
+    maxItems: 5
+    default: []
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    # e.g. TargetConnectionErrorCount
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: LoadBalancerArn
+        Selector: $.Payload.LoadBalancerArn[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertLoadBalancerArn
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RollbackPreviousExecution
+          Variable: "{{ GetInputsFromPreviousExecution.LoadBalancerArn }}"
+          StringEquals: '{{ LoadBalancerArn }}'
+    isEnd: true
+
+  - name: RollbackPreviousExecution
+    # 1. Update list of security groups. Call [boto3.set_security_groups]
+    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+  - name: BackupCurrentExecution
+    # 1.call [boto3.describe_load_balancers]
+    #   Params: LoadBalancerArns=[params.LoadBalancerArn]
+    #   take '.SecurityGroups[]' collection and return as SecurityGroups
+
+  - name: InjectFailure
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    # if SecurityGroupIdsToDelete NOT SPECIFIED
+
+    # 1. Create an empty security group. Call [boto3.create_security_group]
+    #   Params: provide name and description
+    #   take '.GroupId' value from response as NewSecurityGroup
+    # 2. Update list of security groups. Call [boto3.set_security_groups]
+    #   Params: SecurityGroups=[NewSecurityGroup]
+    #   return '.SecurityGroupIds[]' collection as an output
+    
+    # if SecurityGroupIdsToDelete SPECIFIED
+
+    # 1. Remove from BackupCurrentExecution.SecurityGroups params.SecurityGroupIdsToDelete
+    # 2. Update list of security groups. Call [boto3.set_security_groups]
+    #   Params: SecurityGroups=[LeftSGs]
+    #   return '.SecurityGroupIds[]' collection as an output
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    maxAttempts: 5
+    onCancel: step:TriggerRollback
+    # 1. Update list of security groups. Call [boto3.set_security_groups]
+    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+
+  - name: AssertAlarmToBeGreen 
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

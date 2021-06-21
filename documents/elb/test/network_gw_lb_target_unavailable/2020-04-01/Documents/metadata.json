@@ -1,0 +1,13 @@
+{
+  "displayName": "Makes the target group unavailable for NLB",
+  "description": "Breaks health check inside the target group assigned to NLB",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-NetworkGwLbTargetUnavailable_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "AZ,SOFTWARE,HARDWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "tag": "elb:test:network_gw_lb_target_unavailable:2020-04-01"
+}
