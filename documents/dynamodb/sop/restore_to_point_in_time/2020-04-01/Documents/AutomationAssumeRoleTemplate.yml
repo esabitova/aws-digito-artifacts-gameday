@@ -79,7 +79,7 @@ Resources:
               - "kinesis:DescribeStream" # needed to enabled kinesis destination
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
+              - Fn::GetAtt: DigitoDynamodbRestoreFromPointInTimeAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:

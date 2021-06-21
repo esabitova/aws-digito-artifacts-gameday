@@ -142,7 +142,9 @@ def __get_cfn_template_info(doc_type: str, replacements: dict):
     """
     if input_overrides is None:
         print('\nWe use cloudformation templates to create the resources for testing test/SOP documents. '
-              'These are located under {}.\n\n'.format(os.path.relpath(CFN_TEMPLATES_PATH, constants.PACKAGE_DIR)))
+              'These are located under {}.'.format(os.path.relpath(CFN_TEMPLATES_PATH, constants.PACKAGE_DIR)))
+        print(BgColors.BOLD + 'NOTE - artifact generator does not create/validate the template. '
+                              'It simply uses the information to generate tests.\n' + BgColors.ENDC)
 
     cfn_template_name = __get_input(InputType.CFN_TEMPLATE, validator.validate_alpha_numeric_input)
     replacements['${cfnTemplateName}'] = cfn_template_name
@@ -155,14 +157,6 @@ def __get_cfn_template_info(doc_type: str, replacements: dict):
         cfn_alarm_id_output = __get_input(InputType.CFN_ALARM_OUTPUT, validator.validate_alpha_numeric_input)
         alarm_name_output = cfn_alarm_id_output
     replacements['${alarmNameOutput}'] = alarm_name_output
-
-    cfn_absolute_path = os.path.join(CFN_TEMPLATES_PATH, cfn_template_name + '.yml')
-    if not __is_exists(cfn_absolute_path):
-        print(BgColors.BOLD + BgColors.OKCYAN + 'There is no {} under {}. Creating one...\n'
-              .format(cfn_template_name, os.path.relpath(CFN_TEMPLATES_PATH, constants.PACKAGE_DIR)) + BgColors.ENDC)
-        __create_artifact(os.path.join(constants.TEMPLATES_DIR, "CloudFormationTemplate.yml"), cfn_absolute_path,
-                          replacements)
-        __print_success('Created {}'.format(os.path.relpath(cfn_absolute_path, constants.PACKAGE_DIR)))
 
 
 def __get_feature_file_templates_applicable(doc_type: str, supports_rollback: str):

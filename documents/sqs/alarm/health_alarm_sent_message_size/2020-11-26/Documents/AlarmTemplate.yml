@@ -13,6 +13,8 @@ Resources:
         It needs to investigate the current characteristics of input data and even change the code
         to move data by another way
       ActionsEnabled: false
+      AlarmActions:
+        - Ref: SNSTopicARN
       MetricName: SentMessageSize
       Namespace: AWS/SQS
       Dimensions:

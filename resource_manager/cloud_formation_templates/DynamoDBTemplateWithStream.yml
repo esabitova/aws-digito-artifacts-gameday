@@ -32,8 +32,8 @@ Resources:
     Properties:
       BillingMode: PROVISIONED
       ProvisionedThroughput:
-        ReadCapacityUnits: "5"
-        WriteCapacityUnits: "5"
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
       AttributeDefinitions:
         - AttributeName: "USER_ID"
           AttributeType: "S"

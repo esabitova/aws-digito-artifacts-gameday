@@ -11,7 +11,7 @@ Resources:
       LogGroupName: ${LogGroupName}
       MetricTransformations:
         - MetricValue: "1"
-          DefaultValue: "0"
+          DefaultValue: 0.0
           MetricNamespace: "EFSMounts"
           MetricName: 'MountFailures'
   ${AlarmLogicalId}:

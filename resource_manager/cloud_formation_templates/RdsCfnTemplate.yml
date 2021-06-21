@@ -53,7 +53,7 @@ Resources:
       Engine: mysql
       MultiAZ: true
       DBInstanceClass: !Ref DBInstanceClass
-      EngineVersion: 5.7
+      EngineVersion: "5.7"
       StorageType: gp2
       AllocatedStorage: !Ref AllocatedStorage
       MasterUsername: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
@@ -66,11 +66,9 @@ Resources:
       Engine: mysql
       MultiAZ: true
       DBInstanceClass: !Ref DBInstanceClass
-      EngineVersion: 5.7
+      EngineVersion: "5.7"
       StorageType: gp2
       AllocatedStorage: !Ref AllocatedStorage
-      MasterUsername: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
-      MasterUserPassword: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::password}}'
   CPUUtilizationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:

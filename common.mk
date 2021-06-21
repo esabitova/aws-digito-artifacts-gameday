@@ -104,3 +104,10 @@ build_canary_artifacts: clean_canary_artifacts test_linter
 	zip -r ../database-alarm-canary.zip . && \
 	cd  .. && \
 	zip -g database-alarm-canary.zip python/*
+
+cfn_lint: pip_install
+	source venv/bin/activate && \
+	PYTHONPATH=. cfn-lint -a cfn_lint/rules/assume_role_templates -t documents/**/AutomationAssumeRoleTemplate.yml ; \
+	PYTHONPATH=. cfn-lint -a cfn_lint/rules/alarm_templates -o cfn_lint/specs/AlarmHasActionSpec.json -i E3006 E1029 E3012 E0000 E1019 -t documents/**/AlarmTemplate.yml ; \
+	PYTHONPATH=. cfn-lint -a cfn_lint/rules/resource_manager_templates -i W1020 -t resource_manager/cloud_formation_templates/*.yml resource_manager/cloud_formation_templates/**/*.yml && \
+	deactivate

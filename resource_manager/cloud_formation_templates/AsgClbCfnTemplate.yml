@@ -300,8 +300,8 @@ Resources:
       GroupId:
         Ref: WebELBSG
       IpProtocol: tcp
-      FromPort: '80'
-      ToPort: '80'
+      FromPort: 80
+      ToPort: 80
       SourceSecurityGroupId:
         Ref: WebELBSG
   WebServerSG:
@@ -312,13 +312,13 @@ Resources:
         Ref: VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: 80
+          ToPort: 80
           SourceSecurityGroupId:
             Ref: WebELBSG
         - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
+          FromPort: 443
+          ToPort: 443
           SourceSecurityGroupId:
             Ref: WebELBSG
   PrivateSubnet1:
@@ -473,7 +473,7 @@ Resources:
       IamInstanceProfile:
         Ref: WebServerInstanceProfile
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64:
           #!/bin/bash
           yum install httpd -y
           service httpd start
@@ -512,7 +512,7 @@ Resources:
       MinSize: '2'
       MaxSize: '2'
       HealthCheckType: ELB
-      HealthCheckGracePeriod: '60'
+      HealthCheckGracePeriod: 60
       Cooldown: '60'
       MetricsCollection:
         - Granularity: '1Minute'
@@ -527,7 +527,7 @@ Resources:
         - Key: Name
           Value:
             Fn::Sub: 'WebServerforResiliency-${VPC}'
-          PropagateAtLaunch: 'true'
+          PropagateAtLaunch: true
 Outputs:
   AutoScalingGroupName:
     Description: AutoScalingGroupName

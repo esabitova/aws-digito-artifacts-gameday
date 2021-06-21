@@ -16,10 +16,10 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for ebs
+Description: Test stack for load-balancer
 Outputs:
-  VolumeId
-  
+  LoadBalancerArn
+  AlarmName
   # add reference to the appropriate resource attribute for the above
 
   # add other outputs here

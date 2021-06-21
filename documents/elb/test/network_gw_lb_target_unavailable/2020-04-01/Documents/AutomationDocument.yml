@@ -1,0 +1,189 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Breaks health check inside the target group assigned to Network Or Gateway LB"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  LoadBalancerArn:
+    type: String
+    description: (Required) LoadBalancerArn
+  TargetGroupArns:
+    type: StringList
+    description: (Optional) The list of TargetGroupArns
+    maxItems: 5
+    default: []
+  UnhealthyHealthCheckPort:
+    type: Integer
+    description: (Optional) The port that supposed to be closed or return unexpected result for LB health check
+    default: 65534
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    # e.g. elb:alarm:network_unhealthy_host_count:2020-04-01, elb:alarm:gateway_unhealthy_host_count:2020-04-01
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: LoadBalancerArn
+        Selector: $.Payload.LoadBalancerArn[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertLoadBalancerArn
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RollbackPreviousExecution
+          Variable: "{{ GetInputsFromPreviousExecution.LoadBalancerArn }}"
+          StringEquals: '{{ LoadBalancerArn }}'
+    isEnd: true
+
+  - name: RollbackPreviousExecution
+    # For each target_group in (Previous Execution)BackupCurrentExecution.TargetGroups
+    #   Call [boto3.modify_target_group]
+    #     Parameters:
+    #       TargetGroupArn
+    #       HealthCheckEnabled = target_group.HealthCheckProtocol
+    #       **if target_group.HealthCheckProtocol is False skip other params**
+    #       HealthCheckPath = target_group.HealthCheckPath
+    #       HealthCheckIntervalSeconds = target_group.HealthCheckIntervalSeconds
+    #       HealthCheckTimeoutSeconds = target_group.HealthCheckTimeoutSeconds
+    #       HealthyThresholdCount = target_group.HealthyThresholdCount
+    #       UnhealthyThresholdCount = target_group.UnhealthyThresholdCount
+    #       Matcher = target_group.Matcher
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+  - name: BackupCurrentExecution
+    # Call [boto3.describe_target_groups] (use pagination)
+    #   Parameters: 
+    #     LoadBalancerArn=params.LoadBalancerArn
+    #     **If params.TargetGroupArns not empty:**
+    #       TargetGroupArns=[*params.TargetGroupArns]
+    #   Take all '.TargetGroups[].HealthCheck*', '.TargetGroups[].HealthyThresholdCount' properties
+    #   Return MapList that contains LB_ARN, TargetGroup_ARN and other health check settings
+
+  - name: InjectFailure
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    # For each target_group in BackupCurrentExecution.TargetGroups
+    #   Call [boto3.modify_target_group]
+    #     Parameters:
+    #       TargetGroupArn
+    #       HealthCheckEnabled = True
+    #       HealthCheckPort=params.UnhealthyHealthCheckPort
+    #       HealthCheckIntervalSeconds = 10
+    #       HealthyThresholdCount = 1
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    maxAttempts: 5
+    onCancel: step:TriggerRollback
+    # For each target_group in BackupCurrentExecution.TargetGroups
+    #   Call [boto3.modify_target_group]
+    #     Parameters:
+    #       TargetGroupArn
+    #       HealthCheckEnabled = target_group.HealthCheckProtocol
+    #       **if target_group.HealthCheckProtocol is False skip other params**
+    #       HealthCheckPort=target_group.HealthCheckPort
+    #       HealthCheckIntervalSeconds = target_group.HealthCheckIntervalSeconds
+    #       HealthyThresholdCount = target_group.HealthyThresholdCount
+
+  - name: AssertAlarmToBeGreen 
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true
