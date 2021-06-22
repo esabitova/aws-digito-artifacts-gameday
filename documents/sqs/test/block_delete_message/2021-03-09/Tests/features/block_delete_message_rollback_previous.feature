@@ -61,7 +61,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
     And sleep for "60" seconds
-    And Wait for alarm to be in state "OK"
+    And Wait for alarm to be in state "OK" for "600" seconds
       | AlarmName                                                            |
       | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumAlarm}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
