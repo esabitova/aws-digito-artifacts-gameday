@@ -3,6 +3,6 @@
     "documentType": "Command",
     "documentContentPath": "AutomationDocument.yml",
     "documentFormat": "YAML",
-    "tag": "util:run_memory_stress:2020-07-28",
+    "tag": "util:ec2:run_memory_stress:2020-07-28",
     "minorVersion": "001"
 }
