@@ -2,9 +2,9 @@
 Feature: Alarm Setup - RDS Aurora replica lag
   Scenario: Lease RDS from resource manager and test attach an alarm from Document
     Given the cloud formation templates as integration test resources
-      |CfnTemplatePath                                                               |ResourceType|DBInstanceClass|AllocatedStorage|
-      |resource_manager/cloud_formation_templates/RdsAuroraWithBacktrackTemplate.yml |   ON_DEMAND|    db.t3.small|              10|
-      |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml            |SHARED      |               |                |
+      |CfnTemplatePath                                                               |ResourceType|DBInstanceClass|
+      |resource_manager/cloud_formation_templates/RdsAuroraWithBacktrackTemplate.yml |   ON_DEMAND|    db.t3.small|
+      |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml            |SHARED      |               |
     When alarm "rds:alarm:recovery-aurora_replica_lag:2020-04-01" is installed
       |alarmId    |DBInstanceIdentifier                                            |Threshold     | SNSTopicARN
       |under_test |{{cfn-output:RdsAuroraWithBacktrackTemplate>ReplicaInstanceId}} |10000         | {{cfn-output:SnsForAlarms>Topic}}
