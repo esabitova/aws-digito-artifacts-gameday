@@ -60,7 +60,7 @@ Resources:
       IpAddressType: ipv4
       LoadBalancerAttributes: 
         - Key: deletion_protection.enabled
-          Value: False
+          Value: "False"
       Scheme: internal
       SubnetMappings: 
         - SubnetId: !Ref NLBPrivateSubnet
@@ -70,7 +70,7 @@ Resources:
     Properties: 
       HealthCheckEnabled: True
       HealthCheckIntervalSeconds: 10
-      HealthCheckPort: 80
+      HealthCheckPort: "80"
       HealthCheckProtocol: TCP
       HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
@@ -78,7 +78,7 @@ Resources:
       Protocol: TCP
       TargetGroupAttributes: 
         - Key: stickiness.enabled
-          Value: True
+          Value: "True"
       # Targets: 
       #   - TargetDescription
       TargetType: ip
