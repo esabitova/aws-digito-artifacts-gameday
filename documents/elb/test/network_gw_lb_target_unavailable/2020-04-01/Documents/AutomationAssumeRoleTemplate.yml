@@ -44,7 +44,8 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              # add permissions required by automation document here
+              - ssm:StartAutomationExecution
+              - cloudwatch:DescribeAlarms
           - Effect: Allow
             Resource:
               - !GetAtt DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole.Arn
