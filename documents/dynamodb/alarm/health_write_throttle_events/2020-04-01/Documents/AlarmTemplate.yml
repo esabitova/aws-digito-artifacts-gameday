@@ -1,7 +1,4 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Parameters:
-  SNSTopicARN:
-    Type: String
 Resources:
   ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
