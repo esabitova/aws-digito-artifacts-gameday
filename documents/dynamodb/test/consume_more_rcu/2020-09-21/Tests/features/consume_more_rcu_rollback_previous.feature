@@ -3,9 +3,9 @@ Feature: SSM automation document to test dynamodb read throttling
 
   Scenario: Execute SSM automation document Digito-ConsumeMoreRCU_2020-09-21 in rollback
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                | ResourceType |
-      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithProvisionedBilling.yml          | DEDICATED    |
-      | documents/dynamodb/test/consume_more_rcu/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                 | ResourceType |
+      | resource_manager/cloud_formation_templates/dedicated/DynamoDBTemplateWithProvisionedBilling.yml | DEDICATED    |
+      | documents/dynamodb/test/consume_more_rcu/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml  | ASSUME_ROLE  |
     And published "Digito-ConsumeMoreRCU_2020-09-21" SSM document
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ReadCapacityUnits" "before" SSM automation execution
       | TableName                                                           |
