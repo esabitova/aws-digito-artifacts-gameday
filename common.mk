@@ -33,6 +33,11 @@ pip_install: venv
 	pip3 install -r requirements.txt && \
 	deactivate
 
+pip_install_only:
+	source venv/bin/activate && \
+	pip3 install -r requirements.txt && \
+	deactivate
+
 # Check versions updates of requirements
 check_pip_updates:
 	source venv/bin/activate && \
@@ -105,7 +110,7 @@ build_canary_artifacts: clean_canary_artifacts test_linter
 	cd  .. && \
 	zip -g database-alarm-canary.zip python/*
 
-cfn_lint: pip_install
+cfn_lint: pip_install_only
 	source venv/bin/activate && \
 	PYTHONPATH=. cfn-lint -a cfn_lint/rules/assume_role_templates -t documents/**/AutomationAssumeRoleTemplate.yml ; \
 	PYTHONPATH=. cfn-lint -a cfn_lint/rules/alarm_templates -o cfn_lint/specs/AlarmHasActionSpec.json -i E3006 E1029 E3012 E0000 E1019 -t documents/**/AlarmTemplate.yml ; \
