@@ -25,6 +25,7 @@ class AlarmManager:
         self.datetime_helper = datetime_helper
         self.deployed_alarms = {}
         self.logger = logger
+        self.logger.info(f"Alarm manager with unique_suffix: {unique_suffix} created for test")
 
     def deploy_alarm(self, alarm_reference_id, input_params):
 
