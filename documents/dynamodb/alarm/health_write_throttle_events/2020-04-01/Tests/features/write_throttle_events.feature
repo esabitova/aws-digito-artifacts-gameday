@@ -4,9 +4,10 @@ Feature: Alarm Setup - Write Throttle Events Alarm
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                      | ResourceType |
       | resource_manager/cloud_formation_templates/DynamoDBTemplateWithLimitedThroughput.yml | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                   | SHARED       |
     When alarm "dynamodb:alarm:health_write_throttle_events:2020-04-01" is installed
-      | alarmId    | Threshold | DynamoDbTable                                                      |
-      | under_test | 1         | {{cfn-output:DynamoDBTemplateWithLimitedThroughput>DynamoDBTable}} |
+      | alarmId    | Threshold | DynamoDbTable                                                      | SNSTopicARN                       |
+      | under_test | 1         | {{cfn-output:DynamoDBTemplateWithLimitedThroughput>DynamoDBTable}} | {{cfn-output:SnsForAlarms>Topic}} |
     And put random test item "500" times
       | DynamoDBTableName                                                  |
       | {{cfn-output:DynamoDBTemplateWithLimitedThroughput>DynamoDBTable}} |

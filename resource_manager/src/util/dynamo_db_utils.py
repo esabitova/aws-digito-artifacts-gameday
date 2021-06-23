@@ -556,7 +556,7 @@ def put_item_async_stress_test(boto3_session: Session, table_name: str, items: l
             futures.append(
                 executor.submit(put_item_single, boto3_session, table_name, item)
             )
-    logging.info('DynamoDB write items stress test done')
+    logging.info('DynamoDB put items stress test done')
 
 
 def _get_random_value(value_type: str, length: int = 5):
@@ -574,10 +574,10 @@ def _get_random_value(value_type: str, length: int = 5):
         return Binary(bytearray(random.getrandbits(8) for _ in range(length)))
 
 
-def generate_random_item(boto3_session: Session, table_name: str, count: int = 1):
+def generate_random_item(boto3_session: Session, table_name: str, total_number: int = 1):
     """
     Retrieve DynamoDB table schema, get primary key and return item with random values
-    :param count items to generate
+    :param total_number items to generate
     :param boto3_session The boto3 session
     :param table_name The table name
     :return Random item
@@ -589,7 +589,7 @@ def generate_random_item(boto3_session: Session, table_name: str, count: int = 1
     # Gather primary key attributes from schema
     primary_keys = [key['AttributeName'] for key in keys]
     # Generate minimal random item for schema
-    for i in range(0, count):
+    for i in range(total_number):
         item = {}
         for attribute in attributes:
             attribute_name = attribute['AttributeName']
@@ -600,8 +600,7 @@ def generate_random_item(boto3_session: Session, table_name: str, count: int = 1
         logging.info(f'{item}')
         items.append(item)
 
-    items_size = len(items)
-    logging.info(f'generated {items_size} items')
-    if count == 1:
+    logging.info(f'generated {len(items)} items')
+    if len(items) == 1:
         return items[0]
     return items

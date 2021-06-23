@@ -1,11 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
 Resources:
   ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmDescription: 'Alarm by Digito that reports when write throttle events is less than ${Threshold}'
-      ActionsEnabled: false
       AlarmName: ${AlarmName}
+      AlarmActions:
+        - Ref: SNSTopicARN
       MetricName: WriteThrottleEvents
       Namespace: AWS/DynamoDB
       Statistic: Sum
