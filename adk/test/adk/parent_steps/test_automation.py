@@ -3,7 +3,9 @@ from unittest.mock import patch, MagicMock
 
 import pytest
 
+from adk.src.adk.domain.branch_operation import Operation
 from adk.src.adk.domain.cancellation_exception import CancellationException
+from adk.src.adk.domain.choice import Choice
 from adk.src.adk.domain.non_retriable_exception import NonRetriableException
 from adk.src.adk.parent_steps.branch_step import BranchStep
 from adk.src.adk.parent_steps.sleep_step import SleepStep
@@ -169,9 +171,6 @@ class TestAutomation(unittest.TestCase):
             '  action: aws:branch\n'
             '  inputs:\n'
             '    Choices:\n'
-            '    - NextStep: SampleStep\n'
-            '      Variable: \'{{DryRun}}\'\n'
-            '      BooleanEquals: false\n'
             '    - NextStep: SleepStep\n'
             '      Variable: \'{{DryRun}}\'\n'
             '      BooleanEquals: true\n'
@@ -268,7 +267,8 @@ def sample_ssm() -> Automation:
         assume_role="AutomationAssumeRole",
         steps=[
             get_ec2_describe_instances().on_cancel(final_step),
-            BranchStep(name="BranchForSomething", skip_forward_step=final_step, input_to_test='DryRun'),
+            BranchStep(name="BranchForSomething", description="Branch based on DryRun", choices=[
+                Choice(skip_to=final_step, input_to_test='DryRun', operation=Operation.BooleanEquals, constant=True)]),
             SampleStep().max_attempts(3),
             get_wait_for_instance_start().on_failure(final_step),
             another_ssm(),

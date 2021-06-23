@@ -111,7 +111,7 @@ class Step(object):
         try:
             response_dict = self._invoke_with_retries(params)
             params.update(response_dict)
-            if self._next_step:
+            if self._next_step and not self._is_end:
                 self._next_step.invoke(params)
         except CancellationException as exc:
             if self._on_cancel:
