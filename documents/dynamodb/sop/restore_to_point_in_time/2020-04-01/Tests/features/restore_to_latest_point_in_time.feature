@@ -45,7 +45,7 @@ Feature: SSM automation document to restore the database from point in time.
   Scenario: Restores table to the latest available point. With Scaling
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
-      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithAutoScaling.yml                        | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/dedicated/DynamoDBTemplateWithAutoScaling.yml              | DEDICATED    |
       | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document

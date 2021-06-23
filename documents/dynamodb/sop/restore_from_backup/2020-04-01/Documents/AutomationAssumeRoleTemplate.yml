@@ -73,7 +73,10 @@ Resources:
               - "dynamodb:UpdateContinuousBackups"
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - "iam:PassRole"
+              - 'iam:PassRole' # needed to RegisterScalableTarget with RoleARN
+              - "kinesis:PutRecord" # needed to enabled kinesis destination
+              - "kinesis:PutRecords" # needed to enabled kinesis destination
+              - "kinesis:DescribeStream" # needed to enabled kinesis destination
 
       Roles:
         - Ref: DigitoDynamodbRestoreFromBackupAssumeRole

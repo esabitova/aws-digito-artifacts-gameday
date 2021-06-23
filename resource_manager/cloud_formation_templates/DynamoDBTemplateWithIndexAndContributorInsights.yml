@@ -25,10 +25,7 @@ Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      BillingMode: PROVISIONED
-      ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+      BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: "USER_ID"
           AttributeType: "S"
@@ -51,17 +48,11 @@ Resources:
               KeyType: HASH
           Projection: 
             ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
         - IndexName: digito-index-2
           KeySchema:
             - AttributeName: Name
               KeyType: HASH
           Projection: 
             ProjectionType: ALL
-          ProvisionedThroughput:
-            ReadCapacityUnits: 5
-            WriteCapacityUnits: 5
           ContributorInsightsSpecification:
             Enabled: true

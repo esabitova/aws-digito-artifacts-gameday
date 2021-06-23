@@ -40,3 +40,15 @@ def test_restore_from_backup_auto_scaling():
           'Restores table from backup. Global Table')
 def test_restore_from_backup_global_table():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/restore_from_backup.feature',
+          'Restores table from backup with TTL enabled')
+def test_restore_from_backup_with_ttl_enabled():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+
+@scenario('../features/restore_from_backup.feature',
+          'Restores table to the latest available point. Copy Alarms')
+def test_restore_from_backup_copy_alarms():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""

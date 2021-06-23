@@ -10,12 +10,12 @@ Feature: SSM automation document ASG scale up testing
       |CfnTemplatePath                                                                          | ResourceType | InstanceType          |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                            | ON_DEMAND    | {{cache:InstanceType}}|
       |documents/compute/sop/asg-scale_up/2020-07-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                       |
-    And published "Digito-ASG-ScaleUp_2020-04-01" SSM document
+    And published "Digito-ASG-ScaleUp_2020-07-01" SSM document
 
-    When SSM automation document "Digito-ASG-ScaleUp_2020-04-01" executed
+    When SSM automation document "Digito-ASG-ScaleUp_2020-07-01" executed
       |AutoScalingGroupName                               |AutomationAssumeRole                                                  |
       |{{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoAsgScaleUpAssumeRole}}|
-    Then SSM automation document "Digito-ASG-ScaleUp_2020-04-01" execution in status "Success"
+    Then SSM automation document "Digito-ASG-ScaleUp_2020-07-01" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
@@ -27,11 +27,11 @@ Feature: SSM automation document ASG scale up testing
       |CfnTemplatePath                                                                          | ResourceType | InstanceType          |
       |resource_manager/cloud_formation_templates/AsgLaunchTemplateCfnTemplate.yml              | ON_DEMAND    | {{cache:InstanceType}}|
       |documents/compute/sop/asg-scale_up/2020-07-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                       |
-    And published "Digito-ASG-ScaleUp_2020-04-01" SSM document
+    And published "Digito-ASG-ScaleUp_2020-07-01" SSM document
 
-    When SSM automation document "Digito-ASG-ScaleUp_2020-04-01" executed
+    When SSM automation document "Digito-ASG-ScaleUp_2020-07-01" executed
       |AutoScalingGroupName                               |AutomationAssumeRole                                                  |
       |{{cfn-output:AsgLaunchTemplateCfnTemplate>AutoScalingGroupName}} |{{cfn-output:AutomationAssumeRoleTemplate>DigitoAsgScaleUpAssumeRole}}|
-    Then SSM automation document "Digito-ASG-ScaleUp_2020-04-01" execution in status "Success"
+    Then SSM automation document "Digito-ASG-ScaleUp_2020-07-01" execution in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|

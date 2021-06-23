@@ -4,9 +4,9 @@ Feature: SSM automation document for Aurora cluster failover.
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to failover RDS cluster with primary
     Given the cloud formation templates as integration test resources
-      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|AllocatedStorage|
-      |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|               1|
-      |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |                |
+      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|
+      |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|
+      |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |
     And published "Digito-AuroraFailoverCluster_2020-04-01" SSM document
     And cache DB cluster "dbReaderId" and "dbWriterId" "before" SSM automation execution
       |ClusterId                                             |
@@ -27,9 +27,9 @@ Feature: SSM automation document for Aurora cluster failover.
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to failover RDS cluster default
     Given the cloud formation templates as integration test resources
-      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|AllocatedStorage|
-      |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|               1|
-      |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |                |
+      |CfnTemplatePath                                                                                |ResourceType|DBInstanceClass|
+      |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|
+      |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |
     And published "Digito-AuroraFailoverCluster_2020-04-01" SSM document
     And cache DB cluster "dbReaderId" and "dbWriterId" "before" SSM automation execution
       |ClusterId                                             |
