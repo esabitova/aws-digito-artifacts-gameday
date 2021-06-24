@@ -276,7 +276,7 @@ def alarm_manager(request, boto3_session, function_logger):
     aws_account_id = request.session.config.option.aws_account_id
     cfn_helper = CloudFormationTemplate(boto3_session, function_logger)
     s3_helper = S3(boto3_session, aws_account_id, function_logger)
-    unique_suffix = ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    unique_suffix = ''.join(random.Random().choices(string.ascii_letters + string.digits, k=4))
     manager = AlarmManager(unique_suffix, boto3_session, cfn_helper, s3_helper, logger=function_logger)
     yield manager
     manager.destroy_deployed_alarms()
