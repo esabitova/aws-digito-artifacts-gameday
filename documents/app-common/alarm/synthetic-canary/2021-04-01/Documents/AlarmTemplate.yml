@@ -17,7 +17,8 @@ Resources:
       DatapointsToAlarm: 2
       Dimensions:
         - Name: CanaryName
-          Value: CanaryName
+          Value:
+            Ref: CanaryName
       MetricName: SuccessPercent
       Namespace: CloudWatchSynthetics
       Period: 60
