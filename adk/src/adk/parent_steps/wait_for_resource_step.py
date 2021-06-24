@@ -33,7 +33,8 @@ class WaitForResourceStep(AssertResourceStep, ABC):
             except NonRetriableException as exc:
                 raise exc
             except Exception as exc:
-                print("Received exception when hitting AWS api. Will try again in 3 seconds: " + str(exc))
+                print("Received exception when hitting AWS api " + self._service + "." + self.get_camel_case_api()
+                      + ". Will try again in 3 seconds: " + str(exc))
                 last_exception = exc
             time.sleep(3)
         error_msg = 'Response received for API ' + self.get_service() + ':' + self.get_python_api() +\

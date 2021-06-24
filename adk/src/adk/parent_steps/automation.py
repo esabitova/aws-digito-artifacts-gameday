@@ -24,15 +24,16 @@ class Automation(Step):
     """
 
     def __init__(self, name: str, steps: List[Step], assume_role: str,
-                 inputs: List[Input], doc_outputs: List[str] = ()):
+                 inputs: List[Input], doc_outputs: List[str] = (), header: str = None):
         super().__init__(name=name)
         self._steps = self.step_validations(steps)
         self._inputs = inputs
         self._doc_outputs = self.validate_doc_outputs(doc_outputs)
         self._assume_role = self._subname(assume_role) \
-            if self._subname(assume_role) not in self.get_inputs() \
+            if self._subname(assume_role) not in self.get_subnames() \
             else '{{' + self._subname(assume_role) + '}}'
         self._first = self._create_chain()
+        self._header = header
 
     def get_action(self) -> str:
         return "aws:executeAutomation"
@@ -47,7 +48,13 @@ class Automation(Step):
         return [Output(name='Output', output_type=DataType.StringList)]
 
     def get_inputs(self) -> List[str]:
+        return [inp.name for inp in self._inputs]
+
+    def get_subnames(self) -> List[str]:
         return [self._subname(inp.name) for inp in self._inputs]
+
+    def get_inputs_by_subname(self) -> dict:
+        return dict((self._subname(inp.name), inp) for inp in self._inputs)
 
     @staticmethod
     def _subname(inp):
@@ -67,8 +74,9 @@ class Automation(Step):
         return {'Output': output_list}
 
     def run_automation(self, params: {}) -> {}:
-        self.validate_inputs(params)
         params_copy = copy.deepcopy(params)
+        self.insert_default_inputs(params_copy)
+        self.validate_inputs(params_copy)
         self._first.invoke(params_copy)
         return params_copy
 
@@ -91,7 +99,7 @@ class Automation(Step):
                                     + str(inp.allowed_values))
 
     def get_yaml(self) -> str:
-        input_payload = dict((inp.split(".", 1)[-1], '{{ ' + inp + ' }}') for inp in self.get_inputs())
+        input_payload = dict((inp, '{{ ' + inp + ' }}') for inp in self.get_subnames())
         parent_yaml = yaml.safe_load(self.to_yaml(inputs={
             'DocumentName': self.name,
             'RuntimeParameters': input_payload}))
@@ -116,7 +124,13 @@ class Automation(Step):
         if len(self._doc_outputs):
             root.update({'outputs': self._doc_outputs})
         root.update({'mainSteps': ssm_steps})
-        return yaml.dump(root, sort_keys=False)
+        prefix = self.header_with_comments(self._header) + "\n---\n" if self._header else ''
+        return prefix + yaml.dump(root, sort_keys=False)
+
+    @staticmethod
+    def header_with_comments(header):
+        # Prepend header line with # if it does not start with #
+        return '\n'.join([line if line.strip().startswith("#") else "# " + line for line in header.split('\n')])
 
     def _create_chain(self):
         first_step = self._steps[0]
@@ -167,3 +181,8 @@ class Automation(Step):
             if step.name == step_name and output in [out.name for out in step.get_outputs()]:
                 return
         raise Exception("doc_outputs must be specified as StepName.Output. Not found: " + step_name + "." + output)
+
+    def insert_default_inputs(self, params_copy):
+        for name, inp in self.get_inputs_by_subname().items():
+            if name not in params_copy:
+                params_copy[name] = inp.default

@@ -72,9 +72,15 @@ class AwsApiStep(Step):
         variables = re.findall('{{.*?}}', api_params)
         for var in variables:
             replacement = params.get(var[2: -2].strip())
-            if not replacement:
+            if replacement is None:
                 raise Exception('Input required but not found: ' + var)
-            api_params = api_params.replace(var, replacement)
+            if type(replacement) is str:
+                api_params = api_params.replace(var, replacement)
+            elif type(replacement) is int:
+                api_params = api_params.replace('\'' + var + '\'', str(replacement))
+                api_params = api_params.replace('"' + var + '"', str(replacement))
+            else:
+                raise Exception('Unsupported data type ' + type(replacement) + " for " + replacement)
         return getattr(client, self.get_python_api())(**json.loads(api_params))
 
     def get_yaml(self):

@@ -3,7 +3,7 @@ from adk.src.adk.domain.output import Output
 from adk.src.adk.parent_steps.aws_api_step import AwsApiStep
 
 
-def get_ec2_describe_instances():
+def get_ec2_describe_instances(instance_id_var="InstanceId"):
     return AwsApiStep(
         name='Ec2DescribeInstances',
         description='Describes EC2 Instance',
@@ -12,7 +12,7 @@ def get_ec2_describe_instances():
         api_params={
             'Filters': [{
                 'Name': 'instance-id',
-                'Values': ['{{ InstanceId }}']
+                'Values': ['{{ ' + instance_id_var + ' }}']
             }]
         },
         outputs=[
