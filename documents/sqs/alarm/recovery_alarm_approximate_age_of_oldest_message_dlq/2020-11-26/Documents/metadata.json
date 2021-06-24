@@ -1,0 +1,11 @@
+{
+  "displayName": "Approximate Age Of Oldest Message in DLQ",
+  "description": "Alarm by Digito that is triggered when the oldest message in DLQ is getting close to retention period",
+  "alarmName": "Digito-ApproximateAgeOfOldestMessageDLQ_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:recovery_alarm_approximate_age_of_oldest_message_dlq:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

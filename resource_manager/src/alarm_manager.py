@@ -53,7 +53,7 @@ class AlarmManager:
         # Use the remaining parameters to build the alarm as a Cfn Template
         cfn_parameters = {k: v for k, v in input_params.items() if k not in variables}
         content = load_yaml(alarm_document.get_content())
-        s3_url = self.s3_helper.upload_file(f'alarm_templates/{alarm_name}.yml', content)
+        s3_url = self.s3_helper.upload_file(f'alarm_templates/{unique_alarm_name}.yml', content)
         self.deployed_alarms[alarm_id] = {
             "alarm_name": unique_alarm_name,
             "content": content
