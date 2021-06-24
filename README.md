@@ -447,18 +447,22 @@ ssm_assume_role_cfn_s3_path = 'resource_manager/cloud_formation_templates/Automa
   as a KEY=VALUE pair. In which case:\n
   KEY - is cloud formation template name (with no extension), template 
   name should be unique\n
-  VALUE - is number of template cloud formation stack copies should be 
-  presented before test execution\n
-  NOTE: For SSM 'ASSUME_ROLE' templates we don't need to specify 
+  VALUE - is a map of resource type and pool size (we can use same template for different 
+  resource types). For example: 
+  - TemplateA={ON_DEMAND:3, DEDICATED:2}
+  - TemplateB={ON_DEMAND:3}  
+ 
+  NOTE: For 'ASSUME_ROLE' and 'DEDICATED' templates we don't need to specify 
   pool size, it is using default\n 
   (multiple SSM documents can use same role at the same time)
 """
 pool_size = dict(
    # In case if template name is not listed default pool size applied   
    default=1,  
-   # The pool size configuration for RdsAuroraFailoverTestTemplate.yml 
-   # (file name with no extension)   
-   RdsAuroraFailoverTestTemplate=5
+   # The pool size configuration for RdsAuroraFailoverTestTemplate.yml    
+   RdsAuroraFailoverTestTemplate={ResourceModel.Type.ON_DEMAND: 4},
+   # The pool size configuration for RdsAuroraWithBacktrackTemplate.yml 
+   RdsAuroraWithBacktrackTemplate={ResourceModel.Type.ON_DEMAND: 1, ResourceModel.Type.DEDICATED: 2},
 )
 ```
 <b>File location:</b> .../AwsDigitoArtifactsGameday/resource_manager/config.py
@@ -485,6 +489,9 @@ Given the cloud formation templates as integration test resources
       | documents/s3/test/accidental_delete/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                             |
 ```
 <b>File location:</b> documents/s3/test/accidental_delete/2020-04-01/Tests/features/accidental_delete_usual_case.feature
+<b>NOTE:</b> It is possible that created custom resource can stuck when deleting it, in this case check following page:
+* https://aws.amazon.com/premiumsupport/knowledge-center/cloudformation-lambda-resource-delete
+* https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-lambda-function-code-cfnresponsemodule.html
 
 Custom resource definition which is using lambda function example:
 ```
@@ -664,7 +671,7 @@ markers =
 This section explains test execution workflow and how cloud formation based resources are are created and provided for SSM automation document execution.
 
 Integration test execution command line:
-> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name --pool_size TestTemplateA=5,TestTemplateB=3 --aws_role_arn=arn:aws:iam::<aws_account_id>:role/<role_name>
+> python3.8 -m pytest -m integration --workers 2  --run_integration_tests --keep_test_resources --aws_profile my_aws_profile_name --pool_size "TestTemplateA={DEDICATED:2,ON_DEMAND:3},TestTemplateB={ON_DEMAND:3}" --aws_role_arn=arn:aws:iam::<aws_account_id>:role/<role_name>
 
 * -m pytest - (Required) Use [pytest](https://docs.pytest.org/en/stable/) module for test execution.
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 

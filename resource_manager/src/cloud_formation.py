@@ -31,14 +31,14 @@ class CloudFormationTemplate:
         """
         Returns cloud formation stack outputs, which is
         associated with this class instance, to be used as SSM automation documents inputs.
-        :return: The cloud formation outupts
+        :return: The cloud formation outputs
         """
         stack = self.resource.Stack(stack_name)
         return stack.outputs
 
     def _create_cf_stack(self, cf_template_s3_url, stack_name, **kwargs):
         """
-        Creates cloud formation stack for given cloud cormation template and inputs.
+        Creates cloud formation stack for given cloud formation template and inputs.
         :param stack_name: The cloud formation stack name
         :param template_url: The cloud formation template URL located in S3
         :param kwargs: The cloud formation input parameters.
@@ -48,7 +48,6 @@ class CloudFormationTemplate:
             self._create(stack_name, cf_template_s3_url, parameters)
         except ClientError as e:
             if e.response['Error']['Code'] == 'AlreadyExistsException':
-                self.logger.info('Stack [%s] already exists, updating...', stack_name)
                 self._update(stack_name, cf_template_s3_url, parameters)
             else:
                 self.logger.error(e)
@@ -61,6 +60,7 @@ class CloudFormationTemplate:
         :param cf_template_s3_url The cloud formation template URL located in S3
         :param parameters The input parameters for cloud formation stack
         """
+        self.logger.info(f'Creating [{stack_name}] stack.')
         self._wait_stack_operation_completion(stack_name)
         self.client.create_stack(
             StackName=stack_name,
@@ -82,12 +82,18 @@ class CloudFormationTemplate:
                 StackName=stack_name,
                 Capabilities=['CAPABILITY_IAM'],
                 TemplateURL=cf_template_s3_url,
+                UsePreviousTemplate=False,
                 Parameters=parameters)
             self._wait_stack_operation_completion(stack_name)
         except ClientError as e:
             err_message = e.response['Error']['Message']
-            if 'No updates are to be performed.' in err_message and e.response['Error']['Code'] == 'ValidationError':
-                self.logger.info("Stack [{}] already updated.".format(stack_name))
+            if e.response['Error']['Code'] == 'ValidationError':
+                if 'No updates are to be performed.' in err_message:
+                    self.logger.info(f'Stack [{stack_name}] already updated.')
+                elif 'is in ROLLBACK_COMPLETE state and can not be updated.' in err_message:
+                    self.logger.warning(e)
+                    self.delete_cf_stack(stack_name)
+                    self._create(stack_name, cf_template_s3_url, parameters)
             else:
                 self.logger.error(e)
                 raise e
@@ -98,8 +104,18 @@ class CloudFormationTemplate:
         :param stack_name The cloud formation stack name.
         :param enable_termination_protection boolean value indicating whether or not to enable termination protection
         """
-        self.client.update_termination_protection(StackName=stack_name,
-                                                  EnableTerminationProtection=enable_termination_protection)
+        try:
+            self.client.update_termination_protection(StackName=stack_name,
+                                                      EnableTerminationProtection=enable_termination_protection)
+        except ClientError as e:
+            err_message = e.response['Error']['Message']
+            if f'Stack [{stack_name}] does not exist' in err_message \
+                    and e.response['Error']['Code'] == 'ValidationError':
+                # Do nothing as stack for given name does not exist.
+                pass
+            else:
+                self.logger.error(e)
+                raise e
 
     def _parse_input_parameters(self, **kwargs):
         """
@@ -129,10 +145,17 @@ class CloudFormationTemplate:
                 time.sleep(constants.cf_operation_sleep_time_secs)
                 response = self.client.describe_stacks(StackName=stack_name)
                 stack_status = response['Stacks'][0]['StackStatus']
-        except ClientError:
-            # Do nothing as stack doesn't exist.
-            # TODO(semiond): Investigate better exception handling: https://issues.amazon.com/issues/Digito-1212
-            pass
+                if 'FAILED' in stack_status or 'ROLLBACK_COMPLETE' in stack_status:
+                    raise Exception(f'Stack for name [{stack_name}] failed with status [{stack_status}].')
+        except ClientError as e:
+            err_message = e.response['Error']['Message']
+            if f'Stack with id {stack_name} does not exist' in err_message and \
+                    e.response['Error']['Code'] == 'ValidationError':
+                # Do nothing as stack doesn't exist.
+                pass
+            else:
+                self.logger.error(e)
+                raise e
 
     def delete_cf_stack(self, stack_name):
         """
@@ -140,6 +163,7 @@ class CloudFormationTemplate:
         this class instance, waits till completion.
         :param stack_name The stack name to delete.
         """
+        self.logger.info(f'Deleting [{stack_name}] stack.')
         self._update_termination_protection(stack_name, False)
         self.client.delete_stack(StackName=stack_name)
         self._wait_stack_operation_completion(stack_name)
@@ -150,7 +174,6 @@ class CloudFormationTemplate:
     def describe_cf_stack_events(self, stack_name):
         res = self.client.describe_stack_events(StackName=stack_name)
         resources = res['StackEvents']
-
         while 'NextToken' in res:
             res = self.client.describe_stack_events(StackName=stack_name, NextToken=res['NextToken'])
             resources.extend(res['StackEvents'])

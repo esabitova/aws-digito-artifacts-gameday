@@ -1,6 +1,7 @@
 import unittest
 import pytest
 import resource_manager.src.util.param_utils as param_utils
+from resource_manager.src.resource_model import ResourceModel
 
 
 @pytest.mark.unit_test
@@ -61,18 +62,34 @@ class TestParamUtils(unittest.TestCase):
         self.assertEqual(expected_value, actual_value)
 
     def test_parse_pool_size_success(self):
-        actual_pool_size = param_utils.parse_pool_size('TemplateA=1,TemplateB=2,TemplateC=3,S3TemplateC=4')
-        expected_pool_size = dict(TemplateA=1, TemplateB=2, TemplateC=3, S3TemplateC=4)
+        actual_pool_size = param_utils.parse_pool_size('TemplateA={ON_DEMAND:1,DEDICATED:4},'
+                                                       'TemplateB={ON_DEMAND:2,DEDICATED:2},'
+                                                       'TemplateC={ON_DEMAND:3},'
+                                                       'S3TemplateC={ON_DEMAND:4,DEDICATED:12}')
+
+        expected_pool_size = dict(TemplateA={ResourceModel.Type.ON_DEMAND: 1, ResourceModel.Type.DEDICATED: 4},
+                                  TemplateB={ResourceModel.Type.ON_DEMAND: 2, ResourceModel.Type.DEDICATED: 2},
+                                  TemplateC={ResourceModel.Type.ON_DEMAND: 3},
+                                  S3TemplateC={ResourceModel.Type.ON_DEMAND: 4, ResourceModel.Type.DEDICATED: 12})
         self.assertEqual(actual_pool_size, expected_pool_size)
 
-    def test_parse_pool_size_extra_space_fail(self):
-        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,TemplateB=2, TemplateC=3,S3TemplateC=4')
-
     def test_parse_pool_size_bad_number_fail(self):
-        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,TemplateB=B,TemplateC=3,S3TemplateC=4')
+        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA={ON_DEMAND:1,DEDICATED:4},'
+                                                                  'TemplateB={ON_DEMAND:1,DEDICATED:4},'
+                                                                  'TemplateC={DEDICATED:B},'
+                                                                  'S3TemplateC={ON_DEMAND:1,DEDICATED:4}')
+
+    def test_parse_pool_size_extra_space_fail(self):
+        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA={ON_DEMAND:1,DEDICATED:4},'
+                                                                  'TemplateB={ON_DEMAND:1,DEDICATED:4},'
+                                                                  ' TemplateC={DEDICATED:3},'
+                                                                  'S3TemplateC={ON_DEMAND:1,DEDICATED:4}')
 
     def test_parse_pool_size_bad_char_fail(self):
-        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA=1,?TemplateB=1,TemplateC=3,S3TemplateC=4')
+        self.assertRaises(Exception, param_utils.parse_pool_size, 'TemplateA={ON_DEMAND:1,DEDICATED:4},'
+                                                                  '?TemplateB={ON_DEMAND:1,DEDICATED:4},'
+                                                                  'TemplateC={DEDICATED:3},'
+                                                                  'S3TemplateC={ON_DEMAND:1,DEDICATED:4}')
 
     def test_parse_cfn_output_val_ref_success(self):
         cfn_template_name, cfn_output_name = \

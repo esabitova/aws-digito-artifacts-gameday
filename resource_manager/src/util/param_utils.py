@@ -1,5 +1,6 @@
 import re
 from sttable import parse_str_table
+from resource_manager.src.resource_model import ResourceModel
 
 
 def parse_param_values_from_table(data_table, param_containers):
@@ -74,19 +75,24 @@ def parse_cfn_output_val_ref(cfn_output_val_ref: str) -> (str, str):
 def parse_pool_size(custom_pool_size: str) -> dict:
     """
     Util to parse testing resource pool size from command line:
-    --pool_size TestTemplateA=1,TestTemplateB=2
+    --pool_size TestTemplateA={ON_DEMAND:3, DEDICATED:2},TestTemplateB={DEDICATED:3}
     :param custom_pool_size The custom integration test pool size
     """
     pool_size = dict()
     if custom_pool_size:
-        poll_sizes = custom_pool_size.split(",")
-        for ps in poll_sizes:
-            poll_size_pattern = re.compile(r'[0-9A-Za-z]+=\d+')
-            if poll_size_pattern.match(ps):
-                ps_parts = ps.split('=')
-                pool_size[ps_parts[0]] = int(ps_parts[1])
-            else:
-                raise Exception('Pool size parameter format [{}] is not supported. '
-                                'Expected format <cfn_template_name>=<size>, example:'
-                                ' --pool_size TestTemplateA=1,TestTemplateB=1'.format(ps))
+        if re.fullmatch(r'([0-9A-Za-z]+={((ON_DEMAND|DEDICATED):\d+(,)?){1,2}}(,)?)+', custom_pool_size):
+            for temp_pool_size in re.finditer(r'[0-9A-Za-z]+={((ON_DEMAND|DEDICATED):\d+(,)?){1,2}}', custom_pool_size):
+                template_name = temp_pool_size.group().split('=')[0]
+                pool_size_config = temp_pool_size.group().split('=')[1]
+                pool_size_map = {}
+                for ps in re.finditer(r'((ON_DEMAND|DEDICATED):\d+)', pool_size_config):
+                    rs_type = ps.group().split(":")[0]
+                    rs_pool_size = ps.group().split(":")[1]
+                    pool_size_map[ResourceModel.Type.from_string(rs_type)] = int(rs_pool_size)
+                pool_size[template_name] = pool_size_map
+
+        else:
+            raise Exception(f'Pool size parameter format [{custom_pool_size}] is not supported. '
+                            f'Expected format <cfn_template_name>={{DEDICATED:<size>,ON_DEMAND:<size>}}, example:'
+                            f' --pool_size TestTemplateA={{DEDICATED:2,ON_DEMAND:1}},TestTemplateB={{ON_DEMAND:5}}')
     return pool_size
