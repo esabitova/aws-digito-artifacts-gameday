@@ -14,7 +14,7 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageMaximum
       | alarmId    | SNSTopicARN                       | QueueName                                      | Threshold
       | under_test | {{cfn-output:SnsForAlarms>Topic}} |{{cfn-output:SqsTemplate>SqsStandardQueueName}} | 15
     And send "10" messages to queue
-      | QueueUrl                                       |
+      | QueueUrl                                          |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     Then assert metrics for all alarms are populated
