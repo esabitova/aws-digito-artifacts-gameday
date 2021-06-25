@@ -204,6 +204,7 @@ def assert_alarms_copied(resource_pool, ssm_test_cache, boto3_session,
     assert len(alarms) == 1
 
 
+@given(parsers.parse('assert global table region {secondary_region_ref} copied for table {target_table_name_ref}'))
 @then(parsers.parse('assert global table region {secondary_region_ref} copied for table {target_table_name_ref}'))
 def assert_global_table_copied(resource_pool, ssm_test_cache, boto3_session,
                                target_table_name_ref,
@@ -219,6 +220,7 @@ def assert_global_table_copied(resource_pool, ssm_test_cache, boto3_session,
 
 
 @given(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
+@when(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
 def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_parameters):
     dynamo_db_client = boto3_session.client('dynamodb')
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
@@ -365,3 +367,25 @@ def assert_continuous_backups_copied(resource_pool, ssm_test_cache, boto3_sessio
         get_continuous_backups_status(boto3_session=boto3_session, table_name=target_table_name)
 
     assert source_continuous_backups_status == target_continuous_backups_status
+
+
+@given(parsers.parse('cache different region name as "{cache_property}" "{step_key}" '
+                     'SSM automation execution'))
+@when(parsers.parse('cache different region name as "{cache_property}" "{step_key}" '
+                    'SSM automation execution'))
+def cache_different_region(boto3_session, ssm_test_cache,
+                           cache_property, step_key):
+
+    source_region = boto3_session.region_name
+    available_region_list = boto3_session.get_available_regions('dynamodb')
+    available_region_list.remove(source_region)
+    logging.info(f'Available region list: {available_region_list}')
+    # choose the first region from a location where step was run
+    # if location contains only one region, choose the first one from other location
+    destination_region = available_region_list[0]
+    for region in available_region_list:
+        if region.startswith(source_region.split('-')[0]):
+            destination_region = region
+            break
+    logging.info(f'Caching new region for DynamoDB: {destination_region}')
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, destination_region)
