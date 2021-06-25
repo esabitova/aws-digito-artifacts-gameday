@@ -1,5 +1,5 @@
 {
-  "displayName": "Write throttle events",
+  "displayName": "Write throttle events threshold exceeded",
   "description": "Reports when write throttle events is greater than threshold",
   "alarmName": "Digito-WriteThrottleEventsAlarm_2020-04-01",
   "alarmType": "Metric",
