@@ -1,6 +1,6 @@
 {
   "displayName": "Write throttle events",
-  "description": "Reports when write throttle events is less than threshold",
+  "description": "Reports when write throttle events is greater than threshold",
   "alarmName": "Digito-WriteThrottleEventsAlarm_2020-04-01",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
