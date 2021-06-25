@@ -6,7 +6,7 @@ Resources:
   ${AlarmLogicalId}:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
-      AlarmDescription: 'Alarm by Digito that reports when write throttle events is less than ${Threshold}'
+      AlarmDescription: 'Alarm by Digito that reports when write throttle events is greater than ${Threshold}'
       AlarmName: ${AlarmName}
       AlarmActions:
         - Ref: SNSTopicARN
