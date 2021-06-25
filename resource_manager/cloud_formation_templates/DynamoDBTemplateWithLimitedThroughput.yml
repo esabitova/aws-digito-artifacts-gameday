@@ -21,9 +21,6 @@ Outputs:
   DynamoDBTable:
     Description: The DynamoDB Table Name
     Value: !Ref DynamoDBTable
-  ReadThrottleEventsAlarmName:
-    Description: Alarm
-    Value: !Ref ReadThrottleEventsAlarm
 Resources:
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -43,21 +40,3 @@ Resources:
       Tags:
         - Key: Key
           Value: Value
-  ReadThrottleEventsAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "dynamodb:alarm:health-read_throttle_events:2020-04-01"
-      ActionsEnabled: false
-      MetricName: ReadThrottleEvents
-      Namespace: AWS/DynamoDB
-      Statistic: Sum
-      Dimensions:
-        - Name: TableName
-          Value: !Ref DynamoDBTable
-      Period: 60
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      Threshold: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: notBreaching
-      Unit: Count
