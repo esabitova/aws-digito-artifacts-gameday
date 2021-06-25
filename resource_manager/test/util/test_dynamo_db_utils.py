@@ -867,6 +867,31 @@ class TestDynamoDbUtil(unittest.TestCase):
                                       )
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
+           side_effect=[ClientError(
+               error_response={"Error": {"Code": "ValidationException"}},
+               operation_name='UpdateTable'
+           ), {}])
+    @patch('resource_manager.src.util.dynamo_db_utils._check_if_replicas_exist',
+           side_effect=[(["Replica"], True), (["Replica"], True), ([], False)])
+    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
+           return_value=None)
+    def test_remove_global_table_and_wait_to_active_busy(self, time_mock, check_mock, update_mock):
+        remove_global_table_and_wait_for_active(boto3_session=self.session_mock,
+                                                table_name="my_table",
+                                                global_table_regions=['region-1'],
+                                                wait_sec=1,
+                                                delay_sec=1,
+                                                )
+
+        update_mock.assert_called_with(boto3_session=self.session_mock,
+                                       table_name="my_table",
+                                       ReplicaUpdates=[{'Delete': {'RegionName': 'region-1'}}]
+                                       )
+        check_mock.assert_called_with(boto3_session=self.session_mock,
+                                      table_name="my_table"
+                                      )
+
+    @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            return_value={})
     @patch('resource_manager.src.util.dynamo_db_utils._check_if_replicas_exist',
            return_value=(["Replica"], True))
