@@ -34,6 +34,12 @@ Outputs:
   RestApiGwStageUrl:
     Description: The URL of the REST API Gateway
     Value: !Sub "https://${ApplicationsApi}.execute-api.${AWS::Region}.amazonaws.com/${ApplicationsApiStage}/app"
+  RestApiGwStagePath:
+    Description: The Path of the REST API Stage
+    Value: !Sub "/${ApplicationsApiStage}/app"
+  RestApiGwHost:
+    Description: The Host of the REST API Gateway
+    Value: !Sub "${ApplicationsApi}.execute-api.${AWS::Region}.amazonaws.com"
   4XXErrorAlarmName:
     Description: REST API GW Alarm based on HTTP4xx metric
     Value: !Ref 4XXErrorAlarm
@@ -137,6 +143,20 @@ Resources:
                   - !Ref "AWS::StackId"
       Description: Test API
       ApiKeySourceType: HEADER
+      Policy: !Sub |
+        {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                  "AWS": "${AWS::AccountId}"
+              },
+              "Action": "execute-api:Invoke",
+              "Resource": "execute-api:/*"
+            }
+          ]
+        }
 
   ApiGatewayResource:
     Type: AWS::ApiGateway::Resource
@@ -161,7 +181,7 @@ Resources:
         !Ref ApplicationsApi
       OperationName: 'app'
       ApiKeyRequired: True
-      AuthorizationType: NONE
+      AuthorizationType: AWS_IAM
       Integration:
         Type: MOCK
         IntegrationResponses:

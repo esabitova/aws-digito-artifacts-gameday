@@ -7,6 +7,9 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                           | ON_DEMAND    |
       | documents/api-gw/test/rest_api_quota/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestApiGwQuota_2020-09-21" SSM document
+    And cache value of "ApiKeyId,ApiHost,ApiPath" "before" SSM automation execution
+      | ApiKeyId                                  | ApiHost                                        | ApiPath                                             |
+      | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwHost}} | {{cfn-output:RestApiGwTemplate>RestApiGwStagePath}} |
 
     When SSM automation document "Digito-RestApiGwQuota_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                       | ApiGw4xxAlarmName                                  |
@@ -14,9 +17,7 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
     And Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "SetQuotaConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
-      | ApiKeyId                                  | RestApiGwStageUrl                                  |
-      | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageUrl}} |
+    And get API key and perform "12" https "GET" requests with interval "20" seconds
 
     Then Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |

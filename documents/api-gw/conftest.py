@@ -5,10 +5,11 @@ from time import sleep
 import jsonpath_ng
 import pytest
 import requests
-from websocket import create_connection, WebSocketBadStatusException
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 from pytest_bdd import (
     given, parsers, when, then
 )
+from websocket import create_connection, WebSocketBadStatusException
 
 from resource_manager.src.util import apigw2_utils as apigw2_utils
 from resource_manager.src.util import apigw_utils as apigw_utils
@@ -73,13 +74,12 @@ cache_param_values_expression = 'cache value of "{param_list}" "{step_key}" SSM 
 cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_limit_key}" and ' \
                                        'burst limit as "{burst_limit_key}" "{step_key}" SSM automation execution'
 
-get_api_key_and_perform_http_requests_expression = 'get value of API key "{key_id}" and perform "{count}" http ' \
-                                                   'requests with delay "{delay}" seconds using stage URL "{url}"' \
-                                                   '\n{input_parameters}'
+get_api_key_and_perform_https_requests_expression = 'get API key and perform "{count}" https "{method}" requests ' \
+                                                    'with interval "{interval}" seconds'
 
-get_api_key_and_invoke_lambda_to_perform_http_requests = 'get API key "{api_key_id_ref}" and invoke lambda ' \
-                                                         '"{lambda_arn_ref}" to perform "{count}" http requests ' \
-                                                         'with interval "{interval}" seconds'
+get_api_key_and_invoke_lambda_to_perform_https_requests = 'get API key "{api_key_id_ref}" and invoke lambda ' \
+                                                          '"{lambda_arn_ref}" to perform "{count}" http requests ' \
+                                                          'with interval "{interval}" seconds'
 
 cache_vpc_endpoint_security_groups_map = 'get REST API Gateway endpoints and their security groups, ' \
                                          'cache map as "{cache_property}" "{step_key}" SSM automation execution'
@@ -490,29 +490,42 @@ def prepare_route_settings_teardown(
     route_throttling_settings['BackupBurstLimit'] = backup_burst_limit
 
 
-@given(parsers.parse(get_api_key_and_perform_http_requests_expression))
-@when(parsers.parse(get_api_key_and_perform_http_requests_expression))
-@then(parsers.parse(get_api_key_and_perform_http_requests_expression))
-def get_api_key_and_perform_http_requests(
-        resource_pool, ssm_test_cache, boto3_session, key_id, count, delay, url, input_parameters
+@given(parsers.parse(get_api_key_and_perform_https_requests_expression))
+@when(parsers.parse(get_api_key_and_perform_https_requests_expression))
+@then(parsers.parse(get_api_key_and_perform_https_requests_expression))
+def get_api_key_and_perform_https_requests(
+        resource_pool, ssm_test_cache, boto3_session, count, method, interval
 ):
-    api_key_id = extract_param_value(input_parameters, key_id, resource_pool, ssm_test_cache)
-    request_url = extract_param_value(input_parameters, url, resource_pool, ssm_test_cache)
-    request_count = int(count)
-    request_delay = int(delay)
+    api_key_id = ssm_test_cache['before']['ApiKeyId']
+    api_host = ssm_test_cache['before']['ApiHost']
+    api_path = ssm_test_cache['before']['ApiPath']
+    api_url = 'https://' + api_host + api_path
+    count = int(count)
+    interval = int(interval)
+
+    aws_credentials = boto3_session.get_credentials()
+    aws_region = boto3_session.region_name
     apigw_client = client('apigateway', boto3_session)
     api_key = apigw_client.get_api_key(apiKey=api_key_id, includeValue=True)['value']
-    while request_count > 0:
-        response = requests.get(request_url, headers={'x-api-key': api_key})
+    api_auth = AWSRequestsAuth(aws_access_key=aws_credentials.access_key,
+                               aws_secret_access_key=aws_credentials.secret_key,
+                               aws_token=aws_credentials.token,
+                               aws_host=api_host,
+                               aws_region=aws_region,
+                               aws_service='execute-api')
+    while count > 0:
+        logging.info(f'Sending {method} request to: {api_url}')
+        response = requests.request(method, api_url, headers={'x-api-key': api_key}, auth=api_auth)
         logging.info(f'Response status code: {response.status_code}')
-        sleep(request_delay)
-        request_count -= 1
+        logging.info(f'Response message: {json.loads(response.content.decode("utf-8"))["message"]}')
+        sleep(interval)
+        count -= 1
 
 
-@given(parsers.parse(get_api_key_and_invoke_lambda_to_perform_http_requests))
-@when(parsers.parse(get_api_key_and_invoke_lambda_to_perform_http_requests))
-@then(parsers.parse(get_api_key_and_invoke_lambda_to_perform_http_requests))
-def get_api_key_and_invoke_lambda_to_perform_http_requests(
+@given(parsers.parse(get_api_key_and_invoke_lambda_to_perform_https_requests))
+@when(parsers.parse(get_api_key_and_invoke_lambda_to_perform_https_requests))
+@then(parsers.parse(get_api_key_and_invoke_lambda_to_perform_https_requests))
+def get_api_key_and_invoke_lambda_to_perform_https_requests(
         resource_pool, boto3_session, api_key_id_ref, lambda_arn_ref, count, interval, ssm_test_cache
 ):
     cache_before = ssm_test_cache['before']
