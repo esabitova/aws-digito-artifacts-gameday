@@ -8,7 +8,7 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito that per table"
+      AlarmDescription: "Alarm by Digito that reports when replication from one replica table to another takes too much time"
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: ReplicationLatency
