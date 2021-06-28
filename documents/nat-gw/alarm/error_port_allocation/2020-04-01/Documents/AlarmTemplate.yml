@@ -9,19 +9,19 @@ Resources:
     Properties:
       AlarmName: ${AlarmName}
       AlarmDescription: |
-        Alarm by Digito that can be occurred if the age of the oldest message is much higher than the AverageDurationToProcessSentMessage.
-        It notices that messages are not being processed quickly enough.
+        Alarm by Digito that indicates that too many concurrent connections are open through the NAT gateway
+        and the NAT gateway could not allocate a source port
       AlarmActions:
         - Ref: SNSTopicARN
-      MetricName: ApproximateAgeOfOldestMessage
-      Namespace: AWS/SQS
+      MetricName: ErrorPortAllocation
+      Namespace: AWS/NATGateway
       Dimensions:
-        - Name: QueueName
-          Value: ${QueueName}
+        - Name: NatGatewayId
+          Value: ${NatGatewayId}
       Period: 60
-      Statistic: Maximum
+      Statistic: Average
       Threshold: ${Threshold}
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching

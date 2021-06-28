@@ -16,7 +16,6 @@ Resources:
       AlarmDescription: "Alarm by Digito that reports when EFS I/O load is more than 90% for too much time"
       AlarmActions:
         - Ref: SNSTopicARN
-      ActionsEnabled: false
       MetricName: PercentIOLimit
       Namespace: AWS/EFS
       Dimensions:
