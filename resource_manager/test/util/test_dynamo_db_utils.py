@@ -868,9 +868,9 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            side_effect=[ClientError(
-                error_response={"Error": {"Code": "ValidationException"}},
-                operation_name='UpdateTable'
-            ), {}])
+               error_response={"Error": {"Code": "ValidationException"}},
+               operation_name='UpdateTable'
+           ), {}])
     @patch('resource_manager.src.util.dynamo_db_utils._check_if_replicas_exist',
            side_effect=[(["Replica"], True), (["Replica"], True), ([], False)])
     @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',

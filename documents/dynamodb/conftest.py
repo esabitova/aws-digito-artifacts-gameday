@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import jsonpath_ng
 import pytest
@@ -13,6 +14,7 @@ from resource_manager.src.util.cloudwatch_utils import (
     delete_alarms_for_dynamo_db_table, get_metric_alarms_for_table)
 from resource_manager.src.util.common_test_utils import (extract_param_value,
                                                          put_to_ssm_test_cache)
+from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.dynamo_db_utils import (
     DynamoDbIndexType, get_secondary_indexes, _get_global_table_all_regions, add_global_table_and_wait_for_active,
     create_backup_and_wait_for_available, delete_backup_and_wait,
@@ -21,6 +23,8 @@ from resource_manager.src.util.dynamo_db_utils import (
     get_contributor_insights_status_for_table_and_indexes,
     get_earliest_recovery_point_in_time, get_kinesis_destinations, get_stream_settings, get_time_to_live,
     remove_global_table_and_wait_for_active, wait_table_to_be_active)
+from resource_manager.src.util.enums.alarm_state import AlarmState
+from resource_manager.src.util.param_utils import parse_param_value
 
 
 @pytest.fixture(scope='function')
@@ -389,3 +393,39 @@ def cache_different_region(boto3_session, ssm_test_cache,
             break
     logging.info(f'Caching new region for DynamoDB: {destination_region}')
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, destination_region)
+
+
+@when(parsers.parse('put random test items until alarm {alarm_name_ref} becomes {alarm_expected_state} '
+                    'for {time_to_wait} seconds, '
+                    'check every {interval} seconds\n{input_parameters}'))
+def put_items_async(boto3_session, resource_pool, cfn_installed_alarms, cfn_output_params,
+                    ssm_test_cache, alarm_name_ref, alarm_expected_state, interval, time_to_wait,
+                    input_parameters):
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    dynamo_db_client = boto3_session.client('dynamodb')
+    timeout_timestamp = time.time() + int(time_to_wait)
+    alarm_name = parse_param_value(alarm_name_ref, {'cfn-output': cfn_output_params,
+                                                    'cache': ssm_test_cache,
+                                                    'alarm': cfn_installed_alarms})
+    alarm_state = AlarmState.INSUFFICIENT_DATA
+    iteration = 1
+    elapsed = 0
+    while elapsed < timeout_timestamp:
+        start = time.time()
+        item = generate_random_item(boto3_session, table_name)
+        dynamo_db_client.put_item(TableName=table_name, Item=item)
+        alarm_state = get_metric_alarm_state(session=boto3_session,
+                                             alarm_name=alarm_name)
+        logging.info(f'#{iteration}; Alarm:{alarm_name}; State: {alarm_state};'
+                     f'Elapsed: {elapsed} sec;')
+        if alarm_state == AlarmState[alarm_expected_state]:
+            return
+        end = time.time()
+        elapsed += (end - start)
+        iteration += 1
+        time.sleep(int(interval))
+
+    raise TimeoutError(f'After {time_to_wait} alarm {alarm_name} is in {alarm_state} state;'
+                       f'Expected state: {alarm_expected_state}'
+                       f'Elapsed: {elapsed} sec;'
+                       f'{iteration} iterations;')
