@@ -55,7 +55,7 @@ def put_items_async(boto3_session, resource_pool, cfn_installed_alarms, cfn_outp
         end = time.time()
         elapsed += (end - start)
         iteration += 1
-        time.sleep(interval)
+        time.sleep(int(interval))
 
     raise TimeoutError(f'After {time_to_wait} alarm {alarm_name} is in {alarm_state} state;'
                        f'Expected state: {alarm_expected_state}'
