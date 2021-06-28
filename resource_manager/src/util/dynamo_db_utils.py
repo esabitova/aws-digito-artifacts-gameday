@@ -387,7 +387,11 @@ def remove_global_table_and_wait_for_active(table_name: str,
                 break
             except ClientError as ce:
                 if ce.response['Error']['Code'] == 'ValidationException':
-                    log.warning(f"Table `{table_name}` is busy")
+                    if ce.response['Error']['Message'] in "The resource which you are attempting to change is in use":
+                        log.warning(f"Table `{table_name}` is busy")
+                    elif "Update global table operation failed because one or more replicas were " \
+                         "not part of the global table" in ce.response['Error']['Message']:
+                        break
             end = time.time()
             elapsed = end - start
             time.sleep(delay_sec)
@@ -605,7 +609,7 @@ def generate_random_item(boto3_session: Session, table_name: str, total_number: 
             attribute_name = attribute['AttributeName']
             if attribute_name in primary_keys:
                 attribute_type = attribute['AttributeType']
-                random_value = _get_random_value(attribute_type)
+                random_value = _get_random_value(attribute_type, length=300)
                 item[attribute_name] = {attribute_type: random_value}
         logging.info(f'{item}')
         items.append(item)
