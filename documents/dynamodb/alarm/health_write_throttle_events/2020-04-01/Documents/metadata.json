@@ -6,6 +6,9 @@
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "dynamodb:alarm:health_write_throttle_events:2020-04-01",
-  "failureType": "SOFTWARE,HARDWARE",
-  "minorVersion": "001"
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "dynamodb:sop:update_provisioned_capacity:2020-04-01"
+  ]
 }
