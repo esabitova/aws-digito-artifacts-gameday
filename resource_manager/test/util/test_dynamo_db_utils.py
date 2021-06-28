@@ -13,7 +13,7 @@ from resource_manager.src.util.dynamo_db_utils import (
     _execute_boto3_dynamodb, get_secondary_indexes, _get_global_table_all_regions,
     _update_table, add_global_table_and_wait_for_active,
     create_backup_and_wait_for_available, delete_backup_and_wait,
-    get_item_single, get_item_async_stress_test,
+    get_item_single, put_item_single, get_item_async_stress_test, put_item_async_stress_test,
     _get_random_value, generate_random_item,
     drop_and_wait_dynamo_db_table_if_exists, get_continuous_backups_status,
     get_contributor_insights_status_for_table_and_indexes,
@@ -975,6 +975,13 @@ class TestDynamoDbUtil(unittest.TestCase):
             TableName='my_table', Key=test_key, ConsistentRead=True
         )
 
+    def test_put_item_single(self):
+        test_key = {'some_key': 'some_value'}
+        put_item_single(boto3_session=self.session_mock, table_name='my_table', item=test_key)
+        self.dynamodb_client_mock.put_item.assert_called_with(
+            TableName='my_table', Item=test_key
+        )
+
     @patch('resource_manager.src.util.dynamo_db_utils.get_item_single',
            return_value=False)
     def test_get_item_async_stress_test(self, get_item_mock):
@@ -983,6 +990,15 @@ class TestDynamoDbUtil(unittest.TestCase):
             boto3_session=self.session_mock, table_name='my_table', number=10, item=test_key
         )
         self.assertEqual(get_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.put_item_single',
+           return_value=False)
+    def test_put_item_async_stress_test(self, put_item_mock):
+        items = range(0, 10)
+        put_item_async_stress_test(
+            boto3_session=self.session_mock, table_name='my_table', items=items
+        )
+        self.assertEqual(put_item_mock.call_count, 10)
 
     def test_get_random_value_s(self):
         output = _get_random_value(STRING, 10)
@@ -1003,3 +1019,8 @@ class TestDynamoDbUtil(unittest.TestCase):
         output = generate_random_item(self.session_mock, 'table_name')
         self.assertIsInstance(output['id']['S'], str)
         self.assertEqual(5, len(output['id']['S']))
+
+    def test_generate_random_item_n_values(self):
+        output = generate_random_item(self.session_mock, 'table_name', 10)
+        self.assertEqual(10, len(output))
+        self.assertIsInstance(output[0]['id']['S'], str)
