@@ -16,14 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for recovering the database into a known good state
+Description: Role for Digito-RebootDbInstance_2020-09-21
 Outputs:
-  DigitoRebootDbInstanceAssumeRole:
-    Description: DigitoRebootDbInstance Automation Assume Role ARN
-    Value:
-      Fn::GetAtt: DigitoRebootDbInstanceAssumeRole.Arn
+  DigitoDocdbRebootDbInstanceAssumeRole:
+    Description: Digito-RebootDbInstance_2020-09-21 Automation Assume Role ARN
+    Value: !GetAtt DigitoDocdbRebootDbInstanceAssumeRole.Arn
 Resources:
-  DigitoRebootDbInstanceAssumeRole:
+  DigitoDocdbRebootDbInstanceAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,18 +34,19 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRebootDbInstanceAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoDocdbRebootDbInstanceAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoRebootDbInstanceAssumePolicy"
+      PolicyName: DigitoDocdbRebootDbInstanceAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
+              - cloudwatch:DescribeAlarms
               - rds:RebootDBInstance
               - rds:DescribeDBInstances
               - kms:DescribeKey
       Roles:
-        - Ref: DigitoRebootDbInstanceAssumeRole
+        - Ref: DigitoDocdbRebootDbInstanceAssumeRole
