@@ -670,34 +670,53 @@ Integration test execution command line:
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
 * --run_integration_tests (Required) - Required in case if running integration tests. This wll trigger creation AWS resources to support integration test framework: S3 bucket, DynamoDB table. 
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
-* --workers 2 - (Optional) Number of parallel processes. Supported by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
-* --aws_profile - (Optional, optional, if not given 'default' is used) The name of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) In case if we want to avoid using profile we can pass ```--aws_profile no_profile```, in this case we are using 'Instance metadata service on an Amazon EC2 instance that has an IAM role configured': https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
-* --aws_role_arn - (Optional) The AWS IAM role arn, if provided boto3 credentials for test execution will be taken based on given role temporary credentials with refreshing mechanism to avoid session expiration after 1 hour. However credentials which are used to assume this role should be configured be configured to not expire as well. NOTE: this is more applicable for CI/CD execution when CI/CD role needs to have permissions to execute tests.
+* --workers 2 - (Optional) Number of parallel processes. Supported
+  by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
+* --aws_profile - (Optional, optional, if not given 'default' is used) The name
+  of [AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) In case if we want to
+  avoid using profile we can pass ```--aws_profile no_profile```, in this case we are using 'Instance metadata service
+  on an Amazon EC2 instance that has an IAM role
+  configured': https://boto3.amazonaws.com/v1/documentation/api/latest/guide/credentials.html
+* --aws_role_arn - (Optional) The AWS IAM role arn, if provided boto3 credentials for test execution will be taken based
+  on given role temporary credentials with refreshing mechanism to avoid session expiration after 1 hour. However
+  credentials which are used to assume this role should be configured be configured to not expire as well. NOTE: this is
+  more applicable for CI/CD execution when CI/CD role needs to have permissions to execute tests.
 * --pool_size - (Optional) Custom pool size for CFN template resources, it overrides configuration given resource_manager/src/config.py. NOTE: Once pool size increased there is no feature to decrease it for now (only manual deletion available, more in [Resource Tool (to manipulate integration test resources)](#resource-tool) section).
 
 ## Resource Tool
 Here is a need to have a tool to manipulate integration test resources without executing integration tests which can serve following goals:
-* Destroy integration test resource for specific templates 
+
+* Destroy integration test resource for specific templates
 * List integration test templates which are deployed
 * Fix integration test resources in case of failures (not implemented yet)
-For this purpose we have cerated tool which you can execute using following command:
-> PYTHONPATH=. python3.8 resource_manager/src/tools/resource_tool.py -t <template_name_a, tempolate_name_b> -c <command>
-* -c, --command (required): Command to perform against cloud formation resources for given template names (DESTROY | DESTROY_ALL | LIST).
-  * DESTROY - destroys resources by given template names (--cfn_templates)
-  * DESTROY_ALL - destroys all resources, not need to provide template name
-  * LIST - lists templates which are deployed with associated stacks  
-* -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).
-* -p, --aws_profile (optional, if not given 'default' is used): AWS profile name for boto3 session creation. 
+  For this purpose we have cerated tool which you can execute using following command:
 
-NOTE: More information about how to use this tool you can execute command: ```python3.8 resource_manager/src/tools/resource_tool.py --help``` 
+> PYTHONPATH=. python3.8 resource_manager/src/tools/resource_tool.py -t <template_name_a, tempolate_name_b> -c <command>
+
+* -c, --command (required): Command to perform against cloud formation resources for given template names (DESTROY |
+  DESTROY_ALL | LIST).
+    * DESTROY - destroys resources by given template names (--cfn_templates)
+    * DESTROY_ALL - destroys all resources, not need to provide template name
+    * LIST - lists templates which are deployed with associated stacks
+* -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t
+  RdsCfnTemplate,S3Template (no file path/extension).
+* -p, --aws_profile (optional, if not given 'default' is used): AWS profile name for boto3 session creation.
+
+NOTE: More information about how to use this tool you can execute
+command: ```python3.8 resource_manager/src/tools/resource_tool.py --help```
+
 #### Permissions
-In order to execute tool you will have to configure AWS profile on which you would like to execute this resource tool, more about AWS profiles you can find here:
+
+In order to execute tool you will have to configure AWS profile on which you would like to execute this resource tool,
+more about AWS profiles you can find here:
+
 * https://docs.aws.amazon.com/sdk-for-php/v3/developer-guide/guide_credentials_profiles.html
 
 # Design.md writing guidelines
-## High-level users flow
-![Components Relation](content/high-level-users-flow.png)
 
+## High-level users flow
+
+![Components Relation](content/high-level-users-flow.png)
 
 ## Gameday guidelines
 1. Must be capable to restore the state of changes from previous execution.

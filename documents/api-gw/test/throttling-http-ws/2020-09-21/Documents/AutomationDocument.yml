@@ -133,7 +133,7 @@ mainSteps:
       AlarmNames:
         - "{{4xxAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["OK"]
+      DesiredValues: [ "OK" ]
 
   - name: BackupThrottlingConfiguration
     action: aws:executeAwsApi

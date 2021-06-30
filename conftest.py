@@ -5,6 +5,9 @@ import string
 import time
 import unittest
 import uuid
+from datetime import datetime
+from typing import List
+
 import boto3
 import pytest
 from pytest import ExitCode
@@ -13,13 +16,13 @@ from pytest_bdd import (
     given,
     then
 )
-from datetime import datetime
-from typing import List
 from pytest_bdd.parsers import parse
 from sttable import parse_str_table
+
 from publisher.src.publish_documents import PublishDocuments
 from resource_manager.src.alarm_manager import AlarmManager
 from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.constants import BgColors
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
@@ -36,7 +39,6 @@ from resource_manager.src.util.ssm_utils import get_ssm_execution_output_value
 from resource_manager.src.util.ssm_utils import get_ssm_step_interval, get_ssm_step_status
 from resource_manager.src.util.ssm_utils import send_step_approval
 from resource_manager.src.util.sts_utils import assume_role_session
-from resource_manager.src.constants import BgColors
 
 
 def pytest_addoption(parser):

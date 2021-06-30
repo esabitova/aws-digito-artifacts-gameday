@@ -58,6 +58,6 @@ Resources:
             Resource:
               - !GetAtt DigitoApiGwThrottlingHttpWsAssumeRole.Arn
             Action:
-                - iam:PassRole
+              - iam:PassRole
       Roles:
         - Ref: DigitoApiGwThrottlingHttpWsAssumeRole

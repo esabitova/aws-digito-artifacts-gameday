@@ -1,14 +1,16 @@
-import unittest
-import pytest
-import os
-import logging
 import json
-import yaml
-from publisher.src.publish_documents import PublishDocuments
-from publisher.src.document_validator import DocumentValidator
-import publisher.src.document_metadata_attrs as metadata_attrs
+import logging
+import os
+import unittest
+
 import boto3
+import pytest
+import yaml
+
+import publisher.src.document_metadata_attrs as metadata_attrs
+from publisher.src.document_validator import DocumentValidator
 from publisher.src.global_metadata_validator import GlobalMetadataValidator
+from publisher.src.publish_documents import PublishDocuments
 
 
 @pytest.mark.style_validator

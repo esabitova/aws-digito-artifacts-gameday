@@ -1,14 +1,16 @@
-import boto3
 import getopt
 import glob
 import json
 import logging
 import os
 import sys
-import publisher.src.document_metadata_attrs as metadata_attrs
-from publisher.src.document_validator import DocumentValidator
+
+import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+
+import publisher.src.document_metadata_attrs as metadata_attrs
+from publisher.src.document_validator import DocumentValidator
 
 SCRIPT_DIR = '/documents/util/scripts/src'
 default_logger = logging.getLogger('PublishDocuments')

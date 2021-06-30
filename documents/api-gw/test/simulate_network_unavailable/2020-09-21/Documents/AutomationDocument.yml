@@ -100,7 +100,6 @@ mainSteps:
     onCancel: step:TriggerRollback
     action: aws:executeScript
     description: Rollback VPC endpoint(s) configuration for REST API Gateway
-    maxAttempts: 5
     inputs:
       Runtime: python3.7
       Handler: update_endpoint_security_group_config
