@@ -78,6 +78,7 @@ Resources:
   CleanupS3BucketLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
+      Timeout: 600
       Description: Invoke a function during stack creation.
       Runtime: python3.7
       Role: !GetAtt CleanupS3BucketLambdaRole.Arn
@@ -96,26 +97,24 @@ Resources:
           def handler(event, context):
               bucket_names = event['ResourceProperties']['BucketNames']
               try:
+                logger.info(event)
                 s3 = boto3.resource('s3')
-
-                for bucket_name in bucket_names:
-                  if event['RequestType'] == 'Delete':
-                    bucket = s3.Bucket(name=bucket_name)
-                    logger.info(f'Cleaning [{bucket.name}] S3 bucket.')
-                    if s3.BucketVersioning(bucket_name).status == 'Enabled':
-                      bucket.object_versions.delete()
-                    else:
-                      bucket.objects.all().delete()
-
+                if event['RequestType'] == 'Delete':
+                  for bucket_name in bucket_names:
+                      bucket = s3.Bucket(name=bucket_name)
+                      logger.info(f'Cleaning [{bucket.name}] S3 bucket.')
+                      if s3.BucketVersioning(bucket_name).status == 'Enabled':
+                        bucket.object_versions.delete()
+                      else:
+                        bucket.objects.delete()
+                  logger.info(f'S3 buckets {bucket_names} successfully cleaned.')
                 send_response(event, context, bucket_names, cfnresponse.SUCCESS)
               except Exception as e:
-                send_response(event, context, bucket_names, cfnresponse.FAILED, e)
+                send_response(event, context, bucket_names, cfnresponse.FAILED)
 
-          def send_response(event, context, bucket_names, response_status, error=None):
+          def send_response(event, context, bucket_names, response_status):
               physical_id = get_physical_id(event)
-              response_data = {'PhysicalResourceId': physical_id, 'Event': event}
-              if error:
-                response_data['Error'] = str(error)
+              response_data = {'Event': event}
               cfnresponse.send(event, context, response_status, response_data, physical_id)
 
           def get_physical_id(event):
