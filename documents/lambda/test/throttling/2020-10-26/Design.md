@@ -1,5 +1,5 @@
 # Id
-lambda:test:throttling:2020-09-21
+lambda:test:throttling:2020-10-26
 
 ## Intent
 Test Lambda behavior when hitting ReservedConcurrentExecutions value 
