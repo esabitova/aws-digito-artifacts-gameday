@@ -1,11 +1,14 @@
 {
-  "displayName": "PendingReplicationCount",
+  "displayName": "DynamoDB Number of Items pending replication",
   "description": "Alarm by Digito that triggers when the number of item updates that are written to one replica table, but that have not yet been written to another replica in the global table is too high",
   "alarmName": "Digito-PendingReplicationCount_2020-04-01",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "dynamodb:alarm:recovery-pending_replication_count:2020-04-01",
-  "failureType": "SOFTWARE",
-  "minorVersion": "001"
+  "failureType": "REGION",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "dynamodb:sop:update_provisioned_capacity:2020-04-01"
+  ]
 }
