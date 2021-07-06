@@ -13,6 +13,9 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
     And cache API GW property "$.quota.period" as "QuotaPeriod" "before" SSM automation execution
       | RestApiGwUsagePlanId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} |
+    And cache value of "ApiKeyId,ApiHost,ApiPath" "before" SSM automation execution
+      | ApiKeyId                                  | ApiHost                                        | ApiPath                                             |
+      | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwHost}} | {{cfn-output:RestApiGwTemplate>RestApiGwStagePath}} |
 
     When SSM automation document "Digito-RestApiGwQuota_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                       | ApiGw4xxAlarmName                                  |
@@ -20,9 +23,7 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
     And Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "SetQuotaConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
-      | ApiKeyId                                  | RestApiGwStageUrl                                  |
-      | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageUrl}} |
+    And get API key and perform "12" https "GET" requests with interval "20" seconds
     And SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |

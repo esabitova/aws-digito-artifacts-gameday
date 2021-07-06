@@ -1,0 +1,15 @@
+{
+  "displayName": "Abnormal backend response time",
+  "description": "Digito alarm that tracks time between a request to the backend and when ApiGateway receives a response. Triggers when this interval statistically exceed threshold",
+  "alarmName": "Digito-integration-latency:api-gw:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "api-gw:alarm:health-integration_latency:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "api-gw:sop:update_version_http_ws:2020-10-26",
+    "api-gw:sop:update_version_rest:2020-10-26"
+]
+}

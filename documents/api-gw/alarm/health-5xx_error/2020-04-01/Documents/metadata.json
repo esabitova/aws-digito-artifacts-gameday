@@ -1,0 +1,15 @@
+{
+  "displayName": "Number of 5XX responses from ApiGateway",
+  "description": "Digito alarm that tracks the 5xx responses received from API-Gateway. The metric will be 1 if the 5xx Ratio of all requests exceeds 10% and 0 otherwise.",
+  "alarmName": "Digito-5xx-error:api-gw:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "api-gw:alarm:health-5xx_error:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "api-gw:sop:update_version_http_ws:2020-10-26",
+    "api-gw:sop:update_version_rest:2020-10-26"
+]
+}

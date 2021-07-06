@@ -142,10 +142,10 @@ def execute_boto3_with_backoff(delegate: Callable[[Any], dict], **kwargs) -> dic
     count = 1
     while count <= backoff_retries:
         try:
-            log.info(f'Making an API call, attempt: {count} ...')
+            log.debug(f'Making an API call, attempt: {count} ...')
             response = delegate(apigw_client)
             assert_https_status_code_200(response, 'Failed to perform API call')
-            log.info('API call performed successfully.')
+            log.debug('API call performed successfully.')
             return response
         except ClientError as error:
             if error.response['Error']['Code'] == 'TooManyRequestsException':
@@ -478,7 +478,7 @@ def get_endpoint_security_group_config(events: dict, context: dict) -> dict:
         raise KeyError('Requires RestApiGwId in events')
 
     gateway_id: str = events['RestApiGwId']
-    provided_security_group_ids: list = events.get('SecurityGroupIdListToUnassign', [])
+    provided_security_group_ids: list = events.get('SecurityGroupIdListToUnassign')
 
     apigw_client = boto3.client('apigateway')
     ec2_client = boto3.client('ec2')
@@ -502,7 +502,7 @@ def get_endpoint_security_group_config(events: dict, context: dict) -> dict:
                 else:
                     security_group_found = True
         if not security_group_found:
-            raise Exception('Provided security groups are not found in any configured VPC endpoint')
+            raise Exception('Provided security groups were not found in any configured VPC endpoint')
 
     return {"VpcEndpointsSecurityGroupsMappingOriginalValue": json.dumps(vpc_endpoint_security_groups_map)}
 
@@ -531,7 +531,9 @@ def update_endpoint_security_group_config(events: dict, context: dict) -> None:
 
         if action == 'ReplaceWithDummySg':
             if not dummy_sg_id:
+                log.debug(f'Creating dummy security group {dummy_sg_name} ...')
                 vpc_id = ec2_client.describe_vpc_endpoints(VpcEndpointIds=[vpc_endpoint_id])['VpcEndpoints'][0]['VpcId']
+                log.debug(f'VPC ID: {vpc_id}')
                 create_dummy_sg_args = {
                     'VpcId': vpc_id,
                     'GroupName': dummy_sg_name,
@@ -549,6 +551,9 @@ def update_endpoint_security_group_config(events: dict, context: dict) -> None:
                     ]
                 }
                 dummy_sg_id = ec2_client.create_security_group(**create_dummy_sg_args)['GroupId']
+                log.debug(f'Dummy security group {dummy_sg_name} successfully created ID: {dummy_sg_id}')
+            else:
+                log.debug(f'Dummy security group {dummy_sg_name} already exists with ID: {dummy_sg_id}')
 
             add_security_group_ids = [dummy_sg_id]
             remove_security_group_ids = original_security_group_ids
@@ -557,12 +562,20 @@ def update_endpoint_security_group_config(events: dict, context: dict) -> None:
             add_security_group_ids = original_security_group_ids
             remove_security_group_ids = [dummy_sg_id] if dummy_sg_id else []
 
+        log.debug(f'Modifying VPC endpoint {vpc_endpoint_id}')
+        log.debug(f'AddSecurityGroupIds: {add_security_group_ids}')
+        log.debug(f'RemoveSecurityGroupIds: {remove_security_group_ids}')
         response = ec2_client.modify_vpc_endpoint(VpcEndpointId=vpc_endpoint_id,
                                                   AddSecurityGroupIds=add_security_group_ids,
                                                   RemoveSecurityGroupIds=remove_security_group_ids)
         if not response['Return']:
             log.error(response)
             raise Exception('Could not modify VPC endpoint')
+        else:
+            log.debug(f'VPC endpoint {vpc_endpoint_id} modified successfully')
 
         if action == 'ReplaceWithOriginalSg' and dummy_sg_id:
-            ec2_client.delete_security_group(GroupId=dummy_sg_id)
+            log.debug(f'Deleting dummy security group {dummy_sg_name} with ID {dummy_sg_id} ...')
+            delete_sg_response = ec2_client.delete_security_group(GroupId=dummy_sg_id)
+            log.debug(
+                f'Delete security group response code: {delete_sg_response["ResponseMetadata"]["HTTPStatusCode"]}')

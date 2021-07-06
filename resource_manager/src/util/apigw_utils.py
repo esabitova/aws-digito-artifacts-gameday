@@ -1,10 +1,13 @@
 import logging
 import time
+import requests
 from random import uniform
+from time import sleep
 
 from boto3 import Session
 from botocore.config import Config
 from botocore.exceptions import ClientError
+from aws_requests_auth.aws_auth import AWSRequestsAuth
 
 from .boto3_client_factory import client
 from .common_test_utils import assert_https_status_code_200, assert_https_status_code_less_or_equal
@@ -193,3 +196,38 @@ def get_throttling_settings(
 
     return {'RateLimit': rate_limit,
             'BurstLimit': burst_limit}
+
+
+def invoke_several_post_api_gw(boto3_session: Session,
+                               api_key_id: str,
+                               api_host: str,
+                               api_url: str,
+                               count: int,
+                               interval: int):
+    """
+    Calls syncronously api gw with REST API 'POST' method, several times, and with a given delay.
+    Authentication required
+    :param boto3_session: The boto3 Session
+    :param api_key_id: The ID of REST API Key
+    :param api_host: host url for api-gw endpoint
+    :param api_url: full endpoint url
+    :param count: this is a number of api-gw calls
+    :param interval: delay among calls
+    """
+    SEND_MESSAGE = {'message': 'mydino'}
+    aws_credentials = boto3_session.get_credentials()
+    aws_region = boto3_session.region_name
+    apigw_client = client('apigateway', boto3_session)
+    api_key = apigw_client.get_api_key(apiKey=api_key_id, includeValue=True)['value']
+    api_auth = AWSRequestsAuth(aws_access_key=aws_credentials.access_key,
+                               aws_secret_access_key=aws_credentials.secret_key,
+                               aws_token=aws_credentials.token,
+                               aws_host=api_host,
+                               aws_region=aws_region,
+                               aws_service='execute-api')
+    while count > 0:
+        logging.info(f'Sending post request to: {api_url}')
+        requests.request('post', api_url, headers={'x-api-key': api_key}, auth=api_auth,
+                         params=SEND_MESSAGE)
+        sleep(interval)
+        count -= 1

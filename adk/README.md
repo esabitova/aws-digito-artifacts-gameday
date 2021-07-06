@@ -114,3 +114,9 @@ there is not much need to test that since the implementation of the class is alr
 
 Every automation document should have a test that verifies its behavior.
 The mechanism for doing this is described above in the Simulation section. 
+
+## Contributions
+
+Code written in the adk folder should be viewed as library code that is useful to others.
+Code that is specific to Digito or that is specific to a single SSM should not be written under adk folder.
+Rather, if implementing an automation doc, implement the steps necessary alongside the automation doc creation.

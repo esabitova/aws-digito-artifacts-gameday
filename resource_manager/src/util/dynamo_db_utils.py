@@ -609,7 +609,7 @@ def generate_random_item(boto3_session: Session, table_name: str, total_number: 
             attribute_name = attribute['AttributeName']
             if attribute_name in primary_keys:
                 attribute_type = attribute['AttributeType']
-                random_value = _get_random_value(attribute_type, length=5)
+                random_value = _get_random_value(attribute_type)
                 item[attribute_name] = {attribute_type: random_value}
         logging.info(f'{item}')
         items.append(item)

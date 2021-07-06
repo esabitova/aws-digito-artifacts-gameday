@@ -3,8 +3,10 @@ Feature: Alarm Setup - sqs SentMessageSize
   Scenario: Check how SentMessageSize not became close to allowed Threshold
     Given the cloud formation templates as integration test resources
       |CfnTemplatePath                                                    | ResourceType
-      |resource_manager/cloud_formation_templates/SqsTemplate.yml        | ON_DEMAND
+      |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
+    # only one PurgeQueue is allowed in 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -22,8 +24,10 @@ Feature: Alarm Setup - sqs SentMessageSize
   Scenario: Check how SentMessageSize became close to allowed Threshold
     Given the cloud formation templates as integration test resources
       |CfnTemplatePath                                                    | ResourceType
-      |resource_manager/cloud_formation_templates/SqsTemplate.yml        | ON_DEMAND
+      |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
+    # only one PurgeQueue is allowed in 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

@@ -90,7 +90,7 @@ def get_memory_size(lambda_arn: str, session: Session) -> int:
 
 
 def trigger_lambda(lambda_arn: str, payload: dict,
-                   invocation_type: LambdaInvocationType, session: Session) -> dict:
+                   invocation_type: LambdaInvocationType, session: Session, log_type: str = 'None') -> dict:
     """
     Calls AWS API to get the value of memory size parameter of given Lambda
 
@@ -101,6 +101,7 @@ def trigger_lambda(lambda_arn: str, payload: dict,
     lambda_client = client('lambda', session)
     invoke_result = lambda_client.invoke(FunctionName=lambda_arn,
                                          InvocationType=invocation_type.name,
+                                         LogType=log_type,
                                          Payload=bytes(payload, 'utf-8'))
     status_code = int(invoke_result['ResponseMetadata']['HTTPStatusCode'])
     if not (200 <= status_code <= 300):

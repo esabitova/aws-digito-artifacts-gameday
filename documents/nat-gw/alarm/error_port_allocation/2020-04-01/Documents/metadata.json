@@ -1,0 +1,11 @@
+{
+  "displayName": "The number of times the NAT gateway could not allocate a source port",
+  "description": "Alarm by Digito that is triggered when too many concurrent connections are open through the NAT gateway",
+  "alarmName": "Digito-ErrorPortAllocation_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "nat-gw:alarm:error_port_allocation:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

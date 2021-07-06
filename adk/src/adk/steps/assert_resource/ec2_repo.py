@@ -1,7 +1,7 @@
 from adk.src.adk.parent_steps.assert_resource_step import AssertResourceStep
 
 
-def get_assert_instance_start():
+def get_assert_instance_start(instance_id_var='InstanceId'):
     return AssertResourceStep(
         name='AssertInstanceStart',
         description='Waits for instance to start running',
@@ -12,7 +12,7 @@ def get_assert_instance_start():
         api_params={
             'Filters': [{
                 'Name': 'instance-id',
-                'Values': ['{{ InstanceId }}']
+                'Values': ['{{ ' + instance_id_var + ' }}']
             }]
         }
     )

@@ -142,7 +142,7 @@ class Step(object):
     def _try_invoke(self, params):
         start = time.time()
         self._validate_input(params)
-        response = self.execute_step({k.split('.')[-1]: v for k, v in params.items()})
+        response = self.execute_step(params)
         response_dict = self._get_selected_response(response)
         self._check_execution_time(start)
         return response_dict
@@ -160,7 +160,7 @@ class Step(object):
             if not issubclass(type(val), declared_output.output_type.value):
                 raise Exception("Type received was not what was expected for output: " + self.name + ":"
                                 + declared_output.name + ". Type expected: " + declared_output.output_type.name
-                                + " but received " + str(val))
+                                + " but received " + str(val) + "(" + str(type(val)) + ")")
             response_dict[self.name + '.' + declared_output.name] = val
         return response_dict
 

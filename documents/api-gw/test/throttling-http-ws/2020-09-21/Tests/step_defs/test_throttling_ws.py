@@ -1,4 +1,3 @@
-
 from pytest_bdd import scenario
 
 

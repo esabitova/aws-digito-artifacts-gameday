@@ -12,7 +12,6 @@ Resources:
         Alarm by Digito that triggers if SentMessageSize became close to allowed Threshold in bytes.
         It needs to investigate the current characteristics of input data and even change the code
         to move data by another way
-      ActionsEnabled: false
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: SentMessageSize

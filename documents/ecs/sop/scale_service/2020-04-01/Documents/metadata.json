@@ -1,0 +1,13 @@
+{
+  "displayName": "Scales the services horizontally and vertically, up and down",
+  "description": "Applies, if provided, new CPU, RAM and Number of task values through creating new version of the existing task definition assigned to the given service. If the new task definition explicitly provided, SOP ignores CPU and RAM parameters",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ScaleService_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "ecs:sop:scale_service:2020-04-01"
+}

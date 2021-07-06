@@ -9,6 +9,8 @@ import resource_manager.src.util.apigw_utils as apigw_utils
 import resource_manager.src.util.boto3_client_factory as client_factory
 from documents.util.scripts.test.mock_sleep import MockSleep
 
+import datetime
+
 REST_API_GW_ID = "0djifyccl6"
 REST_API_GW_STAGE_NAME = "DummyStage"
 REST_API_GW_DEPLOYMENT_ID_V1 = "j4ujo3"
@@ -17,6 +19,10 @@ USAGE_PLAN_THROTTLE_RATE_LIMIT: float = 100.0
 USAGE_PLAN_THROTTLE_BURST_LIMIT: int = 100
 NEW_THROTTLE_RATE_LIMIT: float = 80.0
 NEW_THROTTLE_BURST_LIMIT: int = 80
+DUMMY_REQUEST_URL = 'https://lwxp78ykza.execute-api.us-east-1.amazonaws.com/RestApiGateway-\
+                    Stage-Digito-us-east-1-435978235099-e0ba7de0/app'
+DUMMY_API_KEY_VALUE = '0myeqjCiSu4treKxLPvsK5F3LAtXPnyb4OZc5n6h'
+DUMMY_KEY_ID = 'z46zlbole3'
 
 
 def get_sample_create_deployment_response(https_status_code):
@@ -103,6 +109,25 @@ def get_sample_get_usage_plan_response():
     return response
 
 
+def mock_function_get_api_key(apiKey):
+    if apiKey == DUMMY_KEY_ID:
+        return {
+            'ResponseMetadata': {
+                'RequestId': '82056687-8874-49b7-b386-eefd8a7e06c2',
+                'HTTPStatusCode': 200
+            },
+            'id': apiKey,
+            'value': DUMMY_API_KEY_VALUE,
+            'description': 'Test API Key',
+            'enabled': True,
+            'createdDate': datetime.datetime(2021, 6, 26, 17, 39, 34,
+                                             tzinfo=datetime.datetime.now(datetime.timezone.utc)
+                                             .astimezone().tzinfo),
+        }
+    else:
+        return {}
+
+
 @pytest.mark.unit_test
 class TestApiGwUtil(unittest.TestCase):
 
@@ -114,6 +139,8 @@ class TestApiGwUtil(unittest.TestCase):
         }
         self.session_mock.client.side_effect = lambda service_name, config=None: \
             self.client_side_effect_map.get(service_name)
+        self.mock_apigw.get_api_key.side_effect = lambda apiKey, includeValue=True: \
+            mock_function_get_api_key(apiKey)
         self.mock_apigw.update_usage_plan.return_value = get_sample_update_usage_plan_response()
         self.mock_apigw.get_usage_plan.return_value = get_sample_get_usage_plan_response()
 

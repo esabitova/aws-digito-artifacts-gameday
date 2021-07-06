@@ -28,3 +28,4 @@ pytest-clarity==0.3.0a0 #Improve the readability of pytest output.
 pytest-rerunfailures==10.0 #Re-run multiple times once faied tests to eliminate intermittent failures
 PyYAML~=5.4.1
 cfn-lint==0.48.3
+aws-requests-auth==0.4.3

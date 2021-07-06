@@ -1,0 +1,11 @@
+{
+  "displayName": "The number of packets dropped by the NAT gateway",
+  "description": "A value greater than zero may indicate an ongoing transient issue with the NAT Gateway",
+  "alarmName": "Digito-PacketsDropCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "nat-gw:alarm:packets_drop_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
