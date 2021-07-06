@@ -9,7 +9,6 @@ Resources:
     Properties:
       AlarmName: ${AlarmName}
       AlarmDescription: "Alarm by Digito that per table"
-      ActionsEnabled: false
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: PendingReplicationCount
