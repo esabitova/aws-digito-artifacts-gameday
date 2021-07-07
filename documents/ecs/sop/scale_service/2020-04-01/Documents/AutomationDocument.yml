@@ -1,0 +1,135 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Scales services horizontally and vertically, up and down"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+  
+parameters:
+  ServiceArn:
+    type: String
+    description: (Required) The ARN of the service
+  ClusterName:
+    type: String
+    description: (Required) The name of the cluster
+  TaskDefinitionCPU:
+    type: Integer
+    description: (Optional) The CPU(units) of the task definition. If not set, copied from the current version.
+    default: -1
+  TaskDefinitionRAM:
+    type: Integer
+    description: (Optional) The RAM(MiB) of the task definition . If not set, copied from the current version. Can take values from 0.5GB to 30 GB
+    default: -1
+  NewTaskDefinitionArn:
+    type: String
+    description: (Optional) The ARN of the new task definition. All other CPU/RAM parameters are ignored if this parameter is set
+    default: ""
+  NumberOfTasks:
+    type: Integer
+    description: (Optional) The desired number of tasks in the service
+    default: -1
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: PerformRecovery
+    # add one or more steps to perform recovery
+    # if params.NewTaskDefinitionArn is set:
+    #   Call [boto3.update_service]
+    #     Parameters:
+    #       service=params.ServiceArn
+    #       cluster=params.ClusterName
+    #       desiredCount=params.NumberOfTasks (is not set, leave blank)
+    #       taskDefinition=params.NewTaskDefinitionArn
+    # if params.NewTaskDefinitionArn is NOT set:
+    #   Call [boto3.describe_service]
+    #     Parameters:
+    #       service=params.ServiceArn
+    #       cluster=params.ClusterName
+    #     Take '.services[].taskDefinition' as CurrentTaskDefinitionARN
+    #   Call [boto3.describe_task_definition]
+    #     Parameters:
+    #       taskDefinition=CurrentTaskDefinitionARN
+    #     Take the whole'.taskDefinition' as CurrentTaskDefinition
+    #   Update CurrentTaskDefinition (now it's UpdatedTaskDefinition) object as follows:
+    #     - cpu = params.TaskDefinitionCPU (if set)
+    #     - memory = params.TaskDefinitionRAM (if set)
+    #   Call [boto3.register_task_definition]
+    #     Parameters:
+    #       UpdatedTaskDefinition (SEE CODE SNIPPET #1)
+    #     Take '.taskDefinition.taskDefinitionArn' as NewVersionTaskDefinitionArn
+    #   Call [boto3.update_service]
+    #     Parameters:
+    #       service=params.ServiceArn
+    #       cluster=params.ClusterName
+    #       desiredCount=params.NumberOfTasks (is not set, leave blank)
+    #       taskDefinition=NewVersionTaskDefinitionArn
+
+    # CODE SNIPPET #1
+    # import boto3
+
+    # client = boto3.client('ecs')
+
+    # definitions = client.list_task_definitions() 
+    # # print(definitions)
+
+    # definition = client.describe_task_definition(taskDefinition='arn:aws:ecs:us-east-2:435978235099:task-definition/fargate:1')
+    # # print(definition)
+
+    # kwargs_params = definition['taskDefinition']
+    # del kwargs_params['taskDefinitionArn']
+    # del kwargs_params['revision']
+    # del kwargs_params['status']
+    # del kwargs_params['requiresAttributes']
+    # del kwargs_params['compatibilities']
+    # del kwargs_params['registeredAt']
+    # del kwargs_params['registeredBy']
+    # kwargs_params['cpu']="512"
+    # kwargs_params['memory']=str(1024*4)
+    # new_definition = client.register_task_definition(**definition['taskDefinition'])
+    # print(new_definition)
+
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

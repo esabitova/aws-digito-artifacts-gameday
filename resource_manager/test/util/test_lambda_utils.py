@@ -80,7 +80,8 @@ class TestLambdaUtil(unittest.TestCase):
         self.mock_lambda.invoke.assert_called_once_with(
             FunctionName=LAMBDA_ARN,
             InvocationType=invocation_type.name,
-            Payload=bytes(request_payload, 'utf-8')
+            Payload=bytes(request_payload, 'utf-8'),
+            LogType='None'
         )
         self.assertEqual(request_payload.encode(), response['Payload'])
         self.assertEqual(200, response['StatusCode'])
@@ -95,7 +96,8 @@ class TestLambdaUtil(unittest.TestCase):
         self.mock_lambda.invoke.assert_called_once_with(
             FunctionName=LAMBDA_ARN,
             InvocationType=invocation_type.name,
-            Payload=bytes(request_payload, 'utf-8')
+            Payload=bytes(request_payload, 'utf-8'),
+            LogType='None'
         )
 
     def test_get_function_concurrency(self):

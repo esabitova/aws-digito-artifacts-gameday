@@ -1,0 +1,14 @@
+{
+  "displayName": "Restore EBS volume from backup",
+  "description": "Restore EBS volume from backup",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-EBSRestoreFromBackup_2020-05-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "ebs:sop:restore_from_backup:2020-05-26",
+  "adkPath": "../../python/automation_document.py"
+}

@@ -1,8 +1,8 @@
 {
-    "documentName": "Digito-KillStressCommand_2020-07-28",
-    "documentType": "Command",
-    "documentContentPath": "AutomationDocument.yml",
-    "documentFormat": "YAML",
-    "tag": "util:ec2:kill_stress_command:2020-07-28",
-    "minorVersion": "001"
+  "documentName": "Digito-KillStressCommand_2020-07-28",
+  "documentType": "Command",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "tag": "util:ec2:kill_stress_command:2020-07-28",
+  "minorVersion": "001"
 }

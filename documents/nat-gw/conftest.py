@@ -3,7 +3,7 @@ import logging
 
 import boto3
 from pytest_bdd.parsers import parse
-from pytest_bdd.steps import given
+from pytest_bdd.steps import given, when
 
 from resource_manager.src.util.enums.lambda_invocation_type import \
     LambdaInvocationType
@@ -12,6 +12,7 @@ from resource_manager.src.util.param_utils import parse_param_value
 
 
 @given(parse('trigger lambda "{lambda_arn_ref}" asynchronously'))
+@when(parse('trigger lambda "{lambda_arn_ref}" asynchronously'))
 def trigger_lambda_async(resource_pool,
                          boto3_session: boto3.Session,
                          lambda_arn_ref: str):

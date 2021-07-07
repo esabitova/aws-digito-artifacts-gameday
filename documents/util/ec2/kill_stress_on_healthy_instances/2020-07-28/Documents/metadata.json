@@ -1,9 +1,9 @@
 {
-    "documentName": "Digito-KillStressOnHealthyInstances_2020-07-28",
-    "documentType": "Automation",
-    "documentContentPath": "AutomationDocument.yml",
-    "documentFormat": "YAML",
-    "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
-    "tag": "util:ec2:kill_stress_on_healthy_instances:2020-07-28",
-    "minorVersion": "002"
+  "documentName": "Digito-KillStressOnHealthyInstances_2020-07-28",
+  "documentType": "Automation",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "dependsOn": "Digito-RunMemoryStress_2020-07-28,Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
+  "tag": "util:ec2:kill_stress_on_healthy_instances:2020-07-28",
+  "minorVersion": "002"
 }

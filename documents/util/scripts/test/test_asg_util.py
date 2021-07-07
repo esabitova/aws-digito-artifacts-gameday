@@ -1,13 +1,14 @@
 import unittest
-import pytest
-from unittest.mock import patch
-from unittest.mock import MagicMock
 from test import test_data_provider
-from src.asg_util import get_instance_ids_by_percentage, get_instance_ids_in_asg_random_az
-from src.asg_util import start_instance_refresh, cancel_instance_refresh, assert_no_refresh_in_progress
+from unittest.mock import MagicMock
+from unittest.mock import patch
+
+import pytest
 from src.asg_util import assert_no_suspended_process, get_instance_ids_in_asg
-from src.asg_util import get_networking_configuration_from_asg, suspend_launch, wait_for_in_service
 from src.asg_util import get_instance_data, update_asg, rollback_scaleup
+from src.asg_util import get_instance_ids_by_percentage, get_instance_ids_in_asg_random_az
+from src.asg_util import get_networking_configuration_from_asg, suspend_launch, wait_for_in_service
+from src.asg_util import start_instance_refresh, cancel_instance_refresh, assert_no_refresh_in_progress
 
 
 @pytest.mark.unit_test

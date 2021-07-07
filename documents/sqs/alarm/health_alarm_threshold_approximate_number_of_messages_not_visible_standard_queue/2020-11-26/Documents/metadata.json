@@ -1,0 +1,11 @@
+{
+  "displayName": "ThresholdApproximateNumberOfMessagesNotVisibleStandardQueue",
+  "description": "Alarm by Digito that checks that amount of inflight messages is not reaching the quota for Standard queue",
+  "alarmName": "Digito-ThresholdApproximateNumberOfMessagesNotVisibleStandardQueue_2020-11-26",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_standard_queue:2020-11-26",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

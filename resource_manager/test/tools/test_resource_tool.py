@@ -146,9 +146,9 @@ class TestResourceTool(unittest.TestCase):
 
         resource_b_failed = MagicMock()
         resource_b_failed.configure_mock(cf_template_name='path/to/template_b.yml',
-                                  cf_stack_name='template_b_stack_a_1',
-                                  cfn_dependency_stacks='[template_a_stack_a_1]',
-                                  status=ResourceModel.Status.DELETE_FAILED.name)
+                                         cf_stack_name='template_b_stack_a_1',
+                                         cfn_dependency_stacks='[template_a_stack_a_1]',
+                                         status=ResourceModel.Status.DELETE_FAILED.name)
 
         scan.side_effect = [[resource_a, resource_b],
                             [resource_a, resource_b_failed],

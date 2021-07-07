@@ -1,4 +1,5 @@
 import datetime
+import json
 import unittest
 from unittest.mock import MagicMock
 from unittest.mock import patch
@@ -47,6 +48,21 @@ NEW_THROTTLE_BURST_LIMIT: int = 80
 LESS_THROTTLE_BURST_LIMIT: int = 49
 MORE_THROTTLE_BURST_LIMIT: int = 151
 HUGE_THROTTLE_BURST_LIMIT: int = 6000
+
+VPC_ID = 'vpc-05b0d23b42d9d9c5d'
+VPC_ENDPOINT_ID = 'vpce-0720374816acdd7f9'
+VPC_ENDPOINT_IDS = [VPC_ENDPOINT_ID]
+ORIGINAL_SECURITY_GROUP_ID = 'sg-0421e6a37e188fd3f'
+ORIGINAL_SECURITY_GROUP_NAME = 'ApiGatewayVpcEndpoint'
+DUMMY_SECURITY_GROUP_ID = 'sg-0421e6a37e186ae1d'
+DUMMY_SECURITY_GROUP_NAME = 'dummy-sg-' + VPC_ENDPOINT_ID
+DUMMY_SECURITY_GROUPS = [{"GroupId": DUMMY_SECURITY_GROUP_ID,
+                          "GroupName": DUMMY_SECURITY_GROUP_NAME}]
+
+VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING = {
+    VPC_ENDPOINT_ID: [{"GroupId": ORIGINAL_SECURITY_GROUP_ID,
+                       "GroupName": ORIGINAL_SECURITY_GROUP_NAME}]
+}
 
 
 def get_sample_https_status_code_403_response():
@@ -231,6 +247,71 @@ def get_sample_get_service_quota_response_side_effect():
     return response
 
 
+def get_sample_get_rest_api_response(vps_endpoint_ids):
+    response = {
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200,
+        },
+        'id': REST_API_GW_ID,
+        'endpointConfiguration': {
+            'types': ['PRIVATE'],
+            'vpcEndpointIds': vps_endpoint_ids
+        }
+    }
+    return response
+
+
+def get_sample_describe_vpc_endpoints_response():
+    response = {
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200,
+        },
+        'VpcEndpoints': [
+            {
+                'VpcEndpointId': VPC_ENDPOINT_ID,
+                'VpcId': VPC_ID,
+                'Groups': [
+                    {
+                        'GroupId': ORIGINAL_SECURITY_GROUP_ID,
+                        'GroupName': ORIGINAL_SECURITY_GROUP_NAME
+                    }
+                ]
+            }
+        ]
+    }
+    return response
+
+
+def get_sample_describe_security_groups_response(security_groups):
+    output = {
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200
+        },
+        'SecurityGroups': security_groups
+    }
+    return output
+
+
+def get_sample_create_security_group_response():
+    output = {
+        'GroupId': DUMMY_SECURITY_GROUP_ID,
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200
+        }
+    }
+    return output
+
+
+def get_sample_modify_vpc_endpoint_response(return_value):
+    output = {
+        'Return': return_value,
+        'ResponseMetadata': {
+            'HTTPStatusCode': 200
+        }
+    }
+    return output
+
+
 @pytest.mark.unit_test
 class TestApigwUtil(unittest.TestCase):
     def setUp(self):
@@ -238,15 +319,18 @@ class TestApigwUtil(unittest.TestCase):
         self.client = self.patcher.start()
         self.mock_apigw = MagicMock()
         self.mock_service_quotas = MagicMock()
+        self.mock_ec2 = MagicMock()
         self.side_effect_map = {
             'apigateway': self.mock_apigw,
-            'service-quotas': self.mock_service_quotas
+            'service-quotas': self.mock_service_quotas,
+            'ec2': self.mock_ec2
         }
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_apigw.get_usage_plan.return_value = get_sample_get_usage_plan_response()
         self.mock_apigw.update_usage_plan.return_value = get_sample_update_usage_plan_response()
         self.mock_apigw.get_stage.return_value = get_sample_get_stage_response()
         self.mock_apigw.update_stage.return_value = get_sample_update_stage_response()
+        self.mock_ec2.describe_vpc_endpoints.return_value = get_sample_describe_vpc_endpoints_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -712,6 +796,148 @@ class TestApigwUtil(unittest.TestCase):
         }
         apigw_utils.assert_inputs_before_throttling_rollback(events, None)
 
+    def test_get_endpoint_security_group_config_without_provided_security_group_ids(self):
+        events = {'RestApiGwId': REST_API_GW_ID}
+        self.mock_apigw.get_rest_api.return_value = get_sample_get_rest_api_response([VPC_ENDPOINT_ID])
+        self.mock_ec2.describe_vpc_endpoints.return_value = get_sample_describe_vpc_endpoints_response()
+        output = apigw_utils.get_endpoint_security_group_config(events, None)
+        self.assertEqual(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING,
+                         json.loads(output['VpcEndpointsSecurityGroupsMappingOriginalValue']))
+
+    def test_get_endpoint_security_group_config_with_provided_security_group_ids(self):
+        events = {'RestApiGwId': REST_API_GW_ID,
+                  'SecurityGroupIdListToUnassign': [ORIGINAL_SECURITY_GROUP_ID]}
+        self.mock_apigw.get_rest_api.return_value = get_sample_get_rest_api_response([VPC_ENDPOINT_ID])
+        output = apigw_utils.get_endpoint_security_group_config(events, None)
+        self.assertEqual(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING,
+                         json.loads(output['VpcEndpointsSecurityGroupsMappingOriginalValue']))
+
+    def test_get_endpoint_security_group_config_with_provided_wrong_security_group_ids(self):
+        events = {'RestApiGwId': REST_API_GW_ID,
+                  'SecurityGroupIdListToUnassign': ['wrong-security_group-id']}
+        self.mock_apigw.get_rest_api.return_value = get_sample_get_rest_api_response([VPC_ENDPOINT_ID])
+        with pytest.raises(Exception) as exception_info:
+            apigw_utils.get_endpoint_security_group_config(events, None)
+        self.assertTrue(exception_info.match('Provided security groups were not found in any configured VPC endpoint'))
+
+    def test_get_endpoint_security_group_config_when_apigw_has_no_configured_endpoints(self):
+        events = {'RestApiGwId': REST_API_GW_ID}
+        self.mock_apigw.get_rest_api.return_value = get_sample_get_rest_api_response([])
+        with pytest.raises(Exception) as exception_info:
+            apigw_utils.get_endpoint_security_group_config(events, None)
+        self.assertTrue(exception_info.match('Provided REST API gateway does not have any configured VPC endpoint'))
+
+    def test_update_endpoint_security_group_config_replace_with_dummy_sg(self):
+        events = {
+            'VpcEndpointsSecurityGroupsMapping': json.dumps(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING),
+            'Action': 'ReplaceWithDummySg'
+        }
+        self.mock_ec2.describe_security_groups.return_value = get_sample_describe_security_groups_response([])
+        self.mock_ec2.create_security_group.return_value = get_sample_create_security_group_response()
+        self.mock_ec2.modify_vpc_endpoint.return_value = get_sample_modify_vpc_endpoint_response(True)
+        apigw_utils.update_endpoint_security_group_config(events, None)
+
+        self.mock_ec2.describe_security_groups.assert_called_with(
+            Filters=[{'Name': 'group-name',
+                      'Values': [DUMMY_SECURITY_GROUP_NAME]}]
+        )
+        self.mock_ec2.describe_vpc_endpoints.assert_called_with(
+            VpcEndpointIds=[VPC_ENDPOINT_ID]
+        )
+        self.mock_ec2.create_security_group.assert_called_with(
+            Description='Dummy SG',
+            GroupName=DUMMY_SECURITY_GROUP_NAME,
+            TagSpecifications=[{'ResourceType': 'security-group',
+                                'Tags': [{'Key': 'Digito',
+                                          'Value': 'api-gw:test:simulate_network_unavailable'}]
+                                }],
+            VpcId=VPC_ID
+        )
+        self.mock_ec2.modify_vpc_endpoint.assert_called_with(
+            VpcEndpointId=VPC_ENDPOINT_ID,
+            AddSecurityGroupIds=[DUMMY_SECURITY_GROUP_ID],
+            RemoveSecurityGroupIds=[ORIGINAL_SECURITY_GROUP_ID]
+        )
+
+    def test_update_endpoint_security_group_config_replace_with_dummy_sg_when_dummy_sg_already_exists(self):
+        events = {
+            'VpcEndpointsSecurityGroupsMapping': json.dumps(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING),
+            'Action': 'ReplaceWithDummySg'
+        }
+        self.mock_ec2.describe_security_groups.return_value = get_sample_describe_security_groups_response(
+            [{'GroupId': DUMMY_SECURITY_GROUP_ID}]
+        )
+        self.mock_ec2.create_security_group.return_value = get_sample_create_security_group_response()
+        self.mock_ec2.modify_vpc_endpoint.return_value = get_sample_modify_vpc_endpoint_response(True)
+        apigw_utils.update_endpoint_security_group_config(events, None)
+
+        self.mock_ec2.describe_security_groups.assert_called_with(
+            Filters=[{'Name': 'group-name', 'Values': [DUMMY_SECURITY_GROUP_NAME]}]
+        )
+        self.mock_ec2.describe_vpc_endpoints.assert_not_called()
+        self.mock_ec2.create_security_group.assert_not_called()
+        self.mock_ec2.modify_vpc_endpoint.assert_called_with(
+            VpcEndpointId=VPC_ENDPOINT_ID,
+            AddSecurityGroupIds=[DUMMY_SECURITY_GROUP_ID],
+            RemoveSecurityGroupIds=[ORIGINAL_SECURITY_GROUP_ID]
+        )
+
+    def test_update_endpoint_security_group_config_replace_with_original_sg(self):
+        events = {
+            'VpcEndpointsSecurityGroupsMapping': json.dumps(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING),
+            'Action': 'ReplaceWithOriginalSg'
+        }
+        self.mock_ec2.describe_security_groups.return_value = get_sample_describe_security_groups_response(
+            [{'GroupId': DUMMY_SECURITY_GROUP_ID}]
+        )
+        self.mock_ec2.modify_vpc_endpoint.return_value = get_sample_modify_vpc_endpoint_response(True)
+        apigw_utils.update_endpoint_security_group_config(events, None)
+
+        self.mock_ec2.describe_security_groups.assert_called_with(
+            Filters=[{'Name': 'group-name',
+                      'Values': [DUMMY_SECURITY_GROUP_NAME]}]
+        )
+        self.mock_ec2.modify_vpc_endpoint.assert_called_with(
+            VpcEndpointId=VPC_ENDPOINT_ID,
+            AddSecurityGroupIds=[ORIGINAL_SECURITY_GROUP_ID],
+            RemoveSecurityGroupIds=[DUMMY_SECURITY_GROUP_ID]
+        )
+        self.mock_ec2.delete_security_group.assert_called_with(GroupId=DUMMY_SECURITY_GROUP_ID)
+
+    def test_update_endpoint_security_group_config_replace_with_original_sg_when_dummy_sg_not_present(self):
+        events = {
+            'VpcEndpointsSecurityGroupsMapping': json.dumps(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING),
+            'Action': 'ReplaceWithOriginalSg'
+        }
+        self.mock_ec2.describe_security_groups.return_value = get_sample_describe_security_groups_response([])
+        self.mock_ec2.modify_vpc_endpoint.return_value = get_sample_modify_vpc_endpoint_response(True)
+
+        apigw_utils.update_endpoint_security_group_config(events, None)
+
+        self.mock_ec2.describe_security_groups.assert_called_with(
+            Filters=[{'Name': 'group-name',
+                      'Values': [DUMMY_SECURITY_GROUP_NAME]}]
+        )
+        self.mock_ec2.modify_vpc_endpoint.assert_called_with(
+            VpcEndpointId=VPC_ENDPOINT_ID,
+            AddSecurityGroupIds=[ORIGINAL_SECURITY_GROUP_ID],
+            RemoveSecurityGroupIds=[]
+        )
+        self.mock_ec2.delete_security_group.assert_not_called()
+
+    def test_update_endpoint_security_group_config_replace_with_original_sg_failed_modify_vpc_endpoint_responses(self):
+        events = {
+            'VpcEndpointsSecurityGroupsMapping': json.dumps(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING),
+            'Action': 'ReplaceWithOriginalSg'
+        }
+        self.mock_ec2.modify_vpc_endpoint.return_value = get_sample_modify_vpc_endpoint_response(False)
+        self.mock_ec2.describe_security_groups.return_value = get_sample_describe_security_groups_response(
+            [{'GroupId': DUMMY_SECURITY_GROUP_ID}]
+        )
+        with pytest.raises(Exception) as exception_info:
+            apigw_utils.update_endpoint_security_group_config(events, None)
+        self.assertTrue(exception_info.match('Could not modify VPC endpoint'))
+
 
 @pytest.mark.unit_test
 class TestApigwUtilValueExceptions(unittest.TestCase):
@@ -1154,3 +1380,24 @@ class TestApigwUtilKeyExceptions(unittest.TestCase):
             apigw_utils.assert_inputs_before_throttling_rollback(events, None)
         self.assertTrue(exception_info.match('Provided RestApiGwHttpMethod: PUT is not equal to '
                                              'original RestApiGwHttpMethod: GET'))
+
+    def test_get_endpoint_security_group_config_error_input_1(self):
+        events = {}
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.get_endpoint_security_group_config(events, None)
+        self.assertTrue(exception_info.match('Requires RestApiGwId in events'))
+
+    def test_update_endpoint_security_group_config_error_input_1(self):
+        events = {}
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.update_endpoint_security_group_config(events, None)
+        self.assertTrue(exception_info.match('Requires VpcEndpointsSecurityGroupsMapping in events'))
+
+    def test_update_endpoint_security_group_config_error_input_2(self):
+        events = {
+            'VpcEndpointsSecurityGroupsMapping': json.dumps(VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING),
+            'Action': 'WrongAction'
+        }
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.update_endpoint_security_group_config(events, None)
+        self.assertTrue(exception_info.match('Possible values for Action: ReplaceWithOriginalSg, ReplaceWithDummySg'))

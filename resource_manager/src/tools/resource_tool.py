@@ -104,9 +104,9 @@ class ResourceTool:
                     logger.error(f'Deleting [{resource.cf_stack_name}] stack failed.')
                     failed_resources.append(resource)
                 if len(failed_resources) > 0:
-                    err_message = f'Failed to delete [{ResourceModel.Meta.table_name}] DDB table and [{s3_bucket_name}] ' \
-                                  f'S3 bucket due CFN stack deletion failure. For investigation purpose we do not ' \
-                                  f'delete DDB table and S3 bucket ' \
+                    err_message = f'Failed to delete [{ResourceModel.Meta.table_name}] DDB table ' \
+                                  f'and [{s3_bucket_name}] S3 bucket due CFN stack deletion failure. ' \
+                                  f'For investigation purpose we do not delete DDB table and S3 bucket ' \
                                   f'(feel free to delete DDB table/S3 bucket manually when ready). '
                     logger.error(err_message)
                     raise Exception(err_message)

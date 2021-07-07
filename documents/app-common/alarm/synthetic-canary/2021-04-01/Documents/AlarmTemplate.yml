@@ -2,6 +2,8 @@ AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
     Type: String
+  CanaryName:
+    Type: String
 Resources:
   ${AlarmLogicalId}:
     Type: AWS::CloudWatch::Alarm
@@ -15,7 +17,8 @@ Resources:
       DatapointsToAlarm: 2
       Dimensions:
         - Name: CanaryName
-          Value: ${CanaryName}
+          Value:
+            Ref: CanaryName
       MetricName: SuccessPercent
       Namespace: CloudWatchSynthetics
       Period: 60

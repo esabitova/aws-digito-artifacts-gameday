@@ -11,7 +11,6 @@ Resources:
       AlarmDescription: "Alarm by Digito that checks is there any message in DLQ? If so, it needs to be investigated as soon as possible."
       AlarmActions:
         - Ref: SNSTopicARN
-      ActionsEnabled: false
       MetricName: ApproximateNumberOfMessagesVisible
       Namespace: AWS/SQS
       Dimensions:

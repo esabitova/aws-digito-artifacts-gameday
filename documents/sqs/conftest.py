@@ -34,6 +34,41 @@ def send_messages(resource_pool, ssm_test_cache, boto3_session, number_of_messag
         )
 
 
+@given(parsers.parse('receive "{number_of_messages}" messages from queue\n{input_parameters}'))
+@when(parsers.parse('receive "{number_of_messages}" messages from queue\n{input_parameters}'))
+def receive_messages(resource_pool, ssm_test_cache, boto3_session, number_of_messages, input_parameters):
+    queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_pool, ssm_test_cache)
+    try:
+        visibility_timeout = int(
+            extract_param_value(input_parameters, "VisibilityTimeout", resource_pool, ssm_test_cache)
+        )
+    except KeyError:
+        visibility_timeout = None
+    except ValueError:
+        raise ValueError(f'parameter "VisibilityTimeout" must be an integer, got '
+                         f'{extract_param_value(input_parameters, "VisibilityTimeout", resource_pool, ssm_test_cache)}')
+    sqs_client = boto3_session.client('sqs')
+    for i in range(int(number_of_messages)):
+        if visibility_timeout:
+            msg = sqs_client.receive_message(
+                QueueUrl=queue_url,
+                VisibilityTimeout=visibility_timeout,
+                MaxNumberOfMessages=1,
+                WaitTimeSeconds=3,
+                MessageAttributeNames=['All'],
+                AttributeNames=['All']
+            )
+        else:
+            msg = sqs_client.receive_message(
+                QueueUrl=queue_url,
+                MaxNumberOfMessages=1,
+                WaitTimeSeconds=3,
+                MessageAttributeNames=['All'],
+                AttributeNames=['All']
+            )
+        logging.info(f"Got message: {msg['Messages'][0]['Body']}")
+
+
 @given(parsers.parse('send "{number_of_messages}" messages to FIFO queue\n{input_parameters}'))
 @when(parsers.parse('send "{number_of_messages}" messages to FIFO queue\n{input_parameters}'))
 def send_messages_to_fifo(resource_pool, ssm_test_cache, boto3_session, number_of_messages, input_parameters):

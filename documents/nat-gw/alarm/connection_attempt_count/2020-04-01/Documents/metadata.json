@@ -1,0 +1,11 @@
+{
+  "displayName": "Reports when connection attempts have no response",
+  "description": "Alarm by Digito that is triggered when ConnectionEstablishedCount is less than the value for ConnectionAttemptCount, this indicates that clients behind the NAT gateway attempted to establish new connections for which there was no response",
+  "alarmName": "Digito-ConnectionAttemptCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "nat-gw:alarm:connection_attempt_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

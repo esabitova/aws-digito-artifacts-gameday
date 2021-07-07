@@ -29,3 +29,4 @@ Resources:
             Stat: Sum
       ThresholdMetricId: ad1
       TreatMissingData: missing
+

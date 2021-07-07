@@ -16,7 +16,7 @@ from resource_manager.src.util.common_test_utils import (extract_param_value,
 from resource_manager.src.util.dynamo_db_utils import (
     DynamoDbIndexType, get_secondary_indexes, _get_global_table_all_regions, add_global_table_and_wait_for_active,
     create_backup_and_wait_for_available, delete_backup_and_wait,
-    get_item_async_stress_test, generate_random_item,
+    get_item_async_stress_test, put_item_async_stress_test, generate_random_item,
     drop_and_wait_dynamo_db_table_if_exists, get_continuous_backups_status,
     get_contributor_insights_status_for_table_and_indexes,
     get_earliest_recovery_point_in_time, get_kinesis_destinations, get_stream_settings, get_time_to_live,
@@ -219,6 +219,7 @@ def assert_global_table_copied(resource_pool, ssm_test_cache, boto3_session,
 
 
 @given(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
+@when(parsers.parse('put random test item and cache it as "{item_ref}"\n{input_parameters}'))
 def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_parameters):
     dynamo_db_client = boto3_session.client('dynamodb')
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
@@ -227,8 +228,17 @@ def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_param
     ssm_test_cache[item_ref] = item
 
 
+@given(parsers.parse('put random test item "{number}" times\n{input_parameters}'))
+@when(parsers.parse('put random test item "{number}" times\n{input_parameters}'))
+def put_item_n_times(boto3_session, resource_pool, ssm_test_cache, number, input_parameters):
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items = generate_random_item(boto3_session, table_name, int(number))
+    put_item_async_stress_test(boto3_session, table_name, items)
+
+
 @given(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
 @when(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
+@then(parsers.parse('get test item "{item_ref}" "{number}" times\n{input_parameters}'))
 def get_items(boto3_session, resource_pool, ssm_test_cache, item_ref, number, input_parameters):
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
     item: dict = ssm_test_cache[item_ref]

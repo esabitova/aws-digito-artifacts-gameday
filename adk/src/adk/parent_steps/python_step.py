@@ -1,6 +1,7 @@
 import abc
 import inspect
 import sys
+import json
 from inspect import getsource
 from typing import List, Callable
 
@@ -48,11 +49,15 @@ class PythonStep(Step, metaclass=abc.ABCMeta):
         sys.setprofile(prev)
 
     def execute_step(self, params: dict) -> dict:
-        return {"Payload": self.script_handler(params, None)}
+        # Take the subnames of each of the inputs and send them into the script_handler()
+        # Then put the entire response into a map with key "Payload". (This is to mimic what SystemsManager does)
+        response = {"Payload": self.script_handler({k.split('.')[-1]: v for k, v in params.items()}, None)}
+        self.validate_json_serializable(response)
+        return response
 
     @staticmethod
     @abc.abstractmethod
-    def script_handler(params: dict, context) -> dict:
+    def script_handler(params: dict, context):
         """
         Implement python code in this function.
         This code will be used as the step execution script.
@@ -99,13 +104,14 @@ class PythonStep(Step, metaclass=abc.ABCMeta):
             'InputPayload': input_payload})
 
     def get_script(self):
-        imports = self.get_required_file_imports()
+        import_lines = self.get_required_file_imports()
         functions = self.get_functions()
-        import_lines = ["import " + imp for imp in imports]
         return '\n'.join(import_lines) + "\n\n" + '\n'.join(functions)
 
     def get_functions(self):
         functions = [self.get_source(self.script_handler)]
+        if self.get_helper_functions() is None:
+            raise Exception('You must implement get_helper_functions() for ' + self.name)
         for func in self.get_helper_functions():
             functions.append(self.get_source(func))
         return functions
@@ -133,10 +139,17 @@ class PythonStep(Step, metaclass=abc.ABCMeta):
         with open(python_file, "r") as f:
             python_lines = f.readlines()
         import_lines = [line for line in python_lines if 'import' in line]
-        modules = [import_line.strip().split(" ")[1] for import_line in import_lines]
-        required_modules = [module for module in modules if self.requires_yaml_import(module)]
+        modules = [(import_line.strip().split(" ")[1], import_line.strip()) for import_line in import_lines]
+        required_modules = [module[1] for module in modules if self.requires_yaml_import(module[0])]
         return required_modules
 
     @staticmethod
     def requires_yaml_import(module: str):
         return '..' not in module and module.split('.')[0] not in ['adk', 'typing', 'unittest', 'pytest']
+
+    def validate_json_serializable(self, response):
+        try:
+            json.dumps(response)
+        except Exception as exc:
+            raise NonRetriableException("Response from Python script " + self.name + " must be JSON serializable "
+                                        + "but was: " + str(response)) from exc

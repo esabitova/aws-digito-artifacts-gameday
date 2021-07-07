@@ -14,7 +14,7 @@ High
 
 ## Requirements
 * Existing REST API Gateway with binding to VPC
-* There is a synthetic alarm setup for application (api-gw:alarm:count:2020-04-01)
+* There is a synthetic alarm setup for application (api-gw:alarm:health-count_error:2020-04-01)
 
 ## Permission required for AutomationAssumeRole
 

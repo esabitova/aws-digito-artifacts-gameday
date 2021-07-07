@@ -1,0 +1,13 @@
+{
+  "displayName": "EC2 Scale Up",
+  "description": "Scale up an ec2 to the successor instance type",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-Ec2ScaleUp_2020-05-20",
+  "documentType": "Automation",
+  "failureType": "HARDWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "compute:sop:ec2_scale_up:2020-05-20"
+}

@@ -7,9 +7,9 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                            | ON_DEMAND    |
       | documents/api-gw/test/throttling-rest/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
-    And cache value of "RestApiGwUsagePlanId" "before" SSM automation execution
-      | RestApiGwUsagePlanId                                  |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} |
+    And cache value of "RestApiGwUsagePlanId,ApiKeyId,ApiHost,ApiPath" "before" SSM automation execution
+      | RestApiGwUsagePlanId                                  | ApiKeyId                                  | ApiHost                                        | ApiPath                                             |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwHost}} | {{cfn-output:RestApiGwTemplate>RestApiGwStagePath}} |
     And cache usage plan rate limit as "OldRateLimit" and burst limit as "OldBurstLimit" "before" SSM automation execution
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
@@ -18,9 +18,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
-      | ApiKeyId                                  | RestApiGwStageUrl                                  |
-      | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageUrl}} |
+    And get API key and perform "12" https "GET" requests with interval "20" seconds
     And cache usage plan rate limit as "AppliedRateLimit" and burst limit as "AppliedBurstLimit" "after" SSM automation execution
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Success"
       | ExecutionId                |
@@ -40,9 +38,9 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                            | ON_DEMAND    |
       | documents/api-gw/test/throttling-rest/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestApiGwThrottling_2020-09-21" SSM document
-    And cache value of "RestApiGwUsagePlanId,RestApiGwStageName,RestApiGwId" "before" SSM automation execution
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} |
+    And cache value of "RestApiGwUsagePlanId,RestApiGwStageName,RestApiGwId,ApiKeyId,ApiHost,ApiPath" "before" SSM automation execution
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | ApiKeyId                                  | ApiHost                                        | ApiPath                                             |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwHost}} | {{cfn-output:RestApiGwTemplate>RestApiGwStagePath}} |
     And cache usage plan rate limit as "OldRateLimit" and burst limit as "OldBurstLimit" "before" SSM automation execution
 
     When SSM automation document "Digito-RestApiGwThrottling_2020-09-21" executed
@@ -51,9 +49,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get value of API key "ApiKeyId" and perform "12" http requests with delay "20" seconds using stage URL "RestApiGwStageUrl"
-      | ApiKeyId                                  | RestApiGwStageUrl                                  |
-      | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageUrl}} |
+    And get API key and perform "12" https "GET" requests with interval "20" seconds
     And cache usage plan rate limit as "AppliedRateLimit" and burst limit as "AppliedBurstLimit" "after" SSM automation execution
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Success"
       | ExecutionId                |

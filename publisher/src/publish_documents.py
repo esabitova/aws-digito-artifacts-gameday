@@ -1,14 +1,17 @@
-import boto3
 import getopt
 import glob
 import json
 import logging
 import os
 import sys
-import publisher.src.document_metadata_attrs as metadata_attrs
-from publisher.src.document_validator import DocumentValidator
+import importlib.util
+
+import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
+
+import publisher.src.document_metadata_attrs as metadata_attrs
+from publisher.src.document_validator import DocumentValidator
 
 SCRIPT_DIR = '/documents/util/scripts/src'
 default_logger = logging.getLogger('PublishDocuments')
@@ -47,15 +50,30 @@ class PublishDocuments:
                 raise error
 
     def get_document_content(self, document_metadata):
+        return self.get_final_document_content(document_metadata['location'], document_metadata)
+
+    @classmethod
+    def get_final_document_content(cls, root: str, document_metadata: dict):
+        if 'adkPath' in document_metadata and document_metadata['adkPath']:
+            adk_full_path = os.path.join(root, document_metadata['adkPath'])
+            return PublishDocuments.get_adk_automation_yaml(adk_full_path)
         updated_document_content = ""
-        with open(document_metadata['location'] + '/' + document_metadata['documentContentPath'], 'r') as f:
+        with open(os.path.join(root, document_metadata['documentContentPath']), 'r') as f:
             document_content_lines = f.read().splitlines()
             for line in document_content_lines:
                 if ("SCRIPT_PLACEHOLDER" in line):
                     script_placeholder = line.strip()
-                    line = self.replace_script_placeholder_in_document_content(line, script_placeholder)
+                    line = PublishDocuments.replace_script_placeholder_in_document_content(line, script_placeholder)
                 updated_document_content += line + "\n"
         return updated_document_content
+
+    @classmethod
+    def get_adk_automation_yaml(cls, adk_full_path: str):
+        # Import adk file from file location
+        spec = importlib.util.spec_from_file_location("digito.module.unused", adk_full_path)
+        automation_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(automation_module)
+        return automation_module.get_automation_doc().get_automation_yaml()
 
     def create_document(self, name, content, doc_type, doc_format, tag_value):
         try:
@@ -167,18 +185,20 @@ class PublishDocuments:
 
         return list_document_metadata
 
-    def replace_script_placeholder_in_document_content(self, document_content, script_placeholder):
-        script_content = self.get_script(script_placeholder)
+    @classmethod
+    def replace_script_placeholder_in_document_content(cls, document_content, script_placeholder):
+        script_content = PublishDocuments.get_script(script_placeholder)
         document_content = document_content.replace(script_placeholder, script_content)
         return document_content
 
-    def get_script(self, script_placeholder):
+    @classmethod
+    def get_script(cls, script_placeholder):
         script_file_name = script_placeholder.split("::")[1].split(".")[0]
         script_method_name = script_placeholder.split("::")[1].split(".")[1]
 
         script_lines = []
         script_lines_to_be_included = ""
-        with open(self.root_dir + '/documents/util/scripts/src/' + script_file_name + '.py') as f:
+        with open(os.getcwd() + '/documents/util/scripts/src/' + script_file_name + '.py') as f:
             script_lines = f.read().splitlines()
 
         is_first = True

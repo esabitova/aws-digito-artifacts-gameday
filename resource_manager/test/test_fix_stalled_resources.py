@@ -1,8 +1,10 @@
-import boto3
 import unittest
+
+import boto3
 import pytest
-from resource_manager.src.resource_pool import ResourcePool
+
 from resource_manager.src.cloud_formation import CloudFormationTemplate
+from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 
 
