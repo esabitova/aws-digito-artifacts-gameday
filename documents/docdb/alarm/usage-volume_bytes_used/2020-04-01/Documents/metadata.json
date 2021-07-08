@@ -1,0 +1,11 @@
+{
+  "displayName": "HighVolumeSize",
+  "description": "Alarm by Digito that detects high values of VolumeBytesUsed",
+  "alarmName": "Digito-HighVolumeSize_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:usage-volume_bytes_used:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

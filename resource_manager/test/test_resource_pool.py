@@ -92,6 +92,15 @@ class TestResourcePool(unittest.TestCase):
                         "|TestTemplateB.yml |ON_DEMAND   |          |{{cfn-output:TestTemplateA>TestParamA}}|"
         self.assertRaises(Exception, self.rm.add_cfn_templates, cfn_templates)
 
+    def test_add_cfn_templates_assume_role_dependency_relation_fail(self):
+        self.os_path_mock.splitext.side_effect = [('TestTemplateA', 'yml'),
+                                                  ('TestTemplateB', 'yml')]
+
+        cfn_templates = "|CfnTemplatePath   |ResourceType|TestParamA|TestParamB                             |\n" \
+                        "|TestTemplateA.yml |ASSUME_ROLE |test_value|                                       |\n" \
+                        "|TestTemplateB.yml |ON_DEMAND   |          |{{cfn-output:TestTemplateA>TestParamA}}|"
+        self.assertRaises(Exception, self.rm.add_cfn_templates, cfn_templates)
+
     def test_add_cfn_templates_not_configured_template_fail(self):
         self.os_path_mock.splitext.side_effect = [('TestTemplateA', 'yml'),
                                                   ('TestTemplateZ', 'yml'),

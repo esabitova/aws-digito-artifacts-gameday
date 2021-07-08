@@ -1,0 +1,11 @@
+{
+  "displayName": "SwapUsed",
+  "description": "Alarm by Digito that triggers if the amount of swap space used on the instance, is less then threshold",
+  "alarmName": "Digito-DocDb-swap_space_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-swap:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

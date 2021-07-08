@@ -7,8 +7,10 @@ import time
 from enum import Enum
 from botocore.exceptions import ClientError
 from resource_manager.src.resource_model import ResourceModel
+from resource_manager.src.resource_base import ResourceBase
 from concurrent.futures import ThreadPoolExecutor
 from resource_manager.src.constants import s3_bucket_name_pattern, BgColors
+from resource_manager.src.cloud_formation import CloudFormationTemplate
 
 logger = logging.getLogger('resource_tool')
 logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s:%(message)s', level=logging.INFO,
@@ -28,10 +30,10 @@ class Command(Enum):
         raise Exception('Command for name [{}] is not supported.'.format(command))
 
 
-class ResourceTool:
+class ResourceTool(ResourceBase):
     def __init__(self, boto3_session: boto3.Session):
         ResourceModel.configure(boto3_session)
-        self.cfn_client = boto3_session.client('cloudformation')
+        self.cfn_helper = CloudFormationTemplate(boto3_session)
         self.s3_resource = boto3_session.resource('s3')
         self.account_id = boto3_session.client('sts').get_caller_identity().get('Account')
         self.region = boto3_session.region_name
@@ -94,8 +96,9 @@ class ResourceTool:
             logger.info(f" Destroying [{resource_count}] cloud formation stacks {stack_names}")
             with ThreadPoolExecutor(max_workers=10) as t_executor:
                 for index in range(resource_count):
-                    resource = resources_to_delete[index]
-                    t_executor.submit(ResourceTool._delete_resource, self.cfn_client, resource, all_resources, logger)
+                    resource_to_delete = resources_to_delete[index]
+                    t_executor.submit(ResourceTool._delete_resource, resource_to_delete,
+                                      self.cfn_helper, logger, all_resources)
 
             s3_bucket_name = self.get_s3_bucket_name(self.account_id, self.region)
             failed_resources = []
@@ -103,13 +106,13 @@ class ResourceTool:
                 if resource.status == ResourceModel.Status.DELETE_FAILED.name:
                     logger.error(f'Deleting [{resource.cf_stack_name}] stack failed.')
                     failed_resources.append(resource)
-                if len(failed_resources) > 0:
-                    err_message = f'Failed to delete [{ResourceModel.Meta.table_name}] DDB table ' \
+            if len(failed_resources) > 0:
+                err_message = f'Failed to delete [{ResourceModel.Meta.table_name}] DDB table ' \
                                   f'and [{s3_bucket_name}] S3 bucket due CFN stack deletion failure. ' \
                                   f'For investigation purpose we do not delete DDB table and S3 bucket ' \
                                   f'(feel free to delete DDB table/S3 bucket manually when ready). '
-                    logger.error(err_message)
-                    raise Exception(err_message)
+                logger.error(err_message)
+                raise Exception(err_message)
             self._delete_s3_files(s3_bucket_name, stacks_to_delete)
         else:
             logger.warning(BgColors.WARNING + f" Nothing to destroy due to NO resources for template names "
@@ -167,80 +170,6 @@ class ResourceTool:
         """
         return s3_bucket_name_pattern.replace('<account_id>', account_id).replace('<region_name>', region_name)
 
-    @staticmethod
-    def _delete_resource(cfn_client, resource_to_delete: ResourceModel, all_resources: [], logger):
-        """
-         Deletes given resource and cfn stack mapped to this resource. It will wait till all
-         dependent resources (if any) will be removed first before deleting given resource. In case if resource
-         deletion is failed for any reason exception will be thrown and resource will be left to state 'DELETE_FAILED'.
-        :param cfn_client: The cfn boto3 client.
-        :param resource_to_delete: The resource to be deleted.
-        :param all_resources: The list of all existing resources.
-        :param logger: The logger.
-        :return:
-        """
-        cfn_stack_name = resource_to_delete.cf_stack_name
-        sleep_time_secs = 20
-        try:
-
-            ResourceModel.update_resource_status(resource_to_delete, ResourceModel.Status.DELETING)
-            dependent_stack_name = ResourceTool._has_dependents(cfn_stack_name, all_resources, logger)
-            while dependent_stack_name:
-                logger.info(f'Waiting for stack [{dependent_stack_name}] to be deleted before '
-                            f'deleting [{cfn_stack_name}], sleeping [{sleep_time_secs}] seconds.')
-                time.sleep(sleep_time_secs)
-                dependent_stack_name = ResourceTool._has_dependents(cfn_stack_name, ResourceModel.scan(), logger)
-            # Delete stack.
-            logger.info(f'Deleting [{cfn_stack_name}] stack.')
-            ResourceTool._delete_stack(cfn_client, resource_to_delete)
-            # Delete DDB resource record.
-            resource_to_delete.delete()
-        except Exception as e:
-            logger.error(f'Failed to delete [{cfn_stack_name}] stack due to: {e}')
-            ResourceModel.update_resource_status(resource_to_delete, ResourceModel.Status.DELETE_FAILED)
-
-    @staticmethod
-    def _has_dependents(cfn_stack_name: str, all_resources: [], logger) -> str:
-        """
-        Returns True if given cfn stack name has dependents, False otherwise.
-        :param cfn_stack_name: The cfn stack name.
-        :param all_resources: The list of all existing resources.
-        :param logger: The logger.
-        :return: True in dependent still exit, not deleted yet, False otherwise.
-        """
-        for resource in all_resources:
-            if resource.cfn_dependency_stacks and cfn_stack_name in resource.cfn_dependency_stacks:
-                if resource.status == ResourceModel.Status.DELETE_FAILED.name:
-                    err_message = f'Stack [{cfn_stack_name}] deletion failed due to dependent ' \
-                                  f'stack [{resource.cf_stack_name}] deletion failed.'
-                    logger.error(err_message)
-                    raise Exception(err_message)
-                return resource.cf_stack_name
-        return None
-
-    @staticmethod
-    def _delete_stack(cfn_client, resource: ResourceModel):
-        """
-        Deletes cfn stack for given resource.
-        :param cfn_client: The cloud formation boto3 client.
-        :param resource: The given resource.
-        """
-        try:
-            stack_name = resource.cf_stack_name
-            cfn_client.update_termination_protection(StackName=stack_name, EnableTerminationProtection=False)
-            cfn_client.delete_stack(StackName=stack_name)
-            waiter = cfn_client.get_waiter('stack_delete_complete')
-            waiter.wait(StackName=stack_name)
-        except ClientError as e:
-            err_message = e.response['Error']['Message']
-            if f'Stack [{stack_name}] does not exist' in err_message \
-                    and e.response['Error']['Code'] == 'ValidationError':
-                # Do nothing as stack for given name does not exist.
-                pass
-            else:
-                logger.error(e)
-                raise e
-
     def _delete_s3_files(self, bucket_name: str, stacks_to_delete: dict()):
         """
          Deletes file from S3 for given bucket name list of stacks mapped to cfn template name as key.
@@ -269,37 +198,13 @@ class ResourceTool:
         for key in stacks_to_delete:
             stack_exist = False
             for cfn_stack in stacks_to_delete[key]:
-                if self._stack_exists(cfn_stack):
+                if self.cfn_helper.stack_exists(cfn_stack):
                     logger.warning(BgColors.WARNING + f" Stack [{cfn_stack}] still exists, cfn template file"
                                                       f" [{key}] will not be deleted from S3." + BgColors.ENDC)
                     stack_exist = True
             if not stack_exist:
                 s3_keys_to_delete.append(key)
         return s3_keys_to_delete
-
-    def _stack_exists(self, stack_name: str, required_status='DELETE_COMPLETE'):
-        """
-        Verifies if cfn stack for given name exist.
-        :param stack_name: The cfn stack name to verify
-        :param required_status: The required status in case if stack is till exist.
-        :return: True  stack exists, False otherwise.
-        """
-        try:
-            stacks_summary = self.cfn_client.describe_stacks(StackName=stack_name)
-            stack_info = stacks_summary.get('Stacks')[0]
-            return stack_name == stack_info.get('StackName') and stack_info.get('StackStatus') != required_status
-        except ClientError as e:
-            stack_not_found_error = f'Stack with id {stack_name} does not exist'
-            error_received = e.response['Error']
-            error_code_received = error_received.get('Code')
-            error_message_received = error_received.get('Message')
-            if error_code_received == 'ValidationError' and error_message_received == stack_not_found_error:
-                return False
-            logger.exception(f'Client error while describing stacks: {e}')
-            raise
-        except Exception:
-            logger.exception('Error while checking stack')
-            raise
 
     def _find_resource_dependents(self, resource_to_delete: ResourceModel, all_resources) -> []:
         """

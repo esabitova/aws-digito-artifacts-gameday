@@ -1,0 +1,11 @@
+{
+  "displayName": "HighDiskQueueDepth",
+  "description": "Alarm by Digito that detects high values of DiskQueueDepth",
+  "alarmName": "Digito-HighDiskQueueDepth_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-disk_queue_depth:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
