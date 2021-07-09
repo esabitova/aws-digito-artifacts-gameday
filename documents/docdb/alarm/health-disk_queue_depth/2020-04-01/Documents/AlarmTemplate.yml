@@ -10,6 +10,8 @@ Resources:
       AlarmName: ${AlarmName}
       AlarmDescription:
         Fn::Sub: 'Alarm by Digito that reports when DiskQueueDepth is higher or equal to ${Threshold}'
+      AlarmActions:
+        - Ref: SNSTopicARN
       MetricName: DiskQueueDepth
       Namespace: AWS/DocDB
       Dimensions:
