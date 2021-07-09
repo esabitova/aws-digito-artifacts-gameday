@@ -21,6 +21,12 @@ Outputs:
   ApplicationELB:
     Description: The Application Elastic Load Balancer
     Value: !Ref ApplicationELB
+  ApplicationELBUrl:
+    Description: The Application Elastic Load Balancer DNS Name
+    Value: !GetAtt ApplicationELB.DNSName
+  ApplicationELBFullName:
+    Description: The Application Elastic Load Balancer Key For Alarm Setup
+    Value: !GetAtt ApplicationELB.LoadBalancerFullName
 Parameters:
   VPCCidrBlock:
     Description: VPC CidrIp

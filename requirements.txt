@@ -29,3 +29,4 @@ pytest-rerunfailures==10.0 #Re-run multiple times once faied tests to eliminate 
 PyYAML~=5.4.1
 cfn-lint==0.48.3
 aws-requests-auth==0.4.3
+pyOpenSSL==20.0.1
