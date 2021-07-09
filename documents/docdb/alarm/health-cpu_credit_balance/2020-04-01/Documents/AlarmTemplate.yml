@@ -10,6 +10,8 @@ Resources:
       AlarmName: ${AlarmName}
       AlarmDescription:
         Fn::Sub: 'Alarm by Digito that reports when CPUCreditBalance is lower or equal to ${Threshold}'
+      AlarmActions:
+        - Ref: SNSTopicARN
       MetricName: CPUCreditBalance
       Namespace: AWS/DocDB
       Dimensions:
