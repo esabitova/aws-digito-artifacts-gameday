@@ -1,0 +1,11 @@
+{
+  "displayName": "LowCPUCreditBalance",
+  "description": "Alarm by Digito that detects low values of CPUCreditBalance",
+  "alarmName": "Digito-LowCPUCreditBalance_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-cpu_credit_balance:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

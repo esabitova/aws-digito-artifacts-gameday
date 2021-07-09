@@ -1,0 +1,11 @@
+{
+  "displayName": "LowMemory",
+  "description": "Alarm by Digito that triggers if the amount of available random access memory number less then threshold",
+  "alarmName": "Digito-DocDb-Freeable_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-freeable_memory:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

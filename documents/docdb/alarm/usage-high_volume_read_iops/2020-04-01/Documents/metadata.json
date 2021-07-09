@@ -1,0 +1,11 @@
+{
+  "displayName": "HighVolumeReadIOPS",
+  "description": "Alarm by Digito that detects anomalies of high values of VolumeReadIOPs",
+  "alarmName": "Digito-HighVolumeReadIOPS_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:usage-high_volume_read_iops:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

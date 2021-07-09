@@ -321,8 +321,8 @@ Resources:
       Period: 60
       Statistic: Minimum
       Threshold: 157286400
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
       ComparisonOperator: LessThanOrEqualToThreshold
       TreatMissingData: missing
   LowMemoryDBInstanceReplicaAlarm:
@@ -338,8 +338,8 @@ Resources:
       Period: 60
       Statistic: Minimum
       Threshold: 157286400
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
+      EvaluationPeriods: 5
+      DatapointsToAlarm: 3
       ComparisonOperator: LessThanOrEqualToThreshold
       TreatMissingData: missing
   LowStorageAlarm:

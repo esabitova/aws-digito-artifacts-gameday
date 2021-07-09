@@ -1,0 +1,11 @@
+{
+  "displayName": "HighReplicaLagMaximum",
+  "description": "Alarm by Digito that detects high values of DBClusterReplicaLagMaximum",
+  "alarmName": "Digito-HighReplicaLagMaximum_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:recovery-cluster_replica_lag:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
