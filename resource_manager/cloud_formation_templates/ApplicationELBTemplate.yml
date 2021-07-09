@@ -35,6 +35,20 @@ Parameters:
     Type: String
     Default: 10.0.16.0/20
 
+  HostedZoneId:
+    Description: Hosted Zone Id
+    Type: String
+    Default: 'Z0705203UIXJX3QQ71TB'
+
+  SubdomainAliasName:
+    Description: Alias for test subdomain
+    Type: String
+    Default: 'app-elb-test.upteam-test-name.de'
+
+  SubdomainAliasRecordName:
+    Description: Alias for test subdomain record name
+    Type: String
+    Default: 'app-elb-test.upteam-test-name.de.'
 # alarms
 Resources:
   VPC:
@@ -99,6 +113,49 @@ Resources:
       Tags:
       - Key: Name
         Value: ResiliencyVPC-IGWSubnet2
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: Public
+  PublicRoute1:   # Public route table has direct routing to IGW:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnet1RouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref IGWSubnet1
+  PublicSubnet1RouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref IGWSubnet2
+  ALBSecurityGroup:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+          GroupDescription: "security group for ALB"
+          GroupName: "test-ALB-SG"
+          Tags:
+            -
+              Key: "Environment"
+              Value: "test"
+            -
+              Key: "Name"
+              Value: "test-ALB-SG"
+          VpcId: !Ref VPC
+          SecurityGroupIngress:
+            -
+              CidrIp: "0.0.0.0/0"
+              FromPort: 443
+              IpProtocol: "tcp"
+              ToPort: 443
+
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -108,7 +165,57 @@ Resources:
       Subnets:
         - !Ref IGWSubnet1
         - !Ref IGWSubnet2
-      LoadBalancerAttributes:
+      SecurityGroups:
+        - !Ref ALBSecurityGroup
+
+  TestCertificate:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      CertificateTransparencyLoggingPreference: 'DISABLED'
+      DomainName: !Ref SubdomainAliasName
+      DomainValidationOptions:
         -
-          Key: "access_logs.s3.enabled"
-          Value: "false"
+          DomainName: !Ref SubdomainAliasName
+          HostedZoneId: !Ref HostedZoneId
+      ValidationMethod: 'DNS'
+
+  HTTPSListener:
+      Type: "AWS::ElasticLoadBalancingV2::Listener"
+      Properties:
+          LoadBalancerArn: !Ref ApplicationELB
+          Port: 443
+          Protocol: "HTTPS"
+          SslPolicy: "ELBSecurityPolicy-2016-08"
+          Certificates:
+            -
+              CertificateArn: !Ref TestCertificate
+          DefaultActions:
+            - Type: fixed-response
+              FixedResponseConfig:
+                ContentType: "text/plain"
+                MessageBody: "OK"
+                StatusCode: "200"
+
+  HTTPListener:
+      Type: "AWS::ElasticLoadBalancingV2::Listener"
+      Properties:
+          LoadBalancerArn: !Ref ApplicationELB
+          Port: 80
+          Protocol: "HTTP"
+          DefaultActions:
+            - Type: fixed-response
+              FixedResponseConfig:
+                ContentType: "text/plain"
+                MessageBody: "OK"
+                StatusCode: "200"
+
+  ApplicationELBRoutingRecord:
+    Type: AWS::Route53::RecordSetGroup
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      RecordSets:
+        - Name: !Ref SubdomainAliasRecordName
+          Type: A
+          AliasTarget:
+            HostedZoneId: !GetAtt 'ApplicationELB.CanonicalHostedZoneID'
+            DNSName: !GetAtt 'ApplicationELB.DNSName'
