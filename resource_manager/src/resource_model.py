@@ -35,9 +35,10 @@ class ResourceModel(Model):
         UPDATING = 4,
         DELETING = 5,
         FAILED = 6,
-        DELETED = 7
+        DELETED = 7,
+        DELETE_FAILED = 8
 
-    class ResourceType(Enum):
+    class Type(Enum):
         DEDICATED = 1,
         ON_DEMAND = 2,
         ASSUME_ROLE = 3,
@@ -45,27 +46,28 @@ class ResourceModel(Model):
 
         @staticmethod
         def from_string(resource_type):
-            for rt in ResourceModel.ResourceType:
+            for rt in ResourceModel.Type:
                 if rt.name == resource_type:
                     return rt
             raise Exception('Resource type for name [{}] is not supported.'.format(resource_type))
 
-    cf_stack_index = NumberAttribute(range_key=True)
     cf_template_name = UnicodeAttribute(hash_key=True)
+    cf_stack_name = UnicodeAttribute(range_key=True)
+    cfn_dependency_stacks = JSONAttribute(null=True)
+    pool_size = NumberAttribute()
+    status = UnicodeAttribute()
+    type = UnicodeAttribute()
     cf_template_url = UnicodeAttribute(null=True)
     cf_template_sha1 = UnicodeAttribute(null=True)
     test_session_id = UnicodeAttribute()
-    pool_size = NumberAttribute()
     cf_input_parameters = JSONAttribute(null=True)
     cf_input_parameters_sha1 = UnicodeAttribute(null=True)
     cf_output_parameters = JSONAttribute(null=True)
-    cf_stack_name = UnicodeAttribute()
-    type = UnicodeAttribute()
-    status = UnicodeAttribute()
     leased_on = UTCDateTimeAttribute()
     created_on = UTCDateTimeAttribute()
     updated_on = UTCDateTimeAttribute()
     leased_times = NumberAttribute(default=0)
+    cf_stack_index = NumberAttribute()
     version = VersionAttribute()
 
     @staticmethod

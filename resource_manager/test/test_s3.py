@@ -1,11 +1,10 @@
 import unittest
 import pytest
-from botocore.exceptions import ClientError
-
 import resource_manager.src.util.boto3_client_factory as client_factory
 from resource_manager.src.constants import s3_bucket_name_pattern
 from unittest.mock import MagicMock
 from resource_manager.src.s3 import S3
+from botocore.exceptions import ClientError
 
 
 @pytest.mark.unit_test
@@ -106,14 +105,20 @@ class TestS3(unittest.TestCase):
         mock_s3_object.put.assert_called_once()
         self.mock_s3_service.generate_presigned_url.assert_called_once()
 
-    def test_delete_bucket_success(self):
+    def test_delete_bucket_bucket_versioning_disabled_success(self):
         # Result - bucket exist, all files will be deleted together with bucket
         mock_objects = MagicMock()
         mock_bucket = MagicMock()
         delete_function = MagicMock()
+        mock_bucket_version = MagicMock()
+        mock_bucket_version.configure_mock(status='Disabled')
+        mock_object_versions_del_func = MagicMock()
+        mock_object_versions = MagicMock()
+        mock_object_versions.configure_mock(delete=mock_object_versions_del_func)
         self.mock_s3_resource.Bucket.return_value = mock_bucket
+        self.mock_s3_resource.BucketVersioning.return_value = mock_bucket_version
 
-        mock_bucket.configure_mock(objects=mock_objects)
+        mock_bucket.configure_mock(objects=mock_objects, object_versions=mock_object_versions)
         mock_objects.configure_mock(delete=delete_function)
 
         mock_existing_bucket = MagicMock()
@@ -122,7 +127,34 @@ class TestS3(unittest.TestCase):
 
         self.s3_helper.delete_bucket(self.mock_s3_bucket_name)
 
+        mock_object_versions_del_func.assert_not_called()
         delete_function.assert_called_once()
+        self.mock_s3_service.delete_bucket.assert_called_once()
+
+    def test_delete_bucket_bucket_versioning_enabled_success(self):
+        # Result - bucket exist, all files will be deleted together with bucket
+        mock_objects = MagicMock()
+        mock_bucket = MagicMock()
+        delete_function = MagicMock()
+        mock_bucket_version = MagicMock()
+        mock_bucket_version.configure_mock(status='Enabled')
+        mock_object_versions_del_func = MagicMock()
+        mock_object_versions = MagicMock()
+        mock_object_versions.configure_mock(delete=mock_object_versions_del_func)
+        self.mock_s3_resource.Bucket.return_value = mock_bucket
+        self.mock_s3_resource.BucketVersioning.return_value = mock_bucket_version
+
+        mock_bucket.configure_mock(objects=mock_objects, object_versions=mock_object_versions)
+        mock_objects.configure_mock(delete=delete_function)
+
+        mock_existing_bucket = MagicMock()
+        mock_existing_bucket.configure_mock(name=self.mock_s3_bucket_name)
+        self.mock_s3_resource.buckets.all.return_value = [mock_existing_bucket]
+
+        self.s3_helper.delete_bucket(self.mock_s3_bucket_name)
+
+        mock_object_versions_del_func.assert_called_once()
+        delete_function.assert_not_called()
         self.mock_s3_service.delete_bucket.assert_called_once()
 
     def test_s3_upload_file_client_error(self):
