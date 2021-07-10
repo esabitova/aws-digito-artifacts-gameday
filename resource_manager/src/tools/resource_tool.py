@@ -3,9 +3,7 @@ import getopt
 import logging
 import sys
 import os
-import time
 from enum import Enum
-from botocore.exceptions import ClientError
 from resource_manager.src.resource_model import ResourceModel
 from resource_manager.src.resource_base import ResourceBase
 from concurrent.futures import ThreadPoolExecutor
@@ -32,6 +30,11 @@ class Command(Enum):
 
 class ResourceTool(ResourceBase):
     def __init__(self, boto3_session: boto3.Session):
+        aws_account_id = boto3_session.client('sts').get_caller_identity().get('Account')
+        logging.info(BgColors.OKBLUE + ' Starting testing session with following parameters:' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - aws account id: {aws_account_id}' + BgColors.ENDC)
+        logging.info(BgColors.OKBLUE + f' - aws region: {boto3_session.region_name}' + BgColors.ENDC)
+
         ResourceModel.configure(boto3_session)
         self.cfn_helper = CloudFormationTemplate(boto3_session)
         self.s3_resource = boto3_session.resource('s3')
@@ -108,9 +111,9 @@ class ResourceTool(ResourceBase):
                     failed_resources.append(resource)
             if len(failed_resources) > 0:
                 err_message = f'Failed to delete [{ResourceModel.Meta.table_name}] DDB table ' \
-                                  f'and [{s3_bucket_name}] S3 bucket due CFN stack deletion failure. ' \
-                                  f'For investigation purpose we do not delete DDB table and S3 bucket ' \
-                                  f'(feel free to delete DDB table/S3 bucket manually when ready). '
+                              f'and [{s3_bucket_name}] S3 bucket due CFN stack deletion failure. ' \
+                              f'For investigation purpose we do not delete DDB table and S3 bucket ' \
+                              f'(feel free to delete DDB table/S3 bucket manually when ready). '
                 logger.error(err_message)
                 raise Exception(err_message)
             self._delete_s3_files(s3_bucket_name, stacks_to_delete)

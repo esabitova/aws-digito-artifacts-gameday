@@ -173,4 +173,3 @@ class TestCloudFormation(unittest.TestCase):
             call(StackName=stack_name, NextToken='next')
         ])
         assert res == [event1, event2, event3]
-
