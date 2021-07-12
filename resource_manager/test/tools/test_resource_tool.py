@@ -102,6 +102,7 @@ class TestResourceTool(unittest.TestCase):
         resource_tool.main(['-c', 'DESTROY_ALL'])
         self.assertEqual(scan.call_count, 2)
         self.mock_s3_bucket.delete_objects.assert_called_once()
+        self.assertEqual(self.mock_cfn_service.delete_stack.call_count, 3)
         self.assertEqual(self.resource_a.status, ResourceModel.Status.DELETED.name)
         self.assertEqual(self.resource_b.status, ResourceModel.Status.DELETED.name)
         self.assertEqual(self.resource_c.status, ResourceModel.Status.DELETED.name)
@@ -123,7 +124,6 @@ class TestResourceTool(unittest.TestCase):
     @patch('resource_manager.src.resource_model.ResourceModel.configure')
     @patch('time.sleep')
     def test_destroy_all_command_with_dependencies_fail(self, sleep_mock, configure, scan):
-        self.mock_cfn_service.delete_stack.reset_mock(return_value=True, side_effect=True)
         sleep_mock.side_effect = MockSleep().sleep
         error_1 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_a_1')}}
         error_2 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_b_stack_a_1')}}
@@ -150,6 +150,36 @@ class TestResourceTool(unittest.TestCase):
         self.assertEqual(resource_b.status, ResourceModel.Status.DELETE_FAILED.name)
         self.assertTrue(scan.call_count >= 2)
         self.mock_s3_bucket.delete_objects.assert_not_called()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    @patch('resource_manager.src.resource_model.ResourceModel.configure')
+    @patch('time.sleep')
+    def test_destroy_all_command_with_dependencies_success(self, sleep_mock, configure, scan):
+        sleep_mock.side_effect = MockSleep().sleep
+        error_1 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_a_1')}}
+        error_2 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_b_stack_a_1')}}
+
+        self.mock_cfn_service.describe_stacks.side_effect = [ClientError(error_1, 'DescribeStacks'),
+                                                             ClientError(error_2, 'DescribeStacks')]
+
+        resource_a = MagicMock()
+        resource_a.configure_mock(cf_template_name='path/to/template_a.yml',
+                                  cf_stack_name='template_a_stack_a_1',
+                                  status=ResourceModel.Status.AVAILABLE.name)
+        resource_b = MagicMock()
+        resource_b.configure_mock(cf_template_name='path/to/template_b.yml',
+                                  cf_stack_name='template_b_stack_a_1',
+                                  cfn_dependency_stacks='[template_a_stack_a_1]',
+                                  status=ResourceModel.Status.AVAILABLE.name)
+
+        scan.return_value = [resource_a, resource_b]
+
+        resource_tool.main(['-c', 'DESTROY_ALL'])
+        self.assertEqual(self.mock_cfn_service.delete_stack.call_count, 2)
+        self.assertEqual(resource_a.status, ResourceModel.Status.DELETED.name)
+        self.assertEqual(resource_b.status, ResourceModel.Status.DELETED.name)
+        self.assertTrue(scan.call_count >= 2)
+        self.mock_s3_bucket.delete_objects.assert_called_once()
 
     def test_find_resource_dependents_success(self):
         resource_to_delete = MagicMock()
