@@ -20,7 +20,7 @@ phases:
   build:
     commands:
       - echo "Executing test group [`echo $TEST_GROUP`] with [`echo $WORKERS`] workers."
-      - python -m pytest --run_integration_tests --keep_test_resources --distributed_mode -m `echo $TEST_GROUP` --workers `echo $WORKERS` --pool_size "DynamoDBTemplate={ON_DEMAND:8},DynamoDBTemplateWithLimitedThroughput={ON_DEMAND:3},HTTPWSApiGwTemplate={ON_DEMAND:8},AsgCfnTemplate={ON_DEMAND:3},EC2WithCWAgentCfnTemplate={ON_DEMAND:8},SqsTemplate={ON_DEMAND:8},RestApiGwTemplate={ON_DEMAND:8},EFSTemplate={ON_DEMAND:8},DynamoDBTemplateWithProvisionedBilling={ON_DEMAND:2, DEDICATED:4},DynamoDBTemplateWithStream={ON_DEMAND:2},DynamoDBTemplateWithKinesis={ON_DEMAND:2},DynamoDBTemplateWithIndexAndContributorInsights={ON_DEMAND:2},DynamoDBTemplateWithAutoScaling={ON_DEMAND:2},LambdaTemplate={ON_DEMAND:4}" --cucumberjson=integration-tests-report.json --aws_profile no_profile
+      - python -m pytest --run_integration_tests --keep_test_resources --distributed_mode -m `echo $TEST_GROUP` --workers `echo $WORKERS` --pool_size "DynamoDBTemplate={ON_DEMAND:8},DynamoDBTemplateWithLimitedThroughput={ON_DEMAND:3},HTTPWSApiGwTemplate={ON_DEMAND:8},AsgCfnTemplate={ON_DEMAND:3},EC2WithCWAgentCfnTemplate={ON_DEMAND:8},SqsTemplate={ON_DEMAND:8},RestApiGwTemplate={ON_DEMAND:8},EFSTemplate={ON_DEMAND:8},DynamoDBTemplateWithProvisionedBilling={ON_DEMAND:2,DEDICATED:4},DynamoDBTemplateWithStream={ON_DEMAND:2},DynamoDBTemplateWithKinesis={ON_DEMAND:2},DynamoDBTemplateWithIndexAndContributorInsights={ON_DEMAND:2},DynamoDBTemplateWithAutoScaling={ON_DEMAND:2},LambdaTemplate={ON_DEMAND:4}" --cucumberjson=integration-tests-report.json --aws_profile no_profile
 reports:
   integration-tests-report:
     files:
