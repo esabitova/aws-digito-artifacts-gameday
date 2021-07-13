@@ -7,11 +7,11 @@ from pytest_bdd import (
 
 @scenario('../features/dynamodb_recovery-replication_latency.feature',
           'Replication Latency - green')
-def test_alarm_green():
+def test_dynamodb_recovery_replication_latency_alarm_green():
     pass
 
 
 @scenario('../features/dynamodb_recovery-replication_latency.feature',
           'Replication Latency - red')
-def test_alarm_red():
+def test_dynamodb_recovery_replication_latency_alarm_red():
     pass

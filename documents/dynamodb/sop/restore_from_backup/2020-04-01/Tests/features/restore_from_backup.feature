@@ -1,4 +1,4 @@
-@dynamodb
+@dynamodb @demo
 Feature: SSM automation document to restore the database from a backup.
 
   Scenario: Restores table from backup
@@ -13,8 +13,8 @@ Feature: SSM automation document to restore the database from a backup.
     And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
-      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
+      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                                 |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}}|
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -117,8 +117,8 @@ Feature: SSM automation document to restore the database from a backup.
     And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region {{cache:GlobalTableSecondaryRegion}}
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
-      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} |
+      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                                 |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}}|
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -138,8 +138,8 @@ Feature: SSM automation document to restore the database from a backup.
     And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplateWithTtl>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
-      | DynamoDBTableSourceName                              | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               |
-      | {{cfn-output:DynamoDBTemplateWithTtl>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | DynamoDBTableSourceName                              | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                                 |
+      | {{cfn-output:DynamoDBTemplateWithTtl>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}}|
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -159,8 +159,8 @@ Feature: SSM automation document to restore the database from a backup.
     And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region None
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
-      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                               | DynamoDBSourceTableAlarmNames                                |
-      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} | {{cfn-output:DynamoDBTemplate>WriteThrottleEventsAlarmName}} |
+      | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | DynamoDBSourceTableBackupArn | AutomationAssumeRole                                                                  | DynamoDBSourceTableAlarmNames                                |
+      | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cache:TargetTableToRestoreName}} | {{cache:BackupArn}}          | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDynamodbRestoreFromBackupAssumeRole}} | {{cfn-output:DynamoDBTemplate>WriteThrottleEventsAlarmName}} |
     Then SSM automation document "Digito-RestoreFromBackup_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
