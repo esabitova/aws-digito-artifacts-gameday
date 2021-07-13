@@ -7,10 +7,10 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito that reports when elb client tls negotiation error count is greater than or equal to a threshold"
+      AlarmDescription: "Alarm by Digito that reports when count of http 5xx responses received by load balancer is greater than or equal to a threshold"
       AlarmActions:
         - Ref: SNSTopicARN
-      MetricName: ClientTLSNegotiationErrorCount
+      MetricName: HTTPCode_ELB_5XX_Count
       Namespace: AWS/ApplicationELB
       Dimensions:
         - Name: LoadBalancer
