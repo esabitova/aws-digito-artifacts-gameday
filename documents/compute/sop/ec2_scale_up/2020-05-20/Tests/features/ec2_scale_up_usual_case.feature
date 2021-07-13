@@ -1,4 +1,4 @@
-@compute @integration @ec2_scale_up
+@ec2 @integration
 Feature: SSM automation document Digito-Ec2ScaleUp_2020-05-20
 
   Scenario: Execute SSM automation document Digito-Ec2ScaleUp_2020-05-20 and without instance type override

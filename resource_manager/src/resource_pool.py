@@ -289,9 +289,8 @@ class ResourcePool(ResourceBase):
                 elif resource.status != ResourceModel.Status.AVAILABLE.name and \
                         resource.status != ResourceModel.Status.FAILED.name and \
                         resource.status != ResourceModel.Status.DELETED.name:
-                    cfn_stack_name = resource.cf_stack_name
-                    status = resource.status
-                    self.logger.info(f'Deleting resource for stack name [{cfn_stack_name}] in status [{status}].')
+                    self.logger.info(f'Deleting resource for stack name [{resource.cf_stack_name}] '
+                                     f'in status [{resource.status}].')
                     resource.delete()
 
     def destroy_all_resources(self):
