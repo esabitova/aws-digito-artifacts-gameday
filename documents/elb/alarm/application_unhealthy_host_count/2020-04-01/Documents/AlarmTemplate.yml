@@ -7,7 +7,7 @@ Resources:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito that reports when gateway load balancer unhealthy host count is greater than or equal to a threshold"
+      AlarmDescription: "Alarm by Digito that reports when application load balancer unhealthy host count is greater than or equal to a threshold"
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: UnHealthyHostCount

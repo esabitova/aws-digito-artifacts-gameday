@@ -161,6 +161,22 @@ Resources:
               FromPort: 443
               IpProtocol: "tcp"
               ToPort: 443
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "Lambda"
+      GroupDescription: "Lambda security group"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref IGWCidrBlock1
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref IGWCidrBlock1
 
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -225,3 +241,102 @@ Resources:
           AliasTarget:
             HostedZoneId: !GetAtt 'ApplicationELB.CanonicalHostedZoneID'
             DNSName: !GetAtt 'ApplicationELB.DNSName'
+
+  AlwaysOKAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      ActionsEnabled: false
+      AlarmDescription: 'elb:alarm:always_ok:2021-03-24'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      MetricName: AlwaysOK
+      Namespace: AWS/ApplicationELB
+      Period: 60
+      Statistic: Minimum
+      Threshold: 100
+      TreatMissingData: notBreaching
+
+  # Lambda resources
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 900
+      ReservedConcurrentExecutions: 2
+      VpcConfig:
+        SubnetIds:
+          - !Ref IGWSubnet1
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroup
+      Environment:
+        Variables:
+          Host: 'test'
+          Path: 'test_path'
+      Code:
+        ZipFile: >
+          import logging
+          log = logging.getLogger()
+          log.setLevel(logging.DEBUG)
+
+          def lambda_handler(event, context):
+            log.debug(f'Lambda function invocation')
+            raise ValueError('Internal error trigger exception.')
+
+  LambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      Description: v1
+
+  LambdaActualAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      FunctionVersion: !GetAtt LambdaVersion.Version
+      Name: actual
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: Lambda Role
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  LambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Join
+        - "-"
+        - - "LambdaPolicy-Digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Resource:
+              - !GetAtt LambdaRole.Arn
+            Action:
+              - iam:PassRole
+      Roles:
+        - Ref: LambdaRole
