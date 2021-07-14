@@ -317,7 +317,7 @@ def publish_ssm_document(boto3_session, ssm_document_name, function_logger):
     """
     p = PublishDocuments(boto3_session, function_logger)
     documents_metadata = p.get_documents_list_by_names([ssm_document_name])
-    p.publish_document(documents_metadata)
+    p.publish_document(documents_metadata, fail_if_doc_disabled=True)
 
 
 @given(parse('the cloud formation templates as integration test resources\n{cfn_templates}'))

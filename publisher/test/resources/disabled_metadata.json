@@ -1,0 +1,17 @@
+{
+  "displayName": "Test - test MyService",
+  "description": "Inject failure for MyService and validate behavior",
+  "dependsOn": "Digito-MyUtil1,Digito-MyUtil2",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-MyTest_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "risk": "SMALL",
+  "recommendedAlarms": {
+    "UserErrorAlarmName": "my-service:alarm:user-error:2021-05-04"
+  },
+  "minorVersion": "001",
+  "enabled": "false",
+  "tag": "my-service:test:my_test:2020-10-26"
+}

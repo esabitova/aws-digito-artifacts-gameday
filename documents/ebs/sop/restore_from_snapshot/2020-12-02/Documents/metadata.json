@@ -9,5 +9,6 @@
   "failureType": "SOFTWARE,AZ",
   "minorVersion": "001",
   "risk": "MEDIUM",
-  "tag": "ebs:sop:restore_from_snapshot:2020-12-02"
+  "tag": "ebs:sop:restore_from_snapshot:2020-12-02",
+  "enabled": "false"
 }

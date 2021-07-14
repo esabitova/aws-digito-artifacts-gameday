@@ -1,0 +1,2 @@
+class DocumentDisabledError(ValueError):
+    pass

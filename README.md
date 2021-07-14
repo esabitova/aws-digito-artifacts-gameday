@@ -199,6 +199,7 @@ You can also find example input files -
 * For Test - artifact_generator/test/resources/input-overrides-test.json
 * For SOP - artifact_generator/test/resources/input-overrides-sop.json
 
+
 ## Metadata File
 Example:
 ````
@@ -238,6 +239,9 @@ Example:
 * details - [Required] Steps which should be performed in SSM document 
 * recommendedAlarms - [Optional] Map of SSM alarm input parameter name and reference to recommended alarm
 * minorVersion - [Required] minor version of document (should be increased every time plan to commit a change).
+* enabled - [Optional] true/false with default as true. This is set a false by artifact generator to indicate that the
+  document is not ready. When set to false, the document cannot be published using the publisher and therefore cannot be
+  tested using cucumber tests.
 
 ## Adding New Python Script
 * Install requirements by running 'python3.8 -m pip install -r requirements.txt'
