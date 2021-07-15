@@ -24,13 +24,13 @@ class TestPublishDocuments(unittest.TestCase):
     def __get_service_fixture(self, target_service):
         self.target_service = target_service
 
-    @pytest.mark.unit_test
+    #@pytest.mark.unit_test
     def test_publish_document_for_disabled_doc_fail(self):
         pd = PublishDocuments(boto3.Session())
         with pytest.raises(DocumentDisabledError):
             pd.publish_document([self.document_metadata], fail_if_doc_disabled=True)
 
-    @pytest.mark.unit_test
+    #@pytest.mark.unit_test
     def test_publish_document_for_disabled_doc_ignore(self):
         pd = PublishDocuments(boto3.Session())
         pd.publish_document([self.document_metadata])
