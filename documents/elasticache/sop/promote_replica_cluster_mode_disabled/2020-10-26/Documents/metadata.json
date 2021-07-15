@@ -1,0 +1,13 @@
+{
+  "displayName": "SOP - Promote Redis replica if cluster mode disabled",
+  "description": "Promote a replica (e.g. in case of HW failure) if cluster mode disabled. If AutoFailover or MultiAZ features are enabled, they will be disabled for the replica promotion period and then re-enabled.",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-PromoteReplicaClusterModeDisabled_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "HARDWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "elasticache:sop:promote_replica_cluster_mode_disabled:2020-10-26"
+}
