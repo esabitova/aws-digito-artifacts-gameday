@@ -1,0 +1,11 @@
+{
+  "displayName": "ConnectionSpike",
+  "description": "Alarm by Digito that triggers if the number of connections open on an instance and taken at a one-minute frequency, exceeds threshold",
+  "alarmName": "Digito-DocDb-OpenConnections_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-connections:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -16,5 +16,6 @@
       "2": "Send the signal to the processes.",
       "3": "Verify app recovered within recovery time."
   },
-  "minorVersion": "001"
+  "minorVersion": "001",
+  "customerInputParams": ["ProcessName"]
 }

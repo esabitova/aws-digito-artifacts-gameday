@@ -1,4 +1,4 @@
-@ebs @integration @ebs_restore_backup
+@ebs @integration
 Feature: SSM automation document Digito-EBSRestoreFromBackup_2020-05-26
 
   Scenario: Execute SSM automation document Digito-EBSRestoreFromBackup_2020-05-26

@@ -14,14 +14,14 @@ from resource_manager.src.util import sqs_utils as sqs_utils
 @scenario('../features/sqs_health_alarm_threshold_approximate_number_of_messages_not_visible_fifo.feature',
           'Check Alarm by Digito that checks that amount of inflight messages is not reaching the quota for '
           'Fifo queue - green')
-def test_alarm_green():
+def test_sqs_health_alarm_threshold_approximate_number_of_messages_not_visible_fifo_alarm_green():
     pass
 
 
 @scenario('../features/sqs_health_alarm_threshold_approximate_number_of_messages_not_visible_fifo.feature',
           'Check Alarm by Digito that checks that amount of inflight messages is not reaching the quota for '
           'Fifo queue - red')
-def test_alarm_red():
+def test_sqs_health_alarm_threshold_approximate_number_of_messages_not_visible_fifo_alarm_red():
     pass
 
 

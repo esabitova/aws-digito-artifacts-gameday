@@ -6,11 +6,11 @@ from pytest_bdd import (
 
 @scenario('../features/sqs_health_alarm_sent_message_size.feature',
           'Check how SentMessageSize became close to allowed Threshold')
-def test_alarm_red():
+def test_sqs_health_alarm_sent_message_size_alarm_red():
     pass
 
 
 @scenario('../features/sqs_health_alarm_sent_message_size.feature',
           'Check how SentMessageSize not became close to allowed Threshold')
-def test_alarm_green():
+def test_sqs_health_alarm_sent_message_size_alarm_green():
     pass

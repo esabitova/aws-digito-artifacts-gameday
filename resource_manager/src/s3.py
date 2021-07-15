@@ -120,10 +120,11 @@ class S3:
             if self.bucket_exists(bucket_name):
                 self.logger.info('Deleting CF bucket with name [%s]', bucket_name)
                 bucket = self.resource.Bucket(bucket_name)
-                bucket.objects.delete(ExpectedBucketOwner=self.aws_account_id)
-                bucket.object_versions.delete(ExpectedBucketOwner=self.aws_account_id)
-                self.client.delete_bucket(Bucket=bucket_name,
-                                          ExpectedBucketOwner=self.aws_account_id)
+                if self.resource.BucketVersioning(bucket_name).status == 'Enabled':
+                    bucket.object_versions.delete(ExpectedBucketOwner=self.aws_account_id)
+                else:
+                    bucket.objects.delete(ExpectedBucketOwner=self.aws_account_id)
+                self.client.delete_bucket(Bucket=bucket_name, ExpectedBucketOwner=self.aws_account_id)
         except ClientError as e:
             self.logger.error('Failed to delete S3 bucket with name [%s]', bucket_name, e)
             raise e

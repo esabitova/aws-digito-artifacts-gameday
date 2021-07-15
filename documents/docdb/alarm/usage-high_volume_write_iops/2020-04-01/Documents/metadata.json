@@ -1,0 +1,11 @@
+{
+  "displayName": "HighVolumeWriteIOPS",
+  "description": "Alarm by Digito that detects anomalies of high values of VolumeWriteIOPs",
+  "alarmName": "Digito-HighVolumeWriteIOPS_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:usage-high_volume_write_iops:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

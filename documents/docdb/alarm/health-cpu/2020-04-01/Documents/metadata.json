@@ -1,0 +1,11 @@
+{
+  "displayName": "OverUtilizedCPU",
+  "description": "Alarm by Digito that triggers if the percentage of CPU used by an instance exceeds threshold",
+  "alarmName": "Digito-DocDb-CPUutilization_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-cpu:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

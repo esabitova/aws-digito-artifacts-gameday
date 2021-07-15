@@ -1,10 +1,11 @@
 @dynamodb @integration @alarm
 Feature: Alarm Setup - Write Throttle Events Alarm - Green
+
   Scenario: Alarm is not triggered when write throttle events is less than a threshold - green
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                | ResourceType |
-      | resource_manager/cloud_formation_templates/dedicated/DynamoDBTemplateWithLimitedThroughput.yml | DEDICATED    |
-      | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                             | SHARED       |
+      | CfnTemplatePath                                                                      | ResourceType |
+      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithLimitedThroughput.yml | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                   | SHARED       |
     When alarm "dynamodb:alarm:health_write_throttle_events:2020-04-01" is installed
       | alarmId    | Threshold | DynamoDbTable                                                      | SNSTopicARN                       |
       | under_test | 2000      | {{cfn-output:DynamoDBTemplateWithLimitedThroughput>DynamoDBTable}} | {{cfn-output:SnsForAlarms>Topic}} |

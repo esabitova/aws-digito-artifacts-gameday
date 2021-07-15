@@ -1,0 +1,14 @@
+{
+  "displayName": "Replication Latency",
+  "description": "Alarm by Digito that reports when replication from one replica table to another takes too much time",
+  "alarmName": "Digito-ReplicationLatency_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "dynamodb:alarm:recovery-replication_latency:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "dynamodb:sop:update_provisioned_capacity:2020-04-01"
+  ]
+}

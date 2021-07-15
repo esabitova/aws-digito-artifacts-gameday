@@ -141,7 +141,6 @@ class AlarmManager:
                     'period': metric_props['Period'],
                     'statistics': ['SampleCount']
                 }
-
         if not metrics:
             raise Exception(
                 f"{alarm_id} Document {alarm_name} contained no metrics under (Alarm AWS::CloudWatch::Alarm)")

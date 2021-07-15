@@ -20,5 +20,6 @@
   "recommendedAlarms": {
     "MultipleUnhealthyHostsAlarmName": "compute:alarm:asg-multiple-unhealthy-hosts:2020-07-13"
   },
-  "minorVersion": "001"
+  "minorVersion": "001",
+  "customerInputParams": ["ProcessName"]
 }

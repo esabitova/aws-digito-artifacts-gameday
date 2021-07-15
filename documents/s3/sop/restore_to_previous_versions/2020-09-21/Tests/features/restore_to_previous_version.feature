@@ -1,4 +1,4 @@
-@s3 @restore_from_backup
+@s3 @integration
 Feature: SSM automation document to restore an S3 object into previous version
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to restore an S3 object into previous version

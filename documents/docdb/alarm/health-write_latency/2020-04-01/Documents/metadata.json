@@ -1,0 +1,11 @@
+{
+  "displayName": "HighWriteLatency",
+  "description": "Alarm by Digito that triggers if the average amount of time taken per disk I/O WRITE operation, exceeds threshold",
+  "alarmName": "Digito-DocDb-DiskWrLatency_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "docdb:alarm:health-write_latency:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

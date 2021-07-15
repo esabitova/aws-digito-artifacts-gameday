@@ -9,5 +9,6 @@
   "failureType": "SOFTWARE",
   "minorVersion": "001",
   "risk": "SMALL",
-  "tag": "ebs:sop:restore_from_backup:2020-05-26"
+  "tag": "ebs:sop:restore_from_backup:2020-05-26",
+  "adkPath": "../../python/automation_document.py"
 }

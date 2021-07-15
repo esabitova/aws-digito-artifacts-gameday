@@ -19,9 +19,9 @@ class TestCloudFormation(unittest.TestCase):
         self.session_mock.client.side_effect = lambda service_name, config=None: \
             self.client_side_effect_map.get(service_name)
 
-        self.cf_resource = MagicMock()
+        self.cf_resource_mock = MagicMock()
         self.resource_side_effect_map = {
-            'cloudformation': self.cf_resource
+            'cloudformation': self.cf_resource_mock
         }
         self.session_mock.resource.side_effect = lambda service_name, config=None: \
             self.resource_side_effect_map.get(service_name)
@@ -40,28 +40,31 @@ class TestCloudFormation(unittest.TestCase):
         patched_time.side_effect = mock_sleep.time
         patched_sleep.side_effect = mock_sleep.sleep
 
-        self.cf_service_mock.describe_stacks.side_effect = [
-            {'Stacks': [{'StackStatus': 'IN_PROGRESS'}]},
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]},
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]}
-        ]
-        self.cfn_helper.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
+        mock_status_1 = MagicMock()
+        mock_status_1.configure_mock(stack_status='IN_PROGRESS')
+        mock_status_2 = MagicMock()
+        mock_status_2.configure_mock(stack_status='COMPLETED')
 
+        self.cf_resource_mock.Stack.side_effect = [mock_status_1, mock_status_2, mock_status_2, mock_status_2]
+        self.cfn_helper.deploy_cf_stack('test_template_url', 'test_stack_name', test_in_param='test_in_val')
         self.cf_service_mock.create_stack.assert_called_once_with(StackName='test_stack_name',
                                                                   TemplateURL='test_template_url',
                                                                   Capabilities=['CAPABILITY_IAM'],
                                                                   Parameters=[{'ParameterKey': 'test_in_param',
                                                                                'ParameterValue': 'test_in_val'}],
                                                                   EnableTerminationProtection=True)
-        self.cf_service_mock.describe_stacks.assert_has_calls([call(StackName='test_stack_name'),
-                                                               call(StackName='test_stack_name'),
-                                                               call(StackName='test_stack_name')])
+
+        self.assertEqual(self.cf_resource_mock.Stack.call_count, 4)
+        self.cf_resource_mock.Stack.assert_has_calls([call('test_stack_name'),
+                                                      call('test_stack_name'),
+                                                      call('test_stack_name'),
+                                                      call('test_stack_name')])
 
     def test_deploy_cf_stack_update_success(self):
-        self.cf_service_mock.describe_stacks.side_effect = [
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]},
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]}
-        ]
+        mock_status_1 = MagicMock()
+        mock_status_1.configure_mock(stack_status='COMPLETED')
+        self.cf_resource_mock.Stack.side_effect = [mock_status_1, mock_status_1, mock_status_1, mock_status_1]
+
         err_response = {'Error': {'Type': 'Sender', 'Code': 'AlreadyExistsException'}}
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response,
                                                                     operation_name='CreateStack')
@@ -70,14 +73,17 @@ class TestCloudFormation(unittest.TestCase):
 
         self.cf_service_mock.create_stack.assert_called_once()
         self.cf_service_mock.update_stack.assert_called_once()
-        self.cf_service_mock.describe_stacks.assert_has_calls([call(StackName='test_stack_name'),
-                                                               call(StackName='test_stack_name')])
+        self.assertEqual(self.cf_resource_mock.Stack.call_count, 4)
+        self.cf_resource_mock.Stack.assert_has_calls([call('test_stack_name'),
+                                                      call('test_stack_name'),
+                                                      call('test_stack_name'),
+                                                      call('test_stack_name')])
 
     def test_deploy_cf_stack_update_nothing_to_update_success(self):
-        self.cf_service_mock.describe_stacks.side_effect = [
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]},
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]}
-        ]
+        mock_status_1 = MagicMock()
+        mock_status_1.configure_mock(stack_status='COMPLETED')
+        self.cf_resource_mock.Stack.side_effect = [mock_status_1, mock_status_1, mock_status_1]
+
         err_response_1 = {'Error': {'Type': 'Sender', 'Code': 'AlreadyExistsException'}}
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response_1,
                                                                     operation_name='CreateStack')
@@ -91,13 +97,16 @@ class TestCloudFormation(unittest.TestCase):
 
         self.cf_service_mock.create_stack.assert_called_once()
         self.cf_service_mock.update_stack.assert_called_once()
-        self.cf_service_mock.describe_stacks.assert_has_calls([call(StackName='test_stack_name')])
+        self.assertEqual(self.cf_resource_mock.Stack.call_count, 3)
+        self.cf_resource_mock.Stack.assert_has_calls([call('test_stack_name'),
+                                                      call('test_stack_name'),
+                                                      call('test_stack_name')])
 
     def test_deploy_cf_stack_update_fail(self):
-        self.cf_service_mock.describe_stacks.side_effect = [
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]},
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]}
-        ]
+        mock_status_1 = MagicMock()
+        mock_status_1.configure_mock(stack_status='COMPLETED')
+        self.cf_resource_mock.Stack.side_effect = [mock_status_1, mock_status_1, mock_status_1]
+
         err_response_1 = {'Error': {'Type': 'Sender', 'Code': 'AlreadyExistsException'}}
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response_1,
                                                                     operation_name='CreateStack')
@@ -110,10 +119,10 @@ class TestCloudFormation(unittest.TestCase):
                           'test_template_url', 'test_stack_name', test_in_param='test_in_val')
 
     def test_deploy_cf_stack_create_fail(self):
-        self.cf_service_mock.describe_stacks.side_effect = [
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]},
-            {'Stacks': [{'StackStatus': 'COMPLETED'}]}
-        ]
+        mock_status_1 = MagicMock()
+        mock_status_1.configure_mock(stack_status='COMPLETED')
+        self.cf_resource_mock.Stack.side_effect = [mock_status_1]
+
         err_response = {'Error': {'Type': 'Sender', 'Code': 'UnexpectedError', 'Message': 'Unexpected failure.'}}
 
         self.cf_service_mock.create_stack.side_effect = ClientError(error_response=err_response,
@@ -121,6 +130,8 @@ class TestCloudFormation(unittest.TestCase):
 
         self.assertRaises(Exception, self.cfn_helper.deploy_cf_stack, 'test_template_url', 'test_stack_name',
                           test_in_param='test_in_val')
+        self.assertEqual(self.cf_resource_mock.Stack.call_count, 1)
+        self.cf_resource_mock.Stack.assert_has_calls([call('test_stack_name')])
 
     def test_delete_cf_stack_success(self):
         self.cfn_helper.delete_cf_stack('test_stack_name')
@@ -128,7 +139,7 @@ class TestCloudFormation(unittest.TestCase):
         self.cf_service_mock.update_termination_protection.assert_called_once_with(
             StackName='test_stack_name', EnableTerminationProtection=False)
         self.cf_service_mock.delete_stack.assert_called_once()
-        self.cf_service_mock.describe_stacks.assert_called_once()
+        self.cf_resource_mock.Stack.assert_called_once()
 
     def test_describe_cf_stack_success(self):
         stack_name = "test_stack_name"
