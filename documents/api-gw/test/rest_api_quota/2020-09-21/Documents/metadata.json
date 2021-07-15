@@ -11,6 +11,6 @@
   "risk": "HIGH",
   "tag": "api-gw:test:rest_api_quota:2020-09-21",
   "recommendedAlarms": {
-    "ApiGw4xxAlarmName": "api-gw:alarm:4xx-error:2020-04-01"
+    "ApiGw4xxAlarmName": "api-gw:alarm:health-4xx_error:2020-04-01"
   }
 }
