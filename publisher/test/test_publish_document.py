@@ -4,7 +4,6 @@ import os
 import unittest
 
 import boto3
-import pathlib
 import pytest
 import yaml
 
@@ -12,28 +11,14 @@ import publisher.src.document_metadata_attrs as metadata_attrs
 from publisher.src.document_validator import DocumentValidator
 from publisher.src.global_metadata_validator import GlobalMetadataValidator
 from publisher.src.publish_documents import PublishDocuments
-from publisher.src.exceptions import DocumentDisabledError
 
 
 class TestPublishDocuments(unittest.TestCase):
     target_service = ""
-    with open(os.path.join(pathlib.Path(__file__).parent, 'resources/disabled_metadata.json'), 'r') as f:
-        document_metadata = json.load(f)
 
     @pytest.fixture(autouse=True)
     def __get_service_fixture(self, target_service):
         self.target_service = target_service
-
-    # @pytest.mark.unit_test
-    def test_publish_document_for_disabled_doc_fail(self):
-        pd = PublishDocuments(boto3.Session())
-        with pytest.raises(DocumentDisabledError):
-            pd.publish_document([self.document_metadata], fail_if_doc_disabled=True)
-
-    # @pytest.mark.unit_test
-    def test_publish_document_for_disabled_doc_ignore(self):
-        pd = PublishDocuments(boto3.Session())
-        pd.publish_document([self.document_metadata])
 
     @pytest.mark.style_validator
     @pytest.mark.metadata_validator
