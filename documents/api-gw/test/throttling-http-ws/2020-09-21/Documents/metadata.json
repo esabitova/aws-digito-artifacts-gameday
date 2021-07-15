@@ -9,5 +9,8 @@
   "failureType": "SOFTWARE",
   "minorVersion": "001",
   "risk": "HIGH",
-  "tag": "api-gw:test:throttling-http-ws:2020-09-21"
+  "tag": "api-gw:test:throttling-http-ws:2020-09-21",
+  "recommendedAlarms": {
+    "4xxAlarmName": "api-gw:alarm:health-4xx_error:2020-04-01"
+  }
 }

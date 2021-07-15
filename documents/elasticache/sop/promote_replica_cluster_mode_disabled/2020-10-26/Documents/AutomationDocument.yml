@@ -1,0 +1,188 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Promote a replica (e.g. in case of HW failure) if cluster mode disabled. If AutoFailover or MultiAZ features are enabled, they will be disabled for the replica promotion period and then re-enabled."
+schemaVersion: "0.3"
+assumeRole: "{{AutomationAssumeRole}}"
+parameters:
+  ReplicationGroupId:
+    type: String
+    description: (Required) ReplicationGroupId
+  NewPrimaryClusterId:
+    type: String
+    description: (Required) ClusterID of read replica to promote
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
+outputs:
+  - "OutputRecoveryTime.RecoveryTime"
+mainSteps:
+  - name: RecordStartTime
+    action: aws:executeScript
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: AssertClusterModeDisabled
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: assert_cluster_mode_disabled
+      InputPayload:
+        ReplicationGroupId: '{{ ReplicationGroupId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.assert_cluster_mode_disabled
+
+  - name: GetFailoverSettings
+    action: aws:executeScript
+    outputs:
+      - Name: AutomaticFailover
+        Selector: $.Payload.AutomaticFailover
+        Type: Boolean
+      - Name: MultiAZ
+        Selector: $.Payload.MultiAZ
+        Type: Boolean
+    inputs:
+      Runtime: python3.7
+      Handler: get_failover_settings
+      InputPayload:
+        ReplicationGroupId: '{{ ReplicationGroupId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.get_failover_settings
+
+  - name: VerifyAutomaticFailoverStatus
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: UpdateFailoverSettings
+          Variable: '{{GetFailoverSettings.AutomaticFailover}}'
+          BooleanEquals: True
+      Default: PromoteReplica
+
+  - name: UpdateFailoverSettings
+    action: aws:executeAwsApi
+    onFailure: step:RestoreFailoverSettings
+    onCancel: step:RestoreFailoverSettings
+    outputs:
+      - Name: MultiAZStatus
+        Selector: $.ReplicationGroup.MultiAZ
+        Type: String
+      - Name: AutomaticFailoverStatus
+        Selector: $.ReplicationGroup.AutomaticFailover
+        Type: String
+    inputs:
+      Service: elasticache
+      Api: ModifyReplicationGroup
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      MultiAZEnabled: False
+      AutomaticFailoverEnabled: False
+      ApplyImmediately: True
+
+  - name: VerifyReplicationGroupStatusAfterUpdateFailoverSettings
+    action: aws:waitForAwsResourceProperty
+    onFailure: step:RestoreFailoverSettings
+    onCancel: step:RestoreFailoverSettings
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      PropertySelector: $.ReplicationGroups[0].Status
+      DesiredValues: [ 'available' ]
+
+  - name: PromoteReplica
+    action: aws:executeAwsApi
+    onFailure: step:VerifyAutomaticFailoverStatusBeforeRestore
+    onCancel: step:VerifyAutomaticFailoverStatusBeforeRestore
+    inputs:
+      Service: elasticache
+      Api: ModifyReplicationGroup
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      PrimaryClusterId: '{{ NewPrimaryClusterId }}'
+      ApplyImmediately: True
+
+  - name: VerifyReplicationGroupStatusAfterPromoteReplica
+    action: aws:waitForAwsResourceProperty
+    onFailure: step:VerifyAutomaticFailoverStatusBeforeRestore
+    onCancel: step:VerifyAutomaticFailoverStatusBeforeRestore
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      PropertySelector: $.ReplicationGroups[0].Status
+      DesiredValues: [ 'available' ]
+
+  - name: VerifyAutomaticFailoverStatusBeforeRestore
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RestoreFailoverSettings
+          Variable: '{{GetFailoverSettings.AutomaticFailover}}'
+          BooleanEquals: True
+      Default: OutputRecoveryTime
+
+  - name: RestoreFailoverSettings
+    action: aws:executeAwsApi
+    outputs:
+      - Name: MultiAZStatus
+        Selector: $.ReplicationGroup.MultiAZ
+        Type: String
+      - Name: AutomaticFailoverStatus
+        Selector: $.ReplicationGroup.AutomaticFailover
+        Type: String
+    inputs:
+      Service: elasticache
+      Api: ModifyReplicationGroup
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      AutomaticFailoverEnabled: '{{GetFailoverSettings.AutomaticFailover}}'
+      MultiAZEnabled: '{{GetFailoverSettings.MultiAZ}}'
+      ApplyImmediately: True
+
+  - name: VerifyReplicationGroupStatusAfterRestoreFailoverSettings
+    action: aws:waitForAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      PropertySelector: $.ReplicationGroups[0].Status
+      DesiredValues: [ 'available' ]
+
+  - name: OutputRecoveryTime
+    action: aws:executeScript
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

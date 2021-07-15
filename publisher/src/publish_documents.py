@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 
 import publisher.src.document_metadata_attrs as metadata_attrs
 from publisher.src.document_validator import DocumentValidator
+from publisher.src.exceptions import DocumentDisabledError
 
 SCRIPT_DIR = '/documents/util/scripts/src'
 default_logger = logging.getLogger('PublishDocuments')
@@ -26,12 +27,20 @@ class PublishDocuments:
         self.document_validator = DocumentValidator()
         self.logger = logger if logger else default_logger
 
-    def publish_document(self, list_document_metadata):
+    def publish_document(self, list_document_metadata, fail_if_doc_disabled: bool = False):
         for document_metadata in list_document_metadata:
             doc_name = document_metadata['documentName']
             doc_type = document_metadata['documentType']
             doc_format = document_metadata['documentFormat']
             tag_value = document_metadata['tag']
+
+            if document_metadata.get('enabled', 'true') != 'true':
+                if fail_if_doc_disabled:
+                    raise DocumentDisabledError('Document [{}] is marked as disabled. Please remove or update '
+                                                '"enabled" to true in metadata.json'.format(doc_name))
+                else:
+                    logging.warning('Skipped publishing document [{}] as it is marked as disabled'.format(doc_name))
+                    continue
 
             self.validate_metadata(document_metadata)
             document_content = self.get_document_content(document_metadata)
@@ -232,6 +241,7 @@ class PublishDocuments:
         and returns failed attributes messages for given metadata.json file.
         :param document_metadata The metadata.json file content
         """
+
         metadata_file_path = document_metadata['location'] + '/metadata.json'
         meta_attrs_map = metadata_attrs.metadata_attrs_map
         required_attributes = []

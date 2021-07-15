@@ -5,7 +5,7 @@ from pytest_bdd import (
 
 
 @scenario('../features/health_invocations.feature',
-          'Lease Lambda from resource manager and test attach an alarm from Document')
+          'Test alarm lambda:alarm:health-invocations:2020-04-01')
 def test_lambda_invocations():
-    """Lease Lambda from resource manager and test attach an alarm from Document"""
+    """Test alarm lambda:alarm:health-invocations:2020-04-01"""
     pass

@@ -1,6 +1,6 @@
-@lambda @integration @alarm @invocations
+@lambda @integration @alarm
 Feature: Alarm Setup - Lambda Invocations
-  Scenario: Lease Lambda from resource manager and test attach an alarm from Document
+  Scenario: Test alarm lambda:alarm:health-invocations:2020-04-01
     Given the cloud formation templates as integration test resources
       |CfnTemplatePath                                                          |ResourceType |
       | resource_manager/cloud_formation_templates/LambdaTemplate.yml           | ON_DEMAND   |

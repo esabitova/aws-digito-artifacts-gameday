@@ -9,5 +9,6 @@
   "failureType": "AZ,SOFTWARE",
   "minorVersion": "001",
   "risk": "MEDIUM",
-  "tag": "elb:test:application_lb_network_unavailable:2020-04-01"
+  "tag": "elb:test:application_lb_network_unavailable:2020-04-01",
+  "enabled": "false"
 }

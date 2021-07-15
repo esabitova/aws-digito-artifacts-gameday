@@ -9,5 +9,6 @@
   "failureType": "AZ,SOFTWARE,HARDWARE",
   "minorVersion": "001",
   "risk": "HIGH",
-  "tag": "elb:test:network_gw_lb_target_unavailable:2020-04-01"
+  "tag": "elb:test:network_gw_lb_target_unavailable:2020-04-01",
+  "enabled": "false"
 }

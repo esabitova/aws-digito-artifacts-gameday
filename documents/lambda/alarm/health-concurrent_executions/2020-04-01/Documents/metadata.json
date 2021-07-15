@@ -1,0 +1,11 @@
+{
+  "displayName": "ConcurrentExecutions",
+  "description": "Reports concurrent execution status",
+  "alarmName": "Digito-Concurrent-Executions_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "lambda:alarm:health-concurrent_executions:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -9,5 +9,6 @@
   "failureType": "SOFTWARE",
   "minorVersion": "001",
   "risk": "MEDIUM",
-  "tag": "ecs:sop:scale_service:2020-04-01"
+  "tag": "ecs:sop:scale_service:2020-04-01",
+  "enabled": "false"
 }
