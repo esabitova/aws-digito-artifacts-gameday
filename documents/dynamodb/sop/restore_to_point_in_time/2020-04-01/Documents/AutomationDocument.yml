@@ -92,6 +92,7 @@ mainSteps:
       Default: RestoreDynamoDBTableToPointInTime
   - name: RestoreDynamoDBTableLatestToPointInTime
     action: aws:executeAwsApi
+    maxAttempts: 3
     onFailure: Abort
     nextStep: WaitTableToBeActive
     inputs:
@@ -110,6 +111,7 @@ mainSteps:
     nextStep: WaitTableToBeActive
   - name: RestoreDynamoDBTableToPointInTime
     action: aws:executeAwsApi
+    maxAttempts: 3
     onFailure: Abort
     nextStep: WaitTableToBeActive
     inputs:

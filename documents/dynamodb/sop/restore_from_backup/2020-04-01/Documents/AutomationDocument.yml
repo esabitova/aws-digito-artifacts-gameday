@@ -59,6 +59,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.start_time
   - name: RestoreDynamoDBTableFromBackup
     action: aws:executeAwsApi
+    maxAttempts: 3
     onFailure: Abort
     inputs:
       Service: dynamodb
