@@ -32,5 +32,5 @@ test: test_linter
 service_unit_test:
 	cd ../../../ && \
 	source venv/bin/activate && \
-	python3 -m pytest -m unit_test --no-cov documents/util/scripts/test/test_${SERVICE}_utils.py && \
+	python3 -m pytest -m unit_test documents/util/scripts/test/test_${SERVICE}_util.py && \
 	deactivate
