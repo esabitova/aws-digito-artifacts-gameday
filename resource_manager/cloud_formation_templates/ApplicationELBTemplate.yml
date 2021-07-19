@@ -41,10 +41,10 @@ Parameters:
     Type: String
     Default: 10.0.16.0/20
 
-  HostedZoneId:
-    Description: Hosted Zone Id
-    Type: String
-    Default: 'Z0705203UIXJX3QQ71TB'
+#  HostedZoneId:
+#    Description: Hosted Zone Id
+#    Type: String
+#    Default: 'Z0705203UIXJX3QQ71TB'
 
   SubdomainAliasName:
     Description: Alias for test subdomain
@@ -189,7 +189,12 @@ Resources:
         - !Ref IGWSubnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
-
+  HostedZone:
+    Type: 'AWS::Route53::HostedZone'
+    Properties:
+        HostedZoneConfig:
+            Comment: Hosted zone for staging environment
+        Name: !Ref SubdomainAliasName
   TestCertificate:
     Type: AWS::CertificateManager::Certificate
     Properties:
@@ -198,7 +203,7 @@ Resources:
       DomainValidationOptions:
         -
           DomainName: !Ref SubdomainAliasName
-          HostedZoneId: !Ref HostedZoneId
+          HostedZoneId: !Ref HostedZone
       ValidationMethod: 'DNS'
 
   HTTPSListener:
@@ -234,7 +239,7 @@ Resources:
   ApplicationELBRoutingRecord:
     Type: AWS::Route53::RecordSetGroup
     Properties:
-      HostedZoneId: !Ref HostedZoneId
+      HostedZoneId: !Ref HostedZone
       RecordSets:
         - Name: !Ref SubdomainAliasRecordName
           Type: A

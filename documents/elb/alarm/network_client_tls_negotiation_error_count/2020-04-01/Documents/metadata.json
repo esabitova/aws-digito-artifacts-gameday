@@ -1,0 +1,11 @@
+{
+  "displayName": "ClientTLSNegotiationErrorCount",
+  "description": "Alarm by Digito that reports when network load balancer client tls negotiation error count is equal to or greater than threshold",
+  "alarmName": "Digito-NetworkClientTLSNegotiationErrorCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elb:alarm:network_client_tls_negotiation_error_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
