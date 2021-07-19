@@ -11,7 +11,7 @@
   "risk": "HIGH",
   "tag": "sqs:test:queue_state_failure_dlq_fifo:2020-11-27",
   "recommendedAlarms": {
-    "SQSUserErrorAlarmName": "sqs:alarm:health_alarm_dlq_message:2020-11-26"
+    "DeadLetterQueueAlarmName": "sqs:alarm:health_alarm_dlq_message:2020-11-26"
   },
   "minorVersion": "001"
 }

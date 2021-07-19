@@ -17,7 +17,7 @@ Resources:
         - Name: TargetGroup
           Value: '${TargetGroup}'
         - Name: LoadBalancer
-          Value: '${LoadBalancer}'
+          Value: '${LoadBalancerName}'
       MetricName: UnHealthyHostCount
       Namespace: AWS/ApplicationELB
       Period: 60
