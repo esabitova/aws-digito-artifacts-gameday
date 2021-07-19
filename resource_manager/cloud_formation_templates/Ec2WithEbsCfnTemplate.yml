@@ -229,6 +229,7 @@ Resources:
                 - 'ec2:DescribeTags'
                 - 'ssmmessages:*'
                 - 'ssm:UpdateInstanceInformation'
+                - 'ssm:SendCommand'
                 - 'ec2messages:*'
                 - 'logs:PutLogEvents'
                 - 'logs:DescribeLogStreams'
