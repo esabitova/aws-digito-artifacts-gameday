@@ -65,14 +65,14 @@ Resources:
       CidrBlock:
         Ref: VPCCidrBlock
       Tags:
-      - Key: Name
-        Value: ResiliencyVPC
+        - Key: Name
+          Value: ResiliencyVPC
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
-      - Key: Name
-        Value: ResiliencyVPC
+        - Key: Name
+          Value: ResiliencyVPC
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
@@ -92,8 +92,8 @@ Resources:
       CidrBlock:
         Ref: IGWCidrBlock1
       Tags:
-      - Key: Name
-        Value: ResiliencyVPC-IGWSubnet1
+        - Key: Name
+          Value: ResiliencyVPC-IGWSubnet1
   IGWSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
@@ -106,8 +106,8 @@ Resources:
       CidrBlock:
         Ref: IGWCidrBlock2
       Tags:
-      - Key: Name
-        Value: ResiliencyVPC-IGWSubnet2
+        - Key: Name
+          Value: ResiliencyVPC-IGWSubnet2
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -132,23 +132,23 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref IGWSubnet2
   ALBSecurityGroup:
-      Type: AWS::EC2::SecurityGroup
-      Properties:
-          GroupDescription: "security group for ALB"
-          GroupName: "test-ALB-SG"
-          VpcId: !Ref VPC
-          SecurityGroupEgress:
-            -
-              CidrIp: "0.0.0.0/0"
-              FromPort: 80
-              ToPort: 80
-              IpProtocol: "tcp"
-          SecurityGroupIngress:
-            -
-              CidrIp: "0.0.0.0/0"
-              FromPort: 80
-              ToPort: 80
-              IpProtocol: "tcp"
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "security group for ALB"
+      GroupName: "test-ALB-SG"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        -
+          CidrIp: "0.0.0.0/0"
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: "tcp"
+      SecurityGroupIngress:
+        -
+          CidrIp: "0.0.0.0/0"
+          FromPort: 80
+          ToPort: 80
+          IpProtocol: "tcp"
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -179,17 +179,17 @@ Resources:
         - !Ref ALBSecurityGroup
 
   HTTPListener:
-      Type: "AWS::ElasticLoadBalancingV2::Listener"
-      Properties:
-          LoadBalancerArn: !Ref ApplicationELB
-          Port: 80
-          Protocol: "HTTP"
-          DefaultActions:
-            - Type: fixed-response
-              FixedResponseConfig:
-                ContentType: "text/plain"
-                MessageBody: "OK"
-                StatusCode: "200"
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      LoadBalancerArn: !Ref ApplicationELB
+      Port: 80
+      Protocol: "HTTP"
+      DefaultActions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "text/plain"
+            MessageBody: "OK"
+            StatusCode: "200"
 
   AlwaysOKAlarm:
     Type: AWS::CloudWatch::Alarm

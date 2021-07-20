@@ -1,4 +1,4 @@
-# @elb
+@elb
 Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
   Scenario: Create Network LB and execute automation in rollback
