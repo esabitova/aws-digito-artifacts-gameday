@@ -232,6 +232,7 @@ class PublishDocuments:
         and returns failed attributes messages for given metadata.json file.
         :param document_metadata The metadata.json file content
         """
+
         metadata_file_path = document_metadata['location'] + '/metadata.json'
         meta_attrs_map = metadata_attrs.metadata_attrs_map
         required_attributes = []

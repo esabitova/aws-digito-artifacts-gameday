@@ -1,5 +1,7 @@
 import io
 import json
+from datetime import datetime, timedelta
+
 import unittest
 from unittest.mock import MagicMock
 
@@ -211,3 +213,38 @@ class TestLambdaUtil(unittest.TestCase):
             FunctionName=LAMBDA_ARN
         )
         self.assertEqual(response, timeout)
+
+    def test_trigger_ordinary_lambda_status_200(self):
+        status_code = 200
+        self.mock_lambda.invoke.side_effect = ClientError({'ResponseMetadata': {
+            'HTTPStatusCode': status_code
+        }, 'Error': {}}, "Invoke")
+        self.assertRaises(Exception, lambda_utils.trigger_ordinary_lambda, LAMBDA_ARN, self.session_mock)
+        self.mock_lambda.invoke.assert_called_once_with(FunctionName=LAMBDA_ARN, InvocationType='RequestResponse')
+
+    def test_trigger_ordinary_lambda_several_times(self):
+        response_body_encoded = json.dumps({}).encode()
+        response_payload = StreamingBody(
+            io.BytesIO(response_body_encoded),
+            len(response_body_encoded)
+        )
+        self.mock_lambda.invoke.return_value = mock_function_invoke(200, response_payload)
+        trigger_attempts = 4
+        response = lambda_utils.trigger_ordinary_lambda_several_times(LAMBDA_ARN, self.session_mock, trigger_attempts)
+        self.mock_lambda.invoke.assert_called_with(FunctionName=LAMBDA_ARN)
+        self.assertTrue(response)
+        self.assertEqual(self.mock_lambda.invoke.call_count, trigger_attempts)
+
+    def test_trigger_lambda_under_stress(self):
+        overall_stress_time = 13
+        number_in_each_chunk = 3
+        delay_among_chunks = 2
+        start_stress = datetime.utcnow()
+        end_stress = start_stress + timedelta(seconds=overall_stress_time)
+        lambda_utils.trigger_lambda_under_stress(
+            LAMBDA_ARN, self.session_mock, overall_stress_time, number_in_each_chunk, delay_among_chunks)
+        self.assertLess(abs((end_stress - datetime.utcnow()).total_seconds()), delay_among_chunks + 0.1)
+        self.assertLessEqual(self.mock_lambda.invoke.call_count, (1 + overall_stress_time
+                             / delay_among_chunks) * number_in_each_chunk)
+        self.assertGreaterEqual(self.mock_lambda.invoke.call_count, overall_stress_time
+                                * number_in_each_chunk / delay_among_chunks - 1)

@@ -5,7 +5,7 @@ from pytest_bdd import (
 
 
 @scenario('../features/health_throttles.feature',
-          'Lease Lambda from resource manager and test attach an alarm from Document')
+          'Test alarm lambda:alarm:health-throttles:2020-04-01')
 def test_lambda_throttles():
-    """Lease Lambda from resource manager and test attach an alarm from Document"""
+    """Test alarm lambda:alarm:health-throttles:2020-04-01"""
     pass

@@ -22,6 +22,10 @@ Outputs:
     Description: The ID of the Replication group
     Value: !Ref ElastiCacheReplicationGroup
 Parameters:
+  AutomaticFailoverEnabled:
+    Description: Specifies whether a read-only replica is automatically promoted to read/write primary if the existing primary fails
+    Type: String
+    Default: False
   EngineVersion:
     Description: The version number of the cache engine to be used for the clusters in this replication group
     Type: String
@@ -87,7 +91,7 @@ Resources:
     Type: AWS::ElastiCache::ReplicationGroup
     Properties:
       AtRestEncryptionEnabled: false
-      AutomaticFailoverEnabled: false
+      AutomaticFailoverEnabled: !Ref AutomaticFailoverEnabled
       CacheNodeType: !Ref NodeType
       CacheParameterGroupName: !Ref ParameterGroupName
       CacheSubnetGroupName: !Ref ElastiCacheSubnetGroup

@@ -376,11 +376,25 @@ def remove_global_table_and_wait_for_active(table_name: str,
     replicas, replicas_exist = _check_if_replicas_exist(table_name=table_name,
                                                         boto3_session=boto3_session)
     if replicas_exist:
-        _update_table(boto3_session=boto3_session,
-                      table_name=table_name,
-                      ReplicaUpdates=[
-                          {'Delete': {'RegionName': region}} for region in global_table_regions])
-
+        start = time.time()
+        elapsed = 0
+        while elapsed < wait_sec:
+            try:
+                _update_table(boto3_session=boto3_session,
+                              table_name=table_name,
+                              ReplicaUpdates=[
+                                  {'Delete': {'RegionName': region}} for region in global_table_regions])
+                break
+            except ClientError as ce:
+                if ce.response['Error']['Code'] == 'ValidationException':
+                    if ce.response['Error']['Message'] in "The resource which you are attempting to change is in use":
+                        log.warning(f"Table `{table_name}` is busy")
+                    elif "Update global table operation failed because one or more replicas were " \
+                         "not part of the global table" in ce.response['Error']['Message']:
+                        break
+            end = time.time()
+            elapsed = end - start
+            time.sleep(delay_sec)
         start = time.time()
         elapsed = 0
         while elapsed < wait_sec:

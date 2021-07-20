@@ -6,11 +6,11 @@ from pytest_bdd import (
 
 @scenario('../features/sqs_recovery_alarm_approximate_age_of_oldest_message_dlq.feature',
           'Check age of the oldest message in DLQ - green')
-def test_alarm_green():
+def test_sqs_recovery_alarm_approximate_age_of_oldest_message_dlq_alarm_green():
     pass
 
 
 @scenario('../features/sqs_recovery_alarm_approximate_age_of_oldest_message_dlq.feature',
           'Check age of the oldest message in DLQ - red')
-def test_alarm_red():
+def test_sqs_recovery_alarm_approximate_age_of_oldest_message_dlq_alarm_red():
     pass

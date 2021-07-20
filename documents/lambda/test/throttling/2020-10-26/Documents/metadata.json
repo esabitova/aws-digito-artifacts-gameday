@@ -11,6 +11,6 @@
   "risk": "MEDIUM",
   "tag": "lambda:test:throttling:2020-10-26",
   "recommendedAlarms": {
-    "ThrottlesAlarm": "lambda:alarm:health-throttles:2020-04-01"
+    "ThrottlesAlarmName": "lambda:alarm:health-throttles:2020-07-13"
   }
 }

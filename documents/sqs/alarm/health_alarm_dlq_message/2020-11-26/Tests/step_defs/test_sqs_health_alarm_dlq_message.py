@@ -6,11 +6,11 @@ from pytest_bdd import (
 
 @scenario('../features/sqs_health_alarm_dlq_message.feature',
           'Is there any message in DLQ - green')
-def test_alarm_green():
+def test_sqs_health_alarm_dlq_message_alarm_green():
     pass
 
 
 @scenario('../features/sqs_health_alarm_dlq_message.feature',
           'Is there any message in DLQ - red')
-def test_alarm_red():
+def test_sqs_health_alarm_dlq_message_alarm_red():
     pass

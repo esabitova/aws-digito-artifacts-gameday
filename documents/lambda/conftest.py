@@ -28,6 +28,7 @@ publish_function_version_expression = 'published function version and cached ver
 assert_alias_version_expression = 'assert version in alias changed\n{input_parameters}'
 delete_function_version_expression = 'delete function version\n{input_parameters}'
 invoke_throttled_function_expression = 'invoke throttled function\n{input_parameters}'
+invoke_ordinary_function_expression = 'invoke ordinary function\n{input_parameters}'
 cache_current_time_limit_expression = 'cached current execution time limit as "{cache_property}" at step "{step_key}"' \
                                       '\n{input_parameters}'
 assert_execution_time_limit_expression = 'assert execution time limit is equal to input value\n{input_parameters}'
@@ -194,6 +195,35 @@ def invoke_throttled_function(
 ):
     lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
     lambda_utils.trigger_throttled_lambda(lambda_arn, boto3_session)
+
+
+@when(parsers.parse(invoke_ordinary_function_expression))
+def invoke_ordinary_function(
+        resource_pool, ssm_test_cache, input_parameters, boto3_session
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    lambda_utils.trigger_ordinary_lambda(lambda_arn, boto3_session)
+
+
+@when(parsers.parse('invoke ordinary function "{invoke_attempts:d}" '
+                    'times\n{input_parameters}'))
+def invoke_ordinary_function_several_times(
+        resource_pool, ssm_test_cache, input_parameters, boto3_session, invoke_attempts
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    lambda_utils.trigger_ordinary_lambda_several_times(lambda_arn, boto3_session, invoke_attempts)
+
+
+@when(parsers.parse('test lambda function under stress "{overall_stress_time:d}" seconds overall '
+                    'with "{number_in_each_chunk:d}" invokes in each test '
+                    'and "{delay_among_chunks:d}" seconds delay\n{input_parameters}'))
+def invoke_function_under_stress(
+        resource_pool, ssm_test_cache, input_parameters, boto3_session, overall_stress_time,
+        number_in_each_chunk, delay_among_chunks
+):
+    lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
+    lambda_utils.trigger_lambda_under_stress(lambda_arn, boto3_session, overall_stress_time,
+                                             number_in_each_chunk, delay_among_chunks)
 
 
 @given(parsers.parse(cache_current_time_limit_expression))

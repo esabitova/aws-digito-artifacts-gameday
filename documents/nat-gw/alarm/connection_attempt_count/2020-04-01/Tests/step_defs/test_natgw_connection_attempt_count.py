@@ -6,5 +6,5 @@ from pytest_bdd import (
 
 @scenario('../features/natgw_connection_attempt_count.feature',
           'Check alarm for number of connection attempts for which there was no response')
-def test_alarm_green():
+def test_natgw_connection_attempt_count_alarm_green():
     pass
