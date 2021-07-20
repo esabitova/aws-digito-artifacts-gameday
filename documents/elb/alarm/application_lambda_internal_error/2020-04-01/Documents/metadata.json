@@ -1,0 +1,11 @@
+{
+  "displayName": "LambdaInternalError",
+  "description": "Alarm by Digito that reports when count of lambda internal errors by load balancer from lambda targets is greater than or equal to a threshold",
+  "alarmName": "Digito-LambdaInternalError_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elb:alarm:application_lambda_internal_error:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
