@@ -22,15 +22,6 @@ parameters:
   LoadBalancerArn:
     type: String
     description: (Required) LoadBalancerArn
-  TargetGroupArns:
-    type: StringList
-    description: (Optional) The list of TargetGroupArns
-    maxItems: 5
-    default: []
-  UnhealthyHealthCheckPort:
-    type: Integer
-    description: (Optional) The port that supposed to be closed or return unexpected result for LB health check
-    default: 65534
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
@@ -38,6 +29,15 @@ parameters:
     type: String
     # e.g. elb:alarm:network_unhealthy_host_count:2020-04-01, elb:alarm:gateway_unhealthy_host_count:2020-04-01
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
+  TargetGroupArns:
+    type: StringList
+    description: (Optional) The list of TargetGroupArns
+    maxItems: 5
+    default: []
+    UnhealthyHealthCheckPort:
+      type: Integer
+      description: (Optional) The port that supposed to be closed or return unexpected result for LB health check
+      default: 65534
   IsRollback:
     type: String
     description: >-
@@ -110,6 +110,7 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
   - name: BackupCurrentExecution
+
     # Call [boto3.describe_target_groups] (use pagination)
     #   Parameters: 
     #     LoadBalancerArn=params.LoadBalancerArn
@@ -118,9 +119,24 @@ mainSteps:
     #   Take all '.TargetGroups[].HealthCheck*', '.TargetGroups[].HealthyThresholdCount' properties
     #   Return MapList that contains LB_ARN, TargetGroup_ARN and other health check settings
 
-  - name: InjectFailure
+  - name: BreakTargets
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
+    action: aws:executeScript
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: change_targets_healthcheck_port
+      InputPayload:
+        TargetGroupArn: '{{TargetGroupArn}}'
+        HealthCheckPort: '{{UnhealthyHealthCheckPort}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.change_targets_healthcheck_port
     # For each target_group in BackupCurrentExecution.TargetGroups
     #   Call [boto3.modify_target_group]
     #     Parameters:
@@ -142,7 +158,7 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "ALARM" ]
+      DesiredValues: ["ALARM"]
 
   - name: RollbackCurrentExecution
     maxAttempts: 5
@@ -167,7 +183,7 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "OK" ]
+      DesiredValues: ["OK"]
     isEnd: true
 
   - name: TriggerRollback
