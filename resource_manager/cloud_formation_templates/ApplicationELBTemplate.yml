@@ -30,6 +30,9 @@ Outputs:
   ProxyLambdaArn:
     Description: The ARN for Lambda function which is used to trigger requests to private ELB endpoint
     Value: !GetAtt ProxyLambdaFunction.Arn
+  LambdaTargetFullName:
+    Description: Target group full name
+    Value: !GetAtt TargetGroupLambda.TargetGroupFullName
 Parameters:
   VPCCidrBlock:
     Description: VPC CidrIp

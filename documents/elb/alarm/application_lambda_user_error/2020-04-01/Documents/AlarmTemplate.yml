@@ -14,8 +14,8 @@ Resources:
       MetricName: LambdaUserError
       Namespace: AWS/ApplicationELB
       Dimensions:
-        - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+        - Name: TargetGroup
+          Value: ${LambdaTargetFullName}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}
