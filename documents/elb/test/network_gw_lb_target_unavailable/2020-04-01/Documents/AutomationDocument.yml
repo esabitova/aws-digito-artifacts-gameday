@@ -111,7 +111,7 @@ mainSteps:
   - name: BackupCurrentExecution
     action: aws:executeScript
     outputs:
-      - Name: RollbackExecutionId
+      - Name: TargetGroups
         Selector: $.Payload
         Type: MapList
     inputs:
