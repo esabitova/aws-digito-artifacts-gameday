@@ -17,7 +17,7 @@ def backup_targets(events: dict, context: dict) -> list:
         "LoadBalancerArn"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elb')
+    elb_client = boto3.client('elbv2')
     describe_params = {
         "LoadBalancerArn": events['LoadBalancerArn']
     }
@@ -54,7 +54,7 @@ def break_targets_healthcheck_port(events: dict, context: dict) -> None:
         "HealthCheckPort"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elb')
+    elb_client = boto3.client('elbv2')
     for target_group in events['TargetGroups']:
         elb_client.modify_target_group(
             TargetGroupArn=target_group['TargetGroupArn'],
@@ -70,6 +70,6 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
         "TargetGroups",
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elb')
+    elb_client = boto3.client('elbv2')
     for target_group in events['TargetGroups']:
         elb_client.modify_target_group(**target_group)
