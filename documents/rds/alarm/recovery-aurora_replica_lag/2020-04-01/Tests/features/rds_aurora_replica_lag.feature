@@ -6,7 +6,7 @@ Feature: Alarm Setup - RDS Aurora replica lag
       |resource_manager/cloud_formation_templates/RdsAuroraWithBacktrackTemplate.yml |   ON_DEMAND|    db.t3.small|
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml            |SHARED      |               |
     When alarm "rds:alarm:recovery-aurora_replica_lag:2020-04-01" is installed
-      |alarmId    |DBClusterIdentifier                                     |Threshold | SNSTopicARN                      |
-      |under_test |{{cfn-output:RdsAuroraWithBacktrackTemplate>ClusterId}} |10000     | {{cfn-output:SnsForAlarms>Topic}}|
+      |alarmId    |DBInstanceIdentifier                                            |Threshold     | SNSTopicARN
+      |under_test |{{cfn-output:RdsAuroraWithBacktrackTemplate>ReplicaInstanceId}} |10000         | {{cfn-output:SnsForAlarms>Topic}}
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds

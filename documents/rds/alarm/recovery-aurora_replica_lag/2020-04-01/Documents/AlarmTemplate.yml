@@ -13,8 +13,8 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       DatapointsToAlarm: 3
       Dimensions:
-        - Name: DBClusterIdentifier
-          Value: '${DBClusterIdentifier}'
+        - Name: DBInstanceIdentifier
+          Value: '${DBInstanceIdentifier}'
       EvaluationPeriods: 5
       MetricName: AuroraReplicaLag
       Namespace: AWS/RDS
