@@ -1,0 +1,110 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Decrease ElastiCache readonly replica count"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+parameters:
+  ReplicationGroupId:
+    type: String
+    description: (Required) ReplicationGroupId
+  NewReplicaCount:
+    type: Integer
+    description: (Optional) Desired number of replicas. Do not specify if ReplicasToRemove is set
+    default: -1
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
+  ReplicasToRemove:
+    type: StringList
+    description: (Optional) A list of the node ids to remove from the replication group.  Do not specify if NewReplicaCount is set
+    default: []
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: ChooseDecreaseStep
+    action: 'aws:branch'
+    description: chooses which step to run - with ReplicasToRemove or NewReplicaCount
+    inputs:
+      Choices:
+        - NextStep: DecreaseReplicaCountReplicasToRemove
+          Variable: '{{NewReplicaCount}}'
+          NumericEquals: -1
+      Default: DecreaseReplicaCountNewReplicaCount
+
+  - name: DecreaseReplicaCountReplicasToRemove
+    action: 'aws:executeAwsApi'
+    nextStep: VerifyReplicationGroupStatus
+    description: Dynamically decreases the number of replicas in a Redis replication group with specified replica ids
+    inputs:
+      Service: elasticache
+      Api: DecreaseReplicaCount
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      ApplyImmediately: true
+      ReplicasToRemove: '{{ReplicasToRemove}}'
+
+  - name: DecreaseReplicaCountNewReplicaCount
+    action: 'aws:executeAwsApi'
+    nextStep: VerifyReplicationGroupStatus
+    description: Dynamically decreases the number of replicas in a Redis replication group with desired replica count
+    inputs:
+      Service: elasticache
+      Api: DecreaseReplicaCount
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      ApplyImmediately: true
+      NewReplicaCount: '{{NewReplicaCount}}'
+
+  - name: VerifyReplicationGroupStatus
+    action: 'aws:executeScript'
+    description: Wait for all nodes in Replication group to be ready after replication decrease
+    inputs:
+      Runtime: python3.7
+      Handler: verify_all_nodes_in_rg_available
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.verify_all_nodes_in_rg_available
+      InputPayload:
+        ReplicationGroupId: '{{ ReplicationGroupId }}'
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

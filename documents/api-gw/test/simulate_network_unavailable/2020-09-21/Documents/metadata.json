@@ -11,6 +11,6 @@
   "risk": "HIGH",
   "tag": "api-gw:test:simulate_network_unavailable:2020-09-21",
   "recommendedAlarms": {
-    "ApiGwCountAlarm": "api-gw:alarm:health-count_error:2020-04-01"
+    "ApiGwCountAlarmName": "api-gw:alarm:health-count_error:2020-04-01"
   }
 }

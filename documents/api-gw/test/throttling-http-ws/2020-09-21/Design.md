@@ -12,7 +12,7 @@ HIGH
 
 ## Requirements
 * Existing API Gateway HTTP or Web sockets
-* There is a synthetic alarm setup for application (e.g.api-gw:alarm:5xx-error:2020-04-01, api-gw:alarm:4xx-error:2020-04-01)
+* There is a synthetic alarm setup for application (e.g.api-gw:alarm:health-5xx_error:2020-04-01, api-gw:alarm:health-4xx_error:2020-04-01)
 
 ## Permission required for AutomationAssumeRole
 * apigateway:GET

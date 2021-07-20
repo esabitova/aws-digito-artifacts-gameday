@@ -10,5 +10,8 @@
   "minorVersion": "001",
   "risk": "HIGH",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
-  "tag": "efs:test:break_security_group:2020-09-21"
+  "tag": "efs:test:break_security_group:2020-09-21",
+  "recommendedAlarms": {
+    "ClientConnectionsAlarmName": "efs:alarm:client_connections:2020-04-01"
+  }
 }

@@ -15,5 +15,10 @@
   "recommendedAlarms": {
     "S3UserErrorAlarmName": "s3:alarm:health-4xxErrors_count:2020-04-01"
   },
-  "minorVersion": "001"
+  "minorVersion": "001",
+  "customerInputParams": [
+    "S3BucketToRestoreWhereObjectWillBeCopiedTo",
+    "SNSTopicARNForManualApproval",
+    "IAMPrincipalForManualApproval"
+  ]
 }

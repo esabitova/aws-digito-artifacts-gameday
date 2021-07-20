@@ -9,5 +9,6 @@
   "failureType": "${failureType}",
   "minorVersion": "001",
   "risk": "${risk}",
+  "enabled": "false",
   "tag": "${tag}"${recommendedAlarms}
 }

@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-EBSRestoreFromSnapshot_2020-12-02
+Description: Role for Digito-RedisDecreaseReplicaCount_2020-10-26
 Outputs:
-  DigitoEbsRestoreFromSnapshotAssumeRole:
-    Description: Digito-EBSRestoreFromSnapshot_2020-12-02 Automation Assume Role ARN
-    Value: !GetAtt DigitoEbsRestoreFromSnapshotAssumeRole.Arn
+  DigitoElasticacheRedisDecreaseReplicaCountAssumeRole:
+    Description: Digito-RedisDecreaseReplicaCount_2020-10-26 Automation Assume Role ARN
+    Value: !GetAtt DigitoElasticacheRedisDecreaseReplicaCountAssumeRole.Arn
 Resources:
-  DigitoEbsRestoreFromSnapshotAssumeRole:
+  DigitoElasticacheRedisDecreaseReplicaCountAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,16 +34,17 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEbsRestoreFromSnapshotAssumePolicy:
+  DigitoElasticacheRedisDecreaseReplicaCountAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoEbsRestoreFromSnapshotAssumePolicy
+      PolicyName: DigitoElasticacheRedisDecreaseReplicaCountAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: "*"
-            Action: []
-              # add permissions required by automation document here
+            Action:
+              - elasticache:DecreaseReplicaCount
+              - elasticache:DescribeReplicationGroups
       Roles:
-        - Ref: DigitoEbsRestoreFromSnapshotAssumeRole
+        - Ref: DigitoElasticacheRedisDecreaseReplicaCountAssumeRole
