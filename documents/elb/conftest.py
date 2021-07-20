@@ -41,9 +41,6 @@ def invoke_lambda_function_with_parameters(
 
     payload = json.dumps(lambda_params)
 
-    print('test 1234')
-    print(payload)
-
     logging.info(f'Invoke lambda {lambda_arn} ...')
     result = trigger_lambda(lambda_arn=lambda_arn,
                             payload=payload,

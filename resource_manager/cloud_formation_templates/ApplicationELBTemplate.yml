@@ -191,6 +191,40 @@ Resources:
                 MessageBody: "OK"
                 StatusCode: "200"
 
+  ListenerRule503:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "text/plain"
+            MessageBody: "Response 503"
+            StatusCode: "503"
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/response503*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 1
+
+  ListenerLambda:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref TargetGroupLambda
+                Weight: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/invoke_lambda*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 2
+
   AlwaysOKAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -232,8 +266,19 @@ Resources:
           log.setLevel(logging.DEBUG)
 
           def lambda_handler(event, context):
-            log.debug(f'Lambda function invocation')
-            raise ValueError('Internal error trigger exception.')
+              path = event['path'] if 'path' in event else 'response503'
+              log.debug(f'Lambda function invocation')
+              log.debug(f'Path: {path}')
+              if path == '/invoke_lambda/trigger_error':
+                  raise ValueError('Internal error trigger exception.')
+              elif path == '/invoke_lambda/response503':
+                  return {
+                      "statusCode": 503,
+                      "headers": {
+                          "Content-Type": "text/plain"
+                      },
+                      "body": "Lambda Function Response 503"
+                  }
 
   LambdaVersion:
     Type: AWS::Lambda::Version
@@ -291,6 +336,8 @@ Resources:
             path = event['path'] if 'path' in event else getenv('Path', '/')
             request_interval = event['request_interval'] if 'interval' in event else getenv('RequestInterval', 10)
             request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
+            request_count = int(request_count)
+            request_interval = int(request_interval)
             method = 'GET'
 
             log.debug(f'Ip: {gethostbyname(host)}, Host: {host}, Path: {path}, Method: {method}')
@@ -365,3 +412,21 @@ Resources:
               - iam:PassRole
       Roles:
         - Ref: LambdaRole
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt
+        - LambdaFunction
+        - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: elasticloadbalancing.amazonaws.com
+
+  TargetGroupLambda:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: false
+      Name: LambdaTargets
+      TargetType: lambda
+      Targets:
+        - Id: !GetAtt [ LambdaFunction, Arn ]
