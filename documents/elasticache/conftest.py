@@ -29,7 +29,7 @@ def cache_primary_and_replica_cluster_ids(resource_pool, ssm_test_cache, boto3_s
     group_description = elasticache_client.describe_replication_groups(ReplicationGroupId=replication_group_id)
     node_group_members = group_description['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']
     for node_group_member in node_group_members:
-        if node_group_member['CurrentRole'] == 'primary':
+        if node_group_member.get('CurrentRole') == 'primary':
             put_to_ssm_test_cache(ssm_test_cache, step_key, 'PrimaryClusterId', node_group_member['CacheClusterId'])
         else:
             put_to_ssm_test_cache(ssm_test_cache, step_key, 'ReplicaClusterId', node_group_member['CacheClusterId'])
