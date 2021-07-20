@@ -335,6 +335,10 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
         - - "s3-lambda-tests-bucket"
