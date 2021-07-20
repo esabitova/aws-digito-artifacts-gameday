@@ -8,7 +8,7 @@ Feature: SSM automation document for Aurora cluster failover.
       |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|
       |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |
     And published "Digito-AuroraFailoverCluster_2020-04-01" SSM document
-    And cache DB cluster "dbReaderId" and "dbWriterId" "before" SSM automation execution
+    And cache DB cluster "dbReaderId" and "dbWriterId" as "before"
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
 
@@ -19,7 +19,7 @@ Feature: SSM automation document for Aurora cluster failover.
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    Then cache DB cluster "dbReaderId" and "dbWriterId" "after" SSM automation execution
+    Then cache DB cluster "dbReaderId" and "dbWriterId" as "after"
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
     And assert DB cluster "dbReaderId" instance "before" failover became "dbWriterId" instance "after" failover
@@ -31,7 +31,7 @@ Feature: SSM automation document for Aurora cluster failover.
       |resource_manager/cloud_formation_templates/RdsAuroraFailoverTestTemplate.yml                   |   ON_DEMAND|    db.t3.small|
       |documents/rds/test/force_aurora_failover/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|               |
     And published "Digito-AuroraFailoverCluster_2020-04-01" SSM document
-    And cache DB cluster "dbReaderId" and "dbWriterId" "before" SSM automation execution
+    And cache DB cluster "dbReaderId" and "dbWriterId" as "before"
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
 
@@ -42,7 +42,7 @@ Feature: SSM automation document for Aurora cluster failover.
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
-    Then cache DB cluster "dbReaderId" and "dbWriterId" "after" SSM automation execution
+    Then cache DB cluster "dbReaderId" and "dbWriterId" as "after"
       |ClusterId                                             |
       |{{cfn-output:RdsAuroraFailoverTestTemplate>ClusterId}}|
     And assert DB cluster "dbReaderId" instance "before" failover became "dbWriterId" instance "after" failover
