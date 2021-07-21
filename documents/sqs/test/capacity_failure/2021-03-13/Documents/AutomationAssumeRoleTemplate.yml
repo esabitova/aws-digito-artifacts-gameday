@@ -52,6 +52,9 @@ Resources:
               - ssm:GetAutomationExecution
               - ssm:GetParameters
               - ssm:StartAutomationExecution
+              - kms:GenerateDataKey
+              - kms:Decrypt
+              - kms:Encrypt
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoSQSCapacityFailureAssumeRole.Arn

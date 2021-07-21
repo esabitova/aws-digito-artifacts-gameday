@@ -45,5 +45,8 @@ Resources:
             Resource: "*"
             Action:
               - ecs:DescribeTaskDefinition
+              - ecs:DescribeServices
+              - ecs:UpdateService
+              - ecs:RegisterTaskDefinition
       Roles:
         - Ref: DigitoEcsScaleServiceAssumeRole

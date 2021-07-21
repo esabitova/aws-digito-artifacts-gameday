@@ -1,17 +1,17 @@
 from adk.src.adk.domain.data_type import DataType
 from adk.src.adk.domain.input import Input
-from adk.src.adk.parent_steps.automation import Automation
-from adk.src.adk.steps.execute_script.ebs.calculate_iops_and_vol_type import CalculateIopsAndVolType
-from adk.src.adk.steps.execute_script.ebs.create_ebs_volume import CreateEbsVolume
-from adk.src.adk.steps.execute_script.ebs.ebs_describe_snapshot import EbsDescribeSnapshot
-from adk.src.adk.steps.util_repo import get_output_recovery_time, get_record_start_time_step
-from adk.src.adk.steps.wait_for_resource.ebs_repo import get_wait_for_volume_start
+from adk.src.adk.parent_steps.automation.automation import Automation
+from adk.src.adk.builtin_steps.automation.execute_script.ebs.calculate_iops_and_vol_type import CalculateIopsAndVolType
+from adk.src.adk.builtin_steps.automation.execute_script.ebs.create_ebs_volume import CreateEbsVolume
+from adk.src.adk.builtin_steps.automation.execute_script.ebs.ebs_describe_snapshot import EbsDescribeSnapshot
+from adk.src.adk.builtin_steps.automation.util_repo import get_output_recovery_time, get_record_start_time_step
+from adk.src.adk.builtin_steps.automation.wait_for_resource.ebs_repo import get_wait_for_volume_start
 from adk.src.adk.util.license import get_license
 
 
 def get_automation_doc():
     return Automation(
-        name='Digito-EBSRestoreFromBackup_2020-05-26',
+        step_name='Digito_EBSRestoreFromBackup_2020_05_26',
         assume_role='AutomationAssumeRole',
         steps=[
             get_record_start_time_step(),
