@@ -1,0 +1,13 @@
+{
+  "displayName": "Decrease ElastiCache readonly replica count",
+  "description": "Decrease ElastiCache readonly replica count",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RedisDecreaseReplicaCount_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "elasticache:sop:redis_decrease_replica_count:2020-10-26"
+}

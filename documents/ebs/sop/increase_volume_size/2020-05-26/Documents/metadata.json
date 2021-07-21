@@ -1,0 +1,14 @@
+{
+  "displayName": "Increase EBS volume size",
+  "description": "Increase EBS volume size",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-EBSIncreaseVolumeSize_2020-05-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "ebs:sop:increase_volume_size:2020-05-26",
+  "adkPath": "../../python/automation_document.py"
+}

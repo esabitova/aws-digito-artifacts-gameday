@@ -387,7 +387,11 @@ def remove_global_table_and_wait_for_active(table_name: str,
                 break
             except ClientError as ce:
                 if ce.response['Error']['Code'] == 'ValidationException':
-                    log.warning(f"Table `{table_name}` is busy")
+                    if ce.response['Error']['Message'] in "The resource which you are attempting to change is in use":
+                        log.warning(f"Table `{table_name}` is busy")
+                    elif "Update global table operation failed because one or more replicas were " \
+                         "not part of the global table" in ce.response['Error']['Message']:
+                        break
             end = time.time()
             elapsed = end - start
             time.sleep(delay_sec)

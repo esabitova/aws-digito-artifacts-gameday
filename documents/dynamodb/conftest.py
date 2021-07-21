@@ -1,10 +1,11 @@
 import json
 import logging
-import botocore
 import time
 
 import jsonpath_ng
 import pytest
+
+from botocore.exceptions import ClientError
 from pytest_bdd import given, parsers, when
 from pytest_bdd.steps import then
 from resource_manager.src.util import param_utils
@@ -243,7 +244,7 @@ def put_item_with_condition(boto3_session, resource_pool, ssm_test_cache, number
     for i in range(int(number)):
         try:
             dynamo_db_client.put_item(TableName=table_name, Item=item, ConditionExpression=condition_ref)
-        except botocore.exceptions.ClientError as e:
+        except ClientError as e:
             if e.response['Error']['Code'] != 'ConditionalCheckFailedException':
                 raise
 

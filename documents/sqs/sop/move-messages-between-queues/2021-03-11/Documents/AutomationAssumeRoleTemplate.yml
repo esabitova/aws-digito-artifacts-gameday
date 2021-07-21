@@ -53,5 +53,8 @@ Resources:
               - logs:PutLogEvents
               - logs:DescribeLogGroups
               - logs:DescribeLogStreams
+              - kms:GenerateDataKey
+              - kms:Decrypt
+              - kms:Encrypt
       Roles:
         - Ref: DigitoMoveMessagesBetweenQueuesAssumeRole

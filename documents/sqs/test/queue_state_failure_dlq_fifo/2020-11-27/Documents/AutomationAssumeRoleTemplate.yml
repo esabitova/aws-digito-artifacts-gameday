@@ -59,6 +59,9 @@ Resources:
               - logs:PutLogEvents
               - logs:DescribeLogGroups
               - logs:DescribeLogStreams
+              - kms:GenerateDataKey
+              - kms:Decrypt
+              - kms:Encrypt
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoQueueStateFailureDlqFifoAssumeRole.Arn

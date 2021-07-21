@@ -1,3 +1,5 @@
+import logging
+import time
 import boto3
 
 
@@ -5,6 +7,36 @@ def check_required_params(required_params, events):
     for key in required_params:
         if key not in events:
             raise KeyError(f'Requires {key} in events')
+
+
+def verify_all_nodes_in_rg_available(events, context):
+    """
+    checks that replication group is in 'available' state and all nodes are in 'available' state
+    :param events dict with the following keys
+            * ReplicationGroupId (Required) - Id of replication group
+            * Timeout (Optional) - time to wait for verifying
+    :param context context
+    """
+    required_params = [
+        'ReplicationGroupId'
+    ]
+    check_required_params(required_params, events)
+    elasticache_client = boto3.client('elasticache')
+    time_to_wait = events.get('Timeout', 900)
+    timeout_timestamp = time.time() + int(time_to_wait)
+    while time.time() < timeout_timestamp:
+        rg = elasticache_client.describe_replication_groups(
+            ReplicationGroupId=events['ReplicationGroupId']
+        )
+        status = rg['ReplicationGroups'][0]['Status']
+        desired_members_count = len(rg['ReplicationGroups'][0]['MemberClusters'])
+        available_members_count = len([x for x in rg['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']])
+        logging.info(f'Expected {desired_members_count} members, got {available_members_count}')
+        if status == 'available' and available_members_count == desired_members_count:
+            return True
+        time.sleep(15)
+    raise TimeoutError(f'Replication group {events["ReplicationGroupId"]} couldn\'t '
+                       f'be scaled in {time_to_wait} seconds')
 
 
 def assert_cluster_mode_disabled(events, context):

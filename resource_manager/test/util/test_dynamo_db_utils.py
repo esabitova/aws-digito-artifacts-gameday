@@ -868,7 +868,8 @@ class TestDynamoDbUtil(unittest.TestCase):
 
     @patch('resource_manager.src.util.dynamo_db_utils._update_table',
            side_effect=[ClientError(
-               error_response={"Error": {"Code": "ValidationException"}},
+               error_response={"Error": {"Code": "ValidationException",
+                                         "Message": "The resource which you are attempting to change is in use"}},
                operation_name='UpdateTable'
            ), {}])
     @patch('resource_manager.src.util.dynamo_db_utils._check_if_replicas_exist',
@@ -994,7 +995,7 @@ class TestDynamoDbUtil(unittest.TestCase):
     @patch('resource_manager.src.util.dynamo_db_utils.put_item_single',
            return_value=False)
     def test_put_item_async_stress_test(self, put_item_mock):
-        items = range(0, 10)
+        items = list(range(0, 10))
         put_item_async_stress_test(
             boto3_session=self.session_mock, table_name='my_table', items=items
         )

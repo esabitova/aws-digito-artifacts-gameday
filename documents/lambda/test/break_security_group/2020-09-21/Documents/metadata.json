@@ -9,5 +9,8 @@
   "failureType": "AZ",
   "minorVersion": "001",
   "risk": "HIGH",
-  "tag": "lambda:test:break_security_group:2020-09-21"
+  "tag": "lambda:test:break_security_group:2020-09-21",
+  "recommendedAlarms": {
+    "LambdaErrorAlarmName": "lambda:alarm:health-errors:2020-07-1313"
+  }
 }

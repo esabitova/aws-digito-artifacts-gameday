@@ -1,7 +1,5 @@
 # coding=utf-8
-from pytest_bdd import (
-    scenario
-)
+from pytest_bdd import scenario
 
 
 @scenario('../features/rds_aurora_replica_lag.feature',
