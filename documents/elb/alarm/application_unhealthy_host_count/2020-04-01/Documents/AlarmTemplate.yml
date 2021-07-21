@@ -14,7 +14,9 @@ Resources:
       Namespace: AWS/ApplicationELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+          Value: ${ApplicationELBFullName}
+        - Name: TargetGroup
+          Value: ${LambdaTargetFullName}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}
