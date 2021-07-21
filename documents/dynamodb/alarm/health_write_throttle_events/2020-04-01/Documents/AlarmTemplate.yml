@@ -25,4 +25,4 @@ Resources:
       Unit: Count
     Metadata:
       'AWS::Digito::Monitoring':
-        recommendationId: 'dynamodb:alarm:health-write_throttle_events:2020-04-01'
+        recommendationId: 'dynamodb:alarm:health_write_throttle_events:2020-04-01'
