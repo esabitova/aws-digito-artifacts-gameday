@@ -99,7 +99,7 @@ Resources:
       Targets:
         - Id:
             Ref: AmazonLinuxInstance
-          Port: !Ref ListenPort
+          Port: 6081
       TargetType: instance
       UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
