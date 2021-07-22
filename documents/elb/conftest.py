@@ -1,9 +1,6 @@
 import json
 import logging
 from pytest_bdd import given, parsers, when, then
-from resource_manager.src.util.elb_utils import (
-    send_incorrect_requests)
-from resource_manager.src.util.common_test_utils import (extract_param_value)
 from resource_manager.src.util.lambda_utils import trigger_lambda
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from resource_manager.src.util.param_utils import parse_param_value
@@ -14,14 +11,6 @@ invoke_lambda_function_with_parameters = 'invoke lambda "{lambda_arn}" with para
 CIPHERS = (
     'AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:AES256-SHA'
 )
-
-
-@given(parsers.parse('send incorrect https requests {number} times\n{input_parameters}'))
-@when(parsers.parse('send incorrect https requests {number} times\n{input_parameters}'))
-def send_incorrect_https_requests(boto3_session, resource_pool, ssm_test_cache, number, input_parameters):
-    url: str = extract_param_value(input_parameters, "TestUrl", resource_pool, ssm_test_cache)
-    url = f'https://{url}'
-    send_incorrect_requests(boto3_session, url, int(number))
 
 
 @given(parsers.parse(invoke_lambda_function_with_parameters))
