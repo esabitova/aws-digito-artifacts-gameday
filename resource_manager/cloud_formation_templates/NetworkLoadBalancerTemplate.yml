@@ -18,7 +18,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for network load-balancer
 Outputs:
-  NetworkELB:
+  NetworkELBArn:
     Description: Network Load Balancer ARN
     Value: !Ref  NetworkELB
   NetworkELBUrl:
@@ -27,13 +27,16 @@ Outputs:
   NetworkELBFullName:
     Description: The Network Elastic Load Balancer Key For Alarm Setup
     Value: !GetAtt NetworkELB.LoadBalancerFullName
-  TargetGroupFullName:
-    Description: The Network Elastic Load Balancer Target Group full name
+  TargetGroup:
+    Description: TargetGroup name
     Value: !GetAtt NLBTargetGroup.TargetGroupFullName
 Parameters:
   VPC:
     Type: String
     Description: VPC ID
+  VPCCidr:
+    Type: String
+    Description: VPC Cidr
   PrivateSubnet:
     Type: String
     Description: Private Subnet ID
@@ -43,12 +46,28 @@ Parameters:
   LatestAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  ListenPort:
+    Type: String
+    Default: 80
 Resources:
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Access to the ec2 hosts
       VpcId: !Ref 'VPC'
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: 0
+          ToPort: 0
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          FromPort: !Ref ListenPort
+          ToPort: !Ref ListenPort
+          CidrIp: !Ref VPCCidr
 
   NetworkELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -69,19 +88,19 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref NLBTargetGroup
       LoadBalancerArn: !Ref NetworkELB
-      Port: 8080
-      Protocol: HTTP
+      Port: !Ref ListenPort
+      Protocol: TCP
 
   NLBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 10
-      HealthCheckPort: "80"
+      HealthCheckPort: !Ref ListenPort
       HealthCheckProtocol: TCP
       HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
-      Port: 80
+      Port: !Ref ListenPort
       Protocol: TCP
       TargetGroupAttributes:
         - Key: stickiness.enabled
@@ -89,7 +108,7 @@ Resources:
       Targets:
         - Id:
             Ref: AmazonLinuxInstance
-          Port: 80
+          Port: !Ref ListenPort
       TargetType: instance
       UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
@@ -116,7 +135,7 @@ Resources:
           #!/bin/bash -xe
           cd /tmp
           yum update -y
-          yum install -y httpd24
+          yum install -y httpd
           echo "Healthy" > /var/www/html/index.html
           service httpd start
           /opt/aws/bin/cfn-signal \

@@ -7,7 +7,7 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
       | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml | ON_DEMAND
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml         | SHARED
     When alarm "elb:alarm:network_unhealthy_host_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | NetworkLoadBalancerName                                       | TargetGroupFullName                                            | Threshold | MaxTimeMinutes |
+      | alarmId    | SNSTopicARN                       | NetworkLoadBalancerName                                       | TargetGroup                                                    | Threshold | MaxTimeMinutes |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBFullName}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroupFullName}} | 1000      | 1              |
     Then wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 

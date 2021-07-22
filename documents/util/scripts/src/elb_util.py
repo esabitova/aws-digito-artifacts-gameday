@@ -30,19 +30,19 @@ def backup_targets(events: dict, context: dict) -> list:
         target_groups = page.get('TargetGroups')
         for target_group in target_groups:
             res.append({
-                'TargetGroupArn': target_group['TargetGroupArn'],
+                'TargetGroupArn': target_group.get('TargetGroupArn'),
                 'LoadBalancerArn': events['LoadBalancerArn'],
-                'HealthCheckProtocol': target_group['HealthCheckProtocol'],
-                'HealthCheckPort': target_group['HealthCheckPort'],
-                'HealthCheckEnabled': target_group['HealthCheckEnabled'],
-                'HealthCheckIntervalSeconds': target_group['HealthCheckIntervalSeconds'],
-                'HealthCheckTimeoutSeconds': target_group['HealthCheckTimeoutSeconds'],
-                'HealthyThresholdCount': target_group['HealthyThresholdCount'],
-                'UnhealthyThresholdCount': target_group['UnhealthyThresholdCount'],
-                'HealthCheckPath': target_group['HealthCheckPath'],
+                'HealthCheckProtocol': target_group.get('HealthCheckProtocol'),
+                'HealthCheckPort': target_group.get('HealthCheckPort'),
+                'HealthCheckEnabled': target_group.get('HealthCheckEnabled'),
+                'HealthCheckIntervalSeconds': target_group.get('HealthCheckIntervalSeconds'),
+                'HealthCheckTimeoutSeconds': target_group.get('HealthCheckTimeoutSeconds'),
+                'HealthyThresholdCount': target_group.get('HealthyThresholdCount'),
+                'UnhealthyThresholdCount': target_group.get('UnhealthyThresholdCount'),
+                'HealthCheckPath': target_group.get('HealthCheckPath'),
                 'Matcher': {
-                    'HttpCode': target_group['Matcher']['HttpCode'],
-                    'GrpcCode': target_group['Matcher']['GrpcCode'],
+                    'HttpCode': target_group.get('Matcher', {}).get('HttpCode'),
+                    'GrpcCode': target_group.get('Matcher', {}).get('GrpcCode'),
                 },
             })
     return res
@@ -60,8 +60,8 @@ def break_targets_healthcheck_port(events: dict, context: dict) -> None:
             TargetGroupArn=target_group['TargetGroupArn'],
             HealthCheckEnabled=True,
             HealthCheckIntervalSeconds=10,
-            HealthyThresholdCount=1,
-            HealthCheckPort=events['HealthCheckPort']
+            HealthyThresholdCount=2,
+            HealthCheckPort=str(events['HealthCheckPort'])
         )
 
 
