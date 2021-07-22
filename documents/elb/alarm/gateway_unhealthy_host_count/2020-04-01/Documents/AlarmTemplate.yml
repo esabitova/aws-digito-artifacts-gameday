@@ -11,7 +11,7 @@ Resources:
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: UnHealthyHostCount
-      Namespace: AWS/ApplicationELB
+      Namespace: AWS/GatewayELB
       Dimensions:
         - Name: LoadBalancer
           Value: ${ApplicationELBArn}
