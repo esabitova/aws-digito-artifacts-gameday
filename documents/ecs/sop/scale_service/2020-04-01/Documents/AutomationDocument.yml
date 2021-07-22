@@ -20,11 +20,11 @@ schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 outputs:
   - OutputRecoveryTime.RecoveryTime
-  
+  - CreateNewTaskDefinitionOrGetFromParameter.NewTaskDefinitionArn
 parameters:
-  ServiceArn:
+  ServiceName:
     type: String
-    description: (Required) The ARN of the service
+    description: (Required) The name of the service
   ClusterName:
     type: String
     description: (Required) The name of the cluster
@@ -61,63 +61,35 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.imports
         SCRIPT_PLACEHOLDER::common_util.start_time
 
-  - name: PerformRecovery
-    # add one or more steps to perform recovery
-    # if params.NewTaskDefinitionArn is set:
-    #   Call [boto3.update_service]
-    #     Parameters:
-    #       service=params.ServiceArn
-    #       cluster=params.ClusterName
-    #       desiredCount=params.NumberOfTasks (is not set, leave blank)
-    #       taskDefinition=params.NewTaskDefinitionArn
-    # if params.NewTaskDefinitionArn is NOT set:
-    #   Call [boto3.describe_service]
-    #     Parameters:
-    #       service=params.ServiceArn
-    #       cluster=params.ClusterName
-    #     Take '.services[].taskDefinition' as CurrentTaskDefinitionARN
-    #   Call [boto3.describe_task_definition]
-    #     Parameters:
-    #       taskDefinition=CurrentTaskDefinitionARN
-    #     Take the whole'.taskDefinition' as CurrentTaskDefinition
-    #   Update CurrentTaskDefinition (now it's UpdatedTaskDefinition) object as follows:
-    #     - cpu = params.TaskDefinitionCPU (if set)
-    #     - memory = params.TaskDefinitionRAM (if set)
-    #   Call [boto3.register_task_definition]
-    #     Parameters:
-    #       UpdatedTaskDefinition (SEE CODE SNIPPET #1)
-    #     Take '.taskDefinition.taskDefinitionArn' as NewVersionTaskDefinitionArn
-    #   Call [boto3.update_service]
-    #     Parameters:
-    #       service=params.ServiceArn
-    #       cluster=params.ClusterName
-    #       desiredCount=params.NumberOfTasks (is not set, leave blank)
-    #       taskDefinition=NewVersionTaskDefinitionArn
+  - name: CreateNewTaskDefinitionOrGetFromParameter
+    action: 'aws:executeScript'
+    outputs:
+      - Name: NewTaskDefinitionArn
+        Selector: $.Payload.TaskDefinitionArn
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: create_new_task_definition
+      Script: |-
+        SCRIPT_PLACEHOLDER::ecs_util.imports
+        SCRIPT_PLACEHOLDER::ecs_util.check_required_params
+        SCRIPT_PLACEHOLDER::ecs_util.create_new_task_definition
+      InputPayload:
+        ServiceName: '{{ServiceName}}'
+        ClusterName: '{{ClusterName}}'
+        NewTaskDefinitionArn: '{{NewTaskDefinitionArn}}'
+        TaskDefinitionCPU: '{{TaskDefinitionCPU}}'
+        TaskDefinitionRAM: '{{TaskDefinitionRAM}}'
 
-    # CODE SNIPPET #1
-    # import boto3
-
-    # client = boto3.client('ecs')
-
-    # definitions = client.list_task_definitions() 
-    # # print(definitions)
-
-    # definition = client.describe_task_definition(taskDefinition='arn:aws:ecs:us-east-2:435978235099:task-definition/fargate:1')
-    # # print(definition)
-
-    # kwargs_params = definition['taskDefinition']
-    # del kwargs_params['taskDefinitionArn']
-    # del kwargs_params['revision']
-    # del kwargs_params['status']
-    # del kwargs_params['requiresAttributes']
-    # del kwargs_params['compatibilities']
-    # del kwargs_params['registeredAt']
-    # del kwargs_params['registeredBy']
-    # kwargs_params['cpu']="512"
-    # kwargs_params['memory']=str(1024*4)
-    # new_definition = client.register_task_definition(**definition['taskDefinition'])
-    # print(new_definition)
-
+  - name: ChangeTaskDefinition
+    action: 'aws:executeAwsApi'
+    inputs:
+      Service: ecs
+      Api: UpdateService
+      service: '{{ServiceName}}'
+      cluster: '{{ClusterName}}'
+      desiredCount: '{{NumberOfTasks}}'
+      taskDefinition: '{{CreateNewTaskDefinitionOrGetFromParameter.NewTaskDefinitionArn}}'
 
   - name: OutputRecoveryTime
     action: 'aws:executeScript'

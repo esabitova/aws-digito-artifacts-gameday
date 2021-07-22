@@ -1,5 +1,6 @@
 AutomationDocumentFinal.yml
 *.zip
+*.iml
 AwsDigitoSsmDocumentSamples.iml
 documents/util/scripts/documentation/
 documents/util/scripts/.coverage*

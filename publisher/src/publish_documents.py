@@ -73,7 +73,7 @@ class PublishDocuments:
         spec = importlib.util.spec_from_file_location("digito.module.unused", adk_full_path)
         automation_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(automation_module)
-        return automation_module.get_automation_doc().get_automation_yaml()
+        return automation_module.get_automation_doc().get_document_yaml()
 
     def create_document(self, name, content, doc_type, doc_format, tag_value):
         try:

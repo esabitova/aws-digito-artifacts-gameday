@@ -132,6 +132,7 @@ Resources:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
+      KmsMasterKeyId: !Ref KmsKey
   SqsFifoQueuePolicy:
     Type: "AWS::SQS::QueuePolicy"
     Properties:
@@ -157,6 +158,7 @@ Resources:
     Type: "AWS::SQS::Queue"
     Properties:
       FifoQueue: true
+      KmsMasterKeyId: !Ref KmsKey
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SqsDlqForFifoQueue.Arn
         maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
@@ -184,15 +186,19 @@ Resources:
   SqsDlqForFifoQueue:
     Type: "AWS::SQS::Queue"
     Properties:
+      KmsMasterKeyId: !Ref KmsKey
       FifoQueue: true
   SqsStandardQueue:
     Type: "AWS::SQS::Queue"
     Properties:
+      KmsMasterKeyId: !Ref KmsKey
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SqsDlqForStandardQueue.Arn
         maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
   SqsDlqForStandardQueue:
     Type: "AWS::SQS::Queue"
+    Properties:
+      KmsMasterKeyId: !Ref KmsKey
   SQSNumberOfMessagesSentAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
@@ -410,3 +416,27 @@ Resources:
       Statistic: "Minimum"
       TreatMissingData: "notBreaching"
       Threshold: 100
+  KmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: !Join
+          - "-"
+          - - "kms-key-policy"
+            - !Select
+              - 0
+              - !Split
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref "AWS::StackId"
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: kms:*
+            Resource: "*"
