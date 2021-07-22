@@ -50,6 +50,7 @@ Parameters:
     Type: String
     Default: 80
 Resources:
+
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:

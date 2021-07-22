@@ -107,7 +107,7 @@ def get_sample_describe_mount_target_security_groups(MountTargetId=None):
 
 
 @pytest.mark.unit_test
-class TestBackupUtil(unittest.TestCase):
+class TestEFSUtil(unittest.TestCase):
     def setUp(self):
         self.patcher = patch('boto3.client')
         self.client = self.patcher.start()

@@ -1,3 +1,4 @@
+---
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
@@ -14,12 +15,14 @@ Resources:
       Namespace: AWS/GatewayELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+          Value: ${GatewayELBFullName}
+        - Name: TargetGroup
+          Value: ${TargetGroup}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}
-      EvaluationPeriods: ${MaxTimeMinutes}
-      DatapointsToAlarm: ${MaxTimeMinutes}
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
