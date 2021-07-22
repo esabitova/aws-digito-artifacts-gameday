@@ -34,9 +34,9 @@ parameters:
     maxItems: 5
     default: []
   UnhealthyHealthCheckPort:
-    type: Integer
+    type: String
     description: (Optional) The port that supposed to be closed or return unexpected result for LB health check
-    default: 65534
+    default: "65534"
   IsRollback:
     type: String
     description: >-
