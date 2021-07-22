@@ -72,4 +72,7 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
     check_required_params(required_params, events)
     elb_client = boto3.client('elbv2')
     for target_group in events['TargetGroups']:
+        target_group.pop('LoadBalancerArn')
+        logging.info(f"HealthCheckIntervalSeconds: {target_group['HealthCheckIntervalSeconds']}:"
+                     f"{type(target_group['HealthCheckIntervalSeconds'])}")
         elb_client.modify_target_group(**target_group)
