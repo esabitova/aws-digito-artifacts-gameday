@@ -20,6 +20,9 @@ Outputs:
   PrivateSubnetWithoutInternetTwo:
     Description: Private subnet w\o internet access
     Value: !Ref 'PrivateSubnetWithoutInternetTwo'
+  PrivateSubnetWithoutInternetThree:
+    Description: Private subnet w\o internet access
+    Value: !Ref 'PrivateSubnetWithoutInternetThree'
 Mappings:
   # Hard values for the subnet masks. These masks define
   # the range of internal IP addresses that can be assigned.
@@ -43,6 +46,8 @@ Mappings:
       CIDR: '10.0.2.0/24'
     PrivateNoInternetTwo:
       CIDR: '10.0.3.0/24'
+    PrivateNoInternetThree:
+      CIDR: '10.0.4.0/24'
 Resources:
   # VPC in which containers will be networked.
   # It has two public subnets
@@ -91,6 +96,16 @@ Resources:
     Properties:
       VpcId: !Ref VPC
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternetTwo', 'CIDR']
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
+
+  PrivateSubnetWithoutInternetThree:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternetThree', 'CIDR']
       AvailabilityZone:
         Fn::Select:
           - 1
