@@ -7,7 +7,7 @@ Feature: Alarm Setup - load balancer HTTPCode_ELB_5XX_Count
       | resource_manager/cloud_formation_templates/ApplicationELBTemplate.yml | ON_DEMAND
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml    | SHARED
     When alarm "elb:alarm:application_httpcode_elb_5xx_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | ApplicationELBArn                                            | Threshold | MaxTimeMinutes
+      | alarmId    | SNSTopicARN                       | ApplicationLoadBalancerArn                                   | Threshold | MaxTimeMinutes
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationELBTemplate>ApplicationELBFullName}} | 1000      | 1
     And invoke lambda "{{cfn-output:ApplicationELBTemplate>ProxyLambdaArn}}" with parameters
       | host             | {{cfn-output:ApplicationELBTemplate>ApplicationELBUrl}} |
@@ -24,7 +24,7 @@ Feature: Alarm Setup - load balancer HTTPCode_ELB_5XX_Count
       | resource_manager/cloud_formation_templates/ApplicationELBTemplate.yml | ON_DEMAND
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml    | SHARED
     When alarm "elb:alarm:application_httpcode_elb_5xx_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | ApplicationELBArn                                            | Threshold | MaxTimeMinutes
+      | alarmId    | SNSTopicARN                       | ApplicationLoadBalancerArn                                   | Threshold | MaxTimeMinutes
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationELBTemplate>ApplicationELBFullName}} | 1         | 1
     And invoke lambda "{{cfn-output:ApplicationELBTemplate>ProxyLambdaArn}}" with parameters
       | host             | {{cfn-output:ApplicationELBTemplate>ApplicationELBUrl}} |

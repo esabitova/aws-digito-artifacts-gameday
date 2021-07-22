@@ -14,7 +14,7 @@ Resources:
       Namespace: AWS/NetworkELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+          Value: ${NetworkLoadBalancerArn}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}

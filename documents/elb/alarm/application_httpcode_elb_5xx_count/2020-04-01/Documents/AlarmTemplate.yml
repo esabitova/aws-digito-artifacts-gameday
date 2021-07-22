@@ -14,7 +14,7 @@ Resources:
       Namespace: AWS/ApplicationELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+          Value: ${ApplicationLoadBalancerArn}
       Period: 60
       Statistic: Maximum
       Threshold: ${Threshold}
