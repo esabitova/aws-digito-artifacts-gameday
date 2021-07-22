@@ -83,7 +83,7 @@ Resources:
   WriteThrottleEventsAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
-      AlarmDescription: "dynamodb:alarm:health-write_throttle_events:2020-04-01"
+      AlarmDescription: "dynamodb:alarm:health_write_throttle_events:2020-04-01"
       ActionsEnabled: false
       MetricName: WriteThrottleEvents
       Namespace: AWS/DynamoDB
