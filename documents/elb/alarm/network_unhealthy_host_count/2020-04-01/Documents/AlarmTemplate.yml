@@ -14,7 +14,9 @@ Resources:
       Namespace: AWS/NetworkELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${NetworkLoadBalancerArn}
+          Value: ${NetworkLoadBalancerName}
+        - Name: TargetGroup
+          Value: ${TargetGroupFullName}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}

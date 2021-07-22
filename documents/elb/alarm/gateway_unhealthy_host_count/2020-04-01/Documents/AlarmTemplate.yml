@@ -14,7 +14,7 @@ Resources:
       Namespace: AWS/GatewayELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${GatewayLoadBalancerArn}
+          Value: ${GatewayLoadBalancerName}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}

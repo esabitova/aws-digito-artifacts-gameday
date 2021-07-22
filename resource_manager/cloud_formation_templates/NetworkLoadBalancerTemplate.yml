@@ -27,6 +27,9 @@ Outputs:
   NetworkELBFullName:
     Description: The Network Elastic Load Balancer Key For Alarm Setup
     Value: !GetAtt NetworkELB.LoadBalancerFullName
+  TargetGroupFullName:
+    Description: The Network Elastic Load Balancer Target Group full name
+    Value: !GetAtt NLBTargetGroup.TargetGroupFullName
 Parameters:
   VPC:
     Type: String
