@@ -53,6 +53,10 @@ Resources:
   S3BackupBucket:
     Type: AWS::S3::Bucket
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
         - - "s3-backup-bucket-digito"
@@ -77,6 +81,10 @@ Resources:
   S3BucketForReplication:
     Type: AWS::S3::Bucket
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
         - - "s3-replication-bucket-digito"
@@ -101,6 +109,10 @@ Resources:
   S3BucketToRestore:
     Type: AWS::S3::Bucket
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
         - - "s3-restore-bucket-digito"
@@ -197,8 +209,34 @@ Resources:
       PolicyName: S3BucketReplicationPolicy
       Roles:
         - !Ref S3BucketReplicationRole
+  KmsKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: !Join
+          - "-"
+          - - "kms-key-policy"
+            - !Select
+              - 0
+              - !Split
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref "AWS::StackId"
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: kms:*
+            Resource: "*"
   SNSTopic:
     Type: "AWS::SNS::Topic"
+    Properties:
+      KmsMasterKeyId: !Ref KmsKey
   SNSTopicPolicy:
     Type: "AWS::SNS::TopicPolicy"
     Properties:
