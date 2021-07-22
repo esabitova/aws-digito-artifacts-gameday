@@ -59,6 +59,9 @@ Resources:
               - sns:Publish
               - ssm:GetParameters
               - cloudwatch:DescribeAlarms
+              - kms:GenerateDataKey # for SNS Topic with KMS
+              - kms:Decrypt # for SNS Topic with KMS
+              - kms:Encrypt # for SNS Topic with KMS
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoAccidentalDeleteAssumeRole.Arn

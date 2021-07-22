@@ -55,6 +55,9 @@ Resources:
               - ssm:GetAutomationExecution
               - s3:DeleteObject*
               - SNS:Publish
+              - kms:GenerateDataKey # for SNS Topic with KMS
+              - kms:Decrypt # for SNS Topic with KMS
+              - kms:Encrypt # for SNS Topic with KMS
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoRestoreFromBackupAssumeRole.Arn
