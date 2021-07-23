@@ -48,16 +48,26 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "security group for ALB"
+      GroupName: !Join
+        - "-"
+        - - "ALB-SG"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       VpcId: !Ref VPC
       SecurityGroupEgress:
-        -
-          CidrIp: "0.0.0.0/0"
+        - CidrIp: "0.0.0.0/0"
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
       SecurityGroupIngress:
-        -
-          CidrIp: "0.0.0.0/0"
+        - CidrIp: "0.0.0.0/0"
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
@@ -66,6 +76,18 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Lambda security group"
+      GroupName: !Join
+        - "-"
+        - - "Lambda-SG"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -102,6 +124,57 @@ Resources:
             ContentType: "text/plain"
             MessageBody: "OK"
             StatusCode: "200"
+
+  ListenerRule503:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: fixed-response
+          FixedResponseConfig:
+            ContentType: "text/plain"
+            MessageBody: "Response 503"
+            StatusCode: "503"
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/response503*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 1
+
+  ListenerLambda:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref TargetGroupLambda
+                Weight: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/invoke_lambda*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 2
+
+  ListenerLambdaUnhealthyResponse:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref UnhealthyTargetGroupLambda
+                Weight: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/unhealthy_ping_invoke_lambda*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 3
 
   AlwaysOKAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -144,14 +217,34 @@ Resources:
           log.setLevel(logging.DEBUG)
 
           def lambda_handler(event, context):
-            log.debug(f'Lambda function invocation')
-            raise ValueError('Internal error trigger exception.')
+              path = event['path'] if 'path' in event else 'response503'
+              log.debug(f'Lambda function invocation')
+              log.debug(f'Path: {path}')
+              if path == '/unhealthy_ping_invoke_lambda':
+                  return { "statusCode": 500 }
+              elif path == '/invoke_lambda/trigger_error':
+                  raise ValueError('Internal error trigger exception.')
+              elif path == '/invoke_lambda/response503':
+                  return {
+                      "statusCode": 503,
+                      "headers": {
+                          "Content-Type": "text/plain"
+                      },
+                      "body": "Lambda Function Response 503"
+                  }
 
   LambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref LambdaFunction
       Description: v1
+
+  LambdaActualAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref LambdaFunction
+      FunctionVersion: !GetAtt LambdaVersion.Version
+      Name: actual
 
   # Lambda resources
   ProxyLambdaFunction:
@@ -196,6 +289,8 @@ Resources:
             path = event['path'] if 'path' in event else getenv('Path', '/')
             request_interval = event['request_interval'] if 'interval' in event else getenv('RequestInterval', 10)
             request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
+            request_count = int(request_count)
+            request_interval = int(request_interval)
             method = 'GET'
 
             log.debug(f'Ip: {gethostbyname(host)}, Host: {host}, Path: {path}, Method: {method}')
@@ -219,6 +314,13 @@ Resources:
     Properties:
       FunctionName: !Ref ProxyLambdaFunction
       Description: v1
+
+  ProxyLambdaActualAlias:
+    Type: AWS::Lambda::Alias
+    Properties:
+      FunctionName: !Ref ProxyLambdaFunction
+      FunctionVersion: !GetAtt ProxyLambdaVersion.Version
+      Name: proxy_actual
 
   LambdaRole:
     Type: AWS::IAM::Role
@@ -263,3 +365,36 @@ Resources:
               - iam:PassRole
       Roles:
         - Ref: LambdaRole
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt
+        - LambdaFunction
+        - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: elasticloadbalancing.amazonaws.com
+
+  TargetGroupLambda:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: false
+      Name: LambdaTargets
+      TargetType: lambda
+      Targets:
+        - Id: !GetAtt "LambdaFunction.Arn"
+
+  UnhealthyTargetGroupLambda:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 11
+      HealthCheckPath: "/unhealthy_ping_invoke_lambda"
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200"
+      Name: UnhealthyTargetsLambda
+      TargetType: lambda
+      Targets:
+        - Id: !GetAtt "LambdaFunction.Arn"
