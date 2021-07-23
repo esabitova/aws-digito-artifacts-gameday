@@ -4,7 +4,7 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
   Scenario: Create Network LB and execute automation to test failure case
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                           | ResourceType |
-      | resource_manager/cloud_formation_templates/ApplicationELBTemplate.yml                                     | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/ApplicationLoadBalancerTemplate.yml                                     | ON_DEMAND    |
       | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
     # Add any pre-execution caching and setup steps here

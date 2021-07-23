@@ -1,3 +1,4 @@
+---
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
@@ -15,11 +16,13 @@ Resources:
       Dimensions:
         - Name: LoadBalancer
           Value: ${GatewayLoadBalancerName}
+        - Name: TargetGroup
+          Value: ${TargetGroup}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}
-      EvaluationPeriods: ${MaxTimeMinutes}
-      DatapointsToAlarm: ${MaxTimeMinutes}
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
