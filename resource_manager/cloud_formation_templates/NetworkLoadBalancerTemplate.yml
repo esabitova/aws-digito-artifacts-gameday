@@ -122,7 +122,6 @@ Resources:
       InstanceInitiatedShutdownBehavior: stop
       InstanceType: !Ref InstanceType
       Monitoring: true
-      KeyName: 'iderbenev'
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: '0'

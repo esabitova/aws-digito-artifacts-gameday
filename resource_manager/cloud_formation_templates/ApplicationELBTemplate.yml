@@ -48,7 +48,6 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "security group for ALB"
-      GroupName: "test-ALB-SG"
       VpcId: !Ref VPC
       SecurityGroupEgress:
         -
@@ -154,13 +153,6 @@ Resources:
       FunctionName: !Ref LambdaFunction
       Description: v1
 
-  LambdaActualAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref LambdaFunction
-      FunctionVersion: !GetAtt LambdaVersion.Version
-      Name: actual
-
   # Lambda resources
   ProxyLambdaFunction:
     Type: AWS::Lambda::Function
@@ -227,13 +219,6 @@ Resources:
     Properties:
       FunctionName: !Ref ProxyLambdaFunction
       Description: v1
-
-  ProxyLambdaActualAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref ProxyLambdaFunction
-      FunctionVersion: !GetAtt ProxyLambdaVersion.Version
-      Name: proxy_actual
 
   LambdaRole:
     Type: AWS::IAM::Role
