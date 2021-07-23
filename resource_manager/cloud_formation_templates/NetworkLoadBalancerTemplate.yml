@@ -16,9 +16,9 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for network load-balancer
+Description: Test stack for load-balancer
 Outputs:
-  NetworkELBArn:
+  LoadBalancerArn:
     Description: Network Load Balancer ARN
     Value: !Ref  NetworkELB
   NetworkELBUrl:
@@ -37,9 +37,9 @@ Parameters:
   VPCCidr:
     Type: String
     Description: VPC Cidr
-  PrivateSubnet:
+  Subnet:
     Type: String
-    Description: Private Subnet ID
+    Description: Subnet ID
   InstanceType:
     Type: String
     Default: t3.small
@@ -50,6 +50,7 @@ Parameters:
     Type: String
     Default: 80
 Resources:
+
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -78,7 +79,7 @@ Resources:
           Value: "false"
       Scheme: internal
       SubnetMappings:
-        - SubnetId: !Ref PrivateSubnet
+        - SubnetId: !Ref Subnet
       Type: network
 
   Listener:
@@ -128,7 +129,7 @@ Resources:
           GroupSet:
             - !Ref EC2SecurityGroup
           SubnetId:
-            Ref: PrivateSubnet
+            Ref: Subnet
       Tenancy: default
       UserData:
         Fn::Base64: !Sub |

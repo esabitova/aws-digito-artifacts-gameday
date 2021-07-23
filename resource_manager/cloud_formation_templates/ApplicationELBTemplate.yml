@@ -30,113 +30,20 @@ Outputs:
   ProxyLambdaArn:
     Description: The ARN for Lambda function which is used to trigger requests to private ELB endpoint
     Value: !GetAtt ProxyLambdaFunction.Arn
-  LambdaTargetFullName:
-    Description: Target group full name
-    Value: !GetAtt TargetGroupLambda.TargetGroupFullName
-  UnhealthyTargetFullName:
-    Description: Unhealthy target group full name
-    Value: !GetAtt UnhealthyTargetGroupLambda.TargetGroupFullName
 Parameters:
-  VPCCidrBlock:
-    Description: VPC CidrIp
-    Type: String
-    Default: 10.0.0.0/16
-  IGWCidrBlock1:
-    Description: IGW Routed Subnet CIDR for AZ 1, default Range 10.0.0.1 - 10.0.15.254
-    Type: String
-    Default: 10.0.0.0/20
-  IGWCidrBlock2:
-    Description: IGW Routed Subnet CIDR for AZ 2, default Range 10.0.16.1 - 10.0.31.254
-    Type: String
-    Default: 10.0.16.0/20
-
-# alarms
-Resources:
   VPC:
-    Metadata:
-      License: 'MIT No Attribution:  Permission is hereby granted, free of charge,
-        to any person obtaining a copy of this software and associated documentation
-        files (the "Software"), to deal in the Software without restriction, including
-        without limitation the rights to use, copy, modify, merge, publish, distribute,
-        sublicense, and/or sell copies of the Software, and to permit persons to whom
-        the Software is furnished to do so.  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT
-        WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-        WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-        IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-        DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-        ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-        DEALINGS IN THE SOFTWARE.'
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock:
-        Ref: VPCCidrBlock
-      Tags:
-        - Key: Name
-          Value: ResiliencyVPC
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: ResiliencyVPC
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId:
-        Ref: VPC
-      InternetGatewayId:
-        Ref: InternetGateway
-  IGWSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId:
-        Ref: VPC
-      AvailabilityZone:
-        Fn::Select:
-          - 0
-          - Fn::GetAZs: ""
-      CidrBlock:
-        Ref: IGWCidrBlock1
-      Tags:
-        - Key: Name
-          Value: ResiliencyVPC-IGWSubnet1
-  IGWSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId:
-        Ref: VPC
-      AvailabilityZone:
-        Fn::Select:
-          - 1
-          - Fn::GetAZs: ""
-      CidrBlock:
-        Ref: IGWCidrBlock2
-      Tags:
-        - Key: Name
-          Value: ResiliencyVPC-IGWSubnet2
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: Public
-  PublicRoute1:   # Public route table has direct routing to IGW:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-  PublicSubnet1RouteTableAssociation1:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref IGWSubnet1
-  PublicSubnet1RouteTableAssociation2:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref IGWSubnet2
+    Type: String
+    Description: VPC ID
+  Subnet1:
+    Type: String
+    Description: Subnet ID
+  Subnet1Cidr:
+    Type: String
+    Description: Subnet CIDR
+  Subnet2:
+    Type: String
+    Description: Subnet ID
+Resources:
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -155,22 +62,22 @@ Resources:
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
+
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: "Lambda"
       GroupDescription: "Lambda security group"
       VpcId: !Ref VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 0
           ToPort: 65535
-          CidrIp: !Ref IGWCidrBlock1
+          CidrIp: !Ref Subnet1Cidr
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !Ref IGWCidrBlock1
+          CidrIp: !Ref Subnet1Cidr
 
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -179,8 +86,8 @@ Resources:
       Scheme: 'internal'
       Type: 'application'
       Subnets:
-        - !Ref IGWSubnet1
-        - !Ref IGWSubnet2
+        - !Ref Subnet1
+        - !Ref Subnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -273,7 +180,7 @@ Resources:
       ReservedConcurrentExecutions: 2
       VpcConfig:
         SubnetIds:
-          - !Ref IGWSubnet1
+          - !Ref Subnet1
         SecurityGroupIds:
           - !Ref LambdaSecurityGroup
       Environment:
@@ -329,7 +236,7 @@ Resources:
       ReservedConcurrentExecutions: 2
       VpcConfig:
         SubnetIds:
-          - !Ref IGWSubnet1
+          - !Ref Subnet1
         SecurityGroupIds:
           - !Ref LambdaSecurityGroup
       Environment:

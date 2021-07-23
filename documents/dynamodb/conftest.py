@@ -24,7 +24,7 @@ from resource_manager.src.util.dynamo_db_utils import (
     drop_and_wait_dynamo_db_table_if_exists, get_continuous_backups_status,
     get_contributor_insights_status_for_table_and_indexes,
     get_earliest_recovery_point_in_time, get_kinesis_destinations, get_stream_settings, get_time_to_live,
-    remove_global_table_and_wait_for_active, wait_table_to_be_active)
+    remove_global_table_and_wait_for_active, wait_table_to_be_active, put_item_async_stress_test)
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.param_utils import parse_param_value
 
@@ -233,6 +233,14 @@ def put_item(boto3_session, resource_pool, ssm_test_cache, item_ref, input_param
     item = generate_random_item(boto3_session, table_name)
     dynamo_db_client.put_item(TableName=table_name, Item=item)
     ssm_test_cache[item_ref] = item
+
+
+@given(parsers.parse('put random test item "{number}" times\n{input_parameters}'))
+@when(parsers.parse('put random test item "{number}" times\n{input_parameters}'))
+def put_item_n_times(boto3_session, resource_pool, ssm_test_cache, number, input_parameters):
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items = generate_random_item(boto3_session, table_name, int(number))
+    put_item_async_stress_test(boto3_session, table_name, items)
 
 
 @given(parsers.parse('put random test item "{number}" times with condition "{condition_ref}"\n{input_parameters}'))
