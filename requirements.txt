@@ -30,4 +30,3 @@ PyYAML~=5.4.1
 networkx==2.5.1
 cfn-lint==0.48.3
 aws-requests-auth==0.4.3
-pyOpenSSL==20.0.1
