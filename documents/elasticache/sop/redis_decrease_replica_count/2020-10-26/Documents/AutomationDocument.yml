@@ -24,13 +24,13 @@ parameters:
   ReplicationGroupId:
     type: String
     description: (Required) ReplicationGroupId
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
   NewReplicaCount:
     type: Integer
     description: (Optional) Desired number of replicas. Do not specify if ReplicasToRemove is set
     default: -1
-  AutomationAssumeRole:
-    type: String
-    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
   ReplicasToRemove:
     type: StringList
     description: (Optional) A list of the node ids to remove from the replication group.  Do not specify if NewReplicaCount is set
