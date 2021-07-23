@@ -46,13 +46,10 @@ Resources:
             Action:
               - ssm:StartAutomationExecution
               - cloudwatch:DescribeAlarms
-              - elasticloadbalancing:DescribeTargetGroups
-              - elasticloadbalancing:ModifyTargetGroup
-
           - Effect: Allow
             Resource:
               - !GetAtt DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole.Arn
             Action:
-              - iam:PassRole
+                - iam:PassRole
       Roles:
         - Ref: DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole
