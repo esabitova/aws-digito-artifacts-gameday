@@ -11,9 +11,15 @@ Outputs:
   PublicSubnetOne:
     Description: Public subnet one
     Value: !Ref 'PublicSubnetOne'
+  PublicSubnet1Cidr:
+    Description: Public subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
   PublicSubnetTwo:
     Description: Public subnet two
     Value: !Ref 'PublicSubnetTwo'
+  PublicSubnet2Cidr:
+    Description: Public subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
   PrivateSubnetWithoutInternetOne:
     Description: Private subnet w\o internet access
     Value: !Ref 'PrivateSubnetWithoutInternetOne'
@@ -38,15 +44,15 @@ Mappings:
   SubnetConfig:
     VPC:
       CIDR: '10.0.0.0/16'
-    PublicOne:
+    Public1:
       CIDR: '10.0.0.0/24'
-    PublicTwo:
+    Public2:
       CIDR: '10.0.1.0/24'
-    PrivateNoInternetOne:
+    PrivateNoInternet1:
       CIDR: '10.0.2.0/24'
-    PrivateNoInternetTwo:
+    PrivateNoInternet2:
       CIDR: '10.0.3.0/24'
-    PrivateNoInternetThree:
+    PrivateNoInternet3:
       CIDR: '10.0.4.0/24'
 Resources:
   # VPC in which containers will be networked.
@@ -68,7 +74,7 @@ Resources:
     Properties:
       AvailabilityZone: !Select [0, !GetAZs ""]
       VpcId: !Ref 'VPC'
-      CidrBlock: !FindInMap ['SubnetConfig', 'PublicOne', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
       MapPublicIpOnLaunch: true
   PublicSubnetTwo:
     Type: AWS::EC2::Subnet
@@ -78,14 +84,14 @@ Resources:
           - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
-      CidrBlock: !FindInMap ['SubnetConfig', 'PublicTwo', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
       MapPublicIpOnLaunch: true
 
   PrivateSubnetWithoutInternetOne:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternetOne', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet1', 'CIDR']
       AvailabilityZone:
         Fn::Select:
           - 0
@@ -95,7 +101,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternetTwo', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
       AvailabilityZone:
         Fn::Select:
           - 1
@@ -105,7 +111,7 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternetThree', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet3', 'CIDR']
       AvailabilityZone:
         Fn::Select:
           - 1
