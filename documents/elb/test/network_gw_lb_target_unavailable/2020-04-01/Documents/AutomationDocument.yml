@@ -22,21 +22,22 @@ parameters:
   LoadBalancerArn:
     type: String
     description: (Required) LoadBalancerArn
-  AutomationAssumeRole:
-    type: String
-    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  SyntheticAlarmName:
-    type: String
-    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   TargetGroupArns:
     type: StringList
     description: (Optional) The list of TargetGroupArns
     maxItems: 5
     default: []
   UnhealthyHealthCheckPort:
-    type: String
+    type: Integer
     description: (Optional) The port that supposed to be closed or return unexpected result for LB health check
-    default: "65534"
+    default: 65534
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    # e.g. elb:alarm:network_unhealthy_host_count:2020-04-01, elb:alarm:gateway_unhealthy_host_count:2020-04-01
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   IsRollback:
     type: String
     description: >-
@@ -83,17 +84,18 @@ mainSteps:
     isEnd: true
 
   - name: RollbackPreviousExecution
-    action: aws:executeScript
-    inputs:
-      Runtime: python3.7
-      Handler: restore_targets_healthcheck_port
-      InputPayload:
-        TargetGroups: '{{GetInputsFromPreviousExecution.LoadBalancerArn}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
-
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.restore_targets_healthcheck_port
+    # For each target_group in (Previous Execution)BackupCurrentExecution.TargetGroups
+    #   Call [boto3.modify_target_group]
+    #     Parameters:
+    #       TargetGroupArn
+    #       HealthCheckEnabled = target_group.HealthCheckProtocol
+    #       **if target_group.HealthCheckProtocol is False skip other params**
+    #       HealthCheckPath = target_group.HealthCheckPath
+    #       HealthCheckIntervalSeconds = target_group.HealthCheckIntervalSeconds
+    #       HealthCheckTimeoutSeconds = target_group.HealthCheckTimeoutSeconds
+    #       HealthyThresholdCount = target_group.HealthyThresholdCount
+    #       UnhealthyThresholdCount = target_group.UnhealthyThresholdCount
+    #       Matcher = target_group.Matcher
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
@@ -107,40 +109,26 @@ mainSteps:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
-
   - name: BackupCurrentExecution
-    action: aws:executeScript
-    outputs:
-      - Name: TargetGroups
-        Selector: $.Payload
-        Type: MapList
-    inputs:
-      Runtime: python3.7
-      Handler: backup_targets
-      InputPayload:
-        LoadBalancerArn: '{{LoadBalancerArn}}'
-        TargetGroupArns: '{{TargetGroupArns}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
+    # Call [boto3.describe_target_groups] (use pagination)
+    #   Parameters: 
+    #     LoadBalancerArn=params.LoadBalancerArn
+    #     **If params.TargetGroupArns not empty:**
+    #       TargetGroupArns=[*params.TargetGroupArns]
+    #   Take all '.TargetGroups[].HealthCheck*', '.TargetGroups[].HealthyThresholdCount' properties
+    #   Return MapList that contains LB_ARN, TargetGroup_ARN and other health check settings
 
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.backup_targets
-
-  - name: BreakTargets
+  - name: InjectFailure
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
-    action: aws:executeScript
-    inputs:
-      Runtime: python3.7
-      Handler: break_targets_healthcheck_port
-      InputPayload:
-        TargetGroups: '{{BackupCurrentExecution.TargetGroups}}'
-        HealthCheckPort: '{{UnhealthyHealthCheckPort}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
-
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.break_targets_healthcheck_port
+    # For each target_group in BackupCurrentExecution.TargetGroups
+    #   Call [boto3.modify_target_group]
+    #     Parameters:
+    #       TargetGroupArn
+    #       HealthCheckEnabled = True
+    #       HealthCheckPort=params.UnhealthyHealthCheckPort
+    #       HealthCheckIntervalSeconds = 10
+    #       HealthyThresholdCount = 1
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
@@ -154,24 +142,22 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["ALARM"]
+      DesiredValues: [ "ALARM" ]
 
   - name: RollbackCurrentExecution
     maxAttempts: 5
     onCancel: step:TriggerRollback
-    action: aws:executeScript
-    inputs:
-      Runtime: python3.7
-      Handler: restore_targets_healthcheck_port
-      InputPayload:
-        TargetGroups: '{{BackupCurrentExecution.TargetGroups}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
+    # For each target_group in BackupCurrentExecution.TargetGroups
+    #   Call [boto3.modify_target_group]
+    #     Parameters:
+    #       TargetGroupArn
+    #       HealthCheckEnabled = target_group.HealthCheckProtocol
+    #       **if target_group.HealthCheckProtocol is False skip other params**
+    #       HealthCheckPort=target_group.HealthCheckPort
+    #       HealthCheckIntervalSeconds = target_group.HealthCheckIntervalSeconds
+    #       HealthyThresholdCount = target_group.HealthyThresholdCount
 
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.restore_targets_healthcheck_port
-
-  - name: AssertAlarmToBeGreen
+  - name: AssertAlarmToBeGreen 
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
     timeoutSeconds: 900
@@ -181,7 +167,7 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["OK"]
+      DesiredValues: [ "OK" ]
     isEnd: true
 
   - name: TriggerRollback
@@ -192,7 +178,7 @@ mainSteps:
         Selector: $.Payload.RollbackExecutionId
         Type: String
     inputs:
-      Runtime: python3.7
+      Runtime: python3.6
       Handler: start_rollback_execution
       InputPayload:
         ExecutionId: '{{automation:EXECUTION_ID}}'
