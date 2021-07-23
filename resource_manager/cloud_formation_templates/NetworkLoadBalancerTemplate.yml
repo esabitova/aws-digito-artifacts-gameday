@@ -16,9 +16,9 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for load-balancer
+Description: Test stack for network load-balancer
 Outputs:
-  LoadBalancerArn:
+  NetworkELBArn:
     Description: Network Load Balancer ARN
     Value: !Ref  NetworkELB
   NetworkELBUrl:
@@ -122,7 +122,6 @@ Resources:
       InstanceInitiatedShutdownBehavior: stop
       InstanceType: !Ref InstanceType
       Monitoring: true
-      KeyName: 'iderbenev'
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: '0'
