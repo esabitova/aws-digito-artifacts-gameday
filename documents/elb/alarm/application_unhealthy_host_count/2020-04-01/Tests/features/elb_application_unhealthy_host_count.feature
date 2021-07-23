@@ -10,7 +10,7 @@ Feature: Alarm Setup - application load-balancer UnHealthyHostCount
 
     When alarm "elb:alarm:application_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | LambdaTargetFullName                                                   | ApplicationELBFullName                                                | Threshold | EvaluationPeriods | DatapointsToAlarm |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>UnhealthyTargetFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | 1000      | 1                 |1                  |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>UnhealthyTargetFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | 1000      | 1                 | 1                 |
     And sleep for "60" seconds
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
@@ -24,7 +24,7 @@ Feature: Alarm Setup - application load-balancer UnHealthyHostCount
 
     When alarm "elb:alarm:application_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | LambdaTargetFullName                                                   | ApplicationELBFullName                                                | Threshold | EvaluationPeriods | DatapointsToAlarm |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>UnhealthyTargetFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | 1         | 1                 |                   |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>UnhealthyTargetFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | 1         | 1                 | 1                 |
     And sleep for "60" seconds
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 180 seconds, check every 15 seconds

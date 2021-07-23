@@ -8,8 +8,8 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
       | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>VPCCidr}}  |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml         | SHARED       |                          |                                    |                             |
     When alarm "elb:alarm:gateway_unhealthy_host_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | Threshold | EvaluationPeriods | DatapointsToAlarm |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBFullName}} | 1000      | 1                 | 1                 |
+      | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | TargetGroup                                            |Threshold | EvaluationPeriods | DatapointsToAlarm |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBFullName}} | {{cfn-output:GatewayLoadBalancerTemplate>TargetGroup}} |1000      | 1                 | 1                 |
     Then wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
 
