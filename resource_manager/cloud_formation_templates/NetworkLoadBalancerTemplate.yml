@@ -37,9 +37,9 @@ Parameters:
   VPCCidr:
     Type: String
     Description: VPC Cidr
-  PrivateSubnet:
+  Subnet:
     Type: String
-    Description: Private Subnet ID
+    Description: Subnet ID
   InstanceType:
     Type: String
     Default: t3.small
@@ -79,7 +79,7 @@ Resources:
           Value: "false"
       Scheme: internal
       SubnetMappings:
-        - SubnetId: !Ref PrivateSubnet
+        - SubnetId: !Ref Subnet
       Type: network
 
   Listener:
@@ -129,7 +129,7 @@ Resources:
           GroupSet:
             - !Ref EC2SecurityGroup
           SubnetId:
-            Ref: PrivateSubnet
+            Ref: Subnet
       Tenancy: default
       UserData:
         Fn::Base64: !Sub |
