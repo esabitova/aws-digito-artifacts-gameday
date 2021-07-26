@@ -5,12 +5,30 @@ Outputs:
   VPCId:
     Description: The ID of the VPC that this stack is deployed in
     Value: !Ref 'VPC'
+  VPCCidr:
+    Description: The CIDR of the VPC that this stack is deployed in
+    Value: !GetAtt 'VPC.CidrBlock'
   PublicSubnetOne:
     Description: Public subnet one
     Value: !Ref 'PublicSubnetOne'
+  PublicSubnet1Cidr:
+    Description: Public subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
   PublicSubnetTwo:
     Description: Public subnet two
     Value: !Ref 'PublicSubnetTwo'
+  PublicSubnet2Cidr:
+    Description: Public subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
+  PrivateSubnetWithoutInternetOne:
+    Description: Private subnet w\o internet access
+    Value: !Ref 'PrivateSubnetWithoutInternetOne'
+  PrivateSubnetWithoutInternetTwo:
+    Description: Private subnet w\o internet access
+    Value: !Ref 'PrivateSubnetWithoutInternetTwo'
+  PrivateSubnetWithoutInternetThree:
+    Description: Private subnet w\o internet access
+    Value: !Ref 'PrivateSubnetWithoutInternetThree'
 Mappings:
   # Hard values for the subnet masks. These masks define
   # the range of internal IP addresses that can be assigned.
@@ -26,10 +44,16 @@ Mappings:
   SubnetConfig:
     VPC:
       CIDR: '10.0.0.0/16'
-    PublicOne:
+    Public1:
       CIDR: '10.0.0.0/24'
-    PublicTwo:
+    Public2:
       CIDR: '10.0.1.0/24'
+    PrivateNoInternet1:
+      CIDR: '10.0.2.0/24'
+    PrivateNoInternet2:
+      CIDR: '10.0.3.0/24'
+    PrivateNoInternet3:
+      CIDR: '10.0.4.0/24'
 Resources:
   # VPC in which containers will be networked.
   # It has two public subnets
@@ -41,13 +65,16 @@ Resources:
       EnableDnsSupport: true
       EnableDnsHostnames: true
       CidrBlock: !FindInMap ['SubnetConfig', 'VPC', 'CIDR']
+      Tags:
+        - Key: Name
+          Value: SharedVPC
   # Two public subnets, where containers can have public IP addresses
   PublicSubnetOne:
     Type: AWS::EC2::Subnet
     Properties:
       AvailabilityZone: !Select [0, !GetAZs ""]
       VpcId: !Ref 'VPC'
-      CidrBlock: !FindInMap ['SubnetConfig', 'PublicOne', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
       MapPublicIpOnLaunch: true
   PublicSubnetTwo:
     Type: AWS::EC2::Subnet
@@ -57,8 +84,38 @@ Resources:
           - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
       VpcId: !Ref 'VPC'
-      CidrBlock: !FindInMap ['SubnetConfig', 'PublicTwo', 'CIDR']
+      CidrBlock: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
       MapPublicIpOnLaunch: true
+
+  PrivateSubnetWithoutInternetOne:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet1', 'CIDR']
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
+
+  PrivateSubnetWithoutInternetTwo:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
+
+  PrivateSubnetWithoutInternetThree:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet3', 'CIDR']
+      AvailabilityZone:
+        Fn::Select:
+          - 1
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
 
   # Setup networking resources for the public subnets. Containers
   # in the public subnets have public IP addresses and the routing table
