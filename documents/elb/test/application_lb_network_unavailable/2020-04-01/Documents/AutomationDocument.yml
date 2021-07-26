@@ -79,9 +79,20 @@ mainSteps:
           StringEquals: '{{ LoadBalancerArn }}'
     isEnd: true
 
-  - name: RollbackPreviousExecution
     # 1. Update list of security groups. Call [boto3.set_security_groups]
     #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: update_security_groups
+      InputPayload:
+        SecurityGroups: '{{GetInputsFromPreviousExecution.LoadBalancerArn}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
+
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.update_security_groups
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
@@ -95,14 +106,28 @@ mainSteps:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
-  - name: BackupCurrentExecution
+
     # 1.call [boto3.describe_load_balancers]
     #   Params: LoadBalancerArns=[params.LoadBalancerArn]
     #   take '.SecurityGroups[]' collection and return as SecurityGroups
+  - name: BackupCurrentExecution
+    action: aws:executeScript
+    outputs:
+      - Name: TargetGroups
+        Selector: $.Payload
+        Type: MapList
+    inputs:
+      Runtime: python3.7
+      Handler: backup_security_groups
+      InputPayload:
+        LoadBalancerArn: '{{LoadBalancerArn}}'
+        #TargetGroupArns: '{{TargetGroupArns}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
 
-  - name: InjectFailure
-    onFailure: step:RollbackCurrentExecution
-    onCancel: step:TriggerRollback
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.backup_security_groups
+
     # if SecurityGroupIdsToDelete NOT SPECIFIED
 
     # 1. Create an empty security group. Call [boto3.create_security_group]
@@ -111,13 +136,30 @@ mainSteps:
     # 2. Update list of security groups. Call [boto3.set_security_groups]
     #   Params: SecurityGroups=[NewSecurityGroup]
     #   return '.SecurityGroupIds[]' collection as an output
-    
+
     # if SecurityGroupIdsToDelete SPECIFIED
 
     # 1. Remove from BackupCurrentExecution.SecurityGroups params.SecurityGroupIdsToDelete
     # 2. Update list of security groups. Call [boto3.set_security_groups]
     #   Params: SecurityGroups=[LeftSGs]
     #   return '.SecurityGroupIds[]' collection as an output
+  - name: InjectFailure
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: remove_security_group_from_alb
+      InputPayload:
+        LoadBalancerArn: '{{LoadBalancerArn}}'
+        SecurityGroupIdsToDelete: '{{SecurityGroupIdsToDelete}}'
+        #TargetGroups: '{{BackupCurrentExecution.TargetGroups}}'
+        #HealthCheckPort: '{{UnhealthyHealthCheckPort}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
+
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.remove_security_group_from_alb
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
@@ -131,15 +173,26 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "ALARM" ]
+      DesiredValues: ["ALARM"]
 
+    # 1. Update list of security groups. Call [boto3.set_security_groups]
+    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
   - name: RollbackCurrentExecution
     maxAttempts: 5
     onCancel: step:TriggerRollback
-    # 1. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: restore_alb_security_group
+      InputPayload:
+        TargetGroups: '{{BackupCurrentExecution.TargetGroups}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
 
-  - name: AssertAlarmToBeGreen 
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.update_security_groups
+
+  - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
     timeoutSeconds: 900
@@ -149,7 +202,7 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "OK" ]
+      DesiredValues: ["OK"]
     isEnd: true
 
   - name: TriggerRollback
@@ -160,7 +213,7 @@ mainSteps:
         Selector: $.Payload.RollbackExecutionId
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: start_rollback_execution
       InputPayload:
         ExecutionId: '{{automation:EXECUTION_ID}}'
