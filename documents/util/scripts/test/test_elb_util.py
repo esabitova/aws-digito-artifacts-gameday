@@ -71,34 +71,11 @@ class TestELBUtil(unittest.TestCase):
             elb_util.check_required_params(required_params, events)
         assert 'Requires test2 in events' in str(key_error.value)
 
-    def test_backup_targets__no_targets(self):
+    def test_backup_targets(self):
         events = {
             "LoadBalancerArn": NW_LB_ARN
         }
 
-        self.mock_elb.get_paginator = get_paginate_side_effect(get_target_groups)
-        res = elb_util.backup_targets(events, {})
-        self.assertEqual(res,
-                         [{'HealthCheckEnabled': True,
-                           'HealthCheckIntervalSeconds': 10,
-                           'HealthCheckPath': None,
-                           'HealthCheckPort': '80',
-                           'HealthCheckProtocol': 'TCP',
-                           'HealthCheckTimeoutSeconds': 10,
-                           'HealthyThresholdCount': 2,
-                           'LoadBalancerArn': NW_LB_ARN,
-                           'Matcher': {'GrpcCode': None, 'HttpCode': None},
-                           'TargetGroupArn': TARGET_GROUP_ARN,
-                           'UnhealthyThresholdCount': 2}])
-
-    def test_backup_targets__with_targets(self):
-        events = {
-            "LoadBalancerArn": NW_LB_ARN,
-            "TargetGroupArns": [TARGET_GROUP_ARN]
-        }
-
-        self.mock_elb.get_paginator = get_paginate_side_effect(get_target_groups)
-        res = elb_util.backup_targets(events, {})
         self.mock_elb.get_paginator = get_paginate_side_effect(get_target_groups)
         res = elb_util.backup_targets(events, {})
         self.assertEqual(res,
