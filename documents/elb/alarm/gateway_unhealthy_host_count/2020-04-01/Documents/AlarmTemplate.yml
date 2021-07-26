@@ -15,14 +15,14 @@ Resources:
       Namespace: AWS/GatewayELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${GatewayELBFullName}
+          Value: ${GatewayLoadBalancerName}
         - Name: TargetGroup
           Value: ${TargetGroup}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count

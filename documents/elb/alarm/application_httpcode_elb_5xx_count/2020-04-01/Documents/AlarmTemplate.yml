@@ -1,3 +1,4 @@
+---
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
   SNSTopicARN:
@@ -14,12 +15,12 @@ Resources:
       Namespace: AWS/ApplicationELB
       Dimensions:
         - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+          Value: ${ApplicationLoadBalancerName}
       Period: 60
-      Statistic: Sum
+      Statistic: Maximum
       Threshold: ${Threshold}
-      EvaluationPeriods: ${MaxTimeMinutes}
-      DatapointsToAlarm: ${MaxTimeMinutes}
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count

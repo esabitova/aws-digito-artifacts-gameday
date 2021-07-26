@@ -14,13 +14,13 @@ Resources:
       MetricName: LambdaUserError
       Namespace: AWS/ApplicationELB
       Dimensions:
-        - Name: LoadBalancer
-          Value: ${ApplicationELBArn}
+        - Name: TargetGroup
+          Value: ${LambdaTargetFullName}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}
-      EvaluationPeriods: ${MaxTimeMinutes}
-      DatapointsToAlarm: ${MaxTimeMinutes}
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
       Unit: Count
