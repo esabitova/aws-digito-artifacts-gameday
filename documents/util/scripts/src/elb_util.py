@@ -18,13 +18,10 @@ def backup_targets(events: dict, context: dict) -> list:
     ]
     check_required_params(required_params, events)
     elb_client = boto3.client('elbv2')
-    describe_params = {
-        "LoadBalancerArn": events['LoadBalancerArn']
-    }
-    if "TargetGroupArns" in events and events['TargetGroupArns']:
-        describe_params['TargetGroupArns'] = events['TargetGroupArns']
     paginator = elb_client.get_paginator('describe_target_groups')
-    pages = paginator.paginate(**describe_params)
+    pages = paginator.paginate(
+        LoadBalancerArn=events['LoadBalancerArn']
+    )
     res = []
     for page in pages:
         target_groups = page.get('TargetGroups')

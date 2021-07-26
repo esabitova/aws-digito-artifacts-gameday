@@ -20,9 +20,6 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     Then SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
 
   Scenario: Create Network LB and execute automation to make the target group unavailable with target groups specified
     Given the cloud formation templates as integration test resources
@@ -41,9 +38,6 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
       | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | {{alarm:under_test>AlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
 
     Then SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "Success"
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
@@ -66,11 +60,8 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     Then SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
 
-  Scenario: Create Gateway LB and execute automation to make the target group unavailable with target groups specified
+    Scenario: Create Gateway LB and execute automation to make the target group unavailable with target groups specified
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet                            | VPCCidr                     |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                   |                             |
@@ -84,11 +75,8 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | TargetGroupArns                                        | SyntheticAlarmName             |  AutomationAssumeRole                                                                                |
-      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}} | {{cfn-output:GatewayLoadBalancerTemplate>TargetGroup}} | {{alarm:under_test>AlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | {{alarm:under_test>AlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
 
     Then SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "Success"
-      | ExecutionId                |
-      | {{cache:SsmExecutionId>1}} |
-    And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
