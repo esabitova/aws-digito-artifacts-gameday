@@ -12,7 +12,6 @@ def check_required_params(required_params, events):
 
 
 def backup_targets(events: dict, context: dict) -> list:
-
     required_params = [
         "LoadBalancerArn"
     ]
@@ -96,11 +95,28 @@ def update_security_groups(events: dict, context: dict) -> None:
     print(events, context)
 
 
+# 1.call [boto3.describe_load_balancers]
+#   Params: LoadBalancerArns=[params.LoadBalancerArn]
+#   take '.SecurityGroups[]' collection and return as SecurityGroups
 def backup_security_groups(events: dict, context: dict) -> None:
     required_params = [
-        "TargetGroups",
-        "HealthCheckPort"
+        "LoadBalancerArn",
     ]
     check_required_params(required_params, events)
-    # elb_client = boto3.client('elbv2')
+    elb_client = boto3.client('elbv2')
+
     print(events, context)
+    describe_params = {
+        "LoadBalancerArn": events['LoadBalancerArn']
+    }
+
+    paginator = elb_client.get_paginator('describe_load_balancers')
+    pages = paginator.paginate(**describe_params)
+    res = []
+    for page in pages:
+        security_groups = page.get('SecurityGroups')
+        for security_group in security_groups:
+            res.append({
+                'SecurityGroupId': security_group.get('SecurityGroupId')
+            })
+    return res

@@ -113,7 +113,7 @@ mainSteps:
   - name: BackupCurrentExecution
     action: aws:executeScript
     outputs:
-      - Name: TargetGroups
+      - Name: SecurityGroups
         Selector: $.Payload
         Type: MapList
     inputs:
@@ -121,7 +121,6 @@ mainSteps:
       Handler: backup_security_groups
       InputPayload:
         LoadBalancerArn: '{{LoadBalancerArn}}'
-        #TargetGroupArns: '{{TargetGroupArns}}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 
