@@ -102,17 +102,17 @@ class TestSsmDocument(unittest.TestCase):
 
         execution_1 = {'AutomationExecution':
                        {'StepExecutions': [{'StepStatus': 'InProgress',
-                                           'StepName': 'test_step',
+                                            'StepName': 'test_step',
                                             'StepExecutionId': '11111'}],
                         'AutomationExecutionStatus': 'InProgress'}}
         execution_2 = {'AutomationExecution':
                        {'StepExecutions': [{'StepStatus': 'InProgress',
-                                           'StepName': 'test_step',
+                                            'StepName': 'test_step',
                                             'StepExecutionId': '11111'}],
                         'AutomationExecutionStatus': 'Pending'}}
         execution_3 = {'AutomationExecution':
                        {'StepExecutions': [{'StepStatus': 'InProgress',
-                                           'StepName': 'test_step',
+                                            'StepName': 'test_step',
                                             'StepExecutionId': '11111'}],
                         'AutomationExecutionStatus': 'Completed'}}
 
@@ -305,7 +305,9 @@ class TestSsmDocument(unittest.TestCase):
         step_name = 'test_step'
         execution = {'AutomationExecution':
                      {'StepExecutions': [],
-                      'AutomationExecutionStatus': 'InProgress'}}
+                      'AutomationExecutionStatus': 'InProgress'
+                      }
+                     }
         steps = execution['AutomationExecution']['StepExecutions']
         self.assertRaises(Exception, self.ssm_document.get_execution_step_url, execution_id, step_name, steps)
 
@@ -315,3 +317,24 @@ class TestSsmDocument(unittest.TestCase):
                        f'automation/execution/{execution_id}'
         actual_url = self.ssm_document.get_execution_url(execution_id)
         self.assertEqual(expected_url, actual_url)
+
+    def test_parse_input_parameters(self):
+        cf_output = {'VPC': {'PublicSubnet2Cidr': '10.0.1.0/24', 'PublicSubnetOne': 'subnet-09681e26eaa5d7619',
+                             'VPCId': 'vpc-0a57667ce26318a1e', 'PublicSubnetTwo': 'subnet-0833ad073dc1f378e',
+                             'VPCCidr': '10.0.0.0/16', 'PrivateSubnetWithoutInternetOne': 'subnet-0cc8005cb344bc14e',
+                             'PrivateSubnetWithoutInternetTwo': 'subnet-048dbf805312acf82',
+                             'PublicSubnet1Cidr': '10.0.0.0/24',
+                             'PrivateSubnetWithoutInternetThree': 'subnet-0a88466533a0ff0a3'},
+                     'SnsForAlarms': {
+                         'Topic': 'arn:aws:sns:eu-central-1:435978235099:SnsForAlarms-zzz'}}
+        cfn_installed_alarms = {'under_test': {'AlarmName': 'network-unhealthy-host-count-B2e6-0'}}
+        cache = {"SsmExecutionId": {"1": 'id1'}}
+        input_parameters = """\
+| cf_output                             | alarm_input                       | cache_input |
+| {{cfn-output:VPC>PublicSubnetOne}}    | {{alarm:under_test>AlarmName}}    | {{cache:SsmExecutionId>1}}    |"""
+        res = self.ssm_document.parse_input_parameters(cf_output, cfn_installed_alarms, cache, input_parameters)
+        self.assertEqual(res,
+                         {'cf_output': ['subnet-09681e26eaa5d7619'],
+                          'alarm_input': ['network-unhealthy-host-count-B2e6-0'],
+                          'cache_input': ['id1']}
+                         )

@@ -343,7 +343,7 @@ def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, c
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_document_name The SSM document name
     :param cfn_output_params The resource manager object to manipulate with testing resources
-    :param cfn_installed_alarms The
+    :param cfn_installed_alarms The resource manager object to manipulate with created alarms
     :param ssm_test_cache The custom test cache
     :param ssm_input_parameters The SSM execution input parameters
     """

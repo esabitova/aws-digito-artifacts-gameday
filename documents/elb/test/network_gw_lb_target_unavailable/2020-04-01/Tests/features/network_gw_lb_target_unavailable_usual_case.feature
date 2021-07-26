@@ -10,8 +10,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                                        | SHARED       |                          |                                   |                             |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
     And alarm "elb:alarm:network_unhealthy_host_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | NetworkELBName                                                | TargetGroup                                            | Threshold  |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBFullName}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | 1          |
+      | alarmId    | SNSTopicARN                       | NetworkLoadBalancerName                                       | TargetGroup                                            | Threshold  | DatapointsToAlarm | EvaluationPeriods |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBFullName}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | 1          | 1                 | 1                 |
+
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | SyntheticAlarmName             |  AutomationAssumeRole                                                                                |
       | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}} | {{alarm:under_test>AlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
@@ -30,8 +31,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                                        | SHARED       |                          |                                   |                             |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
     And alarm "elb:alarm:gateway_unhealthy_host_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | GatewayELBFullName                                            | TargetGroup                                            | Threshold  |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBFullName}} | {{cfn-output:GatewayLoadBalancerTemplate>TargetGroup}} | 1          |
+      | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | TargetGroup                                            | Threshold  | DatapointsToAlarm | EvaluationPeriods |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBFullName}} | {{cfn-output:GatewayLoadBalancerTemplate>TargetGroup}} | 1          | 1                 | 1                 |
+
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | SyntheticAlarmName             |  AutomationAssumeRole                                                                                |
       | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}} | {{alarm:under_test>AlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
