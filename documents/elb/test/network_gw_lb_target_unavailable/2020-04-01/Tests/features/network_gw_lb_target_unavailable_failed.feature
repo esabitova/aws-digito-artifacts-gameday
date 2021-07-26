@@ -1,7 +1,7 @@
 @elb
 Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
-  Scenario: Create Network LB and execute automation to test failure case
+  Scenario: Create Network LB and execute automation to make the target group unavailable to test failure case
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                           | ResourceType |
       | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    |
@@ -29,7 +29,7 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
   # Add any post-execution caching and validation here
 
 
-  Scenario: Create Gateway LB and execute automation to test failure case
+  Scenario: Create Gateway LB and execute automation to make the target group unavailable to test failure case
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                                     | ResourceType |
       | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml                                          | ON_DEMAND    |

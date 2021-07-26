@@ -1,7 +1,7 @@
 @elb
 Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
-  Scenario: Create Network LB and execute automation
+  Scenario: Create Network LB and execute automation to make the target group unavailable
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet                            | VPCCidr                     |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                   |                             |
@@ -22,7 +22,7 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
       | {{cache:SsmExecutionId>1}} |
 
 
-  Scenario: Create Gateway LB and execute automation
+  Scenario: Create Gateway LB and execute automation to make the target group unavailable
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet                            | VPCCidr                     |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                   |                             |
