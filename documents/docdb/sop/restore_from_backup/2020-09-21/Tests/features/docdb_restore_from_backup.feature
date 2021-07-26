@@ -3,8 +3,8 @@ Feature: SSM automation document to recover the database into a known good state
 
   Scenario: Recover the database into a known good state using latest snapshot
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                     | ResourceType |
-      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                        | ON_DEMAND    |
+      | CfnTemplatePath                                                                               | ResourceType |
+      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    |
       | documents/docdb/sop/restore_from_backup/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-DocDbRestoreFromBackup_2020-09-21" SSM document
     And cache cluster params includingAZ="True" in object "ClusterParams" in step "before"

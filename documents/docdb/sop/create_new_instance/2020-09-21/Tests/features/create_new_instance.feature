@@ -64,6 +64,3 @@ Feature: SSM automation document to recover the database into a known good state
     Then assert instance AZ value "ActualAvailabilityZone" at "after" is one of cluster AZs
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    Then delete created instance and wait for instance deletion for "600" seconds
-      | DBInstanceIdentifier            | DBClusterIdentifier                              |
-      | {{{{cache:before>InstanceId}}}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |

@@ -5,6 +5,7 @@ from boto3 import Session
 
 import resource_manager.src.constants as constants
 from .boto3_client_factory import client
+from botocore.exceptions import ClientError
 
 
 def get_number_of_instances(session: Session, db_cluster_identifier: str):
@@ -71,7 +72,19 @@ def delete_instance(session: Session, db_instance_identifier: str):
     :return Availability Zones of cluster
     """
     docdb_client = client('docdb', session)
-    response = docdb_client.delete_db_instance(DBInstanceIdentifier=db_instance_identifier)
+    try:
+        response = docdb_client.delete_db_instance(DBInstanceIdentifier=db_instance_identifier)
+    except ClientError as error:
+        """
+        To safely use this method in teardown let's ignore missing instances
+        because tests can fail before instance was created
+        """
+        if error.response['Error']['Code'] == 'DBInstanceNotFound':
+            return None
+    waiter = docdb_client.get_waiter('db_instance_deleted')
+    waiter.wait(
+        DBInstanceIdentifier=db_instance_identifier
+    )
     return response['DBInstance']['DBInstanceIdentifier']
 
 
