@@ -45,12 +45,14 @@ Resources:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'rds:CreateDBInstance'
-              - 'rds:DescribeDBClusters'
-              - 'rds:DescribeDBInstances'
-              - 'rds:DescribeDBClusterSnapshots'
-              - 'rds:ModifyDBCluster'
-              - 'rds:ModifyDBInstance'
-              - 'rds:RestoreDBClusterFromSnapshot'
+              - rds:CreateDBInstance
+              - rds:DescribeDBClusters
+              - rds:DescribeDBInstances
+              - rds:DescribeDBClusterSnapshots
+              - rds:ModifyDBCluster
+              - rds:ModifyDBInstance
+              - rds:RestoreDBClusterFromSnapshot
+              - kms:CreateGrant
+              - kms:DescribeKey
       Roles:
         - Ref: DigitoDocDbRestoreFromBackupAssumeRole

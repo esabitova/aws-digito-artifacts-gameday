@@ -45,11 +45,13 @@ Resources:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'rds:CreateDBInstance'
-              - 'rds:DescribeDBClusters'
-              - 'rds:DescribeDBInstances'
-              - 'rds:ModifyDBCluster'
-              - 'rds:ModifyDBInstance'
-              - 'rds:RestoreDBClusterToPointInTime'
+              - rds:CreateDBInstance
+              - rds:DescribeDBClusters
+              - rds:DescribeDBInstances
+              - rds:ModifyDBCluster
+              - rds:ModifyDBInstance
+              - rds:RestoreDBClusterToPointInTime
+              - kms:CreateGrant
+              - kms:DescribeKey
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole
