@@ -8,8 +8,8 @@ Feature: Alarm Setup - Memory Soft Limit
     When alarm "lambda:alarm:health-memory_soft_limit:2020-04-01" is installed
       |alarmId    |FunctionName                                 | Threshold   | SNSTopicARN
       |under_test |{{cfn-output:LambdaTemplate>LambdaFunction}} |  2000       | {{cfn-output:SnsForAlarms>Topic}} 
-    And invoke ordinary function "400" times
+    And invoke ordinary function "3" times
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 60 seconds
+    Then assert metrics for all alarms are populated within 2400 seconds, check every 60 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 30 seconds
