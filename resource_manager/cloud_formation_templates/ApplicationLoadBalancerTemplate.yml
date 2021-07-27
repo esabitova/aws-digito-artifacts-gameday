@@ -18,7 +18,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for ApplicationELB and related resources. Contains all alarms
 Outputs:
-  ApplicationELB:
+  ApplicationELBArn:
     Description: The Application Elastic Load Balancer
     Value: !Ref ApplicationELB
   ApplicationELBUrl:

@@ -15,8 +15,8 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>LambdaTargetFullName}} | 1         | 1                 | 1                 |
 
     When SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" executed
-      | LoadBalancerArn                                              | AutomationAssumeRole                                                                                    | SyntheticAlarmName             |
-      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELB} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole}} | {{alarm:under_test>AlarmName}} |
+      | LoadBalancerArn                                                  | AutomationAssumeRole                                                                                    | SyntheticAlarmName             |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole}} | {{alarm:under_test>AlarmName}} |
 
     Then SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |

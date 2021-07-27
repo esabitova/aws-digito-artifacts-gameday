@@ -139,6 +139,7 @@ def backup_security_groups(events: dict, context: dict) -> None:
         "LoadBalancerArn",
     ]
     check_required_params(required_params, events)
+    logger.info(f"Load balancer arn {events['LoadBalancerArn']}")
     elb_client = boto3.client('elbv2')
     describe_params = {
         'LoadBalancerArns': [events['LoadBalancerArn']]

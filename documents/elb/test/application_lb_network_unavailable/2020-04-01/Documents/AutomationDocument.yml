@@ -115,12 +115,12 @@ mainSteps:
     outputs:
       - Name: SecurityGroups
         Selector: $.Payload
-        Type: MapList
+        Type: StringList
     inputs:
       Runtime: python3.7
       Handler: backup_security_groups
       InputPayload:
-        LoadBalancerArn: '{{LoadBalancerArn}}'
+        LoadBalancerArn: '{{ LoadBalancerArn }}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 
@@ -182,7 +182,7 @@ mainSteps:
       Runtime: python3.7
       Handler: restore_alb_security_group
       InputPayload:
-        TargetGroups: '{{BackupCurrentExecution.TargetGroups}}'
+        SecurityGroups: '{{BackupCurrentExecution.SecurityGroups}}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 
