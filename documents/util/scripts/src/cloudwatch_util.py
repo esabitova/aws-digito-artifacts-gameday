@@ -1,10 +1,9 @@
+import boto3
 import logging
 import time
+from botocore.config import Config
 from datetime import datetime, timedelta
 from typing import Any, Callable, Iterator, List
-
-import boto3
-from botocore.config import Config
 
 boto3_config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 
@@ -212,10 +211,12 @@ def verify_memory_stress(events, context):
     exp_recovery_time = int(events['ExpectedRecoveryTime'])
     metric_namespace = events['MetricNamespace']
     asg_name = events['AutoScalingGroupName']
-    pre_dimensions=[{"Name": "AutoScalingGroupName", "Value": asg_name}]
+    pre_dimensions = [{"Name": "AutoScalingGroupName", "Value": asg_name}]
 
     # for some reason the memory load created is 70% of the requested load
-    verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage * 0.70, 360, 'mem_used_percent', exp_recovery_time, metric_namespace, pre_dimensions)
+    verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage * 0.70,
+                      360, 'mem_used_percent', exp_recovery_time,
+                      metric_namespace, pre_dimensions)
 
 
 def verify_alarm_triggered(events, context):
@@ -271,17 +272,23 @@ def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric
     end_time_utc = datetime.utcnow()
     start_time_utc = end_time_utc - timedelta(seconds=delta)
 
-    logging.info("starttime: {}, endtime: {}, delay: {}".format(str(start_time_utc), str(end_time_utc), metric_wait_time))
+    logging.info(
+        "starttime: {}, endtime: {}, delay: {}".format(str(start_time_utc),
+                                                       str(end_time_utc),
+                                                       metric_wait_time))
 
     for instance_id in instance_ids:
-        dimensions=pre_dimensions or []
+        dimensions = pre_dimensions or []
         dimensions.append({"Name": "InstanceId", "Value": instance_id})
-        actual_load = get_ec2_metric_max_datapoint(dimensions, metric_name, start_time_utc, end_time_utc, metric_namespace)
+        actual_load = get_ec2_metric_max_datapoint(dimensions, metric_name,
+                                                   start_time_utc, end_time_utc,
+                                                   metric_namespace)
         if actual_load < exp_load_percentage:
             raise Exception(
-                "Instance [{}] expected [{}] load [{}%] but was [{}%], start_time: [{}], end_time: [{}]".format(instance_id, metric_name,
-                                                                              exp_load_percentage,
-                                                                              actual_load, str(start_time_utc), str(end_time_utc)))
+                "Instance [{}] expected [{}] load [{}%] but was [{}%], start_time: [{}], end_time: [{}]".format(
+                    instance_id, metric_name,
+                    exp_load_percentage,
+                    actual_load, str(start_time_utc), str(end_time_utc)))
 
 
 def get_metric_alarm_threshold_values(event, context):

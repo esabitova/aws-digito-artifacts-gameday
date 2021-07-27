@@ -12,4 +12,3 @@ from pytest_bdd import (
 def test_memory_stress_on_asg():
     """Create AWS resources using CloudFormation template and execute '
     'SSM automation document ASG memory stress."""
-
