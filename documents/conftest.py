@@ -1,8 +1,7 @@
 import logging
-import json
-from resource_manager.src.util.lambda_utils import trigger_lambda
-from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
+import re
 
+import jsonpath_ng
 import pytest
 from pytest_bdd import (
     then,
@@ -11,14 +10,13 @@ from pytest_bdd import (
     parsers
 )
 
+from resource_manager.src.util import param_utils
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name, \
-    extract_param_value
+    extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
 from resource_manager.src.util.common_test_utils import generate_random_string_with_prefix
 from resource_manager.src.util.common_test_utils import check_security_group_exists
-from resource_manager.src.util.param_utils import parse_param_value
-from sttable import parse_str_table
 
 logger = logging.getLogger(__name__)
 
@@ -98,55 +96,107 @@ def generate_and_cache_different_list_value_by_property_name_from_expression(res
                                                              cache_property, step_key, input_parameters)
 
 
-@when(parsers.parse('start canary\n{input_parameters}'))
-def start_canary(boto3_session, input_parameters, resource_pool, ssm_test_cache, canary_for_teardown):
-    """
-    Start canary name with name passed as CanaryName
-    """
+@given(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+def cache_the_size_of_list(resource_pool, ssm_document, cfn_installed_alarms,
+                           cfn_output_params, ssm_test_cache,
+                           reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    if isinstance(reference_value, list):
+        put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, len(reference_value))
+    else:
+        raise AssertionError(f'{reference_value} needs to be a list')
+
+
+@given(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
+def cache_by_reference(resource_pool, ssm_document, cfn_installed_alarms,
+                       cfn_output_params, ssm_test_cache,
+                       reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, reference_value)
+
+
+@given(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
+def increment_the_value(resource_pool, ssm_document, cfn_installed_alarms,
+                        cfn_output_params, ssm_test_cache,
+                        reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, int(reference_value) + 1)
+
+
+@given(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
+                    '\n{input_parameters}'))
+@then(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
+                    '\n{input_parameters}'))
+def cache_by_method_of_service_name(boto3_session, resource_pool, ssm_document,
+                                    cfn_output_params, ssm_test_cache,
+                                    method_name, service_name, cache_key, cfn_installed_alarms,
+                                    input_parameters):
+    service_client = client(service_name, boto3_session)
+
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                                                     input_parameters)
+
+    arguments = {}
+    json_paths = {}
+    for parameter, value in parameters.items():
+        if isinstance(value, list):
+            for v in value:
+                if re.match("^\\$.*", v):
+                    json_paths[parameter] = v
+                else:
+                    arguments[parameter] = v
+        else:
+            if re.match("^\\$.*", value):
+                json_paths[parameter] = value
+            else:
+                arguments[parameter] = value
+
+    response = getattr(service_client, method_name)(**arguments)
+
+    for cache_property, json_path in json_paths.items():
+        found = jsonpath_ng.parse(json_path).find(response)
+        if found and len(found) > 0:
+            if len(found) == 1:
+                target_value = found[0].value
+            else:
+                target_value = [f.value for f in found]
+            put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)
+
+
+@when(parsers.parse('start canary'
+                    '\n{input_parameters}'))
+def start_canary(boto3_session, cfn_output_params, input_parameters, resource_pool, ssm_test_cache):
     synthetics_client = client("synthetics", boto3_session)
     canary_name = extract_param_value(input_parameters, "CanaryName", resource_pool, ssm_test_cache)
-    canary_for_teardown['CanaryName'] = canary_name
     logger.info(f'Starting canary {canary_name}')
     synthetics_client.start_canary(Name=canary_name)
     logger.info(f'Canary {canary_name} was started')
+    ssm_test_cache['CanaryName'] = canary_name
 
 
 @pytest.fixture(scope='function')
-def canary_for_teardown(boto3_session, ssm_test_cache):
+def stop_canary_teardown(boto3_session, resource_pool, ssm_test_cache):
     """
-    Fixture to stop canary at test teardown
+    Use that method as the part of tear down process.
+    To call the current method just pass it as an argument into your function
     """
-    canary = {}
-    yield canary
-    canary_name = canary.get('CanaryName')
-    if canary_name:
-        synthetics_client = client("synthetics", boto3_session)
-        logger.info(f'Stopping canary {canary_name}')
-        synthetics_client.stop_canary(Name=canary_name)
-        logger.info(f'Canary {canary_name} was stopped')
-
-
-@given(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-@when(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-@then(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-def invoke_lambda_function_with_parameters(
-        boto3_session, resource_pool, cfn_output_params, ssm_test_cache, lambda_arn, input_parameters_table
-):
-    parameters = parse_str_table(input_parameters_table, False).rows
-
-    lambda_arn = parse_param_value(lambda_arn, {'cache': ssm_test_cache, 'cfn-output': cfn_output_params})
-    lambda_params = {}
-    for item in parameters:
-        param_name = item['0']
-        param_value = parse_param_value(item['1'], {'cache': ssm_test_cache, 'cfn-output': cfn_output_params})
-        lambda_params[param_name] = param_value
-
-    payload = json.dumps(lambda_params)
-
-    logging.info(f'Invoke lambda {lambda_arn} ...')
-    result = trigger_lambda(lambda_arn=lambda_arn,
-                            payload=payload,
-                            invocation_type=LambdaInvocationType.Event,
-                            session=boto3_session)
-    logging.info(f'Lambda StatusCode: {result["StatusCode"]}')
-    logging.info(f'Lambda Request ID: {result["ResponseMetadata"]["RequestId"]}')
+    yield
+    synthetics_client = client("synthetics", boto3_session)
+    canary_name = ssm_test_cache['CanaryName']
+    logger.info(f'Stopping canary {canary_name}')
+    synthetics_client.stop_canary(Name=canary_name)
+    logger.info(f'Canary {canary_name} was stopped')
