@@ -14,6 +14,12 @@ Outputs:
   PublicSubnet1Cidr:
     Description: Public subnet 1 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
+  PrivateSubnet1Cidr:
+    Description: Private subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet1', 'CIDR']
+  PrivateSubnet2Cidr:
+    Description: Private subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
   PublicSubnetTwo:
     Description: Public subnet two
     Value: !Ref 'PublicSubnetTwo'

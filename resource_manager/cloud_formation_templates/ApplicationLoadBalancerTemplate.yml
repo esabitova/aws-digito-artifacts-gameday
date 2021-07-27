@@ -49,8 +49,11 @@ Parameters:
   Subnet2:
     Type: String
     Description: Subnet ID
+  Subnet3:
+    Type: String
+    Description: Subnet ID
 Resources:
-  ALBSecurityGroup:
+  LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "security group for ALB"
@@ -68,17 +71,45 @@ Resources:
                   - !Ref "AWS::StackId"
       VpcId: !Ref VPC
       SecurityGroupEgress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !Ref Subnet1Cidr
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
       SecurityGroupIngress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !Ref Subnet1Cidr
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
 
-  LambdaSecurityGroup:
+  ProxyLambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Lambda security group"
+      GroupName: !Join
+        - "-"
+        - - "Lambda-SG"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref Subnet1Cidr
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref Subnet1Cidr
+
+  TargetLambdaSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: "Lambda security group"
@@ -113,10 +144,10 @@ Resources:
       Scheme: 'internal'
       Type: 'application'
       Subnets:
-        - !Ref Subnet1
         - !Ref Subnet2
+        - !Ref Subnet3
       SecurityGroups:
-        - !Ref ALBSecurityGroup
+        - !Ref LoadBalancerSG
 
   HTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
@@ -207,9 +238,9 @@ Resources:
       ReservedConcurrentExecutions: 2
       VpcConfig:
         SubnetIds:
-          - !Ref Subnet1
+          - !Ref Subnet2
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
+          - !Ref TargetLambdaSG
       Environment:
         Variables:
           Host: 'test'
@@ -265,7 +296,7 @@ Resources:
         SubnetIds:
           - !Ref Subnet1
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
+          - !Ref ProxyLambdaSG
       Environment:
         Variables:
           Host: 'test'
