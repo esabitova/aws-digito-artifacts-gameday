@@ -2,7 +2,7 @@ from typing import List
 
 from adk.src.adk.domain.choice import Choice
 from adk.src.adk.domain.output import Output
-from adk.src.adk.parent_steps.abstract_automation_step import AbstractAutomationStep
+from adk.src.adk.parent_steps.abstract_automation_step import AutomationStepReference, AbstractAutomationStep
 
 
 class BranchStep(AbstractAutomationStep):
@@ -14,7 +14,7 @@ class BranchStep(AbstractAutomationStep):
     This class is NOT meant to be subclassed. Use as is for any aws:branch usages.
     """
 
-    def __init__(self, name: str, choices: List[Choice], description="", default_step: AbstractAutomationStep = None):
+    def __init__(self, name: str, choices: List[Choice], description="", default_step: AutomationStepReference = None):
         super().__init__(name=name)
         self.choices = choices
         self._description = description
@@ -47,17 +47,18 @@ class BranchStep(AbstractAutomationStep):
             raise Exception("Inputs were not available " + str(self.get_inputs()))
         for choice in self.choices:
             if choice.evaluate(params[choice.input_to_test]):
-                print("Branch step forwarding to step " + choice.skip_to.name)
-                choice.skip_to.invoke(params)
+                next_step = choice.skip_to.resolve_step(self)
+                print("Branch step forwarding to step " + next_step.name)
+                next_step.invoke(params)
                 return
-        fallback = self._default_step if self._default_step else self._next_step
+        fallback = (self._default_step if self._default_step else self._next_step).resolve_step(self)
         print("Branch proceeding to step " + fallback.name)
         fallback.invoke(params)
 
     def get_yaml(self) -> str:
-        choices_inputs = {"Choices": [choice.get_as_dict() for choice in self.choices]}
+        choices_inputs = {"Choices": [choice.get_as_dict(self) for choice in self.choices]}
         if self._default_step:
-            choices_inputs['Default'] = self._default_step.name
+            choices_inputs['Default'] = self._default_step.resolve_step(self).name
         return self.to_yaml(inputs=choices_inputs)
 
     def validations(self):
@@ -69,7 +70,7 @@ class BranchStep(AbstractAutomationStep):
         while next_step is not None:
             upcoming_steps.append(next_step)
             next_step = next_step.get_next_step()
-        branch_steps = [choice.skip_to for choice in self.choices]
+        branch_steps = [choice.skip_to.resolve_step(self) for choice in self.choices]
         if not set(branch_steps) <= set(upcoming_steps):
             step_names = [step.name for step in set(branch_steps).difference(set(upcoming_steps))]
             raise Exception('Attempting to use steps in branch that are not upcoming: ' + str(step_names))

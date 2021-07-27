@@ -4,6 +4,7 @@ import pytest
 
 from adk.src.adk.domain.branch_operation import Operation
 from adk.src.adk.domain.choice import Choice
+from adk.src.adk.parent_steps.abstract_automation_step import ResolveByName
 from adk.src.adk.parent_steps.automation.branch_step import BranchStep
 from adk.src.adk.parent_steps.automation.pause_step import PauseStep
 
@@ -23,9 +24,11 @@ class TestBranchStep(unittest.TestCase):
                 Choice(operation=Operation.BooleanEquals, input_to_test="Input1", constant=True, skip_to=pause_step1),
                 Choice(operation=Operation.StringEquals, input_to_test="Input2", constant="Foo", skip_to=pause_step2),
                 Choice(operation=Operation.NumericEquals, input_to_test="Input3", constant=5, skip_to=pause_step3),
-                Choice(operation=Operation.NumericLesser, input_to_test="Input4", constant=5, skip_to=pause_step4)
+                Choice(operation=Operation.NumericLesser, input_to_test="Input4", constant=5,
+                       skip_to=ResolveByName("Pause4"))
             ],
-            default_step=pause_step5)
+            default_step=pause_step5
+        )
         branch_step \
             .then(pause_step1) \
             .then(pause_step2) \
@@ -105,3 +108,37 @@ class TestBranchStep(unittest.TestCase):
                          '    Variable: \'{{Input4}}\'\n'
                          '    NumericLesser: 5\n'
                          '  Default: Pause5\n', self.branch_step.get_yaml())
+
+    def test_invalid_branch_final_step(self):
+        branch_step = BranchStep(
+            name="MyBranch",
+            choices=[]
+        )
+        with pytest.raises(Exception):
+            branch_step.validations()
+
+    def test_invalid_branch_jump_back(self):
+        pause_step1 = PauseStep(name="Pause1", pause_runtime=False).is_end(True)
+        pause_step2 = PauseStep(name="Pause2", pause_runtime=False).is_end(True)
+        branch_step = BranchStep(
+            name="MyBranch",
+            choices=[
+                Choice(operation=Operation.BooleanEquals, input_to_test="Input1", constant=True, skip_to=pause_step1)
+            ]
+        )
+        pause_step1.then(branch_step).then(pause_step2)
+        with pytest.raises(Exception):
+            branch_step.validations()
+
+    def test_invalid_resolve_by_name(self):
+        pause_step = PauseStep(name="Pause2", pause_runtime=False).is_end(True)
+        branch_step = BranchStep(
+            name="MyBranch",
+            choices=[
+                Choice(operation=Operation.BooleanEquals, input_to_test="Input1", constant=True,
+                       skip_to=ResolveByName('NoSuchName'))
+            ]
+        )
+        branch_step.then(pause_step)
+        with pytest.raises(ValueError):
+            branch_step.validations()
