@@ -172,12 +172,13 @@ class TestCloudWatchUtil(unittest.TestCase):
     def test_verify_ec2_stress_metric_wait_time_10_success(self):
         expected_cpu_load = 95
         actual_cpu_load = '95'
-        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        now = datetime.datetime.utcnow()
+        latest_timestamp = now - datetime.timedelta(seconds=200)
         self.cw_mock.get_metric_statistics.return_value = {
             'Datapoints': [
                 {'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
-                {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
-                {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}
+                {'Maximum': '3', 'Timestamp': now},
+                {'Maximum': '8', 'Timestamp': now}
             ]
         }
         stress_duration = 3
@@ -195,12 +196,13 @@ class TestCloudWatchUtil(unittest.TestCase):
     def test_verify_ec2_stress_metric_wait_time_1_success(self, patch_sleep):
         expected_cpu_load = 95
         actual_cpu_load = '95'
-        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        now = datetime.datetime.utcnow()
+        latest_timestamp = now - datetime.timedelta(seconds=200)
         self.cw_mock.get_metric_statistics.return_value = {
             'Datapoints': [
                 {'Maximum': actual_cpu_load, 'Timestamp': latest_timestamp},
-                {'Maximum': '3', 'Timestamp': datetime.datetime.utcnow()},
-                {'Maximum': '8', 'Timestamp': datetime.datetime.utcnow()}
+                {'Maximum': '3', 'Timestamp': now},
+                {'Maximum': '8', 'Timestamp': now}
             ]
         }
 
@@ -228,13 +230,14 @@ class TestCloudWatchUtil(unittest.TestCase):
         self.assertRaises(Exception, describe_metric_alarm_state, 'TestAlarm-1')
 
     def test_get_ec2_cpu_metric_max_datapoint_success(self):
-        latest_timestamp = datetime.datetime.utcnow() + datetime.timedelta(seconds=200)
+        now = datetime.datetime.utcnow()
+        latest_timestamp = now - datetime.timedelta(seconds=200)
         self.cw_mock.get_metric_statistics.return_value = {
             'Datapoints': [
-                {'Maximum': '10', 'Timestamp': datetime.datetime.utcnow()},
-                {'Maximum': '5', 'Timestamp': datetime.datetime.utcnow()},
+                {'Maximum': '10', 'Timestamp': now},
+                {'Maximum': '5', 'Timestamp': now},
                 {'Maximum': '100', 'Timestamp': latest_timestamp},
-                {'Maximum': '7', 'Timestamp': datetime.datetime.utcnow()}
+                {'Maximum': '7', 'Timestamp': now}
             ]
         }
         dp = get_ec2_metric_max_datapoint('ec2-instance-1', 'CPUUtilization', None, None)

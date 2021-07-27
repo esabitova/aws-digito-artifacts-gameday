@@ -45,7 +45,8 @@ Resources:
           - Effect: Allow
             Resource: '*'
             Action:
-              - 'rds:RebootDBInstance'
-              - 'rds:DescribeDBInstances'
+              - rds:RebootDBInstance
+              - rds:DescribeDBInstances
+              - kms:DescribeKey
       Roles:
         - Ref: DigitoRebootDbInstanceAssumeRole

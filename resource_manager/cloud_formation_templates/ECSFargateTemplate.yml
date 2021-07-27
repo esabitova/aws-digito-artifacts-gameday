@@ -26,6 +26,9 @@ Parameters:
   PublicSubnetOne:
     Description: first PublicSubnet id
     Type: String
+  PublicSubnetTwo:
+    Description: second PublicSubnet id
+    Type: String
 Outputs:
   ClusterName:
     Description: The name of the ECS cluster
@@ -129,6 +132,7 @@ Resources:
             - !Ref FargateContainerSecurityGroup
           Subnets:
             - !Ref PublicSubnetOne
+            - !Ref PublicSubnetTwo
           AssignPublicIp: ENABLED
       DesiredCount: 1
       TaskDefinition:

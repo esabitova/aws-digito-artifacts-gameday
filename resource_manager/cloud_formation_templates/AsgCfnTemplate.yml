@@ -834,6 +834,22 @@ Resources:
         - Name: AutoScalingGroupName
           Value:
             Ref: WebServerAutoscalingGroup
+  AsgMemoryUtilizationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: CWAgent
+      MetricName: mem_used_percent
+      Unit: Percent
+      Statistic: Maximum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 50
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: breaching
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value:
+            Ref: WebServerAutoscalingGroup
   UnHealthyHostCountAlarm:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
@@ -862,6 +878,9 @@ Outputs:
   AsgCpuUtilizationAlarmName:
     Description: Asg Cpu Utilization Alarm Name
     Value: !Ref AsgCpuUtilizationAlarm
+  AsgMemoryUtilizationAlarmName:
+    Description: Asg Memory Utilization Alarm Name
+    Value: !Ref AsgMemoryUtilizationAlarm
   UnHealthyHostCountAlarm:
     Description: UnHealthy Hosts Count Alarm Name
     Value: !Ref UnHealthyHostCountAlarm

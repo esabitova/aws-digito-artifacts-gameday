@@ -174,3 +174,49 @@ class TestEcsUtil(unittest.TestCase):
             cluster=CLUSTER_NAME
         )
         self.assertEqual("ServiceNotFound", client_error.value.response['Error']['Code'])
+
+    def test_update_service_without_number_of_task(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "TaskDefinitionArn": TD_ARN
+        }
+        res = ecs_util.update_service(events, None)
+        self.assertEqual(res, None)
+
+    def test_update_service_with_number_of_task(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "TaskDefinitionArn": TD_ARN,
+            "NumberOfTasks": 4
+        }
+        res = ecs_util.update_service(events, None)
+        self.assertEqual(res, None)
+
+    def test_update_service_with_wrong_number_of_task(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "TaskDefinitionArn": TD_ARN,
+            "NumberOfTasks": -1
+        }
+        res = ecs_util.update_service(events, None)
+        self.assertEqual(res, None)
+
+    def test_update_service_wrong_td_provided(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "TaskDefinitionArn": TD_ARN
+        }
+        self.mock_ecs.update_service.side_effect = ClientError(
+            error_response={"Error": {"Code": "ClientException"}},
+            operation_name='DescribeTaskDefinition'
+        )
+        with pytest.raises(ClientError) as client_error:
+            ecs_util.update_service(events, None)
+        self.mock_ecs.update_service.assert_called_once_with(service=SERVICE_NAME,
+                                                             cluster=CLUSTER_NAME,
+                                                             taskDefinition=TD_ARN)
+        self.assertEqual("ClientException", client_error.value.response['Error']['Code'])
