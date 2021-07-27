@@ -11,4 +11,4 @@ Feature: Alarm Setup - Lambda Average Memory Growth
     And invoke ordinary function "3" times
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 60 seconds
+    Then assert metrics for all alarms are populated within 2400 seconds, check every 60 seconds
