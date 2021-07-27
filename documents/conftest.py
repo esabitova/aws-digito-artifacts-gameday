@@ -10,7 +10,6 @@ from pytest_bdd import (
     parsers
 )
 
-from resource_manager.src.util import param_utils
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name, \
     extract_param_value, put_to_ssm_test_cache
@@ -94,45 +93,6 @@ def generate_and_cache_different_list_value_by_property_name_from_expression(res
                                                                              input_parameters):
     generate_and_cache_different_list_value_by_property_name(resource_pool, ssm_test_cache, old_property, input_list,
                                                              cache_property, step_key, input_parameters)
-
-
-@given(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
-@when(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
-@then(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
-def cache_the_size_of_list(resource_pool, ssm_document, cfn_installed_alarms,
-                           cfn_output_params, ssm_test_cache,
-                           reference, cache_property, cache_key):
-    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
-                                                                'cfn-output': cfn_output_params,
-                                                                'alarm': cfn_installed_alarms})
-    if isinstance(reference_value, list):
-        put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, len(reference_value))
-    else:
-        raise AssertionError(f'{reference_value} needs to be a list')
-
-
-@given(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
-@when(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
-@then(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
-def cache_by_reference(resource_pool, ssm_document, cfn_installed_alarms,
-                       cfn_output_params, ssm_test_cache,
-                       reference, cache_property, cache_key):
-    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
-                                                                'cfn-output': cfn_output_params,
-                                                                'alarm': cfn_installed_alarms})
-    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, reference_value)
-
-
-@given(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
-@when(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
-@then(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
-def increment_the_value(resource_pool, ssm_document, cfn_installed_alarms,
-                        cfn_output_params, ssm_test_cache,
-                        reference, cache_property, cache_key):
-    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
-                                                                'cfn-output': cfn_output_params,
-                                                                'alarm': cfn_installed_alarms})
-    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, int(reference_value) + 1)
 
 
 @given(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
