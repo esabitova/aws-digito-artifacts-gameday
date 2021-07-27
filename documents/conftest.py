@@ -1,5 +1,7 @@
 import logging
+import re
 
+import jsonpath_ng
 import pytest
 from pytest_bdd import (
     then,
@@ -8,9 +10,10 @@ from pytest_bdd import (
     parsers
 )
 
+from resource_manager.src.util import param_utils
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name, \
-    extract_param_value
+    extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
 from resource_manager.src.util.common_test_utils import generate_random_string_with_prefix
 from resource_manager.src.util.common_test_utils import check_security_group_exists
@@ -91,6 +94,87 @@ def generate_and_cache_different_list_value_by_property_name_from_expression(res
                                                                              input_parameters):
     generate_and_cache_different_list_value_by_property_name(resource_pool, ssm_test_cache, old_property, input_list,
                                                              cache_property, step_key, input_parameters)
+
+
+@given(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+def cache_the_size_of_list(resource_pool, ssm_document, cfn_installed_alarms,
+                           cfn_output_params, ssm_test_cache,
+                           reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    if isinstance(reference_value, list):
+        put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, len(reference_value))
+    else:
+        raise AssertionError(f'{reference_value} needs to be a list')
+
+
+@given(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('cache "{reference}" as "{cache_property}" "{cache_key}"'))
+def cache_by_reference(resource_pool, ssm_document, cfn_installed_alarms,
+                       cfn_output_params, ssm_test_cache,
+                       reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, reference_value)
+
+
+@given(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('increment the value of "{reference}" as "{cache_property}" "{cache_key}"'))
+def increment_the_value(resource_pool, ssm_document, cfn_installed_alarms,
+                        cfn_output_params, ssm_test_cache,
+                        reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, int(reference_value) + 1)
+
+
+@given(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
+                    '\n{input_parameters}'))
+@then(parsers.parse('cache by "{method_name}" method of "{service_name}" "{cache_key}"'
+                    '\n{input_parameters}'))
+def cache_by_method_of_service_name(boto3_session, resource_pool, ssm_document,
+                                    cfn_output_params, ssm_test_cache,
+                                    method_name, service_name, cache_key, cfn_installed_alarms,
+                                    input_parameters):
+    service_client = client(service_name, boto3_session)
+
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                                                     input_parameters)
+
+    arguments = {}
+    json_paths = {}
+    for parameter, value in parameters.items():
+        if isinstance(value, list):
+            for v in value:
+                if re.match("^\\$.*", v):
+                    json_paths[parameter] = v
+                else:
+                    arguments[parameter] = v
+        else:
+            if re.match("^\\$.*", value):
+                json_paths[parameter] = value
+            else:
+                arguments[parameter] = value
+
+    response = getattr(service_client, method_name)(**arguments)
+
+    for cache_property, json_path in json_paths.items():
+        found = jsonpath_ng.parse(json_path).find(response)
+        if found and len(found) > 0:
+            if len(found) == 1:
+                target_value = found[0].value
+            else:
+                target_value = [f.value for f in found]
+            put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)
 
 
 @when(parsers.parse('start canary'
