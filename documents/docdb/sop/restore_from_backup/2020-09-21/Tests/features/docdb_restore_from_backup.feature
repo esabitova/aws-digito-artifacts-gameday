@@ -16,7 +16,7 @@ Feature: SSM automation document to recover the database into a known good state
     And wait for cluster snapshot creation for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And prepare cluster for teardown
+    And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-DocDbRestoreFromBackup_2020-09-21" executed
@@ -53,7 +53,7 @@ Feature: SSM automation document to recover the database into a known good state
     And wait for cluster snapshot creation for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And prepare cluster for teardown
+    And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-DocDbRestoreFromBackup_2020-09-21" executed

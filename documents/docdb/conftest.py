@@ -287,7 +287,7 @@ def cluster_for_teardown(boto3_session, ssm_test_cache):
         logging.info(f'Cluster {cluster_id} deleted')
 
 
-@given(parsers.parse('prepare cluster for teardown\n{input_parameters}'))
+@given(parsers.parse('prepare replaced cluster for teardown\n{input_parameters}'))
 def prepare_cluster_teardown(resource_pool, ssm_test_cache, input_parameters, cluster_for_teardown):
     cluster_id = extract_param_value(
         input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
