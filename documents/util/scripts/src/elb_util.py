@@ -1,5 +1,8 @@
+import random
+
 import boto3
 import logging
+import string
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -77,12 +80,31 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
 
 def remove_security_group_from_alb(events: dict, context: dict) -> None:
     required_params = [
-        "TargetGroups",
-        "HealthCheckPort"
+        "LoadBalancerArn",
+        "SecurityGroupIdsToDelete"
     ]
     check_required_params(required_params, events)
-    # elb_client = boto3.client('elbv2')
-    print(events, context)
+    elb_client = boto3.client('elbv2')
+
+    # security_group_ids_to_delete = events['SecurityGroupIdsToDelete']
+    # if security_group_ids_to_delete:
+    #     pass
+    # else:
+
+    # create an empty security group
+    ec2_client = boto3.client('ec2')
+    sg_description = ''.join(random.choice(string.ascii_uppercase) for _ in range(20))
+    sg_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
+
+    resp = ec2_client.create_security_group(
+        Description=sg_description,
+        GroupName=sg_name,
+    )
+    security_groups = [resp['GroupId']]
+    elb_client.set_security_groups(
+        LoadBalancerArn=events['LoadBalancerArn'],
+        SecurityGroups=security_groups
+    )
 
 
 def update_security_groups(events: dict, context: dict) -> None:
@@ -105,18 +127,11 @@ def backup_security_groups(events: dict, context: dict) -> None:
     check_required_params(required_params, events)
     elb_client = boto3.client('elbv2')
 
-    print(events, context)
-    describe_params = {
-        "LoadBalancerArn": events['LoadBalancerArn']
-    }
-
     paginator = elb_client.get_paginator('describe_load_balancers')
-    pages = paginator.paginate(**describe_params)
+    # pages = paginator.paginate(**describe_params)
+    pages = paginator.paginate()
     res = []
     for page in pages:
-        security_groups = page.get('SecurityGroups')
-        for security_group in security_groups:
-            res.append({
-                'SecurityGroupId': security_group.get('SecurityGroupId')
-            })
+        load_balancers = page.get('LoadBalancers')
+        res = load_balancers[0].get('SecurityGroups') if len(load_balancers) > 0 else []
     return res

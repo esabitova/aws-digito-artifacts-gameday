@@ -58,7 +58,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: LoadBalancerArn
-        Selector: $.Payload.LoadBalancerArn[0]
+        Selector: $.Payload.LoadBalancerArn
         Type: String
     inputs:
       Runtime: python3.7
@@ -152,8 +152,6 @@ mainSteps:
       InputPayload:
         LoadBalancerArn: '{{LoadBalancerArn}}'
         SecurityGroupIdsToDelete: '{{SecurityGroupIdsToDelete}}'
-        #TargetGroups: '{{BackupCurrentExecution.TargetGroups}}'
-        #HealthCheckPort: '{{UnhealthyHealthCheckPort}}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 

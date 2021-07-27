@@ -3,14 +3,15 @@ import pytest
 import documents.util.scripts.src.elb_util as elb_util
 import documents.util.scripts.test.test_data_provider as test_data_provider
 # from botocore.exceptions import ClientError
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
 NW_LB_ARN = f"arn:aws:elasticloadbalancing:eu-central-1:{test_data_provider.ACCOUNT_ID}:loadbalancer/net/" \
             f"Netwo-Netwo-1OSTSXGO115F3/faf6ae914c184375"
 TARGET_GROUP_ARN = f"arn:aws:elasticloadbalancing:eu-central-1:{test_data_provider.ACCOUNT_ID}:" \
                    f"targetgroup/Netwo-NLBTa-1/1f76413fcf8b3bd7"
-APP_LB_ARN = f"arn:aws:elasticloadbalancing:eu-central-1:{test_data_provider.ACCOUNT_ID}:loadbalancer/net/" \
-             f"Netwo-Netwo-1OSTSXGO115F3/faf6ae914c184375"
+
+APP_LB_ARN = f"arn:aws:elasticloadbalancing:eu-west-1:{test_data_provider.ACCOUNT_ID}:loadbalancer/app/" \
+             f"Appli-Appli-N5LNH44RE2PN/10068a851b5b804e"
 
 
 def get_target_groups():
@@ -50,16 +51,17 @@ def get_paginate_side_effect(function):
 @pytest.mark.unit_test
 class TestELBUtil(unittest.TestCase):
     def setUp(self):
-        self.patcher = patch('boto3.client')
-        self.client = self.patcher.start()
+        self.patcher = {}  # patch('boto3.client')
+        self.client = {}  # self.patcher.start()
         self.mock_elb = MagicMock()
         self.side_effect_map = {
-            'elbv2': self.mock_elb,
+            # 'elbv2': self.mock_elb,
         }
-        self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
+        # self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
 
     def tearDown(self):
-        self.patcher.stop()
+        # self.patcher.stop()
+        pass
 
     def test_check_required_params(self):
         events = {
