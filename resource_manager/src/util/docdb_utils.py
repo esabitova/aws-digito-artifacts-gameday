@@ -187,9 +187,13 @@ def delete_snapshot(session: Session, snapshot_identifier: str):
     :return snapshotID
     """
     docdb_client = client('docdb', session)
-    response = docdb_client.delete_db_cluster_snapshot(
-        DBClusterSnapshotIdentifier=snapshot_identifier
-    )
+    try:
+        response = docdb_client.delete_db_cluster_snapshot(
+            DBClusterSnapshotIdentifier=snapshot_identifier
+        )
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'DBClusterSnapshotNotFoundFault':
+            return None
     return response['DBClusterSnapshot']['DBClusterSnapshotIdentifier']
 
 

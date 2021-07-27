@@ -16,6 +16,9 @@ Feature: SSM automation document to recover the database into a known good state
     And wait for cluster snapshot creation for "600" seconds
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    And prepare cluster for teardown
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-DocDbRestoreFromBackup_2020-09-21" executed
       | DBClusterIdentifier                              | AutomationAssumeRole                                                               |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDocDbRestoreFromBackupAssumeRole}} |
@@ -33,13 +36,7 @@ Feature: SSM automation document to recover the database into a known good state
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
     And assert "ClusterParams" at "before" became equal to "ClusterParams" at "after"
-    And delete replaced cluster instances and wait for their removal for "600" seconds
-      | ReplacedDBClusterIdentifier                      |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster and wait for cluster deletion for "600" seconds
-      | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete cluster snapshot
+
 
   Scenario: Recover the database into a known good state using specified snapshot identifier
     Given the cloud formation templates as integration test resources
@@ -54,6 +51,9 @@ Feature: SSM automation document to recover the database into a known good state
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And wait for cluster snapshot creation for "600" seconds
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    And prepare cluster for teardown
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-DocDbRestoreFromBackup_2020-09-21" executed
@@ -73,10 +73,3 @@ Feature: SSM automation document to recover the database into a known good state
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
     And assert "ClusterParams" at "before" became equal to "ClusterParams" at "after"
-    And delete replaced cluster instances and wait for their removal for "600" seconds
-      | ReplacedDBClusterIdentifier                      |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster and wait for cluster deletion for "600" seconds
-      | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete cluster snapshot

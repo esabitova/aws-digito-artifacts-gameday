@@ -32,9 +32,6 @@ Feature: SSM automation document to recover the database into a known good state
       | {{{{cache:before>InstanceId}}}} |
     Then assert "NumberOfInstances" at "before" less than "ActualNumberOfInstances" at "after"
     Then assert "ExpectedAvailabilityZone" at "before" became equal to "ActualAvailabilityZone" at "after"
-    Then delete created instance and wait for instance deletion for "600" seconds
-      | DBInstanceIdentifier            | DBClusterIdentifier                              |
-      | {{{{cache:before>InstanceId}}}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
 
 
   Scenario: Create a new instance without specifying AZ
