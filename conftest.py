@@ -88,6 +88,19 @@ def pytest_configure(config):
             cov_plugin.options.no_cov = True
 
 
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """
+    Sets test execution result to session object.
+    :param item:
+    :param call:
+    """
+    outcome = yield
+    result = outcome.get_result()
+    if result.when == 'call':
+        item.session.test_report = result
+
+
 def pytest_sessionstart(session):
     '''
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
@@ -240,7 +253,7 @@ def resource_pool(request, boto3_session, ssm_test_cache, function_logger):
     # interrupted/cancelled. In case of interruption resources will be
     # released and fixed on 'pytest_sessionfinish'
     if request.session.exitstatus != ExitCode.INTERRUPTED:
-        rp.release_resources()
+        rp.release_resources(request.session.test_report)
 
 
 @pytest.fixture(scope='function')

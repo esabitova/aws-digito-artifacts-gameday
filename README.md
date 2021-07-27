@@ -711,6 +711,7 @@ Here is a need to have a tool to manipulate integration test resources without e
     * LIST - lists templates which are deployed with associated stacks
 * -t, --cfn_templates (required): Comma separated list of cloud formation templates (order of given list of templates is not matter). Example: -t
   RdsCfnTemplate,S3Template (no file path/extension).
+* -s, --status (optional): Comma separated list of resource statuses to perform operation against. Example: -s EXECUTE_FAILED,CREATE_FAILED,UPDATE_FAILED,AVAILABLE
 * -p, --aws_profile (optional, if not given 'default' is used): AWS profile name for boto3 session creation.
 
 NOTE: More information about how to use this tool you can execute
