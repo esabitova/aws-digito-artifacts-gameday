@@ -50,7 +50,8 @@ class S3:
             # In case if template already exist it is possible that we want to update it.
             file_abs_path = os.getcwd() + ("/" if not file_relative_path.startswith("/") else "") + file_relative_path
             logging.info('Uploading file [%s] to S3 bucket [%s]', file_abs_path, bucket_name)
-            version_id = self._upload_local_file(bucket_name, object_key, file_abs_path)['VersionId']
+            upload_response = self._upload_local_file(bucket_name, object_key, file_abs_path)
+            version_id = upload_response['VersionId'] if 'VersionId' in upload_response else ''
             url = self._get_file_url(bucket_name, object_key)
             logging.info(f'File uploaded: url = {url}, bucket_name = {bucket_name}, object_key = {object_key}, '
                          f'version_id = {version_id}')

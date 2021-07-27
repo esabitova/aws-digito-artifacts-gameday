@@ -107,6 +107,10 @@ Conditions:
     - !Equals
       - !Ref DocumentDbConnectionAttemptCanaryS3Key
       - ""
+  CanaryS3ObjectHasVersion: !Not
+    - !Equals
+      - !Ref DocumentDbConnectionAttemptCanaryS3ObjectVersion
+      - ""
 Resources:
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret
@@ -666,7 +670,10 @@ Resources:
         S3Key:
           Ref: DocumentDbConnectionAttemptCanaryS3Key
         S3ObjectVersion:
-          Ref: DocumentDbConnectionAttemptCanaryS3ObjectVersion
+          Fn::If:
+            - CanaryS3ObjectHasVersion
+            - Ref: DocumentDbConnectionAttemptCanaryS3ObjectVersion
+            - Ref: AWS::NoValue
       ExecutionRoleArn: !GetAtt RoleDocumentDbConnectionAttempt.Arn
       Schedule:
         Expression: "rate(1 minute)"
