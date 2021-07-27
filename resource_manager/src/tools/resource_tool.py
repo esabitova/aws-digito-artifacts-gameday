@@ -16,8 +16,8 @@ logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s:%(message)s', lev
 
 
 class Command(Enum):
-    DESTROY = 0,
-    LIST = 1,
+    LIST = 0,
+    DESTROY = 1,
     DESTROY_ALL = 2
 
     @staticmethod
@@ -25,7 +25,7 @@ class Command(Enum):
         for c in Command:
             if c.name == command:
                 return c
-        raise Exception('Command for name [{}] is not supported.'.format(command))
+        raise Exception(f'Command for name [{command}] is NOT supported.')
 
 
 class ResourceTool(ResourceBase):
@@ -41,13 +41,15 @@ class ResourceTool(ResourceBase):
         self.account_id = boto3_session.client('sts').get_caller_identity().get('Account')
         self.region = boto3_session.region_name
 
-    def list_resources(self):
+    def list_resources(self, statuses: []):
         """
         Lists and prints existing template names with associated cfn stack names.
         :return:
         """
         existing_template_names = {}
-        for resource in ResourceModel.scan():
+        all_resources = self._get_all_resources()
+        for resource in self._filter_resources_by_status(all_resources, statuses):
+
             cfn_file_name = self._get_cfn_template_file_name(resource.cf_template_name)
             if not existing_template_names.get(cfn_file_name):
                 existing_template_names[cfn_file_name] = []
@@ -58,7 +60,7 @@ class ResourceTool(ResourceBase):
         for key in existing_template_names:
             print(BgColors.OKBLUE + f'* {key} -> {",".join(existing_template_names[key])}' + BgColors.ENDC)
 
-    def destroy_resources(self, cfn_template_names: [] = None):
+    def destroy_resources(self, statuses: [], cfn_template_names: [] = None):
         """
         Destroys cloud formation stacks, deletes cfn template files from S3 and record from DDB based
         on list of given cfn template names.
@@ -68,7 +70,7 @@ class ResourceTool(ResourceBase):
         resources_to_delete = []
         stacks_to_delete = {}
         all_resources = self._get_all_resources()
-        for resource in all_resources:
+        for resource in self._filter_resources_by_status(all_resources, statuses):
             cfn_file_name = self._get_cfn_template_file_name(resource.cf_template_name)
             # In case if cfn template list is given collect only template name related resources
             if cfn_template_names:
@@ -123,12 +125,29 @@ class ResourceTool(ResourceBase):
 
     def _get_all_resources(self):
         """
-        Lists all existing resouurces and created list as an output so that we can iterate it over.
+        Lists all existing resources and created list as an output so that we can iterate it over.
         :return: The list of resources.
         """
         all_resources = []
         for resource in ResourceModel.scan():
             all_resources.append(resource)
+        return all_resources
+
+    def _filter_resources_by_status(self, resources: [], statuses: []):
+        """
+        Filters resources by given list of resource statuses.
+        :param resources: The list of resources.
+        :param statuses: The list resource statuses to filter by.
+        :return: The list of filtered resources.
+        """
+        all_resources = []
+        for resource in resources:
+            if statuses:
+                status = ResourceModel.Status.from_string(resource.status)
+                if status in statuses:
+                    all_resources.append(resource)
+            else:
+                all_resources.append(resource)
         return all_resources
 
     def _is_dependent_template_listed(self, cfn_template_names: [], dependent_template_names: []) -> bool:
@@ -233,10 +252,12 @@ class ResourceTool(ResourceBase):
 
 def main(argv):
     cfn_template_names = None
+    statuses = None
     aws_profile_name = None
     command = None
     try:
-        opts, args = getopt.getopt(argv, "ho:p:t:c:", ["help", "aws_profile=", "cfn_templates=", "command="])
+        opts, args = getopt.getopt(argv, "ho:p:t:c:s:", ["help", "aws_profile=", "cfn_templates=",
+                                                         "command=", "status="])
     except getopt.GetoptError as err:
         logger.error(err)
         sys.exit(2)
@@ -255,6 +276,8 @@ def main(argv):
                   '   - LIST - lists templates which are deployed with associated stacks\n'
                   '-t, --cfn_templates (required if --command DESTROY): Comma separated list of cloud formation '
                   'templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).\n'
+                  '-s, --status (optional): Comma separated list of resource statuses to perform operation against.'
+                  ' Example: -s EXECUTE_FAILED,CREATE_FAILED,UPDATE_FAILED,AVAILABLE\n'
                   '-p, --aws_profile (optional, if not given \'default\' is used): AWS profile name'
                   ' for boto3 session creation.')
             sys.exit(0)
@@ -264,6 +287,11 @@ def main(argv):
             cfn_template_names = a
         elif o in ["-c", "--command"]:
             command = Command.from_string(a)
+        elif o in ["-s", "--status"]:
+            if a:
+                statuses = []
+                for st in a.strip().split(','):
+                    statuses.append(ResourceModel.Status.from_string(st))
 
     # Validate parameters
     if not command:
@@ -282,13 +310,13 @@ def main(argv):
     if command == Command.DESTROY:
         templates_to_process = cfn_template_names.split(',')
         logger.info(f' Executing command [{command.name}] for template names {templates_to_process}')
-        rt.destroy_resources(templates_to_process)
+        rt.destroy_resources(statuses, templates_to_process)
     elif command == Command.DESTROY_ALL:
         logger.info(f' Executing command [{command.name}]')
-        rt.destroy_resources()
+        rt.destroy_resources(statuses)
     elif command == Command.LIST:
         logger.info(f' Executing command [{command.name}]')
-        rt.list_resources()
+        rt.list_resources(statuses)
 
 
 if __name__ == "__main__":

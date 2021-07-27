@@ -10,6 +10,7 @@ For this purpose we have cerated tool which you can execute using following comm
   * DESTROY_ALL - destroys all resources, not need to provide template name
   * LIST - lists templates which are deployed with associated stacks  
 * -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).
+* -s, --status (optional): Comma separated list of resource statuses to perform operation against. Example: -s EXECUTE_FAILED,CREATE_FAILED,UPDATE_FAILED,AVAILABLE
 * -p, --aws_profile (optional): AWS profile name for boto3 session creation.
 NOTE: More information about how to use this tool you can execure command: ```python3.8 resource_manager/src/tools/resource_tool.py --help``` 
 #### Credentials

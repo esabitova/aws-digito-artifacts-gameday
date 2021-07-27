@@ -15,6 +15,7 @@ from pynamodb.exceptions import PutError
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from sttable import parse_str_table
+from _pytest.reports import TestReport
 
 
 class ResourcePool(ResourceBase):
@@ -156,7 +157,7 @@ class ResourcePool(ResourceBase):
         cfn_config = cfn_template[1]
         cfn_template_name = cfn_config[ResourcePool.CFN_TEMPLATE_NAME_PARAM]
         resource_type = cfn_config[ResourcePool.CFN_RESOURCE_TYPE_PARAM]
-        cfn_input_params = self._parse_cfn_input_params(cfn_config)
+        cfn_in_params = self._parse_cfn_input_params(cfn_config)
         pool_size = self._get_resource_pool_size(cfn_template_name, resource_type)
         time_out_sec = constants.wait_time_out_secs
         self.logger.info('Pulling resources for [{}] template'.format(cfn_template_path))
@@ -164,19 +165,34 @@ class ResourcePool(ResourceBase):
         waited_time_sec = 0
         while waited_time_sec < time_out_sec:
             cfn_template_path_by_type = self._get_cfn_template_path_by_type(cfn_template_path, resource_type)
-            resources = ResourceModel.query(cfn_template_path_by_type)
+            resources = ResourceModel.query_by_template(cfn_template_path_by_type)
+
+            if len(resources) >= pool_size and not self._has_executable_resources(resources):
+                raise Exception(f'No healthy resources were found for template [{cfn_template_path_by_type}] '
+                                f'and pool size [{pool_size}]. Resources are not deleted for investigation. '
+                                f'Please delete resources with state [{ResourceModel.Status.EXECUTE_FAILED.name}]'
+                                f' manually after issue investigation.')
+
             for i in range(pool_size):
                 resource = self._filter_resource_by_index_and_type(resources, i, resource_type)
                 try:
+
                     if resource is None:
-                        resource = self._create_resource(i, pool_size, cfn_template_path,
-                                                         cfn_input_params, resource_type)
+                        resource = self._create_resource(i, pool_size, cfn_template_path, cfn_in_params, resource_type)
                         if resource is not None:
                             return resource
+                    # In case if resource in state EXECUTE_FAILED, we don't want to proceed as resource should
+                    # be considered unusable and removed after investigation.
+                    # Reason: in case of test failure resource could be broken by failed test or SSM execution,
+                    # so we don't want to pass broken resource to next test, as well we want to leave this resource
+                    # for investigation and remove it afterwards.
+                    elif resource.status == ResourceModel.Status.EXECUTE_FAILED.name:
+                        continue
                     # In case if resource is AVAILABLE/FAILED. In case of FAILED we want to
                     # give a try to update resource so that testing session is not terminated.
                     elif resource.status == ResourceModel.Status.AVAILABLE.name or \
-                            resource.status == ResourceModel.Status.FAILED.name or \
+                            resource.status == ResourceModel.Status.UPDATE_FAILED.name or \
+                            resource.status == ResourceModel.Status.CREATE_FAILED.name or \
                             resource.status == ResourceModel.Status.DELETED.name:
                         cfn_content = yaml_util.file_loads_yaml(cfn_template_path)
 
@@ -185,9 +201,10 @@ class ResourcePool(ResourceBase):
                             existing_assume_roles = self._get_s3_cfn_content(config.ssm_assume_role_cfn_s3_path)
                             merged_roles = self._merge_assume_roles(existing_assume_roles, cfn_content)
                             if not yaml_util.is_equal(merged_roles, existing_assume_roles) or \
-                                    resource.status == ResourceModel.Status.FAILED.name or \
+                                    resource.status == ResourceModel.Status.UPDATE_FAILED.name or \
+                                    resource.status == ResourceModel.Status.CREATE_FAILED.name or \
                                     resource.status == ResourceModel.Status.DELETED.name:
-                                resource = self._update_resource(i, cfn_template_path, cfn_input_params,
+                                resource = self._update_resource(i, cfn_template_path, cfn_in_params,
                                                                  merged_roles, resource)
                                 if resource is not None:
                                     return resource
@@ -195,13 +212,14 @@ class ResourcePool(ResourceBase):
                                 return resource
                         else:
                             cfn_template_sha1 = yaml_util.get_yaml_file_sha1_hash(cfn_template_path)
-                            cfn_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_input_params)
+                            cfn_params_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_in_params)
 
                             if resource.cf_template_sha1 != cfn_template_sha1 \
                                     or resource.cf_input_parameters_sha1 != cfn_params_sha1 \
-                                    or resource.status == ResourceModel.Status.FAILED.name \
+                                    or resource.status == ResourceModel.Status.UPDATE_FAILED.name \
+                                    or resource.status == ResourceModel.Status.CREATE_FAILED.name \
                                     or resource.status == ResourceModel.Status.DELETED.name:
-                                resource = self._update_resource(i, cfn_template_path, cfn_input_params,
+                                resource = self._update_resource(i, cfn_template_path, cfn_in_params,
                                                                  cfn_content, resource)
                                 if resource is not None:
                                     return resource
@@ -250,9 +268,11 @@ class ResourcePool(ResourceBase):
                     return resource
         return None
 
-    def release_resources(self):
+    def release_resources(self, test_report: TestReport):
         """
         Releases resources - updates records in Dynamo DB table with status 'AVAILABLE'.
+        :param test_report:
+        :return:
         """
         self.logger.info("Releasing test resources.")
         # We do release/delete resources in reverse order, from bottom to top
@@ -260,19 +280,25 @@ class ResourcePool(ResourceBase):
         for cfn_config in reversed(list(self.cfn_templates.values())):
             resource = cfn_config[ResourcePool.CFN_RESOURCE_PARAM]
             if resource:
-                if resource.type == ResourceModel.Type.DEDICATED.name:
-                    # Deleting resource/stack for DEDICATED type.
-                    cfn_stack_name = resource.cf_stack_name
-                    try:
-                        ResourceModel.update_resource_status(resource, ResourceModel.Status.DELETING)
-                        # Delete stack.
-                        self.cfn_helper.delete_cf_stack(cfn_stack_name)
-                        ResourceModel.update_resource_status(resource, ResourceModel.Status.DELETED)
-                    except Exception as e:
-                        self.logger.error(f'Failed to delete [{cfn_stack_name}] stack due to: {e}')
-                        ResourceModel.update_resource_status(resource, ResourceModel.Status.DELETE_FAILED)
-                elif resource.status == ResourceModel.Status.LEASED.name:
-                    ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
+                if resource.type == ResourceModel.Type.DEDICATED.name \
+                        or resource.type == ResourceModel.Type.ON_DEMAND.name:
+                    # Sets last test executed using this resource
+                    resource.last_execution = test_report.nodeid
+                    if test_report.outcome == 'failed':
+                        ResourceModel.update_status(resource, ResourceModel.Status.EXECUTE_FAILED)
+                    elif resource.type == ResourceModel.Type.DEDICATED.name:
+                        # Deleting resource/stack for DEDICATED type.
+                        cfn_stack_name = resource.cf_stack_name
+                        try:
+                            ResourceModel.update_status(resource, ResourceModel.Status.DELETING)
+                            # Delete stack.
+                            self.cfn_helper.delete_cf_stack(cfn_stack_name)
+                            ResourceModel.update_status(resource, ResourceModel.Status.DELETED)
+                        except Exception as e:
+                            self.logger.error(f'Failed to delete [{cfn_stack_name}] stack due to: {e}')
+                            ResourceModel.update_status(resource, ResourceModel.Status.DELETE_FAILED)
+                    elif resource.status == ResourceModel.Status.LEASED.name:
+                        ResourceModel.update_status(resource, ResourceModel.Status.AVAILABLE)
 
     def fix_stalled_resources(self):
         """
@@ -284,11 +310,11 @@ class ResourcePool(ResourceBase):
             if not self.test_session_id or resource.test_session_id == self.test_session_id:
                 # If resource was not released because of failure or cancellation
                 if resource.status == ResourceModel.Status.LEASED.name:
-                    ResourceModel.update_resource_status(resource, ResourceModel.Status.AVAILABLE)
+                    ResourceModel.update_status(resource, ResourceModel.Status.AVAILABLE)
                 # If resource was not fully created/updated because of failure or cancellation
-                elif resource.status != ResourceModel.Status.AVAILABLE.name and \
-                        resource.status != ResourceModel.Status.FAILED.name and \
-                        resource.status != ResourceModel.Status.DELETED.name:
+                elif resource.status == ResourceModel.Status.CREATING.name or \
+                        resource.status == ResourceModel.Status.DELETING.name or \
+                        resource.status == ResourceModel.Status.UPDATING.name:
                     self.logger.info(f'Deleting resource for stack name [{resource.cf_stack_name}] '
                                      f'in status [{resource.status}].')
                     resource.delete()
@@ -374,6 +400,11 @@ class ResourcePool(ResourceBase):
         :param resource: The resource to be updated
         :return The updated cloud formation resource
         """
+        # Changing status to UPDATING/CREATING to block other threads to use it.
+        status = ResourceModel.Status.CREATING.name \
+            if resource.status == ResourceModel.Status.DELETED.name \
+            else ResourceModel.Status.UPDATING.name
+
         try:
             cfn_content_sha1 = yaml_util.get_yaml_content_sha1_hash(cfn_content)
             resource_type = ResourceModel.Type.from_string(resource.type)
@@ -381,11 +412,7 @@ class ResourcePool(ResourceBase):
             cfn_template_path_by_type = self._get_cfn_template_path_by_type(cfn_template_path, resource_type)
             cfn_stack_name = self._get_stack_name(cfn_template_path_by_type, index, resource_type)
 
-            # Changing status to UPDATING/CREATING to block other threads to use it.
-            if resource.status == ResourceModel.Status.DELETED.name:
-                resource.status = ResourceModel.Status.CREATING.name
-            else:
-                resource.status = ResourceModel.Status.UPDATING.name
+            resource.status = status
             resource.test_session_id = self.test_session_id
             resource.save()
 
@@ -398,10 +425,12 @@ class ResourcePool(ResourceBase):
         except PutError:
             return None
         except Exception as e:
-            # In case if update resource operation failed we mark record status as FAILED
+            # In case if CREATING/UPDATING resource operation failed we mark record status as CREATE/UPDATE_FAILED
             if resource:
-                resource.status = ResourceModel.Status.FAILED.name
-                resource.save()
+                if status == ResourceModel.Status.UPDATING.name:
+                    ResourceModel.update_status(resource, ResourceModel.Status.UPDATE_FAILED)
+                else:
+                    ResourceModel.update_status(resource, ResourceModel.Status.CREATE_FAILED)
             raise e
 
     def _create_resource(self, index: int, pool_size: int, cfn_template_path: str, cfn_input_params: {},
@@ -447,8 +476,7 @@ class ResourcePool(ResourceBase):
         except Exception as e:
             # In case if create resource operation failed we mark record status as FAILED
             if resource:
-                resource.status = ResourceModel.Status.FAILED.name
-                resource.save()
+                ResourceModel.update_status(resource, ResourceModel.Status.CREATE_FAILED)
             raise e
 
     def _update_resource_stack(self, resource: ResourceModel, resource_type: ResourceModel.Type,
@@ -625,3 +653,14 @@ class ResourcePool(ResourceBase):
         if resource_type != ResourceModel.Type.ASSUME_ROLE:
             return self.cfn_templates[cfn_template_path][ResourcePool.CFN_DEPENDENCY_STACKS_PARAM]
         return []
+
+    def _has_executable_resources(self, resources: []) -> bool:
+        """
+        Verifies is any executable resource exists. Returns True if exists, False otherwise.
+        :param resources: The resources to be verified.
+        :return: True if exists, False otherwise.
+        """
+        for r in resources:
+            if r.status != ResourceModel.Status.EXECUTE_FAILED.name:
+                return True
+        return False
