@@ -52,6 +52,7 @@ Resources:
                 - elbv2:SetSecurityGroups
                 - elbv2:CreateSecurityGroup
                 - elbv2:DescribeLoadBalancers
+                - elasticloadbalancing:DescribeLoadBalancers
           - Effect: Allow
             Resource:
               - !GetAtt DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole.Arn

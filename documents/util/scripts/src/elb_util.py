@@ -109,12 +109,26 @@ def remove_security_group_from_alb(events: dict, context: dict) -> None:
 
 def update_security_groups(events: dict, context: dict) -> None:
     required_params = [
-        "TargetGroups",
-        "HealthCheckPort"
+        "LoadBalancerArn",
+        "SecurityGroupIds"
     ]
     check_required_params(required_params, events)
-    # elb_client = boto3.client('elbv2')
-    print(events, context)
+    elb_client = boto3.client('elbv2')
+
+    # create an empty security group
+    ec2_client = boto3.client('ec2')
+    sg_description = ''.join(random.choice(string.ascii_uppercase) for _ in range(20))
+    sg_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
+
+    resp = ec2_client.create_security_group(
+        Description=sg_description,
+        GroupName=sg_name,
+    )
+    security_groups = [resp['GroupId']]
+    elb_client.set_security_groups(
+        LoadBalancerArn=events['LoadBalancerArn'],
+        SecurityGroups=security_groups
+    )
 
 
 # 1.call [boto3.describe_load_balancers]
@@ -126,12 +140,15 @@ def backup_security_groups(events: dict, context: dict) -> None:
     ]
     check_required_params(required_params, events)
     elb_client = boto3.client('elbv2')
+    describe_params = {
+        'LoadBalancerArns': [events['LoadBalancerArn']]
+    }
 
     paginator = elb_client.get_paginator('describe_load_balancers')
-    # pages = paginator.paginate(**describe_params)
-    pages = paginator.paginate()
+    pages = paginator.paginate(**describe_params)
     res = []
     for page in pages:
         load_balancers = page.get('LoadBalancers')
         res = load_balancers[0].get('SecurityGroups') if len(load_balancers) > 0 else []
+    logger.info(f"Security groups {res}")
     return res
