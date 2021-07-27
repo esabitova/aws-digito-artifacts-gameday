@@ -87,7 +87,8 @@ mainSteps:
       Runtime: python3.7
       Handler: update_security_groups
       InputPayload:
-        SecurityGroups: '{{GetInputsFromPreviousExecution.LoadBalancerArn}}'
+        LoadBalancerArn: '{{ LoadBalancerArn }}'
+        SecurityGroups: '{{BackupCurrentExecution.SecurityGroups}}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 
@@ -180,8 +181,9 @@ mainSteps:
     action: aws:executeScript
     inputs:
       Runtime: python3.7
-      Handler: restore_alb_security_group
+      Handler: update_security_groups
       InputPayload:
+        LoadBalancerArn: '{{LoadBalancerArn}}'
         SecurityGroups: '{{BackupCurrentExecution.SecurityGroups}}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports

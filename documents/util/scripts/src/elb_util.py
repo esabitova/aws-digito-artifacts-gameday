@@ -110,24 +110,14 @@ def remove_security_group_from_alb(events: dict, context: dict) -> None:
 def update_security_groups(events: dict, context: dict) -> None:
     required_params = [
         "LoadBalancerArn",
-        "SecurityGroupIds"
+        "SecurityGroups"
     ]
     check_required_params(required_params, events)
     elb_client = boto3.client('elbv2')
 
-    # create an empty security group
-    ec2_client = boto3.client('ec2')
-    sg_description = ''.join(random.choice(string.ascii_uppercase) for _ in range(20))
-    sg_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
-
-    resp = ec2_client.create_security_group(
-        Description=sg_description,
-        GroupName=sg_name,
-    )
-    security_groups = [resp['GroupId']]
     elb_client.set_security_groups(
         LoadBalancerArn=events['LoadBalancerArn'],
-        SecurityGroups=security_groups
+        SecurityGroups=events['SecurityGroups'],
     )
 
 
