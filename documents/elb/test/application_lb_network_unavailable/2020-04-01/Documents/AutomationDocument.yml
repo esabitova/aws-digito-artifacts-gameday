@@ -126,6 +126,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::elb_util.imports
 
         SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.get_load_balancer
         SCRIPT_PLACEHOLDER::elb_util.backup_security_groups
 
     # if SecurityGroupIdsToDelete NOT SPECIFIED
@@ -157,6 +158,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::elb_util.imports
 
         SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.get_load_balancer
         SCRIPT_PLACEHOLDER::elb_util.remove_security_group_from_alb
 
   - name: AssertAlarmToBeRed

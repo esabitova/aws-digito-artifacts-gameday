@@ -86,6 +86,10 @@ def remove_security_group_from_alb(events: dict, context: dict) -> None:
     check_required_params(required_params, events)
     elb_client = boto3.client('elbv2')
 
+    describe_params = {
+        'LoadBalancerArns': [events['LoadBalancerArn']]
+    }
+
     # security_group_ids_to_delete = events['SecurityGroupIdsToDelete']
     # if security_group_ids_to_delete:
     #     pass
@@ -93,12 +97,15 @@ def remove_security_group_from_alb(events: dict, context: dict) -> None:
 
     # create an empty security group
     ec2_client = boto3.client('ec2')
-    sg_description = ''.join(random.choice(string.ascii_uppercase) for _ in range(20))
-    sg_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
+    sg_description = 'inject_failure_sg_descr_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(20))
+    sg_name = 'inject_failure_sg_name' + ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
+
+    lb_item = get_load_balancer(describe_params)
 
     resp = ec2_client.create_security_group(
         Description=sg_description,
         GroupName=sg_name,
+        VpcId=lb_item['VpcId']
     )
     security_groups = [resp['GroupId']]
     elb_client.set_security_groups(
@@ -124,22 +131,31 @@ def update_security_groups(events: dict, context: dict) -> None:
 # 1.call [boto3.describe_load_balancers]
 #   Params: LoadBalancerArns=[params.LoadBalancerArn]
 #   take '.SecurityGroups[]' collection and return as SecurityGroups
-def backup_security_groups(events: dict, context: dict) -> None:
+def backup_security_groups(events: dict, context: dict) -> dict:
     required_params = [
         "LoadBalancerArn",
     ]
     check_required_params(required_params, events)
     logger.info(f"Load balancer arn {events['LoadBalancerArn']}")
-    elb_client = boto3.client('elbv2')
+
     describe_params = {
         'LoadBalancerArns': [events['LoadBalancerArn']]
     }
 
+    load_balancer = get_load_balancer(describe_params)
+
+    result = []
+    if load_balancer:
+        result = load_balancer.get('SecurityGroups')
+    logger.info(f"Security groups {result}")
+    return result
+
+
+def get_load_balancer(describe_params):
+    elb_client = boto3.client('elbv2')
     paginator = elb_client.get_paginator('describe_load_balancers')
     pages = paginator.paginate(**describe_params)
-    res = []
+    load_balancers = []
     for page in pages:
         load_balancers = page.get('LoadBalancers')
-        res = load_balancers[0].get('SecurityGroups') if len(load_balancers) > 0 else []
-    logger.info(f"Security groups {res}")
-    return res
+    return load_balancers[0] if len(load_balancers) > 0 else {}
