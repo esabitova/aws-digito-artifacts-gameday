@@ -3,7 +3,6 @@ import unittest
 import pytest
 import documents.util.scripts.src.elb_util as elb_util
 import documents.util.scripts.test.test_data_provider as test_data_provider
-# from botocore.exceptions import ClientError
 from unittest.mock import patch, MagicMock
 
 NW_LB_ARN = f"arn:aws:elasticloadbalancing:eu-central-1:{test_data_provider.ACCOUNT_ID}:loadbalancer/net/" \
