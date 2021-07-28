@@ -1,7 +1,7 @@
 @elasticache
 Feature: SSM automation document Digito-RedisIncreaseReplicaCount_2020-10-26
 
-  Scenario: Execute SSM automation document Digito-RedisIncreaseReplicaCount_2020-10-26
+  Scenario: Execute SSM automation document Digito-RedisIncreaseReplicaCount_2020-10-26 to increase redis replica count with Desired Replicas specified
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/ElasticacheReplicationGroupClusterDisabledSingleAZ.yml             | ON_DEMAND    |
@@ -22,7 +22,11 @@ Feature: SSM automation document Digito-RedisIncreaseReplicaCount_2020-10-26
     Then SSM automation document "Digito-RedisIncreaseReplicaCount_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And assert "RecordStartTime, IncreaseReplicaCount, VerifyReplicationGroupStatus, OutputRecoveryTime" steps are successfully executed in order
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
     And cache replica count as "NewReplicaCount" "after" SSM automation execution
       | ReplicationGroupId                                                                    |
       | {{cfn-output:ElasticacheReplicationGroupClusterDisabledSingleAZ>ReplicationGroupId}}  |
     And assert "NewReplicaCount" at "before" became equal to "NewReplicaCount" at "after"
+    And assert "OldReplicaCount" at "before" became not equal to "NewReplicaCount" at "after"

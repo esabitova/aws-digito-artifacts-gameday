@@ -16,20 +16,17 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for network load-balancer
+Description: Test stack for gateway load-balancer
 Outputs:
-  NetworkELBArn:
-    Description: Network Load Balancer ARN
-    Value: !Ref  NetworkELB
-  NetworkELBUrl:
-    Description: The Network Elastic Load Balancer DNS Name
-    Value: !GetAtt NetworkELB.DNSName
-  NetworkELBFullName:
-    Description: The Network Elastic Load Balancer Key For Alarm Setup
-    Value: !GetAtt NetworkELB.LoadBalancerFullName
+  GatewayELBArn:
+    Description: Gateway Load Balancer ARN
+    Value: !Ref  GatewayELB
+  GatewayELBFullName:
+    Description: The Gateway Elastic Load Balancer Key For Alarm Setup
+    Value: !GetAtt GatewayELB.LoadBalancerFullName
   TargetGroup:
     Description: TargetGroup name
-    Value: !GetAtt NLBTargetGroup.TargetGroupFullName
+    Value: !GetAtt GLBTargetGroup.TargetGroupFullName
 Parameters:
   VPC:
     Type: String
@@ -70,29 +67,25 @@ Resources:
           ToPort: !Ref ListenPort
           CidrIp: !Ref VPCCidr
 
-  NetworkELB:
+  GatewayELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       IpAddressType: ipv4
-      LoadBalancerAttributes:
-        - Key: deletion_protection.enabled
-          Value: "false"
-      Scheme: internal
       SubnetMappings:
         - SubnetId: !Ref Subnet
-      Type: network
+      Type: gateway
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref NLBTargetGroup
-      LoadBalancerArn: !Ref NetworkELB
+          TargetGroupArn: !Ref GLBTargetGroup
+      LoadBalancerArn: !Ref GatewayELB
       Port: !Ref ListenPort
       Protocol: TCP
 
-  NLBTargetGroup:
+  GLBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckEnabled: true
@@ -101,15 +94,12 @@ Resources:
       HealthCheckProtocol: TCP
       HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
-      Port: !Ref ListenPort
-      Protocol: TCP
-      TargetGroupAttributes:
-        - Key: stickiness.enabled
-          Value: "true"
+      Port: 6081
+      Protocol: GENEVE
       Targets:
         - Id:
             Ref: AmazonLinuxInstance
-          Port: !Ref ListenPort
+          Port: 6081
       TargetType: instance
       UnhealthyThresholdCount: 2
       VpcId: !Ref VPC

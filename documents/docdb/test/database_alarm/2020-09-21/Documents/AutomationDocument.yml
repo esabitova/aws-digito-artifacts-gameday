@@ -106,7 +106,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: EmptySecurityGroupId
-        Selector: $.Payload.EmptySecurityGroupId
+        Selector: $.Payload.EmptySecurityGroupId[0]
         Type: String
     inputs:
       Runtime: python3.7
