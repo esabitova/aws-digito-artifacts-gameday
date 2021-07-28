@@ -12,6 +12,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And alarm "elb:alarm:network_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | NetworkLoadBalancerName                                       | TargetGroup                                            | Threshold  | DatapointsToAlarm | EvaluationPeriods |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBFullName}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | 1          | 1                 | 1                 |
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | SyntheticAlarmName             |  AutomationAssumeRole                                                                                |
@@ -23,6 +26,10 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
+    And assert "OldPort" at "before" became equal to "NewPort" at "after"
 
   Scenario: Create Network LB and execute automation to make the target group unavailable with target groups specified
     Given the cloud formation templates as integration test resources
@@ -35,6 +42,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And alarm "elb:alarm:network_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | NetworkLoadBalancerName                                       | TargetGroup                                            | Threshold  | DatapointsToAlarm | EvaluationPeriods |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBFullName}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | 1          | 1                 | 1                 |
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | TargetGroupArns                                        | SyntheticAlarmName             | AutomationAssumeRole                                                                                 |
@@ -46,6 +56,10 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
+    And assert "OldPort" at "before" became equal to "NewPort" at "after"
 
   Scenario: Create Gateway LB and execute automation to make the target group unavailable
     Given the cloud formation templates as integration test resources
@@ -58,6 +72,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And alarm "elb:alarm:gateway_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | TargetGroup                                            | Threshold  | DatapointsToAlarm | EvaluationPeriods |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBFullName}} | {{cfn-output:GatewayLoadBalancerTemplate>TargetGroup}} | 1          | 1                 | 1                 |
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | SyntheticAlarmName             |  AutomationAssumeRole                                                                                |
@@ -69,6 +86,10 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
+    And assert "OldPort" at "before" became equal to "NewPort" at "after"
 
   Scenario: Create Gateway LB and execute automation to make the target group unavailable with target groups specified
     Given the cloud formation templates as integration test resources
@@ -81,6 +102,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And alarm "elb:alarm:gateway_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | TargetGroup                                            | Threshold  | DatapointsToAlarm | EvaluationPeriods |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBFullName}} | {{cfn-output:GatewayLoadBalancerTemplate>TargetGroup}} | 1          | 1                 | 1                 |
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | TargetGroupArns                                        | SyntheticAlarmName             |  AutomationAssumeRole                                                                                |
@@ -92,3 +116,7 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, BreakTargets, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
+    And assert "OldPort" at "before" became equal to "NewPort" at "after"

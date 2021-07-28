@@ -8,9 +8,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
       | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} |{{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>VPCCidr}}  |
       | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                   |                             |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
-    And cache by "describe_target_groups" method of "elbv2" "before"
-      | LoadBalancerArn                                           | OldPort                 |
-      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  | $.TargetGroups[0][HealthCheckPort] |
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | SyntheticAlarmName                            | AutomationAssumeRole                                                                               |
@@ -18,9 +18,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache by "describe_target_groups" method of "elbv2" "after"
-      | LoadBalancerArn                                           | NewPort                 |
-      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  | $.TargetGroups[0][HealthCheckPort] |
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
     And terminate "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -37,9 +37,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And cache by "describe_target_groups" method of "elbv2" "after"
-      | LoadBalancerArn                                           | OldPort                 |
-      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  | $.TargetGroups[0][HealthCheckPort] |
+    And cache target group HealthCheckPort as "OldPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
     And assert "OldPort" at "before" became equal to "OldPort" at "after"
     And assert "OldPort" at "before" became not equal to "NewPort" at "after"
 
@@ -52,9 +52,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
       | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} |{{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>VPCCidr}}  |
       | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                   |                             |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
-    And cache by "describe_target_groups" method of "elbv2" "before"
-      | LoadBalancerArn                                           | OldPort                 |
-      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  | $.TargetGroups[0][HealthCheckPort] |
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
       | LoadBalancerArn                                          | SyntheticAlarmName                            | AutomationAssumeRole                                                                               |
@@ -62,9 +62,9 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "600" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache by "describe_target_groups" method of "elbv2" "after"
-      | LoadBalancerArn                                           | NewPort                 |
-      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  | $.TargetGroups[0][HealthCheckPort] |
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
     And terminate "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -81,8 +81,8 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
     And SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And cache by "describe_target_groups" method of "elbv2" "after"
-      | LoadBalancerArn                                           | OldPort                 |
-      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  | $.TargetGroups[0][HealthCheckPort] |
+    And cache target group HealthCheckPort as "OldPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
     And assert "OldPort" at "before" became equal to "OldPort" at "after"
     And assert "OldPort" at "before" became not equal to "NewPort" at "after"
