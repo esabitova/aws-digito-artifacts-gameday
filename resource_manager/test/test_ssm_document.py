@@ -315,3 +315,8 @@ class TestSsmDocument(unittest.TestCase):
                        f'automation/execution/{execution_id}'
         actual_url = self.ssm_document.get_execution_url(execution_id)
         self.assertEqual(expected_url, actual_url)
+
+    def test_send_resume_signal(self):
+        self.mock_ssm.send_automation_signal.return_value = {}
+        self.ssm_document.send_resume_signal('dummy_execution', 'step1')
+        self.mock_ssm.send_automation_signal.assert_called_once()
