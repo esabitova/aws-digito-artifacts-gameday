@@ -781,3 +781,16 @@ def calculate_math(ssm_test_cache, first_value, operator, second_value, cache_pr
 def __validate_ssm_execution_id(ssm_execution_id):
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+
+
+@then(parse('SSM Automation Resume for execution "{execution_id_param}" on step "{ssm_step_name_param}"'))
+@when(parse('SSM Automation Resume for execution "{execution_id_param}" on step "{ssm_step_name_param}"'))
+def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
+                                    ssm_test_cache, cfn_output_params, ssm_document):
+    execution_id = parse_param_value(execution_id_param, {'cache': ssm_test_cache,
+                                                          'cfn-output': cfn_output_params})
+    ssm_step_name = parse_param_value(ssm_step_name_param, {'cache': ssm_test_cache,
+                                                            'cfn-output': cfn_output_params})
+
+    logging.info(f'Sending Resume signal to execution {execution_id} for step {ssm_step_name}')
+    ssm_document.send_resume_signal(execution_id, ssm_step_name)

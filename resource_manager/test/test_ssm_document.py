@@ -338,3 +338,8 @@ class TestSsmDocument(unittest.TestCase):
                           'alarm_input': ['network-unhealthy-host-count-B2e6-0'],
                           'cache_input': ['id1']}
                          )
+
+    def test_send_resume_signal(self):
+        self.mock_ssm.send_automation_signal.return_value = {}
+        self.ssm_document.send_resume_signal('dummy_execution', 'step1')
+        self.mock_ssm.send_automation_signal.assert_called_once()

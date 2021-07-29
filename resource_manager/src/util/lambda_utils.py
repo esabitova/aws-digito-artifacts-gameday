@@ -1,10 +1,9 @@
 import logging
 import time
-from botocore.exceptions import ClientError
-
-from datetime import datetime, timedelta
-from boto3 import Session
 from concurrent.futures.thread import ThreadPoolExecutor
+
+from boto3 import Session
+from botocore.exceptions import ClientError
 
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from .boto3_client_factory import client
@@ -93,7 +92,7 @@ def get_memory_size(lambda_arn: str, session: Session) -> int:
     return lambda_definition['Configuration']['MemorySize']
 
 
-def trigger_lambda(lambda_arn: str, payload: dict,
+def trigger_lambda(lambda_arn: str, payload: str,
                    invocation_type: LambdaInvocationType, session: Session, log_type: str = 'None') -> dict:
     """
     Calls AWS API to get the value of memory size parameter of given Lambda
@@ -173,11 +172,11 @@ def trigger_lambda_under_stress(lambda_arn: str, boto3_session: Session, overall
     """
     futures = []
     logging.info(f'Start Lambda stress invokes, stress time {str(overall_stress_time)} seconds')
-    start_stress = datetime.utcnow()
-    end_stress = start_stress + timedelta(seconds=overall_stress_time)
+    start_stress = time.time()
+    end_stress = start_stress + overall_stress_time
     overall_exec = 0
     with ThreadPoolExecutor() as executor:
-        while datetime.utcnow() < end_stress:
+        while time.time() < end_stress:
             for i in range(number_in_each_chunk):
                 futures.append(
                     executor.submit(trigger_ordinary_lambda, lambda_arn, boto3_session,
