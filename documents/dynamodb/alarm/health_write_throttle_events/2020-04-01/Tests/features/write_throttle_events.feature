@@ -8,7 +8,7 @@ Feature: Alarm Setup - Write Throttle Events Alarm
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                             | SHARED       |
     When alarm "dynamodb:alarm:health_write_throttle_events:2020-04-01" is installed
       | alarmId    | Threshold | DynamoDbTable                                                      | SNSTopicARN                       |
-      | under_test | 1         | {{cfn-output:DynamoDBTemplateWithLimitedThroughput>DynamoDBTable}} | {{cfn-output:SnsForAlarms>Topic}} |
+      | under_test | 1         | {{cfn-output:DynamoDBTemplate>DynamoDBTable}} | {{cfn-output:SnsForAlarms>Topic}} |
     And put random test item "500" times
       | DynamoDBTableName                                                  |
       | {{cfn-output:DynamoDBTemplateWithLimitedThroughput>DynamoDBTable}} |
