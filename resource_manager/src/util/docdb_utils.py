@@ -66,10 +66,11 @@ def get_cluster_azs(session: Session, db_cluster_identifier: str):
 
 def delete_instance(session: Session, db_instance_identifier: str):
     """
-    Use delete_db_instance aws method to remove cluster's AvailabilityZones
+    Use delete_db_instance aws method to remove instance by its InstanceIdentifier
+    Return None if instance is already deleted
     :param session boto3 client session
-    :param db_instance_identifier DocDB cluster ID
-    :return Availability Zones of cluster
+    :param db_instance_identifier DocDB instance ID
+    :return InstanceIdentifier of deleted instance
     """
     docdb_client = client('docdb', session)
     try:
@@ -182,9 +183,10 @@ def create_snapshot(session: Session, db_cluster_identifier: str, snapshot_ident
 def delete_snapshot(session: Session, snapshot_identifier: str):
     """
     Use delete_db_cluster_snapshot aws method to delete cluster snapshot
+    Return None if snapshot is already deleted
     :param session boto3 client session
-    :param snapshot_identifier new snapshot ID
-    :return snapshotID
+    :param snapshot_identifier DBClusterSnapshotIdentifier to delete
+    :return DBClusterSnapshotIdentifier of deleted snapshot
     """
     docdb_client = client('docdb', session)
     try:
