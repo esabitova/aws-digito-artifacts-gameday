@@ -228,6 +228,9 @@ Resources:
               log.debug(f'Path: {path}')
               if path == '/unhealthy_ping_invoke_lambda':
                   return { "statusCode": 500 }
+              elif path == '/invoke_lambda/healthy_ping':
+                  return { "statusCode": 200, "body": "healthy response 200",
+                           "headers": {"Content-Type": "text/plain"} }
               elif path == '/invoke_lambda/trigger_error':
                   raise ValueError('Internal error trigger exception.')
               elif path == '/invoke_lambda/response503':
@@ -381,10 +384,49 @@ Resources:
       Action: 'lambda:InvokeFunction'
       Principal: elasticloadbalancing.amazonaws.com
 
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: RunEveryMinute
+      Name: !Join
+        - "-"
+        - - "RunEveryMinute"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      ScheduleExpression: "rate(1 minute)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt
+            - ProxyLambdaFunction
+            - Arn
+          Id: !Ref ProxyLambdaFunction
+          Input: !Join
+            - ""
+            - - '{"host": "'
+              - !GetAtt ApplicationELB.DNSName
+              - '",'
+              - '"path": "/invoke_lambda/healthy_ping",'
+              - '"request_count": "5",'
+              - '"request_interval": "3"'
+              - '}'
+
   TargetGroupLambda:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthCheckEnabled: false
+#      HealthCheckEnabled: true
+#      HealthCheckIntervalSeconds: 11
+#      HealthCheckPath: "/invoke_lambda/healthy_ping"
+#      HealthCheckTimeoutSeconds: 10
+#      HealthyThresholdCount: 2
+#      Matcher:
+#        HttpCode: "200"
       Name: LambdaTargets
       TargetType: lambda
       Targets:
