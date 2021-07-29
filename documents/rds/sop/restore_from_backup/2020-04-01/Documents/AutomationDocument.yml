@@ -159,7 +159,7 @@ mainSteps:
           automation_id = events['AutomationId']
           return {
             'MasterSourceId' : masterId + '-new-' + automation_id if dryrun else masterId,
-            'MasterTargetId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId + '-old' + automation_id,
+            'MasterTargetId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId + '-old-' + automation_id,
             'ReplicaSourceId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId  + '-new-' + automation_id,
             'ReplicaTargetId' : masterId + '-new-' + automation_id + '-2' if dryrun else masterId
           }
