@@ -117,6 +117,9 @@ Resources:
         - !Ref Subnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "3"
 
   HTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
@@ -248,13 +251,6 @@ Resources:
       FunctionName: !Ref LambdaFunction
       Description: v1
 
-  LambdaActualAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref LambdaFunction
-      FunctionVersion: !GetAtt LambdaVersion.Version
-      Name: actual
-
   # Lambda resources
   ProxyLambdaFunction:
     Type: AWS::Lambda::Function
@@ -323,13 +319,6 @@ Resources:
     Properties:
       FunctionName: !Ref ProxyLambdaFunction
       Description: v1
-
-  ProxyLambdaActualAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref ProxyLambdaFunction
-      FunctionVersion: !GetAtt ProxyLambdaVersion.Version
-      Name: proxy_actual
 
   LambdaRole:
     Type: AWS::IAM::Role
