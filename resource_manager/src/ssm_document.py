@@ -107,7 +107,7 @@ class SsmDocument:
             elapsed_time = time.time() - start_time
         return step_status
 
-    def parse_input_parameters(self, cf_output, cache, input_parameters):
+    def parse_input_parameters(self, cf_output, cfn_installed_alarms, cache, input_parameters):
         """
         Function to parse given SSM document input parameters based. Parameters could be of 3 types:
         * cached - in case if given parameter value is pointing to cache (Example: {{cache:valueKeyA>valueKeyB}})
@@ -115,13 +115,16 @@ class SsmDocument:
         formation output (Example: {{output:paramNameA}})
         * simple value - in case if given parameter value is simple value
         :param cf_output - The CFN outputs
+        :param cfn_installed_alarms - Installed alarms
         :param cache - The cache, used to get cached values by given keys.
         :param input_parameters - The SSM input parameters as described in scenario feature file.
         """
         input_params = parse_str_table(input_parameters).rows[0]
         parameters = {}
         for param, param_val_ref in input_params.items():
-            value = param_utils.parse_param_value(param_val_ref, {'cache': cache, 'cfn-output': cf_output})
+            value = param_utils.parse_param_value(param_val_ref, {'cache': cache,
+                                                                  'cfn-output': cf_output,
+                                                                  'alarm': cfn_installed_alarms})
             parameters[param] = [str(value)]
         return parameters
 
