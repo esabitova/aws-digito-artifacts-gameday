@@ -339,11 +339,11 @@ def validate_throttling_config(events: dict, context: dict) -> dict:
     original_rate_limit: int = usage_plan['RateLimit']
     original_burst_limit: int = usage_plan['BurstLimit']
 
-    if abs(new_burst_limit - original_burst_limit) > original_burst_limit * 0.5:
+    if original_burst_limit and abs(new_burst_limit - original_burst_limit) > original_burst_limit * 0.5:
         raise ValueError('Burst rate limit is going to be changed more than 50%, please use smaller increments or use '
                          'ForceExecution parameter to disable validation')
 
-    if abs(new_rate_limit - original_rate_limit) > original_rate_limit * 0.5:
+    if original_rate_limit and abs(new_rate_limit - original_rate_limit) > original_rate_limit * 0.5:
         raise ValueError('Rate limit is going to be changed more than 50%, please use smaller increments or use '
                          'ForceExecution parameter to disable validation')
 
