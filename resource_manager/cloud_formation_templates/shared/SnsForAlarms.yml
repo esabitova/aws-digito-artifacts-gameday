@@ -67,3 +67,4 @@ Resources:
             Resource: !Ref SNSAlarmTopic
       Topics:
         - !Ref SNSAlarmTopic
+
