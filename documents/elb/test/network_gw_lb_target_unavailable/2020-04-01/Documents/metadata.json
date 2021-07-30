@@ -1,6 +1,6 @@
 {
-  "displayName": "Makes the target group unavailable for NLB",
-  "description": "Breaks health check inside the target group assigned to NLB",
+  "displayName": "Makes the target group unavailable for NLB or GWlB",
+  "description": "Breaks health check inside the target group assigned to NLB or GWlB",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",

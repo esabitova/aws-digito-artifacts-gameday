@@ -349,16 +349,19 @@ def set_up_cfn_template_resources(resource_pool, cfn_templates):
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @given(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @then(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
-def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, ssm_test_cache, ssm_input_parameters):
+def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                           ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_document_name The SSM document name
     :param cfn_output_params The resource manager object to manipulate with testing resources
+    :param cfn_installed_alarms The resource manager object to manipulate with created alarms
     :param ssm_test_cache The custom test cache
     :param ssm_input_parameters The SSM execution input parameters
     """
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                                                     ssm_input_parameters)
     execution_id = ssm_document.execute(ssm_document_name, parameters)
 
     _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache)
@@ -466,9 +469,11 @@ def given_cached_input_parameters(ssm_test_cache, input_parameters):
 
 @when(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
 @then(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
-def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+def terminate_ssm_execution(boto3_session, cfn_output_params, cfn_installed_alarms,
+                            ssm_test_cache, ssm_document, input_parameters):
     ssm = boto3_session.client('ssm')
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, input_parameters)
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms,
+                                                     ssm_test_cache, input_parameters)
     ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
 
 

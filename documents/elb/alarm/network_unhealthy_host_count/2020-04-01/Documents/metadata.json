@@ -1,0 +1,11 @@
+{
+  "displayName": "UnHealthyHostCount",
+  "description": "Alarm by Digito that reports when network load balancer unhealthy host count is greater than or equal to a threshold",
+  "alarmName": "Digito-GatewayUnHealthyHostCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elb:alarm:network_unhealthy_host_count:2020-04-01",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}

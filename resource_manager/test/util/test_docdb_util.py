@@ -109,6 +109,17 @@ class TestDocDBUtil(unittest.TestCase):
         self.mock_docdb_service.delete_db_instance.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
         self.assertEqual(DOCDB_INSTANCE_ID, result)
 
+    def test_delete_instance_not_found(self):
+        """
+        Delete should not fail if instance is already deleted
+        """
+        self.mock_docdb_service.delete_db_instance.side_effect = \
+            ClientError({'Error': {'Code': 'DBInstanceNotFound'}}, "")
+
+        result = docdb_utils.delete_instance(self.session_mock, DOCDB_INSTANCE_ID)
+        self.mock_docdb_service.delete_db_instance.assert_called_once_with(DBInstanceIdentifier=DOCDB_INSTANCE_ID)
+        self.assertEqual(None, result)
+
     def test_get_cluster_instances(self):
         api_value_mock = {
             'DBInstances': [
@@ -222,6 +233,20 @@ class TestDocDBUtil(unittest.TestCase):
             DBClusterSnapshotIdentifier=snapshot_id
         )
         self.assertEqual(result, snapshot_id)
+
+    def test_delete_snapshot_not_found(self):
+        """
+        Delete should not fail if snapshot is already deleted
+        """
+        snapshot_id = 'Snapshot-1'
+        self.mock_docdb_service.delete_db_cluster_snapshot.side_effect = \
+            ClientError({'Error': {'Code': 'DBClusterSnapshotNotFoundFault'}}, "")
+
+        result = docdb_utils.delete_snapshot(self.session_mock, snapshot_id)
+        self.mock_docdb_service.delete_db_cluster_snapshot.assert_called_once_with(
+            DBClusterSnapshotIdentifier=snapshot_id
+        )
+        self.assertEqual(result, None)
 
     def test_is_snapshot_available_truthy(self):
         snapshot_id = 'Snapshot-1'
