@@ -27,3 +27,4 @@ deps.json
 .vscode
 exec-vars.env
 package/
+.gradle/
