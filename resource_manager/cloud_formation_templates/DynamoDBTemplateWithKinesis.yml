@@ -17,6 +17,11 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for DynamoDB and related resources. Contains all alarms
+Parameters:
+  KmsKey:
+    Type: String
+    Description: The ARN for KMS key for encryption
+    AllowedPattern: 'arn:aws:kms:\S+:\d+:key\/\S+'
 Outputs:
   DynamoDBTable:
     Description: The DynamoDB Table Name
@@ -30,6 +35,10 @@ Resources:
     Properties:
       RetentionPeriodHours: 168
       ShardCount: 2
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId: !Ref KmsKey
+
   DynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
