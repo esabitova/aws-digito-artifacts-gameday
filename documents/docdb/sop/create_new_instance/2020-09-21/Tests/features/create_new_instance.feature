@@ -3,9 +3,10 @@ Feature: SSM automation document to recover the database into a known good state
 
   Scenario: Create a new instance in a specified AZ/Region
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                               | ResourceType |
-      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    |
-      | documents/docdb/sop/create_new_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                               | ResourceType | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml                                     | SHARED       |                                     |
+      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | documents/docdb/sop/create_new_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-CreateNewDocDbInstance_2020-09-21" SSM document
     And cache generated instance identifier as "InstanceId" at step "before"
     And cache one of cluster azs in property "RandomClusterAZ" in step "before"
@@ -36,9 +37,10 @@ Feature: SSM automation document to recover the database into a known good state
 
   Scenario: Create a new instance without specifying AZ
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                               | ResourceType |
-      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    |
-      | documents/docdb/sop/create_new_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                               | ResourceType | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml                                     | SHARED       |                                     |
+      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | documents/docdb/sop/create_new_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-CreateNewDocDbInstance_2020-09-21" SSM document
     And cache generated instance identifier as "InstanceId" at step "before"
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
