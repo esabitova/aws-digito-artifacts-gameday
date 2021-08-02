@@ -6,16 +6,12 @@ import unittest
 import uuid
 from datetime import datetime
 from typing import List
-import json
 import logging
-from resource_manager.src.util.lambda_utils import trigger_lambda
-from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 
 import boto3
 import pytest
 from pytest import ExitCode
 from pytest_bdd import (
-    parsers,
     when,
     given,
     then
@@ -800,29 +796,3 @@ def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
 
     logging.info(f'Sending Resume signal to execution {execution_id} for step {ssm_step_name}')
     ssm_document.send_resume_signal(execution_id, ssm_step_name)
-
-
-@given(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-@when(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-@then(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-def invoke_lambda_function_with_parameters(
-        boto3_session, resource_pool, cfn_output_params, ssm_test_cache, lambda_arn, input_parameters_table
-):
-    parameters = parse_str_table(input_parameters_table, False).rows
-
-    lambda_arn = parse_param_value(lambda_arn, {'cache': ssm_test_cache, 'cfn-output': cfn_output_params})
-    lambda_params = {}
-    for item in parameters:
-        param_name = item['0']
-        param_value = parse_param_value(item['1'], {'cache': ssm_test_cache, 'cfn-output': cfn_output_params})
-        lambda_params[param_name] = param_value
-
-    payload = json.dumps(lambda_params)
-
-    logging.info(f'Invoke lambda {lambda_arn} ...')
-    result = trigger_lambda(lambda_arn=lambda_arn,
-                            payload=payload,
-                            invocation_type=LambdaInvocationType.Event,
-                            session=boto3_session)
-    logging.info(f'Lambda StatusCode: {result["StatusCode"]}')
-    logging.info(f'Lambda Request ID: {result["ResponseMetadata"]["RequestId"]}')
