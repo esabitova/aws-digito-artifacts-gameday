@@ -87,7 +87,7 @@ Resources:
       GroupDescription: "Lambda security group"
       GroupName: !Join
         - "-"
-        - - "Lambda-SG"
+        - - "ProxyLambdaSG"
           - !Select
             - 0
             - !Split
@@ -112,10 +112,10 @@ Resources:
   TargetLambdaSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Lambda security group"
+      GroupDescription: "Target Lambda security group"
       GroupName: !Join
         - "-"
-        - - "Lambda-SG"
+        - - "TargetLambdaSG"
           - !Select
             - 0
             - !Split
@@ -148,7 +148,9 @@ Resources:
         - !Ref Subnet3
       SecurityGroups:
         - !Ref LoadBalancerSG
-
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "3"
   HTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
