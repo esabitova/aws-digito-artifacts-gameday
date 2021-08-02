@@ -154,3 +154,22 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PrivateSubnetWithoutInternetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetOne
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithoutInternetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetTwo
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithoutInternetThreeRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetThree
+      RouteTableId: !Ref PrivateRouteTable
