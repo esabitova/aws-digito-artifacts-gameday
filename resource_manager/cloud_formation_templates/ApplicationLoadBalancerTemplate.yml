@@ -243,10 +243,6 @@ Resources:
           - !Ref Subnet2
         SecurityGroupIds:
           - !Ref TargetLambdaSG
-      Environment:
-        Variables:
-          Host: 'test'
-          Path: 'test_path'
       Code:
         ZipFile: >
           import logging
@@ -292,10 +288,6 @@ Resources:
           - !Ref Subnet1
         SecurityGroupIds:
           - !Ref ProxyLambdaSG
-      Environment:
-        Variables:
-          Host: 'test'
-          Path: 'test_path'
       Code:
         ZipFile: >
           import http.client
@@ -317,7 +309,7 @@ Resources:
           log.setLevel(logging.DEBUG)
 
           def lambda_handler(event, context):
-            host = event['host'] if 'host' in event else getenv('Host')
+            host = event['host'] if 'host' in event else getenv('Host', 'localhost')
             path = event['path'] if 'path' in event else getenv('Path', '/')
             request_interval = event['request_interval'] if 'request_interval' in event else getenv('RequestInterval', 10)
             request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
