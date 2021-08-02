@@ -53,6 +53,20 @@ python3.8 publisher/src/publish_documents.py --region us-west-2 --file-name ec2-
 ** Replace script_placeholder in ssm documents with script code.
 ** Check documents which have changed and create or update document as needed to publish.
 
+# Generate Documents as Local YAML Files
+* Use below command to generate a local artifact called AutomationDocumentFinal.yaml. Needs python3.6 or later
+python3.8 publisher/src/generate_documents.py
+
+* To clean the generated files
+python3.8 publisher/src/generate_documents.py --clean
+
+* Why AutomationDocumentFinal.yaml?
+
+aws-digito-artifacts-spec currently verifies that rules are correctly attached to artifacts using the final generated 
+files: AutomationDocumentFinal.yaml. 
+This can be used to provide RECCOMENDATION_ASSETS for the testing needed by aws-digito-artifacts-spec
+
+
 # Contributing To This Package
 ## Package Organization
 * documents/<resource_type> -- This folder contains ssm automation documents which can be used directly in Digito to run test. Each service

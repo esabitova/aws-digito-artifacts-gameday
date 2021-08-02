@@ -23,3 +23,15 @@ def get_reader_writer(db_cluster_id: str, session: Session):
         else:
             db_reader = db_instance['DBInstanceIdentifier']
     return (db_reader, db_writer)
+
+
+def get_db_instance_by_id(db_instance_id: str, session: Session):
+    """
+    Helper function to fetch RDS instance info
+    :param db_instance_id: The RDS instance id
+    :param session: The boto3 session
+    :return: The instnace details
+    """
+    rds_client = client('rds', session)
+    db_instances = rds_client.describe_db_instances(DBInstanceIdentifier=db_instance_id)
+    return db_instances['DBInstances'][0]

@@ -289,3 +289,12 @@ class SsmDocument:
             if step_name == step_execution['StepName']:
                 return index
             index += 1
+
+    def send_resume_signal(self, execution_id: str, step_name: str, comment: str = ""):
+        payload = {'StepName': [step_name]}
+        if comment:
+            payload.update({'Comment': [comment]})
+        self.ssm_client.send_automation_signal(
+            AutomationExecutionId=execution_id,
+            SignalType='Resume',
+            Payload=payload)

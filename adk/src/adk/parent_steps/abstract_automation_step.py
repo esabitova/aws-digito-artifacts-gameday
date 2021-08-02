@@ -1,12 +1,17 @@
+import abc
 from abc import ABC
 from typing import Dict
 import time
-
 import yaml
 
 from adk.src.adk.domain.cancellation_exception import CancellationException
 from adk.src.adk.domain.non_retriable_exception import NonRetriableException
 from adk.src.adk.parent_steps.step import Step
+
+try:
+    from typing import Protocol
+except ImportError:
+    from typing_extensions import Protocol
 
 
 class AbstractAutomationStep(Step, ABC):
@@ -14,6 +19,7 @@ class AbstractAutomationStep(Step, ABC):
     def invoke(self, params: dict):
         params.setdefault("python_simulation_steps", [])
         params["python_simulation_steps"].append(self.name)
+        print(f"Executing Step: ${self.name}")
         self.validations()
         self._invoke_with_fallback(params)
 
@@ -117,7 +123,31 @@ class AbstractAutomationStep(Step, ABC):
 
         return yaml.dump(ssm_def, sort_keys=False)
 
+    def resolve_step(self, _: 'AbstractAutomationStep'):
+        return self
+
     @staticmethod
     def header_with_comments(header):
         # Prepend header line with # if it does not start with #
         return '\n'.join([line if line.strip().startswith("#") else "# " + line for line in header.split('\n')])
+
+
+class ResolveByName:
+    def __init__(self, step_name: str):
+        self.step_name = step_name
+
+    def resolve_step(self, step: AbstractAutomationStep) -> AbstractAutomationStep:
+        iter_step = step
+        while iter_step is not None:
+            if iter_step.name == self.step_name:
+                return iter_step
+            iter_step = iter_step.get_next_step()
+        raise ValueError(f"Failed to find Step with {self.step_name} "
+                         f"searching forward from {step.name if step else 'None'}")
+
+
+class AutomationStepReference(Protocol):
+    @abc.abstractmethod
+    def resolve_step(self, step: AbstractAutomationStep) -> AbstractAutomationStep:
+        # pragma: no cover
+        raise NotImplementedError

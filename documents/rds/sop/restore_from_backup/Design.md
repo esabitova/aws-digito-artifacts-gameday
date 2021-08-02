@@ -2,7 +2,7 @@
 rds:sop:restore_from_backup:2020-04-01
 
 ## Intent
-SOP from Digito to restore an RDS DB from backup
+SOP from Digito to restore a single AZ RDS DB from backup
 
 ## Type
 SOFTWARE
@@ -11,7 +11,7 @@ SOFTWARE
 MEDIUM
 
 ## Requirements
-* an RDS DB with backup
+* a single AZ RDS DB with backup
 
 ## Permission required for AutomationAssumeRole
 * rds:DeleteDBInstance

@@ -1,9 +1,7 @@
 import io
 import json
-from datetime import datetime, timedelta
-
 import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from botocore.exceptions import ClientError
@@ -11,6 +9,7 @@ from botocore.response import StreamingBody
 
 import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.lambda_utils as lambda_utils
+from documents.util.scripts.test.mock_sleep import MockSleep
 from documents.util.scripts.test.test_lambda_util import LAMBDA_ARN, LAMBDA_NAME, LAMBDA_VERSION
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 
@@ -235,15 +234,22 @@ class TestLambdaUtil(unittest.TestCase):
         self.assertTrue(response)
         self.assertEqual(self.mock_lambda.invoke.call_count, trigger_attempts)
 
-    def test_trigger_lambda_under_stress(self):
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_trigger_lambda_under_stress(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
         overall_stress_time = 13
         number_in_each_chunk = 3
         delay_among_chunks = 2
-        start_stress = datetime.utcnow()
-        end_stress = start_stress + timedelta(seconds=overall_stress_time)
+        start_stress = mock_sleep.time()
+        end_stress = start_stress + overall_stress_time
+
         lambda_utils.trigger_lambda_under_stress(
             LAMBDA_ARN, self.session_mock, overall_stress_time, number_in_each_chunk, delay_among_chunks)
-        self.assertLess(abs((end_stress - datetime.utcnow()).total_seconds()), delay_among_chunks + 0.1)
+
+        self.assertLess(abs(end_stress - mock_sleep.time()), delay_among_chunks + 0.1)
         self.assertLessEqual(self.mock_lambda.invoke.call_count, (1 + overall_stress_time
                              / delay_among_chunks) * number_in_each_chunk)
         self.assertGreaterEqual(self.mock_lambda.invoke.call_count, overall_stress_time

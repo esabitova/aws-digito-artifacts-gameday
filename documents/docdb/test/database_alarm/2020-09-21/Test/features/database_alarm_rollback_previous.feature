@@ -3,8 +3,8 @@ Feature: SSM automation document to test database alarm.
 
   Scenario: Test database alarm SSM execution in rollback
     Given the cached input parameters
-      | DistributionPackageRelativePath                                                      | DistributionPackageS3Key         |
-      | documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip | canary/database-alarm-canary.zip |
+      | DistributionPackageRelativePath                                                  | DistributionPackageS3Key         |
+      | documents/docdb/canary/database-connection-canary/database-connection-canary.zip | canary/database-alarm-canary.zip |
     #todo DIG-977 create CW Canary distribution package here instead of run-integ-buildspec.yml
     And upload file "{{cache:DistributionPackageRelativePath}}" as "{{cache:DistributionPackageS3Key}}" S3 key to ssm-test-resources S3 bucket and save locations to "CloudWatchCanary" cache property
     And the cloud formation templates as integration test resources

@@ -92,26 +92,29 @@ def generate_and_cache_different_list_value_by_property_name_from_expression(res
                                                              cache_property, step_key, input_parameters)
 
 
-@when(parsers.parse('start canary'
-                    '\n{input_parameters}'))
-def start_canary(boto3_session, cfn_output_params, input_parameters, resource_pool, ssm_test_cache):
+@when(parsers.parse('start canary\n{input_parameters}'))
+def start_canary(boto3_session, input_parameters, resource_pool, ssm_test_cache, canary_for_teardown):
+    """
+    Start canary name with name passed as CanaryName
+    """
     synthetics_client = client("synthetics", boto3_session)
     canary_name = extract_param_value(input_parameters, "CanaryName", resource_pool, ssm_test_cache)
+    canary_for_teardown['CanaryName'] = canary_name
     logger.info(f'Starting canary {canary_name}')
     synthetics_client.start_canary(Name=canary_name)
     logger.info(f'Canary {canary_name} was started')
-    ssm_test_cache['CanaryName'] = canary_name
 
 
 @pytest.fixture(scope='function')
-def stop_canary_teardown(boto3_session, resource_pool, ssm_test_cache):
+def canary_for_teardown(boto3_session, ssm_test_cache):
     """
-    Use that method as the part of tear down process.
-    To call the current method just pass it as an argument into your function
+    Fixture to stop canary at test teardown
     """
-    yield
-    synthetics_client = client("synthetics", boto3_session)
-    canary_name = ssm_test_cache['CanaryName']
-    logger.info(f'Stopping canary {canary_name}')
-    synthetics_client.stop_canary(Name=canary_name)
-    logger.info(f'Canary {canary_name} was stopped')
+    canary = {}
+    yield canary
+    canary_name = canary.get('CanaryName')
+    if canary_name:
+        synthetics_client = client("synthetics", boto3_session)
+        logger.info(f'Stopping canary {canary_name}')
+        synthetics_client.stop_canary(Name=canary_name)
+        logger.info(f'Canary {canary_name} was stopped')
