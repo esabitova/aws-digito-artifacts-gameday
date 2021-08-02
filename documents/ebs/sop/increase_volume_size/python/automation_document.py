@@ -1,38 +1,35 @@
+from adk.src.adk.builtin_steps.automation.aws_api.ebs_repo import \
+    ebs_describe_instance_volume, ebs_describe_volume, resize_volume
+from adk.src.adk.builtin_steps.automation.execute_script.util.output_recovery_time import OutputRecoveryTime
+from adk.src.adk.builtin_steps.automation.execute_script.util.record_start_time import RecordStartTime
 from adk.src.adk.builtin_steps.automation.run_commands import run_shell_script
 from adk.src.adk.domain.branch_operation import Operation
 from adk.src.adk.domain.choice import Choice
 from adk.src.adk.domain.data_type import DataType
 from adk.src.adk.domain.input import Input
+from adk.src.adk.parent_steps.abstract_automation_step import ResolveByName
 from adk.src.adk.parent_steps.automation.automation import Automation
 from adk.src.adk.parent_steps.automation.branch_step import BranchStep
-from adk.src.adk.parent_steps.step import Step
-from adk.src.adk.builtin_steps.automation.aws_api.ebs_repo import \
-    ebs_describe_instance_volume, ebs_describe_volume, resize_volume
-from adk.src.adk.builtin_steps.automation.util_repo import get_output_recovery_time, get_record_start_time_step
 from adk.src.adk.util.license import get_license
 from documents.ebs.sop.increase_volume_size.python.check_larger_volume import CheckLargerVolume
 from documents.ebs.sop.increase_volume_size.python.wait_for_volume_size import WaitForVolumeSize
 
 
-def size_validation_branch(skip_to: Step):
-    return BranchStep('SizeValidationBranch', choices=[
-        Choice(constant=True, input_to_test='CheckLargerVolume.VolumeAlreadyGreater', operation=Operation.BooleanEquals,
-               skip_to=skip_to)
-    ])
-
-
 def get_automation_doc():
-    recovery_time = get_output_recovery_time()
     return Automation(
         step_name='Digito_EBSRestoreFromBackup_2020_05_26',
         doc_name='Digito-EbsIncreaseVolumeSize_2020-05-26',
         assume_role='AutomationAssumeRole',
         steps=[
-            get_record_start_time_step(),
+            RecordStartTime(),
             ebs_describe_instance_volume(),
             ebs_describe_volume(),
             CheckLargerVolume(),
-            size_validation_branch(recovery_time),
+            BranchStep('SizeValidationBranch', choices=[
+                Choice(constant=True, input_to_test='CheckLargerVolume.VolumeAlreadyGreater',
+                       operation=Operation.BooleanEquals,
+                       skip_to=ResolveByName('OutputRecoveryTime'))
+            ]),
             resize_volume(),
             WaitForVolumeSize(),
             run_shell_script(
@@ -48,7 +45,7 @@ def get_automation_doc():
                     "[ ${volsize} != ${originalsize} ] 2>/dev/null"
                 ],
                 instance_ids_input='InstanceIdentifier'),
-            recovery_time
+            OutputRecoveryTime()
         ],
         inputs=[
             Input(name='SizeGib', input_type=DataType.Integer,

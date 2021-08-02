@@ -107,19 +107,33 @@ mainSteps:
           import boto3
           rds = boto3.client('rds')
           db_instance_response = rds.describe_db_instances(DBInstanceIdentifier = events['SourceDBInstanceIdentifier'])['DBInstances'][0]
-          rds.restore_db_instance_from_db_snapshot(
-            Engine = db_instance_response['Engine'],
-            StorageType = db_instance_response['StorageType'],
-            DBSnapshotIdentifier = events['DBSnapshotIdentifier'],
-            DBInstanceIdentifier = events['TargetDBInstanceIdentifier'],
-            DBInstanceClass = db_instance_response['DBInstanceClass'],
-            DBSubnetGroupName = db_instance_response['DBSubnetGroup']['DBSubnetGroupName'],
-            AvailabilityZone = db_instance_response['AvailabilityZone'],
-            Port = db_instance_response["Endpoint"]['Port'],
-            MultiAZ = db_instance_response['MultiAZ'],
-            CopyTagsToSnapshot = db_instance_response['CopyTagsToSnapshot'],
-            VpcSecurityGroupIds = [db_instance_response['VpcSecurityGroups'][0]['VpcSecurityGroupId']]
-          )
+          if db_instance_response['MultiAZ']:
+            rds.restore_db_instance_from_db_snapshot(
+              Engine = db_instance_response['Engine'],
+              StorageType = db_instance_response['StorageType'],
+              DBSnapshotIdentifier = events['DBSnapshotIdentifier'],
+              DBInstanceIdentifier = events['TargetDBInstanceIdentifier'],
+              DBInstanceClass = db_instance_response['DBInstanceClass'],
+              DBSubnetGroupName = db_instance_response['DBSubnetGroup']['DBSubnetGroupName'],
+              Port = db_instance_response["Endpoint"]['Port'],
+              MultiAZ = db_instance_response['MultiAZ'],
+              CopyTagsToSnapshot = db_instance_response['CopyTagsToSnapshot'],
+              VpcSecurityGroupIds = [db_instance_response['VpcSecurityGroups'][0]['VpcSecurityGroupId']]
+            )
+          else:
+            rds.restore_db_instance_from_db_snapshot(
+              Engine = db_instance_response['Engine'],
+              StorageType = db_instance_response['StorageType'],
+              DBSnapshotIdentifier = events['DBSnapshotIdentifier'],
+              DBInstanceIdentifier = events['TargetDBInstanceIdentifier'],
+              DBInstanceClass = db_instance_response['DBInstanceClass'],
+              DBSubnetGroupName = db_instance_response['DBSubnetGroup']['DBSubnetGroupName'],
+              AvailabilityZone = db_instance_response['AvailabilityZone'],
+              Port = db_instance_response["Endpoint"]['Port'],
+              MultiAZ = db_instance_response['MultiAZ'],
+              CopyTagsToSnapshot = db_instance_response['CopyTagsToSnapshot'],
+              VpcSecurityGroupIds = [db_instance_response['VpcSecurityGroups'][0]['VpcSecurityGroupId']]
+            )
       InputPayload:
         SourceDBInstanceIdentifier: '{{DbInstanceIdentifier}}'
         TargetDBInstanceIdentifier: '{{DbInstanceIdentifier}}-new-{{automation:EXECUTION_ID}}'
@@ -159,7 +173,7 @@ mainSteps:
           automation_id = events['AutomationId']
           return {
             'MasterSourceId' : masterId + '-new-' + automation_id if dryrun else masterId,
-            'MasterTargetId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId + '-old' + automation_id,
+            'MasterTargetId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId + '-old-' + automation_id,
             'ReplicaSourceId' : masterId + '-new-' + automation_id + '-1' if dryrun else masterId  + '-new-' + automation_id,
             'ReplicaTargetId' : masterId + '-new-' + automation_id + '-2' if dryrun else masterId
           }

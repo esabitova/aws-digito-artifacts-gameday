@@ -1,0 +1,13 @@
+{
+  "displayName": "Test DocDb cluster availability after rebooting the instance",
+  "description": "Test DocDb cluster availability after rebooting the instance",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RebootDbInstance_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "docdb:test:reboot_db_instance:2020-09-21"
+}

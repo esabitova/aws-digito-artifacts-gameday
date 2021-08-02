@@ -1,7 +1,7 @@
 @elasticache
 Feature: SSM automation document Digito-RedisDecreaseReplicaCount_2020-10-26
 
-  Scenario: Execute SSM automation document Digito-RedisDecreaseReplicaCount_2020-10-26
+  Scenario: Execute SSM automation document Digito-RedisDecreaseReplicaCount_2020-10-26 to decrease redis replica count with node ids for replicas specified
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                               | ResourceType | NumCacheClusters |
       | resource_manager/cloud_formation_templates/ElasticacheReplicationGroupClusterDisabledSingleAZ.yml             | ON_DEMAND    | 3                |
@@ -25,7 +25,11 @@ Feature: SSM automation document Digito-RedisDecreaseReplicaCount_2020-10-26
     Then SSM automation document "Digito-RedisDecreaseReplicaCount_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And assert "RecordStartTime, ChooseDecreaseStep, DecreaseReplicaCountReplicasToRemove, VerifyReplicationGroupStatus, OutputRecoveryTime" steps are successfully executed in order
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
     And cache replica count as "NewReplicaCount" "after" SSM automation execution
       | ReplicationGroupId                                                                    |
       | {{cfn-output:ElasticacheReplicationGroupClusterDisabledSingleAZ>ReplicationGroupId}}  |
     And assert "NewReplicaCount" at "before" became equal to "NewReplicaCount" at "after"
+    And assert "OldReplicaCount" at "before" became not equal to "NewReplicaCount" at "after"

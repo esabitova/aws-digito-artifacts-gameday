@@ -4,6 +4,8 @@ import datetime
 import logging
 import uuid
 
+import pytest
+from botocore.exceptions import ClientError
 from pytest_bdd import (
     given,
     parsers, when, then
@@ -29,24 +31,15 @@ cache_cluster_params_expression = 'cache cluster params includingAZ="{with_az}" 
 assert_azs_expression = 'assert instance AZ value "{actual_property}" at "{step_key_for_actual}" is one of ' \
                         'cluster AZs' \
                         '\n{input_parameters}'
-remove_instance_expression = 'delete created instance and wait for instance deletion for "{time_to_wait}" seconds' \
-                             '\n{input_parameters}'
 cache_replica_id_expression = 'cache replica instance identifier as "{cache_property}" at step "{step_key}"' \
                               '\n{input_parameters}'
 assert_primary_instance_expression = 'assert if the cluster member is the primary instance\n{input_parameters}'
-delete_cluster_expression = 'delete replaced cluster and wait for cluster deletion for "{time_to_wait}" seconds' \
-                            '\n{input_parameters}'
-delete_cluster_instances_expression = 'delete replaced cluster instances and wait for their removal for ' \
-                                      '"{time_to_wait}" seconds\n{input_parameters}'
 wait_for_instances_availability_expression = 'wait for instances to be available for "{time_to_wait}" seconds' \
                                              '\n{input_parameters}'
 cache_earliest_restorable_time_expression = 'cache earliest restorable time as "{cache_property}" ' \
                                             'in "{step_key}" step' \
                                             '\n{input_parameters}'
 create_snapshot_expression = 'wait for cluster snapshot creation for "{time_to_wait}" seconds\n{input_parameters}'
-delete_snapshot_expression = 'delete cluster snapshot'
-cache_generated_instance_id_expression = 'cache generated instance identifier as "{cache_property}" ' \
-                                         'at step "{step_key}"'
 
 
 @given(parsers.parse(cache_number_of_instances_expression))
@@ -132,9 +125,20 @@ def cache_earliest_restorable_time(
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, restore_date_string)
 
 
+@pytest.fixture(scope='function')
+def snapshot_for_teardown(boto3_session, ssm_test_cache):
+    snapshot = {}
+    yield snapshot
+    if 'SnapshotId' in snapshot:
+        snapshot_id = snapshot['SnapshotId']
+        logging.info(f'Deleting snapshot {snapshot_id}')
+        docdb_utils.delete_snapshot(boto3_session, snapshot_id)
+        logging.info(f'Snapshot {snapshot_id} deleted')
+
+
 @given(parsers.parse(create_snapshot_expression))
 def create_snapshot(
-        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
+        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters, snapshot_for_teardown
 ):
     cluster_id = extract_param_value(
         input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
@@ -151,6 +155,7 @@ def create_snapshot(
         is_snapshot_available = docdb_utils.is_snapshot_available(boto3_session, snapshot_id)
         elapsed_time = time.time() - start_time
     put_to_ssm_test_cache(ssm_test_cache, "before", "SnapshotId", snapshot_id)
+    snapshot_for_teardown['SnapshotId'] = snapshot_id
     return True
 
 
@@ -163,33 +168,6 @@ def assert_instance_az_in_cluster_azs(
     )
     cluster_azs = docdb_utils.get_cluster_azs(boto3_session, cluster_id)
     assert ssm_test_cache[step_key_for_actual][actual_property] in cluster_azs
-
-
-@then(parsers.parse(remove_instance_expression))
-def delete_instance_after_test(
-        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
-):
-    instance_id = extract_param_value(
-        input_parameters, "DBInstanceIdentifier", resource_pool, ssm_test_cache
-    )
-    cluster_id = extract_param_value(
-        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
-    )
-    docdb_utils.delete_instance(boto3_session, instance_id)
-    is_instance_deleted = False
-    start_time = time.time()
-    elapsed_time = time.time() - start_time
-    while is_instance_deleted is False:
-        if elapsed_time > int(time_to_wait):
-            raise Exception(f'Waiting for instance {instance_id} deletion in cluster {cluster_id} timed out')
-        cluster_members = docdb_utils.get_cluster_members(boto3_session, cluster_id)
-        temp_bool = True
-        for cluster_member in cluster_members:
-            temp_bool = temp_bool and cluster_member['DBInstanceIdentifier'] != instance_id
-        time.sleep(constants.sleep_time_secs)
-        elapsed_time = time.time() - start_time
-        is_instance_deleted = temp_bool
-    return True
 
 
 @when(parsers.parse('Assert that DocumentDB instance is in "{expected_status}" status with timeout of '
@@ -288,45 +266,55 @@ def wait_for_instances(
     return True
 
 
-@then(parsers.parse(delete_cluster_instances_expression))
-def delete_replaced_cluster_instances(
-        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
-):
-    cluster_id = extract_param_value(
-        input_parameters, "ReplacedDBClusterIdentifier", resource_pool, ssm_test_cache
-    )
-    replaced_cluster_id = cluster_id + "-replaced"
-    docdb_utils.delete_cluster_instances(boto3_session, replaced_cluster_id, True, time_to_wait)
-    return True
+@pytest.fixture(scope='function')
+def cluster_for_teardown(boto3_session, ssm_test_cache):
+    cluster = {}
+    yield cluster
+    if 'ClusterId' in cluster:
+        cluster_id = cluster['ClusterId']
+        # Check that cluster exists before deleting
+        try:
+            docdb_utils.describe_cluster(boto3_session, cluster_id)
+        except ClientError as error:
+            if error.response['Error']['Code'] == 'DBClusterNotFoundFault':
+                logging.info(f'Cluster {cluster_id} not found')
+                return
+        logging.info(f'Deleting cluster {cluster_id} instances')
+        docdb_utils.delete_cluster_instances(boto3_session, cluster_id, True, 600)
+        logging.info(f'Cluster {cluster_id} instanced deleted')
+        logging.info(f'Deleting cluster {cluster_id}')
+        docdb_utils.delete_cluster(boto3_session, cluster_id, True, 600)
+        logging.info(f'Cluster {cluster_id} deleted')
 
 
-@then(parsers.parse(delete_cluster_expression))
-def delete_replaced_cluster(
-        resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters
-):
+@given(parsers.parse('prepare replaced cluster for teardown\n{input_parameters}'))
+def prepare_cluster_teardown(resource_pool, ssm_test_cache, input_parameters, cluster_for_teardown):
     cluster_id = extract_param_value(
         input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
     )
     replaced_cluster_id = cluster_id + "-replaced"
-    docdb_utils.delete_cluster(boto3_session, replaced_cluster_id, True, time_to_wait)
-    return True
+    cluster_for_teardown['ClusterId'] = replaced_cluster_id
 
 
-@then(parsers.parse(delete_snapshot_expression))
-def delete_cluster_snapshot(
-        resource_pool, ssm_test_cache, boto3_session
-):
-    snapshot_id = ssm_test_cache["before"]['SnapshotId']
-    docdb_utils.delete_snapshot(boto3_session, snapshot_id)
+@pytest.fixture(scope='function')
+def instance_for_teardown(boto3_session, ssm_test_cache):
+    instance = {}
+    yield instance
+    if 'InstanceId' in instance:
+        instance_id = instance['InstanceId']
+        logging.info(f'Deleting instance {instance_id}')
+        docdb_utils.delete_instance(boto3_session, instance_id)
+        logging.info(f'Instance {instance_id} deleted')
 
 
-@given(parsers.parse(cache_generated_instance_id_expression))
-@then(parsers.parse(cache_generated_instance_id_expression))
+@given(parsers.parse('cache generated instance identifier as "{cache_property}" at step "{step_key}"'))
+@then(parsers.parse('cache generated instance identifier as "{cache_property}" at step "{step_key}"'))
 def cache_generated_instance_id(
-        resource_pool, ssm_test_cache, cache_property, step_key, boto3_session
+        resource_pool, ssm_test_cache, cache_property, step_key, boto3_session, instance_for_teardown
 ):
     new_instance_id = 'docdb-replica-' + str(uuid.uuid4())
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, new_instance_id)
+    instance_for_teardown['InstanceId'] = new_instance_id
 
 
 @given(parsers.parse('cache cluster vpc security groups as "{cache_property}" at step "{step_key}" '

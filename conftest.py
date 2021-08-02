@@ -336,16 +336,19 @@ def set_up_cfn_template_resources(resource_pool, cfn_templates):
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @given(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
 @then(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
-def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, ssm_test_cache, ssm_input_parameters):
+def execute_ssm_automation(ssm_document, ssm_document_name, cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                           ssm_input_parameters):
     """
     Common step to execute SSM document. This step can be reused by multiple scenarios.
     :param ssm_document The SSM document object for SSM manipulation (mainly execution)
     :param ssm_document_name The SSM document name
     :param cfn_output_params The resource manager object to manipulate with testing resources
+    :param cfn_installed_alarms The resource manager object to manipulate with created alarms
     :param ssm_test_cache The custom test cache
     :param ssm_input_parameters The SSM execution input parameters
     """
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, ssm_input_parameters)
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                                                     ssm_input_parameters)
     execution_id = ssm_document.execute(ssm_document_name, parameters)
 
     _put_ssm_execution_id_in_test_cache(execution_id, ssm_test_cache)
@@ -453,9 +456,11 @@ def given_cached_input_parameters(ssm_test_cache, input_parameters):
 
 @when(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
 @then(parse('terminate "{ssm_document_name}" SSM automation document\n{input_parameters}'))
-def terminate_ssm_execution(boto3_session, cfn_output_params, ssm_test_cache, ssm_document, input_parameters):
+def terminate_ssm_execution(boto3_session, cfn_output_params, cfn_installed_alarms,
+                            ssm_test_cache, ssm_document, input_parameters):
     ssm = boto3_session.client('ssm')
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, ssm_test_cache, input_parameters)
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms,
+                                                     ssm_test_cache, input_parameters)
     ssm.stop_automation_execution(AutomationExecutionId=parameters['ExecutionId'][0], Type='Cancel')
 
 
@@ -603,6 +608,8 @@ def wait_for_alarm(cfn_output_params, cfn_installed_alarms, ssm_test_cache, boto
 @given(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
              'check every {delay_sec} seconds'))
 @then(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
+            'check every {delay_sec} seconds'))
+@when(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
             'check every {delay_sec} seconds'))
 def wait_until_alarm(alarm_name_ref: str, alarm_expected_state: str, wait_sec: str, delay_sec: str,
                      cfn_installed_alarms: dict, cfn_output_params: dict,
@@ -776,3 +783,16 @@ def calculate_math(ssm_test_cache, first_value, operator, second_value, cache_pr
 def __validate_ssm_execution_id(ssm_execution_id):
     if ssm_execution_id is None:
         raise Exception('Parameter with name [ExecutionId] should be provided')
+
+
+@then(parse('SSM Automation Resume for execution "{execution_id_param}" on step "{ssm_step_name_param}"'))
+@when(parse('SSM Automation Resume for execution "{execution_id_param}" on step "{ssm_step_name_param}"'))
+def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
+                                    ssm_test_cache, cfn_output_params, ssm_document):
+    execution_id = parse_param_value(execution_id_param, {'cache': ssm_test_cache,
+                                                          'cfn-output': cfn_output_params})
+    ssm_step_name = parse_param_value(ssm_step_name_param, {'cache': ssm_test_cache,
+                                                            'cfn-output': cfn_output_params})
+
+    logging.info(f'Sending Resume signal to execution {execution_id} for step {ssm_step_name}')
+    ssm_document.send_resume_signal(execution_id, ssm_step_name)

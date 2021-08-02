@@ -38,7 +38,7 @@ parameters:
     default: '1'
   MemoryLoadPercentage:
     type: String
-    description: (Optional) The ASG EC2 instance Memory load percentage (default 1%)
+    description: (Optional) The ASG EC2 instance Memory load percentage (default 50%)
     default: '50'
   PercentageOfInstances:
     type: Integer
@@ -154,14 +154,18 @@ mainSteps:
     onFailure: Abort
     inputs:
       Runtime: python3.6
-      Handler: cloudwatch_util.verify_memory_stress
+      Handler: verify_memory_stress
       InputPayload:
         InstanceIds: '{{GetInstancesByPercentage.InstanceIds}}'
         StressPercentage: '{{MemoryLoadPercentage}}'
         StressDuration: '{{Duration}}'
         ExpectedRecoveryTime: '{{ExpectedRecoveryTime}}'
+        MetricNamespace: 'CWAgent'
+        AutoScalingGroupName: '{{AutoScalingGroupName}}'
       Script: |-
         SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_ec2_stress
+        SCRIPT_PLACEHOLDER::cloudwatch_util.get_ec2_metric_max_datapoint
 
         SCRIPT_PLACEHOLDER::cloudwatch_util.verify_memory_stress
     isEnd: true

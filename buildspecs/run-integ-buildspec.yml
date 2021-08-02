@@ -12,11 +12,11 @@ phases:
       - python -m pip install -r requirements.txt
       - pip install --upgrade awscli
       - aws --version
-      - rm -rf documents/docdb/test/database_alarm/2020-09-21/Test/canary/package # Clean canary package files before creation of a new distribution package for database_alarm.feature test of DocumentDB
-      - rm -f documents/docdb/test/database_alarm/2020-09-21/Test/canary/*.zip #todo DIG-977 create CW Canary distribution package in database_alarm.feature
-      - pip install --target documents/docdb/test/database_alarm/2020-09-21/Test/canary/package/python -r documents/docdb/test/database_alarm/2020-09-21/Test/canary/requirements.txt # Install all requirements for database_alarm.feature test of DocumentDB
-      - zip -r documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip documents/docdb/test/database_alarm/2020-09-21/Test/canary/package # Zip all dependencies and source files for
-      - zip -g documents/docdb/test/database_alarm/2020-09-21/Test/canary/database-alarm-canary.zip documents/docdb/test/database_alarm/2020-09-21/Test/canary/python/*
+      - rm -rf documents/docdb/canary/database-connection-canary/package # Clean canary package files before creation of a new distribution package for database_alarm.feature test of DocumentDB
+      - rm -f documents/docdb/canary/database-connection-canary/*.zip #todo DIG-977 create CW Canary distribution package in database_alarm.feature
+      - pip install --target documents/docdb/canary/database-connection-canary/package/python -r documents/docdb/canary/database-connection-canary/requirements.txt # Install all requirements for database_alarm.feature test of DocumentDB
+      - zip -r documents/docdb/canary/database-connection-canary/database-connection-canary.zip documents/docdb/canary/database-connection-canary/package # Zip all dependencies and source files for
+      - zip -g documents/docdb/canary/database-connection-canary/database-connection-canary.zip documents/docdb/canary/database-connection-canary/python/*
   build:
     commands:
       - echo "Executing test group [`echo $TEST_GROUP`] with [`echo $WORKERS`] workers."

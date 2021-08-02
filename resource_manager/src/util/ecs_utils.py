@@ -125,3 +125,56 @@ def delete_td_and_wait(td_arn: str,
             time.sleep(delay_sec)
 
         raise TimeoutError(f'Timeout of waiting the task definition deleted. TD arn: `{td_arn}`')
+
+
+def get_amount_of_tasks(cluster_name: str,
+                        service_name: str,
+                        session: Session) -> int:
+    """
+    Get amount of tasks by cluster_name and service_name.
+    :param service_name: service name for which we need to get amount of tasks
+    :param cluster_name: cluster name in which we need to get amount of tasks
+    :param session: a boto3 session
+    :return: int - amount of tasks
+    """
+    ecs_client = client('ecs', session)
+    amount_of_task = len(ecs_client.list_tasks(cluster=cluster_name,
+                                               serviceName=service_name)['taskArns'])
+    return amount_of_task
+
+
+def get_container_definitions(td_arn: str,
+                              session: Session) -> dict:
+    """
+    Get container definitions by td_arn.
+    :param td_arn: task definition to delete
+    :param session: a boto3 session
+    :return: dict - container definitions
+    """
+    ecs_client = client('ecs', session)
+
+    container_definitions = ecs_client.\
+        describe_task_definition(taskDefinition=td_arn)["taskDefinition"]["containerDefinitions"][0]
+    return container_definitions
+
+
+def wait_services_stable(cluster_name: str,
+                         service_name: str,
+                         session: Session):
+    """
+    Wait while service will be stable.
+    :param service_name: service name for which we need to wait
+    :param cluster_name: cluster name in which we need to wait
+    :param session: a boto3 session
+    """
+    ecs_client = client('ecs', session)
+
+    waiter = ecs_client.get_waiter('services_stable')
+    waiter.wait(
+        cluster=cluster_name,
+        services=[service_name],
+        WaiterConfig={
+            'Delay': 15,
+            'MaxAttempts': 20
+        }
+    )

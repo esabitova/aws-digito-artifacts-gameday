@@ -157,3 +157,50 @@ class TestEcsUtil(unittest.TestCase):
             ecs_utils.delete_td_and_wait(test_ecs_util.TD_ARN, 900, 15, self.session_mock)
 
         assert 'Timeout of waiting the task definition deleted' in str(timeout_error.value)
+
+    def test_get_amount_of_tasks(self):
+        self.mock_ecs.list_tasks.return_value = {"taskArns": [
+            test_ecs_util.TD_ARN_2,
+            test_ecs_util.TD_ARN_2]
+        }
+        res = ecs_utils.get_amount_of_tasks(test_ecs_util.CLUSTER_NAME,
+                                            test_ecs_util.SERVICE_NAME,
+                                            self.session_mock)
+
+        self.assertEqual(2, res)
+        self.mock_ecs.list_tasks.assert_called_with(
+            cluster=test_ecs_util.CLUSTER_NAME,
+            serviceName=test_ecs_util.SERVICE_NAME
+        )
+        self.mock_ecs.list_tasks.assert_called_once_with(
+            cluster=test_ecs_util.CLUSTER_NAME,
+            serviceName=test_ecs_util.SERVICE_NAME
+        )
+
+    def test_get_container_definitions(self):
+        self.mock_ecs.describe_task_definition.return_value = test_ecs_util.get_task_definition()
+
+        res = ecs_utils.get_container_definitions(test_ecs_util.TD_ARN,
+                                                  self.session_mock)
+        cpu = res["cpu"]
+        memory = res["memory"]
+
+        self.assertEqual(256, cpu)
+        self.assertEqual(512, memory)
+        self.mock_ecs.describe_task_definition.assert_called_with(
+            taskDefinition=test_ecs_util.TD_ARN
+        )
+        self.mock_ecs.describe_task_definition.assert_called_once_with(
+            taskDefinition=test_ecs_util.TD_ARN
+        )
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_stable_service(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+        res = ecs_utils.wait_services_stable(test_ecs_util.CLUSTER_NAME,
+                                             test_ecs_util.SERVICE_NAME,
+                                             self.session_mock)
+        self.assertEqual(None, res)

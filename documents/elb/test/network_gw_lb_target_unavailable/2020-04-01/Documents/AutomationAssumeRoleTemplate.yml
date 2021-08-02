@@ -18,11 +18,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for Digito-NetworkGwLbTargetUnavailable_2020-04-01
 Outputs:
-  DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole:
+  DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole:
     Description: Digito-NetworkGwLbTargetUnavailable_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole.Arn
+    Value: !GetAtt DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole.Arn
 Resources:
-  DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole:
+  DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLoadBalancerNetworkLbTargetUnavailableAssumePolicy:
+  DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLoadBalancerNetworkLbTargetUnavailableAssumePolicy
+      PolicyName: DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -46,10 +46,12 @@ Resources:
             Action:
               - ssm:StartAutomationExecution
               - cloudwatch:DescribeAlarms
+              - elasticloadbalancing:DescribeTargetGroups
+              - elasticloadbalancing:ModifyTargetGroup
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole.Arn
+              - !GetAtt DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole.Arn
             Action:
-                - iam:PassRole
+              - iam:PassRole
       Roles:
-        - Ref: DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole
+        - Ref: DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole

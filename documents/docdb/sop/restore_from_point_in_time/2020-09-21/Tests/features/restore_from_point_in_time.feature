@@ -13,6 +13,9 @@ Feature: SSM automation document to recover the database into a known good state
     And cache cluster params includingAZ="False" in object "ClusterInfo" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    And prepare replaced cluster for teardown
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
       | DBClusterIdentifier                              | AutomationAssumeRole                                                               |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
@@ -30,13 +33,6 @@ Feature: SSM automation document to recover the database into a known good state
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
     And assert "ClusterInfo" at "after" became equal to "ClusterInfo" at "before"
-    And delete replaced cluster instances and wait for their removal for "600" seconds
-      | ReplacedDBClusterIdentifier                      |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster and wait for cluster deletion for "600" seconds
-      | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And sleep for "60" seconds
 
 
   Scenario: Recover the database into a known good state using earliest point-in-time
@@ -52,6 +48,9 @@ Feature: SSM automation document to recover the database into a known good state
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache earliest restorable time as "EarliestRestorableTime" in "before" step
+      | DBClusterIdentifier                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+    And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
@@ -71,10 +70,3 @@ Feature: SSM automation document to recover the database into a known good state
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
     And assert "ClusterInfo" at "after" became equal to "ClusterInfo" at "before"
-    And delete replaced cluster instances and wait for their removal for "600" seconds
-      | ReplacedDBClusterIdentifier                      |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And delete replaced cluster and wait for cluster deletion for "600" seconds
-      | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And sleep for "60" seconds

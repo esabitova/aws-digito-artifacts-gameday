@@ -1,10 +1,9 @@
+import boto3
 import logging
 import time
+from botocore.config import Config
 from datetime import datetime, timedelta
 from typing import Any, Callable, Iterator, List
-
-import boto3
-from botocore.config import Config
 
 boto3_config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 
@@ -116,25 +115,26 @@ def copy_alarms_for_dynamo_db_table(events, context):
     }
 
 
-def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_time_utc):
+def get_ec2_metric_max_datapoint(dimensions, metric_name, start_time_utc, end_time_utc, metric_namespace="AWS/EC2"):
     """
     Returns metric data point witch represents highest data point value for given metric name and EC2 instance id.
-    :param instance_id: The EC2 instance id
+    :param dimensions: The metric dimensions array
     :param metric_name: The metric name
     :param start_time_utc: The metric interval start time in UTC
     :param end_time_utc: The metric interval end time in UTC
+    :param metric_namespace: The metric namespace, defaults to "AWS/EC2"
     :return: The highest data point value.
     """
     cw = boto3.client('cloudwatch', config=boto3_config)
     response = cw.get_metric_statistics(
-        Namespace="AWS/EC2",
+        Namespace=metric_namespace,
         MetricName=metric_name,
-        Dimensions=[{"Name": "InstanceId", "Value": instance_id}],
+        Dimensions=dimensions,
         # CPU metric delay is 5 minutes
         StartTime=start_time_utc,
         EndTime=end_time_utc,
-        # Minimum period for CPU/Memory metric - 5 minutes
-        Period=300,
+        # Minimum period for CPU/Memory metric - 1 minutes
+        Period=60,
         Statistics=["Maximum"],
         Unit='Percent'
     )
@@ -142,14 +142,16 @@ def get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_t
     data_points = response['Datapoints']
     logging.info("[{}] metric for interval [{}::{}] data points: {}".format(metric_name, str(start_time_utc),
                                                                             str(end_time_utc), data_points))
-    latest_datapoint = 0.0
-    latest_dp_timestamp = 0
+
+    # get the first (earliest) datapoint value
+    earliest_dp_value = 0.0
+    min_dp_timestamp = time.time()
     for dp in data_points:
         current_dp_timestamp = dp['Timestamp'].timestamp()
-        if latest_dp_timestamp < current_dp_timestamp:
-            latest_dp_timestamp = current_dp_timestamp
-            latest_datapoint = float(dp['Maximum'])
-    return latest_datapoint
+        if min_dp_timestamp > current_dp_timestamp:
+            min_dp_timestamp = current_dp_timestamp
+            earliest_dp_value = float(dp['Maximum'])
+    return earliest_dp_value
 
 
 def describe_metric_alarm_state(alarm_name):
@@ -203,7 +205,18 @@ def verify_memory_stress(events, context):
             or 'ExpectedRecoveryTime' not in events:
         raise KeyError('Requires InstanceIds, StressDuration, StressPercentage, ExpectedRecoveryTime in events')
 
-    raise Exception('Not implemented: https://issues.amazon.com/issues/Digito-1279')
+    instance_ids = events['InstanceIds']
+    exp_load_percentage = float(events['StressPercentage'])
+    stress_duration = int(events['StressDuration'])
+    exp_recovery_time = int(events['ExpectedRecoveryTime'])
+    metric_namespace = events['MetricNamespace']
+    asg_name = events['AutoScalingGroupName']
+    pre_dimensions = [{"Name": "AutoScalingGroupName", "Value": asg_name}]
+
+    # for some reason the memory load created is 70% of the requested load
+    verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage * 0.70,
+                      360, 'mem_used_percent', exp_recovery_time,
+                      metric_namespace, pre_dimensions)
 
 
 def verify_alarm_triggered(events, context):
@@ -235,7 +248,7 @@ def verify_alarm_triggered(events, context):
 
 
 def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric_delay, metric_name,
-                      exp_recovery_time):
+                      exp_recovery_time, metric_namespace="AWS/EC2", pre_dimensions=[]):
     """
     Helper to verify stress test execution based on metric (CPU/Memory Utilization). Metric indicates whether stress
     testing was performed to specified load level, if not test is failed.
@@ -245,6 +258,8 @@ def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric
     :param metric_delay: The CPU/Memory load metric delay in seconds to be used verify if stress is happening
     :param metric_name: The CPU/Memory load metric name in seconds to be used verify if stress is happening
     :param exp_recovery_time: The expected application recovery time in seconds after stress test
+    :param metric_namespace: The metric namespace defaults to AWS/EC2
+    :param pre_dimensions: The dimensions array to use before the instance dimension, defaults to []
     """
 
     # Delta is time which we already spend on performing stress test and waiting for recovery time
@@ -257,13 +272,23 @@ def verify_ec2_stress(instance_ids, stress_duration, exp_load_percentage, metric
     end_time_utc = datetime.utcnow()
     start_time_utc = end_time_utc - timedelta(seconds=delta)
 
+    logging.info(
+        "starttime: {}, endtime: {}, delay: {}".format(str(start_time_utc),
+                                                       str(end_time_utc),
+                                                       metric_wait_time))
+
     for instance_id in instance_ids:
-        actual_cpu_load = get_ec2_metric_max_datapoint(instance_id, metric_name, start_time_utc, end_time_utc)
-        if actual_cpu_load < exp_load_percentage:
+        dimensions = pre_dimensions or []
+        dimensions.append({"Name": "InstanceId", "Value": instance_id})
+        actual_load = get_ec2_metric_max_datapoint(dimensions, metric_name,
+                                                   start_time_utc, end_time_utc,
+                                                   metric_namespace)
+        if actual_load < exp_load_percentage:
             raise Exception(
-                "Instance [{}] expected [{}] load [{}%] but was [{}%]".format(instance_id, metric_name,
-                                                                              exp_load_percentage,
-                                                                              actual_cpu_load))
+                "Instance [{}] expected [{}] load [{}%] but was [{}%], start_time: [{}], end_time: [{}]".format(
+                    instance_id, metric_name,
+                    exp_load_percentage,
+                    actual_load, str(start_time_utc), str(end_time_utc)))
 
 
 def get_metric_alarm_threshold_values(event, context):

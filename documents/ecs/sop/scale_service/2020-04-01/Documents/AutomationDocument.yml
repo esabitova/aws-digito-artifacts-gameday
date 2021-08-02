@@ -82,14 +82,18 @@ mainSteps:
         TaskDefinitionRAM: '{{TaskDefinitionRAM}}'
 
   - name: ChangeTaskDefinition
-    action: 'aws:executeAwsApi'
+    action: 'aws:executeScript'
     inputs:
-      Service: ecs
-      Api: UpdateService
-      service: '{{ServiceName}}'
-      cluster: '{{ClusterName}}'
-      desiredCount: '{{NumberOfTasks}}'
-      taskDefinition: '{{CreateNewTaskDefinitionOrGetFromParameter.NewTaskDefinitionArn}}'
+      Runtime: python3.7
+      Handler: update_service
+      Script: |-
+        SCRIPT_PLACEHOLDER::ecs_util.imports
+        SCRIPT_PLACEHOLDER::ecs_util.update_service
+      InputPayload:
+        ServiceName: '{{ServiceName}}'
+        ClusterName: '{{ClusterName}}'
+        NumberOfTasks: '{{NumberOfTasks}}'
+        TaskDefinitionArn: '{{CreateNewTaskDefinitionOrGetFromParameter.NewTaskDefinitionArn}}'
 
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
