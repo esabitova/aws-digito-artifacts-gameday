@@ -30,6 +30,9 @@ Outputs:
   TargetGroup:
     Description: TargetGroup name
     Value: !GetAtt NLBTargetGroup.TargetGroupFullName
+  TargetGroupArn:
+    Description: TargetGroup Arn
+    Value: !Ref NLBTargetGroup
 Parameters:
   VPC:
     Type: String
