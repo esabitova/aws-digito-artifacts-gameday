@@ -11,8 +11,8 @@ def test_elb_application_httpcode_elb_5xx_count_alarm():
     pass
 
 
-# @scenario('../features/elb_application_httpcode_elb_5xx_count.feature',
-#           'Reports when count of http 5xx responses received by load balancer is greater than or equal to'
-#           ' a threshold - red')
-# def test_elb_application_httpcode_elb_5xx_count_threshold_exceeded_alarm():
-#     pass
+@scenario('../features/elb_application_httpcode_elb_5xx_count.feature',
+          'Reports when count of http 5xx responses received by load balancer is greater than or equal to'
+          ' a threshold - red')
+def test_elb_application_httpcode_elb_5xx_count_threshold_exceeded_alarm():
+    pass
