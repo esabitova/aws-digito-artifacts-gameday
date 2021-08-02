@@ -6,16 +6,14 @@ from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocat
 from resource_manager.src.util.param_utils import parse_param_value
 from sttable import parse_str_table
 
-invoke_lambda_function_with_parameters = 'invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'
-
 CIPHERS = (
     'AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:AES256-SHA'
 )
 
 
-@given(parsers.parse(invoke_lambda_function_with_parameters))
-@when(parsers.parse(invoke_lambda_function_with_parameters))
-@then(parsers.parse(invoke_lambda_function_with_parameters))
+@given(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
+@when(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
+@then(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
 def invoke_lambda_function_with_parameters(
         boto3_session, resource_pool, cfn_output_params, ssm_test_cache, lambda_arn, input_parameters_table
 ):
