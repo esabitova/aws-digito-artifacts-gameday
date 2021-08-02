@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 CWD:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-
+export AWS_REGION=eu-west-1
+export AWS_PROFILE=ut
 clean:
 	rm -rf venv
 
@@ -103,12 +104,12 @@ linter_and_unit_test: test_linter unit_test
 #todo DIG-977 create CW Canary distribution package in database_alarm.feature
 build_canary_artifacts: clean_canary_artifacts test_linter
 	source venv/bin/activate && \
-	cd documents/docdb/test/database_alarm/2020-09-21/Test/canary && \
+	cd documents/docdb/canary/database-connection-canary && \
 	pip install --target ./package/python -r requirements.txt && \
 	cd package && \
-	zip -r ../database-alarm-canary.zip . && \
+	zip -r ../database-connection-canary.zip . && \
 	cd  .. && \
-	zip -g database-alarm-canary.zip python/*
+	zip -g database-connection-canary.zip python/*
 
 cfn_lint: pip_install_only
 	source venv/bin/activate && \

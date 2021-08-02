@@ -1,0 +1,11 @@
+{
+  "displayName": "HTTPCode_ELB_5XX_Count",
+  "description": "Alarm by Digito that reports when count of http 5xx responses received by load balancer is greater than or equal to a threshold",
+  "alarmName": "Digito-HTTPCode_ELB_5XX_Count_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elb:alarm:application_httpcode_elb_5xx_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
