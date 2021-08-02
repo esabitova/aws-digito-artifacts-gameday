@@ -15,12 +15,9 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: 'SOP - Reboot DB Instance'
-schemaVersion: '0.3'
-assumeRole: '{{ AutomationAssumeRole }}'
-outputs:
-  - OutputRecoveryTime.RecoveryTime
-
+description: "Test DocDb cluster availability after rebooting the instance"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
   DBClusterIdentifier:
     type: String
@@ -30,25 +27,22 @@ parameters:
     description: (Required) DocDb Instance Identifier
   AutomationAssumeRole:
     type: String
-    description: >-
-      (Optional) The ARN of the role that allows Automation to perform
-      the actions on your behalf. If no role is specified, Systems Manager Automation
-      uses your IAM permissions to run this document.
-    default: ''
-
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should be green after test.
 mainSteps:
-  - name: RecordStartTime
-    action: 'aws:executeScript'
-    outputs:
-      - Name: StartTime
-        Selector: $.Payload
-        Type: String
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
     inputs:
-      Runtime: python3.7
-      Handler: start_time
-      Script: |-
-        SCRIPT_PLACEHOLDER::common_util.imports
-        SCRIPT_PLACEHOLDER::common_util.start_time
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
 
   - name: RebootDbInstance
     action: aws:executeAwsApi
@@ -72,17 +66,14 @@ mainSteps:
       DesiredValues:
         - available
 
-  - name: OutputRecoveryTime
-    action: 'aws:executeScript'
-    outputs:
-      - Name: RecoveryTime
-        Selector: $.Payload
-        Type: Integer
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
     inputs:
-      Runtime: python3.7
-      Handler: recovery_time
-      Script: |-
-        SCRIPT_PLACEHOLDER::common_util.imports
-        SCRIPT_PLACEHOLDER::common_util.recovery_time
-      InputPayload:
-        StartTime: '{{ RecordStartTime.StartTime }}'
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]

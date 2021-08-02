@@ -228,8 +228,8 @@ class ResourcePool(ResourceBase):
                                     resource.type == ResourceModel.Type.DEDICATED.name:
                                 resource.leased_times = resource.leased_times + 1
                                 resource.status = ResourceModel.Status.LEASED.name
-                                resource.leased_on = datetime.now()
-                                resource.updated_on = datetime.now()
+                                resource.leased_on = datetime.utcnow()
+                                resource.updated_on = datetime.utcnow()
                                 resource.test_session_id = self.test_session_id
                                 resource.cfn_dependency_stacks = \
                                     self._get_cfn_dependency_stacks(cfn_template_path, resource_type)
@@ -460,9 +460,9 @@ class ResourcePool(ResourceBase):
                 type=resource_type.name,
                 status=ResourceModel.Status.CREATING.name,
                 test_session_id=self.test_session_id,
-                leased_on=datetime.now(),
-                created_on=datetime.now(),
-                updated_on=datetime.now()
+                leased_on=datetime.utcnow(),
+                created_on=datetime.utcnow(),
+                updated_on=datetime.utcnow()
             )
 
             # Creating cloud formation stack stack
@@ -507,10 +507,9 @@ class ResourcePool(ResourceBase):
         resource.cfn_dependency_stacks = self._get_cfn_dependency_stacks(cfn_template_path, resource_type)
         if resource_type == ResourceModel.Type.ON_DEMAND or \
                 resource_type == ResourceModel.Type.DEDICATED:
-            resource.status = ResourceModel.Status.LEASED.name
+            ResourceModel.update_status(resource, ResourceModel.Status.LEASED)
         else:
-            resource.status = ResourceModel.Status.AVAILABLE.name
-        resource.save()
+            ResourceModel.update_status(resource, ResourceModel.Status.AVAILABLE)
         return resource
 
     def _parse_cfn_input_params(self, cfn_config: {}) -> {}:

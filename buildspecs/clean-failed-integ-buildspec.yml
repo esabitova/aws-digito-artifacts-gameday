@@ -15,4 +15,4 @@ phases:
   build:
     commands:
       # Executing destroy resources with [EXECUTE_FAILED] state which are older than [720] minutes or [12] hours.
-      - PYTHONPATH=. python3.8 resource_manager/src/tools/resource_tool.py -c DESTROY_ALL -s EXECUTE_FAILED -a 720
+      - PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL -s EXECUTE_FAILED -a 720

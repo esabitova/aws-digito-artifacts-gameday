@@ -111,7 +111,7 @@ class ResourceModel(Model):
         :param resource: The resource record to be updated
         :param status: The resource status
         """
-        resource.updated_on = datetime.now()
+        resource.updated_on = datetime.utcnow()
         resource.status = status.name
         resource.save()
 
