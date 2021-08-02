@@ -5,30 +5,30 @@ from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 
 
-# @scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
-#           'Create Network LB and execute automation to make the target group unavailable')
-# def test_network_lb_target_unavailable_usual_case():
-#     """Create Network LB and execute automation to make the target group unavailable"""
-#
-#
-# @scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
-#           'Create Network LB and execute automation to make the target group unavailable '
-#           'with target groups specified')
-# def test_network_lb_target_unavailable_usual_case_tg_specified():
-#     """Create Network LB and execute automation to make the target group unavailable  with target groups specified"""
-#
-#
-# @scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
-#           'Create Gateway LB and execute automation to make the target group unavailable')
-# def test_gateway_target_unavailable_usual_case():
-#     """Create Gateway LB and execute automation to make the target group unavailable"""
-#
-#
-# @scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
-#           'Create Gateway LB and execute automation to make the target group unavailable'
-#           ' with target groups specified')
-# def test_gateway_target_unavailable_usual_case_tg_specified():
-#     """Create Gateway LB and execute automation to make the target group unavailable"""
+@scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
+          'Create Network LB and execute automation to make the target group unavailable')
+def test_network_lb_target_unavailable_usual_case():
+    """Create Network LB and execute automation to make the target group unavailable"""
+
+
+@scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
+          'Create Network LB and execute automation to make the target group unavailable '
+          'with target groups specified')
+def test_network_lb_target_unavailable_usual_case_tg_specified():
+    """Create Network LB and execute automation to make the target group unavailable  with target groups specified"""
+
+
+@scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
+          'Create Gateway LB and execute automation to make the target group unavailable')
+def test_gateway_target_unavailable_usual_case():
+    """Create Gateway LB and execute automation to make the target group unavailable"""
+
+
+@scenario('../features/network_gw_lb_target_unavailable_usual_case.feature',
+          'Create Gateway LB and execute automation to make the target group unavailable'
+          ' with target groups specified')
+def test_gateway_target_unavailable_usual_case_tg_specified():
+    """Create Gateway LB and execute automation to make the target group unavailable"""
 
 
 @scenario('../features/network_gw_lb_target_unavailable_rollback_previous.feature',
@@ -43,16 +43,16 @@ def test_gateway_lb_target_unavailable_rollback_previous():
     """Create Gateway LB and execute automation to make the target group unavailable in rollback"""
 
 
-# @scenario('../features/network_gw_lb_target_unavailable_failed.feature',
-#           'Create Network LB and execute automation to make the target group unavailable to test failure case')
-# def test_network_lb_target_unavailable_failed():
-#     """Create Network LB and execute automation to make the target group unavailable to test failure case"""
-#
-#
-# @scenario('../features/network_gw_lb_target_unavailable_failed.feature',
-#           'Create Gateway LB and execute automation to make the target group unavailable to test failure case')
-# def test_gateway_lb_target_unavailable_failed():
-#     """Create Gateway LB and execute automation to make the target group unavailable to test failure case"""
+@scenario('../features/network_gw_lb_target_unavailable_failed.feature',
+          'Create Network LB and execute automation to make the target group unavailable to test failure case')
+def test_network_lb_target_unavailable_failed():
+    """Create Network LB and execute automation to make the target group unavailable to test failure case"""
+
+
+@scenario('../features/network_gw_lb_target_unavailable_failed.feature',
+          'Create Gateway LB and execute automation to make the target group unavailable to test failure case')
+def test_gateway_lb_target_unavailable_failed():
+    """Create Gateway LB and execute automation to make the target group unavailable to test failure case"""
 
 
 cache_target_group_health_port_expression = 'cache target group HealthCheckPort as "{cache_property}" "{cache_key}" ' \
