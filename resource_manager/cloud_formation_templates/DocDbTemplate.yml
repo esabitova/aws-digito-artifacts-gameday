@@ -758,6 +758,10 @@ Resources:
     Type: AWS::S3::Bucket
     Condition: CreateCanary
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
         - - "canary-logs-digito"
