@@ -2,6 +2,8 @@ import json
 import boto3
 import logging
 
+from botocore.config import Config
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -18,7 +20,8 @@ def backup_targets(events: dict, context: dict) -> str:
         "LoadBalancerArn"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
     paginator = elb_client.get_paginator('describe_target_groups')
     pages = paginator.paginate(
         LoadBalancerArn=events['LoadBalancerArn']
@@ -55,7 +58,8 @@ def break_targets_healthcheck_port(events: dict, context: dict) -> None:
         "HealthCheckPort"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
     target_groups = json.loads(events['TargetGroups'])
     for target_group in target_groups:
         elb_client.modify_target_group(
@@ -73,7 +77,8 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
     ]
     check_required_params(required_params, events)
     target_groups = json.loads(events['TargetGroups'])
-    elb_client = boto3.client('elbv2')
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
     for target_group in target_groups:
         target_group.pop('LoadBalancerArn')
         elb_client.modify_target_group(**target_group)
