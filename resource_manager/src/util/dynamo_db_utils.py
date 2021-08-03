@@ -303,7 +303,11 @@ def _check_if_replicas_exist(boto3_session: Session, table_name: str) -> Tuple[L
     :param boto3_session: The boto3 session
     :return : Tuple of the list of replicas and indication if the list is empty
     """
-    replicas = _get_global_table_all_regions(table_name=table_name, boto3_session=boto3_session)
+    try:
+        replicas = _get_global_table_all_regions(table_name=table_name, boto3_session=boto3_session)
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'ResourceNotFoundException':
+            return [], False
     replicas_exist = replicas != []
     log.info(f'Replica status `{table_name}`: {replicas_exist}. Replicas:{replicas}')
     return replicas, replicas_exist
