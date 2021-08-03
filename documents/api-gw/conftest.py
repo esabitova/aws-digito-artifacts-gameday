@@ -523,7 +523,7 @@ def get_api_key_and_perform_https_requests(
         logging.info(f'Sending {method} request to: {api_url}')
         response = requests.request(method, api_url, headers={'x-api-key': api_key}, auth=api_auth)
         logging.info(f'Response status code: {response.status_code}')
-        logging.info(f'Response message: {json.loads(response.content.decode("utf-8"))["message"]}')
+        logging.info(f'Response content: {json.loads(response.content.decode("utf-8"))}')
         sleep(interval)
         count -= 1
 
