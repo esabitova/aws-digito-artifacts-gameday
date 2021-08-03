@@ -296,7 +296,7 @@ def _get_global_table_all_regions(boto3_session: Session, table_name: str) -> Li
     return replicas
 
 
-def _check_if_replicas_exist(boto3_session: Session, table_name: str) -> Tuple[List[str], bool]:
+def _check_if_replicas_exist(boto3_session: Session, table_name: str) -> Tuple[List[dict], bool]:
     """
     Checks if the tables has replicas
     :param table_name: The table name
@@ -526,7 +526,7 @@ def put_item_single(boto3_session, table_name: str, item: dict):
     Single worker for get_item stress test
     :param boto3_session The boto3 session
     :param table_name The table name
-    :param key The item key
+    :param item The item key
     """
     dynamo_db_client = boto3_session.client('dynamodb')
     dynamo_db_client.put_item(TableName=table_name, Item=item)
@@ -543,7 +543,6 @@ def get_item_async_stress_test(boto3_session: Session, table_name: str, number: 
     """
     futures = []
     logging.info(f'Start DynamoDB read items stress test, read {str(number)} times')
-    logging.info(f'{item}')
     with ThreadPoolExecutor() as executor:
         for i in range(number):
             futures.append(
@@ -559,8 +558,7 @@ def put_item_async_stress_test(boto3_session: Session, table_name: str, items: l
     :param items List of items to put into table
     :param boto3_session The boto3 session
     :param table_name The table name
-    :param number Number of times to read item
-    :param item The item attribute
+    :param items The items
     """
     futures = []
     items_size = len(items)
