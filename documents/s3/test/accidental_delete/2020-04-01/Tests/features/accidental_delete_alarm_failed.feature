@@ -17,6 +17,9 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
     And cache value of number of files as "NumberOfFiles" at the bucket "before" SSM automation execution
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
+    And Wait for alarm to be in state "OK" for "600" seconds
+      | AlarmName                                               |
+      | {{cfn-output:S3Template>Health4xxErrorsCountAlarmName}} |
     And SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" executed
       | S3BucketWhereObjectsWillBeDeletedFrom           | S3BucketToRestoreWhereObjectWillBeCopiedTo   | AutomationAssumeRole                                                         | S3UserErrorAlarmName                                    | SNSTopicARNForManualApproval           | IAMPrincipalForManualApproval                       | ForceCleanBucketToRestoreWhereObjectWillBeCopiedTo | IsRollback | PreviousExecutionId |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} | {{cfn-output:S3Template>S3BackupBucketName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoAccidentalDeleteAssumeRole}} | {{cfn-output:S3Template>Health4xxErrorsCountAlarmName}} | {{cfn-output:S3Template>SNSTopicName}} | {{cfn-output:S3Template>RoleApproveCleanBucketArn}} | true                                               | false      | ''                  |
@@ -25,7 +28,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache value of number of files as "ActualNumberOfFiles" at the bucket "after_delete" SSM automation execution
-      | BucketName                                   |
+      | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
 #    If we don't trigger the alarm, step has to fail and cause rollback, step and ssm will have TimedOut state
     And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
