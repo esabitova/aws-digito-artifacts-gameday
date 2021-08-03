@@ -13,7 +13,7 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
 
     When SSM automation document "Digito-RestApiGwQuota_2020-09-21" executed
       | RestApiGwUsagePlanId                                  | AutomationAssumeRole                                                       | ApiGw4xxAlarmName                                  |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwQuotaAssumeRole}} | {{cfn-output:RestApiGwTemplate>5XXErrorAlarmName}} |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwQuotaAssumeRole}} | {{cfn-output:RestApiGwTemplate>AlwaysOKAlarmName}} |
     And Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "SetQuotaConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
