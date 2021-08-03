@@ -43,17 +43,20 @@ Parameters:
   Subnet1:
     Type: String
     Description: Subnet ID
-  Subnet1Cidr:
+  SecurityGroupCIDR:
     Type: String
     Description: Subnet CIDR
   Subnet2:
     Type: String
     Description: Subnet ID
+  Subnet3:
+    Type: String
+    Description: Subnet ID
 Resources:
-  ALBSecurityGroup:
+  LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "security group for ALB"
+      GroupDescription: "ALB security group"
       GroupName: !Join
         - "-"
         - - "ALB-SG"
@@ -68,23 +71,23 @@ Resources:
                   - !Ref "AWS::StackId"
       VpcId: !Ref VPC
       SecurityGroupEgress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !Ref SecurityGroupCIDR
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
       SecurityGroupIngress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !Ref SecurityGroupCIDR
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
 
-  LambdaSecurityGroup:
+  ProxyLambdaSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Lambda security group"
+      GroupDescription: "Proxy Lambda security group"
       GroupName: !Join
         - "-"
-        - - "Lambda-SG"
+        - - "ProxyLambdaSG"
           - !Select
             - 0
             - !Split
@@ -99,12 +102,40 @@ Resources:
         - IpProtocol: tcp
           FromPort: 0
           ToPort: 65535
-          CidrIp: !Ref Subnet1Cidr
+          CidrIp: !Ref SecurityGroupCIDR
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !Ref Subnet1Cidr
+          CidrIp: !Ref SecurityGroupCIDR
+
+  TargetLambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Target Lambda security group"
+      GroupName: !Join
+        - "-"
+        - - "TargetLambdaSG"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref SecurityGroupCIDR
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref SecurityGroupCIDR
 
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -113,14 +144,13 @@ Resources:
       Scheme: 'internal'
       Type: 'application'
       Subnets:
-        - !Ref Subnet1
         - !Ref Subnet2
+        - !Ref Subnet3
       SecurityGroups:
-        - !Ref ALBSecurityGroup
+        - !Ref LoadBalancerSG
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: "3"
-
   HTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
@@ -210,13 +240,9 @@ Resources:
       ReservedConcurrentExecutions: 2
       VpcConfig:
         SubnetIds:
-          - !Ref Subnet1
+          - !Ref Subnet2
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
-      Environment:
-        Variables:
-          Host: 'test'
-          Path: 'test_path'
+          - !Ref TargetLambdaSG
       Code:
         ZipFile: >
           import logging
@@ -264,11 +290,7 @@ Resources:
         SubnetIds:
           - !Ref Subnet1
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
-      Environment:
-        Variables:
-          Host: 'test'
-          Path: 'test_path'
+          - !Ref ProxyLambdaSG
       Code:
         ZipFile: >
           import http.client
@@ -290,9 +312,9 @@ Resources:
           log.setLevel(logging.DEBUG)
 
           def lambda_handler(event, context):
-            host = event['host'] if 'host' in event else getenv('Host')
+            host = event['host'] if 'host' in event else getenv('Host', 'localhost')
             path = event['path'] if 'path' in event else getenv('Path', '/')
-            request_interval = event['request_interval'] if 'interval' in event else getenv('RequestInterval', 10)
+            request_interval = event['request_interval'] if 'request_interval' in event else getenv('RequestInterval', 10)
             request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
             request_count = int(request_count)
             request_interval = int(request_interval)

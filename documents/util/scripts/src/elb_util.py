@@ -51,6 +51,10 @@ def backup_targets(events: dict, context: dict) -> list:
 
 
 def break_targets_healthcheck_port(events: dict, context: dict) -> None:
+    """
+    :param events:
+    :param context:
+    """
     required_params = [
         "TargetGroups",
         "HealthCheckPort"
@@ -79,6 +83,12 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
 
 
 def remove_security_group_from_alb(events: dict, context: dict) -> None:
+    """
+    Remove security group from load balancer or create empty SG in case of SG ids are empty
+
+    :param events: LoadBalancerArn, SecurityGroupIdsToDelete
+    :param context:
+    """
     required_params = [
         "LoadBalancerArn",
         "SecurityGroupIdsToDelete"
@@ -115,6 +125,14 @@ def remove_security_group_from_alb(events: dict, context: dict) -> None:
 
 
 def update_security_groups(events: dict, context: dict) -> None:
+    """
+    Update security groups for load balancer
+    :param events: dict
+    * LoadBalancerArn
+    * SecurityGroups
+    :param context:
+    """
+
     required_params = [
         "LoadBalancerArn",
         "SecurityGroups"
@@ -128,10 +146,14 @@ def update_security_groups(events: dict, context: dict) -> None:
     )
 
 
-# 1.call [boto3.describe_load_balancers]
-#   Params: LoadBalancerArns=[params.LoadBalancerArn]
-#   take '.SecurityGroups[]' collection and return as SecurityGroups
-def backup_security_groups(events: dict, context: dict) -> dict:
+def backup_security_groups(events: dict, context: dict) -> list:
+    """
+    Backup security groups for a load balancer
+    :param events: dict
+    * LoadBalancerArn
+    :param context:
+    :return: list of security groups
+    """
     required_params = [
         "LoadBalancerArn",
     ]
@@ -152,6 +174,12 @@ def backup_security_groups(events: dict, context: dict) -> dict:
 
 
 def get_load_balancer(describe_params):
+    """
+    Retrieve load balancer identified by params
+
+    :param list describe_params
+    :return: load balancer
+    """
     elb_client = boto3.client('elbv2')
     paginator = elb_client.get_paginator('describe_load_balancers')
     pages = paginator.paginate(**describe_params)
