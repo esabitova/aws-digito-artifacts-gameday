@@ -29,6 +29,12 @@ Outputs:
   PrivateSubnetWithoutInternetThree:
     Description: Private subnet w\o internet access
     Value: !Ref 'PrivateSubnetWithoutInternetThree'
+  PrivateSubnetWithInternet01:
+    Description: Private subnet with internet access
+    Value: !Ref 'PrivateSubnetWithoutInternetThree'
+  PrivateSubnetWithInternet01Cidr:
+    Description: Private subnet with internet access
+    Value: !FindInMap ['SubnetConfig', 'PrivateWithInternet01', 'CIDR']
 Mappings:
   # Hard values for the subnet masks. These masks define
   # the range of internal IP addresses that can be assigned.
@@ -54,6 +60,8 @@ Mappings:
       CIDR: '10.0.3.0/24'
     PrivateNoInternet3:
       CIDR: '10.0.4.0/24'
+    PrivateWithInternet01:
+      CIDR: '10.0.5.0/24'
 Resources:
   # VPC in which containers will be networked.
   # It has two public subnets
@@ -68,6 +76,7 @@ Resources:
       Tags:
         - Key: Name
           Value: SharedVPC
+
   # Two public subnets, where containers can have public IP addresses
   PublicSubnetOne:
     Type: AWS::EC2::Subnet
@@ -76,6 +85,7 @@ Resources:
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
       MapPublicIpOnLaunch: true
+
   PublicSubnetTwo:
     Type: AWS::EC2::Subnet
     Properties:
@@ -114,23 +124,66 @@ Resources:
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet3', 'CIDR']
       AvailabilityZone:
         Fn::Select:
-          - 1
+          - 2
           - Fn::GetAZs: {Ref: 'AWS::Region'}
+
+  PrivateSubnetWithInternet01:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateWithInternet01', 'CIDR']
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
+
+  PrivateSubnetWithInternet01RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+
+  PrivateSubnetWithInternet01RouteToNatGateway:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateSubnetWithInternet01RouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      NatGatewayId: !Ref NatGatewayPrivateSubnetWithInternet01
+
+  PrivateSubnetWithInternet01RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateSubnetWithInternet01RouteTable
+      SubnetId: !Ref PrivateSubnetWithInternet01
+
+  NatGatewayEIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+
+  NatGatewayPrivateSubnetWithInternet01:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnetOne
 
   # Setup networking resources for the public subnets. Containers
   # in the public subnets have public IP addresses and the routing table
   # sends network traffic via the internet gateway.
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+
   GatewayAttachement:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       VpcId: !Ref 'VPC'
       InternetGatewayId: !Ref 'InternetGateway'
+
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref 'VPC'
+
   PublicRoute:
     Type: AWS::EC2::Route
     DependsOn: GatewayAttachement
@@ -138,11 +191,13 @@ Resources:
       RouteTableId: !Ref 'PublicRouteTable'
       DestinationCidrBlock: '0.0.0.0/0'
       GatewayId: !Ref 'InternetGateway'
+
   PublicSubnetOneRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnetOne
       RouteTableId: !Ref PublicRouteTable
+
   PublicSubnetTwoRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
