@@ -1,10 +1,10 @@
 import unittest
-import pytest
-
-import resource_manager.src.util.elasticache_utils as elasticache_utils
-import documents.util.scripts.test.test_elasticache_util as test_elasticache_util
 from unittest.mock import patch, MagicMock, call
 
+import pytest
+
+import documents.util.scripts.test.test_elasticache_util as test_elasticache_util
+import resource_manager.src.util.elasticache_utils as elasticache_utils
 from resource_manager.test.util.mock_sleep import MockSleep
 
 
@@ -28,14 +28,14 @@ class TestElasticacheUtil(unittest.TestCase):
     def test_count_replicas_in_replication_group(self):
         self.mock_elasticache.describe_replication_groups.return_value = \
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, 3, 3
+                test_elasticache_util.REPLICATION_GROUP_ID, 3, 3
             )
         res = elasticache_utils.count_replicas_in_replication_group(
             self.session_mock,
-            test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID
+            test_elasticache_util.REPLICATION_GROUP_ID
         )
         self.mock_elasticache.describe_replication_groups.assert_called_once_with(
-            ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID
         )
         self.assertEqual(2, res)
 
@@ -48,24 +48,24 @@ class TestElasticacheUtil(unittest.TestCase):
 
         self.mock_elasticache.describe_replication_groups.side_effect = [
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, 2, 3
+                test_elasticache_util.REPLICATION_GROUP_ID, 2, 3
             ),
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, 2, 3
+                test_elasticache_util.REPLICATION_GROUP_ID, 2, 3
             ),
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, 3, 3
+                test_elasticache_util.REPLICATION_GROUP_ID, 3, 3
             )
         ]
 
         res = elasticache_utils.wait_for_available_status_on_rg_and_replicas(
             self.session_mock,
-            test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID
+            test_elasticache_util.REPLICATION_GROUP_ID
         )
 
         self.assertEqual(True, res)
         self.mock_elasticache.describe_replication_groups.assert_called_with(
-            ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID
         )
 
     @patch('time.sleep')
@@ -77,19 +77,19 @@ class TestElasticacheUtil(unittest.TestCase):
         time_to_wait = 900
         self.mock_elasticache.describe_replication_groups.return_value = \
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, 2, 30
+                test_elasticache_util.REPLICATION_GROUP_ID, 2, 30
             )
 
         with pytest.raises(TimeoutError) as timeout_error:
             res = elasticache_utils.wait_for_available_status_on_rg_and_replicas(
                 self.session_mock,
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID
+                test_elasticache_util.REPLICATION_GROUP_ID
             )
             print(res)
         self.mock_elasticache.describe_replication_groups.assert_called_with(
-            ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID
         )
-        self.assertEqual(f'Replication group {test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID} couldn\'t '
+        self.assertEqual(f'Replication group {test_elasticache_util.REPLICATION_GROUP_ID} couldn\'t '
                          f'be scaled in {time_to_wait} seconds', str(timeout_error.value))
 
     @patch('time.sleep')
@@ -103,26 +103,26 @@ class TestElasticacheUtil(unittest.TestCase):
 
         self.mock_elasticache.describe_replication_groups.side_effect = [
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, desired_count + 1, desired_count
+                test_elasticache_util.REPLICATION_GROUP_ID, desired_count + 1, desired_count
             ),
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, desired_count + 1, desired_count
+                test_elasticache_util.REPLICATION_GROUP_ID, desired_count + 1, desired_count
             ),
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, desired_count + 1, desired_count + 1
+                test_elasticache_util.REPLICATION_GROUP_ID, desired_count + 1, desired_count + 1
             )
         ]
         describe_calls = [
-            call(ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID),
-            call(ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID)
+            call(ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID),
+            call(ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID)
         ]
         elasticache_utils.increase_replicas_in_replication_group(
             self.session_mock,
-            test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID,
+            test_elasticache_util.REPLICATION_GROUP_ID,
             desired_count
         )
         self.mock_elasticache.increase_replica_count.assert_called_once_with(
-            ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID,
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID,
             NewReplicaCount=desired_count,
             ApplyImmediately=True
         )
@@ -141,29 +141,41 @@ class TestElasticacheUtil(unittest.TestCase):
 
         self.mock_elasticache.describe_replication_groups.side_effect = [
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, desired_count + 1, desired_count + 3
+                test_elasticache_util.REPLICATION_GROUP_ID, desired_count + 1, desired_count + 3
             ),
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, desired_count + 1, desired_count + 3
+                test_elasticache_util.REPLICATION_GROUP_ID, desired_count + 1, desired_count + 3
             ),
             test_elasticache_util.get_describe_replication_groups(
-                test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID, desired_count + 1, desired_count + 1
+                test_elasticache_util.REPLICATION_GROUP_ID, desired_count + 1, desired_count + 1
             )
         ]
         describe_calls = [
-            call(ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID),
-            call(ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID)
+            call(ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID),
+            call(ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID)
         ]
         elasticache_utils.decrease_replicas_in_replication_group(
             self.session_mock,
-            test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID,
+            test_elasticache_util.REPLICATION_GROUP_ID,
             desired_count
         )
         self.mock_elasticache.decrease_replica_count.assert_called_once_with(
-            ReplicationGroupId=test_elasticache_util.ELASTICACHE_REPLICATION_GROUP_ID,
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID,
             NewReplicaCount=desired_count,
             ApplyImmediately=True
         )
         self.mock_elasticache.describe_replication_groups.assert_has_calls(
             describe_calls
         )
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_replication_group_available(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+        response = elasticache_utils.wait_for_replication_group_available(
+            self.session_mock,
+            test_elasticache_util.REPLICATION_GROUP_ID
+        )
+        self.assertEqual(None, response)
