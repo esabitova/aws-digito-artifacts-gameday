@@ -1,8 +1,9 @@
-import random
-
+import json
 import boto3
 import logging
-import string
+
+
+from botocore.config import Config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -14,40 +15,42 @@ def check_required_params(required_params, events):
             raise KeyError(f'Requires {key} in events')
 
 
-def backup_targets(events: dict, context: dict) -> list:
+def backup_targets(events: dict, context: dict) -> str:
+
     required_params = [
         "LoadBalancerArn"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-    describe_params = {
-        "LoadBalancerArn": events['LoadBalancerArn']
-    }
-    if "TargetGroupArns" in events and events['TargetGroupArns']:
-        describe_params['TargetGroupArns'] = events['TargetGroupArns']
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
     paginator = elb_client.get_paginator('describe_target_groups')
-    pages = paginator.paginate(**describe_params)
+    pages = paginator.paginate(
+        LoadBalancerArn=events['LoadBalancerArn']
+    )
     res = []
     for page in pages:
         target_groups = page.get('TargetGroups')
         for target_group in target_groups:
-            res.append({
-                'TargetGroupArn': target_group.get('TargetGroupArn'),
+
+            backed_group = {
                 'LoadBalancerArn': events['LoadBalancerArn'],
-                'HealthCheckProtocol': target_group.get('HealthCheckProtocol'),
-                'HealthCheckPort': target_group.get('HealthCheckPort'),
-                'HealthCheckEnabled': target_group.get('HealthCheckEnabled'),
-                'HealthCheckIntervalSeconds': target_group.get('HealthCheckIntervalSeconds'),
-                'HealthCheckTimeoutSeconds': target_group.get('HealthCheckTimeoutSeconds'),
-                'HealthyThresholdCount': target_group.get('HealthyThresholdCount'),
-                'UnhealthyThresholdCount': target_group.get('UnhealthyThresholdCount'),
-                'HealthCheckPath': target_group.get('HealthCheckPath'),
-                'Matcher': {
-                    'HttpCode': target_group.get('Matcher', {}).get('HttpCode'),
-                    'GrpcCode': target_group.get('Matcher', {}).get('GrpcCode'),
-                },
-            })
-    return res
+            }
+            for key in [
+                'TargetGroupArn',
+                'HealthCheckProtocol',
+                'HealthCheckPort',
+                'HealthCheckEnabled',
+                'HealthCheckIntervalSeconds',
+                'HealthCheckTimeoutSeconds',
+                'HealthyThresholdCount',
+                'UnhealthyThresholdCount',
+                'HealthCheckPath'
+            ]:
+                if target_group.get(key):
+                    backed_group[key] = target_group.get(key)
+
+            res.append(backed_group)
+    return json.dumps(res)
 
 
 def break_targets_healthcheck_port(events: dict, context: dict) -> None:
@@ -60,8 +63,10 @@ def break_targets_healthcheck_port(events: dict, context: dict) -> None:
         "HealthCheckPort"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-    for target_group in events['TargetGroups']:
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
+    target_groups = json.loads(events['TargetGroups'])
+    for target_group in target_groups:
         elb_client.modify_target_group(
             TargetGroupArn=target_group['TargetGroupArn'],
             HealthCheckEnabled=True,
@@ -76,114 +81,46 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
         "TargetGroups",
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-    for target_group in events['TargetGroups']:
+    target_groups = json.loads(events['TargetGroups'])
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
+    for target_group in target_groups:
         target_group.pop('LoadBalancerArn')
         elb_client.modify_target_group(**target_group)
 
 
-def remove_security_group_from_alb(events: dict, context: dict) -> None:
+def remove_security_groups_from_list(events: dict, context: dict) -> list:
     """
-    Remove security group from load balancer or create empty SG in case of SG ids are empty
-
-    :param events: LoadBalancerArn, SecurityGroupIdsToDelete
+    Return result of subtraction security_group ids from the original list of security group ids
+    :param events: SecurityGroupIdsToDelete, SecurityGroups
     :param context:
     """
     required_params = [
-        "LoadBalancerArn",
+        "SecurityGroups",
         "SecurityGroupIdsToDelete"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
 
-    describe_params = {
-        'LoadBalancerArns': [events['LoadBalancerArn']]
-    }
+    security_group_ids_to_delete = events['SecurityGroupIdsToDelete']
+    security_groups = events['SecurityGroups']
 
-    # security_group_ids_to_delete = events['SecurityGroupIdsToDelete']
-    # if security_group_ids_to_delete:
-    #     pass
-    # else:
+    new_security_groups = []
+    for security_group in security_groups:
+        if security_group not in security_group_ids_to_delete:
+            new_security_groups.append(security_group)
 
-    # create an empty security group
-    ec2_client = boto3.client('ec2')
-    sg_description = 'inject_failure_sg_descr_' + ''.join(random.choice(string.ascii_uppercase) for _ in range(20))
-    sg_name = 'inject_failure_sg_name' + ''.join(random.choice(string.ascii_uppercase) for _ in range(10))
-
-    lb_item = get_load_balancer(describe_params)
-
-    resp = ec2_client.create_security_group(
-        Description=sg_description,
-        GroupName=sg_name,
-        VpcId=lb_item['VpcId']
-    )
-    security_groups = [resp['GroupId']]
-    elb_client.set_security_groups(
-        LoadBalancerArn=events['LoadBalancerArn'],
-        SecurityGroups=security_groups
-    )
+    return new_security_groups
 
 
-def update_security_groups(events: dict, context: dict) -> None:
+def get_length_of_list(events: dict, context: dict) -> int:
     """
-    Update security groups for load balancer
-    :param events: dict
-    * LoadBalancerArn
-    * SecurityGroups
+    :param events:
     :param context:
-    """
-
-    required_params = [
-        "LoadBalancerArn",
-        "SecurityGroups"
-    ]
-    check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-
-    elb_client.set_security_groups(
-        LoadBalancerArn=events['LoadBalancerArn'],
-        SecurityGroups=events['SecurityGroups'],
-    )
-
-
-def backup_security_groups(events: dict, context: dict) -> list:
-    """
-    Backup security groups for a load balancer
-    :param events: dict
-    * LoadBalancerArn
-    :param context:
-    :return: list of security groups
+    :return:
     """
     required_params = [
-        "LoadBalancerArn",
+        "List"
     ]
     check_required_params(required_params, events)
-    logger.info(f"Load balancer arn {events['LoadBalancerArn']}")
 
-    describe_params = {
-        'LoadBalancerArns': [events['LoadBalancerArn']]
-    }
-
-    load_balancer = get_load_balancer(describe_params)
-
-    result = []
-    if load_balancer:
-        result = load_balancer.get('SecurityGroups')
-    logger.info(f"Security groups {result}")
-    return result
-
-
-def get_load_balancer(describe_params):
-    """
-    Retrieve load balancer identified by params
-
-    :param list describe_params
-    :return: load balancer
-    """
-    elb_client = boto3.client('elbv2')
-    paginator = elb_client.get_paginator('describe_load_balancers')
-    pages = paginator.paginate(**describe_params)
-    load_balancers = []
-    for page in pages:
-        load_balancers = page.get('LoadBalancers')
-    return load_balancers[0] if len(load_balancers) > 0 else {}
+    return len(events['List'])

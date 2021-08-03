@@ -79,21 +79,17 @@ mainSteps:
           StringEquals: '{{ LoadBalancerArn }}'
     isEnd: true
 
-    # 1. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
   - name: RollbackPreviousExecution
-    action: aws:executeScript
+    action: aws:executeAwsApi
     inputs:
-      Runtime: python3.7
-      Handler: update_security_groups
-      InputPayload:
-        LoadBalancerArn: '{{ LoadBalancerArn }}'
-        SecurityGroups: '{{BackupCurrentExecution.SecurityGroups}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
-
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.update_security_groups
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
@@ -108,58 +104,133 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
 
-    # 1.call [boto3.describe_load_balancers]
-    #   Params: LoadBalancerArns=[params.LoadBalancerArn]
-    #   take '.SecurityGroups[]' collection and return as SecurityGroups
   - name: BackupCurrentExecution
-    action: aws:executeScript
+    action: aws:executeAwsApi
+    inputs:
+      Service: elbv2
+      Api: DescribeLoadBalancers
+      LoadBalancerArns:
+        - '{{ LoadBalancerArn }}'
     outputs:
       - Name: SecurityGroups
+        Selector: $.LoadBalancers[0].SecurityGroups
+        Type: StringList
+
+  - name: GetVpcId
+    action: aws:executeAwsApi
+    inputs:
+      Service: elbv2
+      Api: DescribeLoadBalancers
+      LoadBalancerArns:
+        - '{{ LoadBalancerArn }}'
+    outputs:
+      - Name: VpcId
+        Selector: $.LoadBalancers[0].VpcId
+        Type: String
+
+  - name: LengthOfSecurityGroupsIdsToDelete
+    action: aws:executeScript
+    onFailure: Abort
+    outputs:
+      - Name: Length
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: get_length_of_list
+      InputPayload:
+        List: '{{ SecurityGroupIdsToDelete }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
+
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.get_length_of_list
+
+  - name: CheckSecurityGroupIdsToDeleteParamIsNotEmpty
+    action: aws:branch
+    inputs:
+      Choices:
+        # Inject failure by removing security groups
+        - NextStep: RemoveSecurityGroupsFromList
+          Variable: "{{ LengthOfSecurityGroupsIdsToDelete.Length }}"
+          NumericGreater: 0
+      # Inject failure by setting dummy security group
+      Default:
+          CreateEmptySecurityGroup
+
+  # Inject failure by removing security groups
+  - name: RemoveSecurityGroupsFromList
+    action: aws:executeScript
+    outputs:
+      - Name: NewSecurityGroupIds
         Selector: $.Payload
         Type: StringList
     inputs:
       Runtime: python3.7
-      Handler: backup_security_groups
+      Handler: remove_security_groups_from_list
       InputPayload:
-        LoadBalancerArn: '{{ LoadBalancerArn }}'
+        SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+        SecurityGroupIdsToDelete: '{{ SecurityGroupIdsToDelete }}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 
         SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.get_load_balancer
-        SCRIPT_PLACEHOLDER::elb_util.backup_security_groups
+        SCRIPT_PLACEHOLDER::elb_util.remove_security_groups_from_list
+    nextStep: SetNewSecurityGroups
 
-    # if SecurityGroupIdsToDelete NOT SPECIFIED
-
-    # 1. Create an empty security group. Call [boto3.create_security_group]
-    #   Params: provide name and description
-    #   take '.GroupId' value from response as NewSecurityGroup
-    # 2. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[NewSecurityGroup]
-    #   return '.SecurityGroupIds[]' collection as an output
-
-    # if SecurityGroupIdsToDelete SPECIFIED
-
-    # 1. Remove from BackupCurrentExecution.SecurityGroups params.SecurityGroupIdsToDelete
-    # 2. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[LeftSGs]
-    #   return '.SecurityGroupIds[]' collection as an output
-  - name: InjectFailure
+  - name: SetNewSecurityGroups
+    action: aws:executeAwsApi
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups: '{{ RemoveSecurityGroupsFromList.NewSecurityGroupIds }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
+    nextStep: AssertAlarmToBeRed
+
+  # Inject failure by setting dummy security group
+  - name: CreateEmptySecurityGroup
     action: aws:executeScript
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    outputs:
+      - Name: EmptySecurityGroupId
+        Selector: $.Payload.EmptySecurityGroupId
+        Type: String
     inputs:
       Runtime: python3.7
-      Handler: remove_security_group_from_alb
+      Handler: create_empty_security_group
       InputPayload:
-        LoadBalancerArn: '{{LoadBalancerArn}}'
-        SecurityGroupIdsToDelete: '{{SecurityGroupIdsToDelete}}'
+        VpcId: '{{GetVpcId.VpcId}}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
       Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
+        SCRIPT_PLACEHOLDER::common_util.imports
 
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.get_load_balancer
-        SCRIPT_PLACEHOLDER::elb_util.remove_security_group_from_alb
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+
+        SCRIPT_PLACEHOLDER::common_util.create_empty_security_group
+    nextStep: SetEmptySecurityGroupForLoadBalancer
+
+  - name: SetEmptySecurityGroupForLoadBalancer
+    action: aws:executeAwsApi
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups:
+        - '{{ CreateEmptySecurityGroup.EmptySecurityGroupId }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
+    nextStep: AssertAlarmToBeRed
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
@@ -175,23 +246,36 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["ALARM"]
 
-    # 1. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+  # rollback current execution
+  # 1. Update list of security groups. Call [boto3.set_security_groups]
+  #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
   - name: RollbackCurrentExecution
-    maxAttempts: 5
+    action: aws:executeAwsApi
     onCancel: step:TriggerRollback
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
+
+  - name: DeleteEmptySecurityGroup
     action: aws:executeScript
+    onCancel: step:TriggerRollback
+    timeoutSeconds: 900
+    maxAttempts: 3
     inputs:
       Runtime: python3.7
-      Handler: update_security_groups
+      Handler: remove_empty_security_group
       InputPayload:
-        LoadBalancerArn: '{{LoadBalancerArn}}'
-        SecurityGroups: '{{BackupCurrentExecution.SecurityGroups}}'
+        EmptySecurityGroupId: '{{CreateEmptySecurityGroup.EmptySecurityGroupId}}'
       Script: |-
-        SCRIPT_PLACEHOLDER::elb_util.imports
+        SCRIPT_PLACEHOLDER::common_util.imports
 
-        SCRIPT_PLACEHOLDER::elb_util.check_required_params
-        SCRIPT_PLACEHOLDER::elb_util.update_security_groups
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
 
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
