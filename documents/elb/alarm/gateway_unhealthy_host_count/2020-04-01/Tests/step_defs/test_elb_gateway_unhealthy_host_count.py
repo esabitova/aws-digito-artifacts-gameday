@@ -5,12 +5,14 @@ from pytest_bdd import (
 
 
 @scenario('../features/elb_gateway_unhealthy_host_count.feature',
-          'Alarm is not triggered when count of elb unhealthy hosts less than a threshold - green')
+          'Create elb:alarm:gateway_unhealthy_host_count:2020-04-01 based on UnHealthyHostCount metric '
+          'and test green state')
 def test_elb_gateway_unhealthy_host_count_green():
     pass
 
 
 @scenario('../features/elb_gateway_unhealthy_host_count.feature',
-          'Reports when count of gateway load balancer unhealthy hosts greater than or equal to a threshold')
+          'Create elb:alarm:gateway_unhealthy_host_count:2020-04-01 based on UnHealthyHostCount metric '
+          'and test red state')
 def test_elb_gateway_unhealthy_host_count_exceeds_threshold():
     pass

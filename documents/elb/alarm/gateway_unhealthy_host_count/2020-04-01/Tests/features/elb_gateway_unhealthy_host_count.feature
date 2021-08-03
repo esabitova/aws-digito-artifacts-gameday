@@ -1,7 +1,7 @@
 @elb @integration @alarm
 Feature: Alarm Setup - load-balancer UnHealthyHostCount
 
-  Scenario: Alarm is not triggered when count of elb unhealthy hosts less than a threshold - green
+  Scenario: Create elb:alarm:gateway_unhealthy_host_count:2020-04-01 based on UnHealthyHostCount metric and test green state
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet                                             | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                  | SHARED       |                          |                                                    |                            |
@@ -14,7 +14,7 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
     Then assert metrics for all alarms are populated
     Then wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
-  Scenario: Reports when count of gateway load balancer unhealthy hosts greater than or equal to a threshold
+  Scenario: Create elb:alarm:gateway_unhealthy_host_count:2020-04-01 based on UnHealthyHostCount metric and test red state
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet                                             | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                  | SHARED       |                          |                                                    |                            |

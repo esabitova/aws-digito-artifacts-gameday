@@ -43,7 +43,7 @@ Parameters:
   Subnet1:
     Type: String
     Description: Subnet ID
-  SecurityGroupCIDR:
+  VPCCidr:
     Type: String
     Description: Subnet CIDR
   Subnet2:
@@ -71,12 +71,12 @@ Resources:
                   - !Ref "AWS::StackId"
       VpcId: !Ref VPC
       SecurityGroupEgress:
-        - CidrIp: !Ref SecurityGroupCIDR
+        - CidrIp: !Ref VPCCidr
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
       SecurityGroupIngress:
-        - CidrIp: !Ref SecurityGroupCIDR
+        - CidrIp: !Ref VPCCidr
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
@@ -102,12 +102,12 @@ Resources:
         - IpProtocol: tcp
           FromPort: 0
           ToPort: 65535
-          CidrIp: !Ref SecurityGroupCIDR
+          CidrIp: !Ref VPCCidr
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !Ref SecurityGroupCIDR
+          CidrIp: !Ref VPCCidr
 
   TargetLambdaSG:
     Type: AWS::EC2::SecurityGroup
@@ -130,12 +130,12 @@ Resources:
         - IpProtocol: tcp
           FromPort: 0
           ToPort: 65535
-          CidrIp: !Ref SecurityGroupCIDR
+          CidrIp: !Ref VPCCidr
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !Ref SecurityGroupCIDR
+          CidrIp: !Ref VPCCidr
 
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer

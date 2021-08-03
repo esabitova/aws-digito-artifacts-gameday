@@ -5,12 +5,14 @@ from pytest_bdd import (
 
 
 @scenario('../features/elb_application_lambda_user_error.feature',
-          'Alarm is not triggered when count of lambda user errors from lambda targets is less than a threshold')
+          'Create elb:alarm:application_lambda_user_error:2020-04-01 based on LambdaUserError metric '
+          'and test green state')
 def test_elb_application_lambda_user_error_alarm():
     pass
 
 
 @scenario('../features/elb_application_lambda_user_error.feature',
-          'Report when count of lambda user errors from lambda targets is greater than or equal to a threshold - red')
+          'Create elb:alarm:application_lambda_user_error:2020-04-01 based on LambdaUserError metric '
+          'and test red state')
 def test_elb_application_lambda_user_error_trigger_alarm():
     pass
