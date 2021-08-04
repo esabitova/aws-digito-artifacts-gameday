@@ -131,8 +131,6 @@ Resources:
   ApplicationsApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      EndpointConfiguration:
-        Types: [ 'REGIONAL' ]
       Name: !Join
         - "-"
         - - "RestApiGateway-Digito"
@@ -183,8 +181,7 @@ Resources:
     Properties:
       HttpMethod: GET
       ResourceId: !Ref ApiGatewayResource
-      RestApiId:
-        !Ref ApplicationsApi
+      RestApiId: !Ref ApplicationsApi
       ApiKeyRequired: True
       AuthorizationType: AWS_IAM
       Integration:
@@ -208,8 +205,8 @@ Resources:
       - LambdaFunction
     Properties:
       HttpMethod: POST
-      RestApiId: !Ref ApplicationsApi
       ResourceId: !Ref ApiGatewayResource
+      RestApiId: !Ref ApplicationsApi
       ApiKeyRequired: True
       AuthorizationType: AWS_IAM
       RequestParameters:
