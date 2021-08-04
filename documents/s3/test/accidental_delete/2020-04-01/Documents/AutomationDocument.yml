@@ -62,8 +62,7 @@ mainSteps:
         - NextStep: GetS3BucketWhereObjectCouldBeDeletedFrom
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
-      Default:
-        BackupS3BucketWhereObjectsWillBeDeletedFrom
+      Default: AssertAlarmToBeGreenBeforeTest
 
   - name: GetS3BucketWhereObjectCouldBeDeletedFrom
     action: aws:executeScript
@@ -111,6 +110,15 @@ mainSteps:
         S3BucketToRestoreName: '{{GetS3BucketWhereObjectCouldBeDeletedFrom.S3BucketWhereObjectCouldBeDeletedFrom}}'
     isEnd: true
 
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{S3UserErrorAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: BackupS3BucketWhereObjectsWillBeDeletedFrom
     action: aws:executeAutomation
     inputs:

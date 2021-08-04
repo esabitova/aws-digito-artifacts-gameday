@@ -102,6 +102,10 @@ Parameters:
     Type: String
     Description: S3 object version for distribution packasdagesdfsasmnbasdnbasdasdasd
     Default: ""
+  KmsKey:
+    Type: String
+    Description: The ARN for KMS key for encryption
+    AllowedPattern: 'arn:aws:kms:\S+:\d+:key\/\S+'
 Conditions:
   CreateCanary: !Not
     - !Equals
@@ -204,6 +208,7 @@ Resources:
         - !GetAtt VPCSecurityGroup.GroupId
       DBSubnetGroupName: !Ref DocDbClusterSubnetGroup
       KmsKeyId: !Ref KmsKey
+
   DocDbClusterSubnetGroup:
     Type: "AWS::DocDB::DBSubnetGroup"
     Properties:
@@ -777,6 +782,13 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID:
+                !Ref KmsKey
+
   PrivateSubnet01RouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -840,27 +852,3 @@ Resources:
     Properties:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
-  KmsKey:
-    Type: AWS::KMS::Key
-    Properties:
-      KeyPolicy:
-        Version: '2012-10-17'
-        Id: !Join
-          - "-"
-          - - "kms-key-policy"
-            - !Select
-              - 0
-              - !Split
-                - "-"
-                - !Select
-                  - 2
-                  - !Split
-                    - "/"
-                    - !Ref "AWS::StackId"
-        Statement:
-          - Sid: Enable IAM User Permissions
-            Effect: Allow
-            Principal:
-              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-            Action: kms:*
-            Resource: "*"

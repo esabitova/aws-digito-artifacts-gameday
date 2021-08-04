@@ -34,6 +34,10 @@ Parameters:
     Description: EC2 instance type (https://aws.amazon.com/ec2/instance-types)
     Type: String
     Default: t2.micro
+  KmsKey:
+    Type: String
+    Description: The ARN for KMS key for encryption
+    AllowedPattern: 'arn:aws:kms:\S+:\d+:key\/\S+'
 Mappings:
     AWSInstanceType2Arch:
       t1.micro:
@@ -267,6 +271,9 @@ Resources:
       VolumeType: gp3
       Size: 10
       Iops: 100
+      Encrypted: true
+      KmsKeyId: !Ref KmsKey
+
   MountPoint:
     Type: AWS::EC2::VolumeAttachment
     Properties:

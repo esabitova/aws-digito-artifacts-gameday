@@ -8,9 +8,10 @@ Feature: SSM automation document to test database alarm.
     #todo DIG-977 create CW Canary distribution package here instead of run-integ-buildspec.yml
     And upload file "{{cache:DistributionPackageRelativePath}}" as "{{cache:DistributionPackageS3Key}}" S3 key to ssm-test-resources S3 bucket and save locations to "CloudWatchCanary" cache property
     And the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                           | ResourceType | DocumentDbConnectionAttemptCanaryS3Bucket | DocumentDbConnectionAttemptCanaryS3Key | DocumentDbConnectionAttemptCanaryS3ObjectVersion |
-      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                              | ON_DEMAND    | {{cache:CloudWatchCanary>S3Bucket}}       | {{cache:CloudWatchCanary>S3Key}}       | {{cache:CloudWatchCanary>S3ObjectVersion}}       |
-      | documents/docdb/test/database_alarm/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                           |                                        |                                                  |
+      | CfnTemplatePath                                                                           | ResourceType | DocumentDbConnectionAttemptCanaryS3Bucket | DocumentDbConnectionAttemptCanaryS3Key | DocumentDbConnectionAttemptCanaryS3ObjectVersion | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml                                 | SHARED       |                                           |                                        |                                                  |                                     |
+      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                              | ON_DEMAND    | {{cache:CloudWatchCanary>S3Bucket}}       | {{cache:CloudWatchCanary>S3Key}}       | {{cache:CloudWatchCanary>S3ObjectVersion}}       | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | documents/docdb/test/database_alarm/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                           |                                        |                                                  |                                     |
     And published "Digito-DocDbDatabaseAlarm_2020-09-21" SSM document
     And cache cluster vpc security groups as "VpcSecurityGroupsIds" at step "before" SSM automation execution
       | DBClusterIdentifier                              |

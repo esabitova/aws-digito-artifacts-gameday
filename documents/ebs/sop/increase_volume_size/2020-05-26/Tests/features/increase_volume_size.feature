@@ -3,8 +3,9 @@ Feature: SSM automation document Digito-EBSRestoreFromBackup_2020-05-26
 
   Scenario: Execute SSM automation document Digito-EBSIncreaseVolumeSize_2020-05-26
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                       | ResourceType |InstanceType |
-      | resource_manager/cloud_formation_templates/Ec2WithEbsCfnTemplate.yml  | ON_DEMAND    |t2.small     |
+      | CfnTemplatePath                                                       | ResourceType |InstanceType | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml             | SHARED       |             |                                     |
+      | resource_manager/cloud_formation_templates/Ec2WithEbsCfnTemplate.yml  | ON_DEMAND    |t2.small     | {{cfn-output:KMS>EncryptAtRestKey}} |
 
     And the cloud formation templates as integration test resources
       | CfnTemplatePath                                                       | ResourceType |

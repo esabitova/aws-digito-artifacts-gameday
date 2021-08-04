@@ -609,6 +609,8 @@ def wait_for_alarm(cfn_output_params, cfn_installed_alarms, ssm_test_cache, boto
              'check every {delay_sec} seconds'))
 @then(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
             'check every {delay_sec} seconds'))
+@when(parse('Wait until alarm {alarm_name_ref} becomes {alarm_expected_state} within {wait_sec} seconds, '
+            'check every {delay_sec} seconds'))
 def wait_until_alarm(alarm_name_ref: str, alarm_expected_state: str, wait_sec: str, delay_sec: str,
                      cfn_installed_alarms: dict, cfn_output_params: dict,
                      ssm_test_cache: dict, boto3_session: boto3.Session):

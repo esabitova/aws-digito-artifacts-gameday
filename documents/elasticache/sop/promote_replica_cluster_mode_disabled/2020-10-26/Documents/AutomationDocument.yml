@@ -86,8 +86,6 @@ mainSteps:
 
   - name: UpdateFailoverSettings
     action: aws:executeAwsApi
-    onFailure: step:RestoreFailoverSettings
-    onCancel: step:RestoreFailoverSettings
     outputs:
       - Name: MultiAZStatus
         Selector: $.ReplicationGroup.MultiAZ
@@ -105,8 +103,6 @@ mainSteps:
 
   - name: VerifyReplicationGroupStatusAfterUpdateFailoverSettings
     action: aws:waitForAwsResourceProperty
-    onFailure: step:RestoreFailoverSettings
-    onCancel: step:RestoreFailoverSettings
     inputs:
       Service: elasticache
       Api: DescribeReplicationGroups
@@ -116,8 +112,6 @@ mainSteps:
 
   - name: PromoteReplica
     action: aws:executeAwsApi
-    onFailure: step:VerifyAutomaticFailoverStatusBeforeRestore
-    onCancel: step:VerifyAutomaticFailoverStatusBeforeRestore
     inputs:
       Service: elasticache
       Api: ModifyReplicationGroup
@@ -127,8 +121,6 @@ mainSteps:
 
   - name: VerifyReplicationGroupStatusAfterPromoteReplica
     action: aws:waitForAwsResourceProperty
-    onFailure: step:VerifyAutomaticFailoverStatusBeforeRestore
-    onCancel: step:VerifyAutomaticFailoverStatusBeforeRestore
     inputs:
       Service: elasticache
       Api: DescribeReplicationGroups
@@ -164,7 +156,6 @@ mainSteps:
 
   - name: VerifyReplicationGroupStatusAfterRestoreFailoverSettings
     action: aws:waitForAwsResourceProperty
-    onFailure: Abort
     inputs:
       Service: elasticache
       Api: DescribeReplicationGroups
