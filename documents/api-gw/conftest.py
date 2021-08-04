@@ -77,9 +77,6 @@ cache_throttling_settings_expression = 'cache usage plan rate limit as "{rate_li
 get_api_key_and_perform_https_requests_expression = 'get API key and perform "{count}" https "{method}" requests ' \
                                                     'with interval "{interval}" seconds'
 
-get_api_key_and_perform_https_post_requests_expression = 'provide API key and perform "{count}" https "{method}" ' \
-                                                         'requests with interval "{interval}" seconds'
-
 get_api_key_and_invoke_lambda_to_perform_https_requests = 'get API key "{api_key_id_ref}" and invoke lambda ' \
                                                           '"{lambda_arn_ref}" to perform "{count}" http requests ' \
                                                           'with interval "{interval}" seconds'
@@ -616,17 +613,3 @@ def call_ws_endpoint(
             logging.info(f'Handshake failed with {str(e.status_code)}')
         sleep(request_delay)
         request_count -= 1
-
-
-@when(parsers.parse(get_api_key_and_perform_https_post_requests_expression))
-def get_api_key_and_perform_https_post_requests_expression(
-        resource_pool, ssm_test_cache, boto3_session, count, method, interval
-):
-    api_key_id = ssm_test_cache['before']['ApiKeyId']
-    api_host = ssm_test_cache['before']['ApiHost']
-    api_path = ssm_test_cache['before']['ApiPath']
-    api_url = 'https://' + api_host + api_path
-    count = int(count)
-    interval = int(interval)
-    apigw_utils.invoke_several_post_api_gw(boto3_session, api_key_id, api_host, api_url, count,
-                                           interval)
