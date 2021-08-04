@@ -47,8 +47,8 @@ Outputs:
     Value: !GetAtt RoleApproveCleanBucket.Arn
 Parameters:
   CleanupS3BucketLambdaArn:
-     Description: ARN of Cleanup S3 Bucket Lambda Function
-     Type: String
+    Description: ARN of Cleanup S3 Bucket Lambda Function
+    Type: String
 Resources:
   S3BackupBucket:
     Type: AWS::S3::Bucket

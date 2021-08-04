@@ -16,7 +16,7 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for DocumentDb
+Description: Test stack for DocumentDb with Canary
 Outputs:
   DBClusterIdentifier:
     Value: !Ref DBCluster
@@ -32,8 +32,12 @@ Outputs:
     Value: !GetAtt DBCluster.ClusterResourceId
   EngineVersion:
     Value: "4.0.0"
+  DatabaseConnectionAttemptAlarmName:
+    Value: !Ref DatabaseConnectionAttemptAlarm
   VPCSecurityGroupId:
     Value: !Ref VPCSecurityGroup
+  DocumentDbConnectionAttemptCanaryName:
+    Value: !Ref DocumentDbConnectionAttemptCanary
 Parameters:
   DBInstanceClass:
     Description: "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
@@ -68,6 +72,24 @@ Parameters:
     Type: Number
     Description: DocDb cluster port
     Default: 27017
+  DocumentDbConnectionAttemptCanaryS3Bucket:
+    Type: String
+    Description: S3 bucket for distribution package
+  DocumentDbConnectionAttemptCanaryS3Key:
+    Type: String
+    Description: S3 key for distribution package
+  DocumentDbConnectionAttemptCanaryS3ObjectVersion:
+    Type: String
+    Description: S3 object version for distribution packasdagesdfsasmnbasdnbasdasdasd
+    Default: ""
+  CleanupS3BucketLambdaArn:
+    Description: ARN of Cleanup S3 Bucket Lambda Function
+    Type: String
+Conditions:
+  CanaryS3ObjectHasVersion: !Not
+    - !Equals
+      - !Ref DocumentDbConnectionAttemptCanaryS3ObjectVersion
+      - ""
 Resources:
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret
@@ -176,6 +198,140 @@ Resources:
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBInstancePrimary
 
+  DocumentDbConnectionAttemptCanary:
+    Type: "AWS::Synthetics::Canary"
+    Properties:
+      Name: !Join
+        - "-"
+        - - "docdb-con"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      Code:
+        Handler: "docdb_canary_connect.handler"
+        S3Bucket:
+          Ref: DocumentDbConnectionAttemptCanaryS3Bucket
+        S3Key:
+          Ref: DocumentDbConnectionAttemptCanaryS3Key
+        S3ObjectVersion:
+          Fn::If:
+            - CanaryS3ObjectHasVersion
+            - Ref: DocumentDbConnectionAttemptCanaryS3ObjectVersion
+            - Ref: AWS::NoValue
+      ExecutionRoleArn: !GetAtt RoleDocumentDbConnectionAttempt.Arn
+      Schedule:
+        Expression: "rate(1 minute)"
+        DurationInSeconds: '0'
+      RunConfig:
+        TimeoutInSeconds: 60
+        MemoryInMB: 960
+        ActiveTracing: false
+        EnvironmentVariables:
+          SECRET_ID: !Sub '${GeneratedSecretString}'
+          ENDPOINT: !GetAtt DBInstancePrimary.Endpoint
+          PORT: !GetAtt DBInstancePrimary.Port
+      SuccessRetentionPeriod: 5
+      FailureRetentionPeriod: 5
+      ArtifactS3Location:
+        !Join [
+        "",
+          [
+            "s3://",
+            !Ref S3BucketForCanaryLogs,
+            "/"
+          ],
+        ]
+      RuntimeVersion: syn-python-selenium-1.0
+      StartCanaryAfterCreation: false
+      VPCConfig:
+        SecurityGroupIds:
+          - Ref: VPCSecurityGroup
+        SubnetIds:
+          - Ref: PrivateSubnet01
+        VpcId: !Ref VPC
+
+  DatabaseConnectionAttemptAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      ActionsEnabled: false
+      MetricName: "Failed"
+      Namespace: "CloudWatchSynthetics"
+      Statistic: "Sum"
+      Dimensions:
+        - Name: "CanaryName"
+          Value: !Ref DocumentDbConnectionAttemptCanary
+      Period: 10
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: "GreaterThanThreshold"
+      TreatMissingData: "notBreaching"
+
+  RoleDocumentDbConnectionAttempt:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  PolicyDocumentDbConnectionAttempt:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: PolicyDocumentDbConnectionAttempt
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              #              - todo leave only required
+              - rds:Describe*
+              - s3:*
+              - secretsmanager:*
+              - cloudwatch:PutMetricData
+              - ec2:*
+              - ec2:CreateNetworkInterface
+      Roles:
+        - Ref: RoleDocumentDbConnectionAttempt
+
+  S3BucketForCanaryLogs:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !Join
+        - "-"
+        - - "canary-logs-digito"
+          - !Ref "AWS::Region"
+          - !Ref "AWS::AccountId"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
   KmsKey:
     Type: AWS::KMS::Key
     Properties:
@@ -200,3 +356,11 @@ Resources:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
             Action: kms:*
             Resource: "*"
+
+  # To clean S3 buckets before deleting stack.
+  CleanupS3BucketsOnDelete:
+    Type: Custom::CleanupS3BucketsOnDelete
+    Properties:
+      ServiceToken: !Ref CleanupS3BucketLambdaArn
+      BucketNames:
+        - !Ref S3BucketForCanaryLogs
