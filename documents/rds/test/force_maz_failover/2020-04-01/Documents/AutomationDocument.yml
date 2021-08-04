@@ -60,7 +60,7 @@ mainSteps:
       DBInstanceIdentifier: "{{DbInstanceId}}"
       PropertySelector: "$.DBInstances[0].DBInstanceStatus"
       DesiredValues: ["available"]
-  - name: WaitForAlarmToBeGreen
+  - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10
     timeoutSeconds: 600
