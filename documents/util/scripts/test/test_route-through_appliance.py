@@ -21,6 +21,7 @@ class TestRouteThroughApplianceUtil(unittest.TestCase):
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
         self.mock_ec2.describe_route_tables.return_value = test_data_provider.get_sample_route_table_response()
         self.mock_ec2.delete_route.return_value = test_data_provider.get_sample_delete_route_response()
+        self.mock_ec2.create_route.return_value = test_data_provider.get_sample_create_route_response()
 
     def tearDown(self):
         self.patcher.stop()
@@ -86,6 +87,18 @@ class TestRouteThroughApplianceUtil(unittest.TestCase):
         self.assertDictEqual(result[0], {'Name': 'route.nat-gateway-id', 'Values': [nat_id]})
         self.assertDictEqual(result[1], {'Name': 'association.subnet-id', 'Values': [private_subnet_id]})
 
+    def test___get_nat_routes_filter_destination_ipv4_cidr_block_not_none(self):
+        nat_id = NAT_GATEWAY_ID
+        destination_ipv4_cidr_block = 'destination_ipv4_cidr_block'
+
+        result = route_through_appliance._get_nat_routes_filter(
+            nat_id, destination_ipv4_cidr_block=destination_ipv4_cidr_block)
+
+        self.assertTrue(len(result) == 2)
+        self.assertDictEqual(result[0], {'Name': 'route.nat-gateway-id', 'Values': [nat_id]})
+        self.assertDictEqual(result[1], {'Name': 'route.destination-cidr-block',
+                             'Values': [destination_ipv4_cidr_block]})
+
     def test__get_ipv4_routes_to_nat(self):
         self.mock_ec2.describe_route_tables.return_value = \
             test_data_provider.get_sample_route_table_response_filtered_by_nat()
@@ -133,9 +146,63 @@ class TestRouteThroughApplianceUtil(unittest.TestCase):
         self.mock_ec2.delete_route.assert_called_with(RouteTableId=ROUTE_TABLE_ID,
                                                       DestinationCidrBlock=INTERNET_DESTINATION)
 
-    @patch('documents.util.scripts.src.route_through_appliance._delete_route')
+    def test__create_route(self):
+        route_through_appliance._create_route(boto3_ec2_client=self.mock_ec2,
+                                              route_table_id=ROUTE_TABLE_ID,
+                                              destination_ipv4_cidr_block=INTERNET_DESTINATION,
+                                              nat_gw_id=NAT_GATEWAY_ID)
+
+        self.mock_ec2.create_route.assert_called_with(RouteTableId=ROUTE_TABLE_ID,
+                                                      DestinationCidrBlock=INTERNET_DESTINATION,
+                                                      NatGatewayId=NAT_GATEWAY_ID)
+
+    @patch('documents.util.scripts.src.route_through_appliance._create_route',
+           return_value=test_data_provider.get_sample_create_route_response())
     @patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
-           return_value=[])
+           return_value=[{'route': 'my_route'}])
+    def test__create_route_and_wait(self, route_to_nat_mock, create_route_mock):
+        route_through_appliance._create_route_and_wait(boto3_ec2_client=self.mock_ec2,
+                                                       route_table_id=ROUTE_TABLE_ID,
+                                                       destination_ipv4_cidr_block=INTERNET_DESTINATION,
+                                                       nat_gw_id=NAT_GATEWAY_ID)
+
+        create_route_mock.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                             route_table_id=ROUTE_TABLE_ID,
+                                             destination_ipv4_cidr_block=INTERNET_DESTINATION,
+                                             nat_gw_id=NAT_GATEWAY_ID)
+
+        route_to_nat_mock.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                             nat_gw_id=NAT_GATEWAY_ID,
+                                             private_subnet_id=None,
+                                             destination_ipv4_cidr_block=INTERNET_DESTINATION)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.time.sleep',
+           return_value=None)
+    @patch('documents.util.scripts.src.route_through_appliance._create_route',
+           return_value=test_data_provider.get_sample_create_route_response())
+    @patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
+           side_effect=[None, {'Something': 'Something'}])
+    def test__create_route_and_wait_timeout(self, route_to_nat_mock, create_route_mock, time_sleep_mock):
+        with self.assertRaises(TimeoutError):
+            route_through_appliance._create_route_and_wait(boto3_ec2_client=self.mock_ec2,
+                                                           route_table_id=ROUTE_TABLE_ID,
+                                                           destination_ipv4_cidr_block=INTERNET_DESTINATION,
+                                                           nat_gw_id=NAT_GATEWAY_ID,
+                                                           wait_timeout_seconds=0)
+
+        create_route_mock.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                             route_table_id=ROUTE_TABLE_ID,
+                                             destination_ipv4_cidr_block=INTERNET_DESTINATION,
+                                             nat_gw_id=NAT_GATEWAY_ID)
+
+        route_to_nat_mock.assert_called_with(boto3_ec2_client=self.mock_ec2,
+                                             nat_gw_id=NAT_GATEWAY_ID,
+                                             private_subnet_id=None,
+                                             destination_ipv4_cidr_block=INTERNET_DESTINATION)
+
+    @ patch('documents.util.scripts.src.route_through_appliance._delete_route')
+    @ patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
+            return_value=[])
     def test_delete_nat_gw_routes(self, mock_get_routes, mock_delete_route):
 
         result = json.loads(route_through_appliance.delete_nat_gw_routes(events={
@@ -144,7 +211,7 @@ class TestRouteThroughApplianceUtil(unittest.TestCase):
             f"\"Routes\": [{{\"DestinationCidrBlock\": \"{INTERNET_DESTINATION}\"}}]}}]",
             'NatGatewayId': NAT_GATEWAY_ID,
         }, context={})['Response'])
-        print(result)
+
         self.assertTrue(len(result) == 0)
         mock_delete_route.assert_called_with(boto3_ec2_client=self.mock_ec2,
                                              route_table_id=ROUTE_TABLE_ID,
@@ -170,9 +237,9 @@ class TestRouteThroughApplianceUtil(unittest.TestCase):
 
         self.assertTrue('Requires OriginalValue' in context.exception.args)
 
-    @patch('documents.util.scripts.src.route_through_appliance._create_route')
-    @patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
-           return_value=[{"RouteTableId": ROUTE_TABLE_ID}])
+    @ patch('documents.util.scripts.src.route_through_appliance._create_route')
+    @ patch('documents.util.scripts.src.route_through_appliance._get_ipv4_routes_to_nat',
+            return_value=[{"RouteTableId": ROUTE_TABLE_ID}])
     def test_create_nat_gw_routes(self, mock_get_routes, mock_create_route):
 
         result = json.loads(route_through_appliance.create_nat_gw_routes(events={
