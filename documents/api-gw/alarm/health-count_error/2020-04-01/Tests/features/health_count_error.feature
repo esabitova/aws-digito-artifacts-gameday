@@ -9,7 +9,7 @@ Feature: Alarm Setup - API Gateway Errors
       | ApiKeyId                                  | ApiHost                                        | ApiPath                                             |
       | {{cfn-output:RestApiGwTemplate>ApiKeyId}} | {{cfn-output:RestApiGwTemplate>RestApiGwHost}} | {{cfn-output:RestApiGwTemplate>RestApiGwStagePath}} | 
     When alarm "api-gw:alarm:health-count_error:2020-04-01" is installed
-      |alarmId    | ApiName                                  | Threshold | SNSTopicARN                       |
-      |under_test | {{cfn-output:RestApiGwTemplate>ApiName}} | 5         | {{cfn-output:SnsForAlarms>Topic}} |
-    And get API key and perform "20" https "GET" requests with interval "1" seconds
+      | alarmId    | ApiName                                  | Threshold | SNSTopicARN                       |
+      | under_test | {{cfn-output:RestApiGwTemplate>ApiName}} | 5         | {{cfn-output:SnsForAlarms>Topic}} |
+    And get API key and perform "12" https "GET" requests with interval "5" seconds
     Then assert metrics for all alarms are populated
