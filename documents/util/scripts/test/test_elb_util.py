@@ -1,8 +1,8 @@
+import json
 import unittest
 import pytest
 import documents.util.scripts.src.elb_util as elb_util
 import documents.util.scripts.test.test_data_provider as test_data_provider
-# from botocore.exceptions import ClientError
 from unittest.mock import patch, MagicMock
 
 NW_LB_ARN = f"arn:aws:elasticloadbalancing:eu-central-1:{test_data_provider.ACCOUNT_ID}:loadbalancer/net/" \
@@ -71,70 +71,46 @@ class TestELBUtil(unittest.TestCase):
             elb_util.check_required_params(required_params, events)
         assert 'Requires test2 in events' in str(key_error.value)
 
-    def test_backup_targets__no_targets(self):
+    def test_backup_targets(self):
         events = {
             "LoadBalancerArn": NW_LB_ARN
         }
 
         self.mock_elb.get_paginator = get_paginate_side_effect(get_target_groups)
         res = elb_util.backup_targets(events, {})
-        self.assertEqual(res,
-                         [{'HealthCheckEnabled': True,
-                           'HealthCheckIntervalSeconds': 10,
-                           'HealthCheckPath': None,
-                           'HealthCheckPort': '80',
-                           'HealthCheckProtocol': 'TCP',
-                           'HealthCheckTimeoutSeconds': 10,
-                           'HealthyThresholdCount': 2,
-                           'LoadBalancerArn': NW_LB_ARN,
-                           'Matcher': {'GrpcCode': None, 'HttpCode': None},
-                           'TargetGroupArn': TARGET_GROUP_ARN,
-                           'UnhealthyThresholdCount': 2}])
-
-    def test_backup_targets__with_targets(self):
-        events = {
+        self.assertEqual(json.dumps([{
             "LoadBalancerArn": NW_LB_ARN,
-            "TargetGroupArns": [TARGET_GROUP_ARN]
-        }
-
-        self.mock_elb.get_paginator = get_paginate_side_effect(get_target_groups)
-        res = elb_util.backup_targets(events, {})
-        self.mock_elb.get_paginator = get_paginate_side_effect(get_target_groups)
-        res = elb_util.backup_targets(events, {})
-        self.assertEqual(res,
-                         [{'HealthCheckEnabled': True,
-                           'HealthCheckIntervalSeconds': 10,
-                           'HealthCheckPath': None,
-                           'HealthCheckPort': '80',
-                           'HealthCheckProtocol': 'TCP',
-                           'HealthCheckTimeoutSeconds': 10,
-                           'HealthyThresholdCount': 2,
-                           'LoadBalancerArn': NW_LB_ARN,
-                           'Matcher': {'GrpcCode': None, 'HttpCode': None},
-                           'TargetGroupArn': TARGET_GROUP_ARN,
-                           'UnhealthyThresholdCount': 2}])
+            "TargetGroupArn": TARGET_GROUP_ARN,
+            "HealthCheckProtocol": "TCP",
+            "HealthCheckPort": "80",
+            "HealthCheckEnabled": True,
+            "HealthCheckIntervalSeconds": 10,
+            "HealthCheckTimeoutSeconds": 10,
+            "HealthyThresholdCount": 2,
+            "UnhealthyThresholdCount": 2}]), res)
 
     def test_break_targets_healthcheck_port(self):
+        tds = [
+            {
+                "TargetGroupArn": TARGET_GROUP_ARN,
+                "LoadBalancerArn": NW_LB_ARN,
+                "HealthCheckProtocol": "TCP",
+                "HealthCheckPort": "80",
+                "HealthCheckEnabled": True,
+                "HealthCheckIntervalSeconds": 10,
+                "HealthCheckTimeoutSeconds": 10,
+                "HealthyThresholdCount": 2,
+                "UnhealthyThresholdCount": 2,
+                "Matcher": {}
+            }
+        ]
         events = {
-            "TargetGroups": [
-                {
-                    "TargetGroupArn": TARGET_GROUP_ARN,
-                    "LoadBalancerArn": NW_LB_ARN,
-                    "HealthCheckProtocol": "TCP",
-                    "HealthCheckPort": "80",
-                    "HealthCheckEnabled": True,
-                    "HealthCheckIntervalSeconds": 10,
-                    "HealthCheckTimeoutSeconds": 10,
-                    "HealthyThresholdCount": 2,
-                    "UnhealthyThresholdCount": 2,
-                    "Matcher": {}
-                }
-            ],
+            "TargetGroups": json.dumps(tds),
             "HealthCheckPort": 65551
         }
         self.mock_elb.modify_target_group.return_value = {}
         elb_util.break_targets_healthcheck_port(events, {})
-        for group in events['TargetGroups']:
+        for group in tds:
             self.mock_elb.modify_target_group.assert_called_once_with(
                 TargetGroupArn=group['TargetGroupArn'],
                 HealthCheckEnabled=True,
@@ -144,23 +120,24 @@ class TestELBUtil(unittest.TestCase):
             )
 
     def test_restore_targets_healthcheck_port(self):
+        tds = [
+            {
+                "TargetGroupArn": TARGET_GROUP_ARN,
+                "LoadBalancerArn": NW_LB_ARN,
+                "HealthCheckProtocol": "TCP",
+                "HealthCheckPort": "80",
+                "HealthCheckEnabled": True,
+                "HealthCheckIntervalSeconds": 10,
+                "HealthCheckTimeoutSeconds": 10,
+                "HealthyThresholdCount": 2,
+                "UnhealthyThresholdCount": 2,
+            }
+        ]
         events = {
-            "TargetGroups": [
-                {
-                    "TargetGroupArn": TARGET_GROUP_ARN,
-                    "LoadBalancerArn": NW_LB_ARN,
-                    "HealthCheckProtocol": "TCP",
-                    "HealthCheckPort": "80",
-                    "HealthCheckEnabled": True,
-                    "HealthCheckIntervalSeconds": 10,
-                    "HealthCheckTimeoutSeconds": 10,
-                    "HealthyThresholdCount": 2,
-                    "UnhealthyThresholdCount": 2,
-                    "Matcher": {}
-                }
-            ]
+            "TargetGroups": json.dumps(tds),
         }
         self.mock_elb.modify_target_group.return_value = {}
         elb_util.restore_targets_healthcheck_port(events, {})
-        for group in events['TargetGroups']:
+        for group in tds:
+            group.pop('LoadBalancerArn')
             self.mock_elb.modify_target_group.assert_called_once_with(**group)

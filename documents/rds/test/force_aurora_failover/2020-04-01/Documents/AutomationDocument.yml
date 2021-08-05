@@ -99,7 +99,7 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::rds_util.wait_cluster_failover_completed
         SCRIPT_PLACEHOLDER::rds_util._parse_writer_id
-  - name: WaitForAlarmToBeGreen
+  - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 10
     timeoutSeconds: 600

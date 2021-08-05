@@ -1,5 +1,8 @@
+import json
 import boto3
 import logging
+
+from botocore.config import Config
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -11,41 +14,42 @@ def check_required_params(required_params, events):
             raise KeyError(f'Requires {key} in events')
 
 
-def backup_targets(events: dict, context: dict) -> list:
+def backup_targets(events: dict, context: dict) -> str:
 
     required_params = [
         "LoadBalancerArn"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-    describe_params = {
-        "LoadBalancerArn": events['LoadBalancerArn']
-    }
-    if "TargetGroupArns" in events and events['TargetGroupArns']:
-        describe_params['TargetGroupArns'] = events['TargetGroupArns']
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
     paginator = elb_client.get_paginator('describe_target_groups')
-    pages = paginator.paginate(**describe_params)
+    pages = paginator.paginate(
+        LoadBalancerArn=events['LoadBalancerArn']
+    )
     res = []
     for page in pages:
         target_groups = page.get('TargetGroups')
         for target_group in target_groups:
-            res.append({
-                'TargetGroupArn': target_group.get('TargetGroupArn'),
+
+            backed_group = {
                 'LoadBalancerArn': events['LoadBalancerArn'],
-                'HealthCheckProtocol': target_group.get('HealthCheckProtocol'),
-                'HealthCheckPort': target_group.get('HealthCheckPort'),
-                'HealthCheckEnabled': target_group.get('HealthCheckEnabled'),
-                'HealthCheckIntervalSeconds': target_group.get('HealthCheckIntervalSeconds'),
-                'HealthCheckTimeoutSeconds': target_group.get('HealthCheckTimeoutSeconds'),
-                'HealthyThresholdCount': target_group.get('HealthyThresholdCount'),
-                'UnhealthyThresholdCount': target_group.get('UnhealthyThresholdCount'),
-                'HealthCheckPath': target_group.get('HealthCheckPath'),
-                'Matcher': {
-                    'HttpCode': target_group.get('Matcher', {}).get('HttpCode'),
-                    'GrpcCode': target_group.get('Matcher', {}).get('GrpcCode'),
-                },
-            })
-    return res
+            }
+            for key in [
+                'TargetGroupArn',
+                'HealthCheckProtocol',
+                'HealthCheckPort',
+                'HealthCheckEnabled',
+                'HealthCheckIntervalSeconds',
+                'HealthCheckTimeoutSeconds',
+                'HealthyThresholdCount',
+                'UnhealthyThresholdCount',
+                'HealthCheckPath'
+            ]:
+                if target_group.get(key):
+                    backed_group[key] = target_group.get(key)
+
+            res.append(backed_group)
+    return json.dumps(res)
 
 
 def break_targets_healthcheck_port(events: dict, context: dict) -> None:
@@ -54,8 +58,10 @@ def break_targets_healthcheck_port(events: dict, context: dict) -> None:
         "HealthCheckPort"
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-    for target_group in events['TargetGroups']:
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
+    target_groups = json.loads(events['TargetGroups'])
+    for target_group in target_groups:
         elb_client.modify_target_group(
             TargetGroupArn=target_group['TargetGroupArn'],
             HealthCheckEnabled=True,
@@ -70,7 +76,9 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
         "TargetGroups",
     ]
     check_required_params(required_params, events)
-    elb_client = boto3.client('elbv2')
-    for target_group in events['TargetGroups']:
+    target_groups = json.loads(events['TargetGroups'])
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    elb_client = boto3.client('elbv2', config=config)
+    for target_group in target_groups:
         target_group.pop('LoadBalancerArn')
         elb_client.modify_target_group(**target_group)

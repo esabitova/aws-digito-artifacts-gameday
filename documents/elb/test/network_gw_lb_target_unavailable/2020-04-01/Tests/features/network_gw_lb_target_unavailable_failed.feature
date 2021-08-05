@@ -3,55 +3,60 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
   Scenario: Create Network LB and execute automation to make the target group unavailable to test failure case
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                           | ResourceType |
-      | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    |
-      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet                            | VPCCidr                     |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                   |                             |
+      | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                   |                             |
+      | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} |{{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>VPCCidr}}  |
+      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                   |                             |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
-    # Add any pre-execution caching and setup steps here
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
-      # Add other parameter names below
-      | LoadBalancerArn                                            | AutomationAssumeRole                                                                               | SyntheticAlarmName                                       |
-      # Replace parameter values to point to the corresponding outputs in cloudformation template
-      | {{cfn-output:NetworkLoadBalancerTemplate>LoadBalancerArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole}} | {{cfn-output:NetworkLoadBalancerTemplate>AlwaysOKAlarm}} |
-    # Add other steps that should parallel to the document here
-    And Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1000" seconds
+      | LoadBalancerArn                                          | SyntheticAlarmName                            | AutomationAssumeRole                                                                                 |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}} | {{cfn-output:CommonAlarms>AlwaysOKAlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
+    And Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1000" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    # Add any step required to rectify the alarm here
 
-    Then Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeGreen " in status "Success" for "1000" seconds
+    Then Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1000" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-  # Add any post-execution caching and validation here
-
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBArn}}  |
+    And assert "OldPort" at "before" became equal to "NewPort" at "after"
 
   Scenario: Create Gateway LB and execute automation to make the target group unavailable to test failure case
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                                     | ResourceType |
-      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml                                          | ON_DEMAND    |
-      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet                            | VPCCidr                     |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                   |                             |
+      | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                   |                             |
+      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} |{{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>VPCCidr}}  |
+      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                   |                             |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
-    # Add any pre-execution caching and setup steps here
+    And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
 
     When SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" executed
-      # Add other parameter names below
-      | LoadBalancerArn                                            | AutomationAssumeRole                                                                               | SyntheticAlarmName                                       |
-      # Replace parameter values to point to the corresponding outputs in cloudformation template
-      | {{cfn-output:GatewayLoadBalancerTemplate>LoadBalancerArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkLbTargetUnavailableAssumeRole}} | {{cfn-output:NetworkLoadBalancerTemplate>AlwaysOKAlarm}} |
-    # Add other steps that should parallel to the document here
-    And Wait for the SSM automation document "${documentName}" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1000" seconds
+      | LoadBalancerArn                                          | SyntheticAlarmName                            | AutomationAssumeRole                                                                                 |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}} | {{cfn-output:CommonAlarms>AlwaysOKAlarmName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole}} |
+    And Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeRed" in status "TimedOut" for "1000" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    # Add any step required to rectify the alarm here
 
-    Then Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeGreen " in status "Success" for "1000" seconds
+    Then Wait for the SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution is on step "AssertAlarmToBeGreen" in status "Success" for "1000" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-NetworkGwLbTargetUnavailable_2020-04-01" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-# Add any post-execution caching and validation here
+    And cache target group HealthCheckPort as "NewPort" "after" SSM automation execution
+      | LoadBalancerArn                                           |
+      | {{cfn-output:GatewayLoadBalancerTemplate>GatewayELBArn}}  |
+    And assert "OldPort" at "before" became equal to "NewPort" at "after"

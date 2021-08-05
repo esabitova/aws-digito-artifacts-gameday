@@ -136,9 +136,10 @@ Feature: SSM automation document to restore the database from point in time.
 
   Scenario: Restores table to the latest available point with enabled kinesis streaming destination
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                       | ResourceType |
-      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                            | ON_DEMAND    |
-      | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                       | ResourceType | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml                                             | SHARED       |                                     |
+      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                            | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | documents/dynamodb/sop/restore_to_point_in_time/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-RestoreToPointInTime_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName

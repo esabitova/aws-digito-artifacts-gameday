@@ -146,6 +146,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
         SCRIPT_PLACEHOLDER::route_through_appliance._check_if_route_already_exists
         SCRIPT_PLACEHOLDER::route_through_appliance._create_route
+        SCRIPT_PLACEHOLDER::route_through_appliance._create_route_and_wait
         SCRIPT_PLACEHOLDER::route_through_appliance.create_nat_gw_routes
     isEnd: true
 
@@ -226,6 +227,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
         SCRIPT_PLACEHOLDER::route_through_appliance._check_if_route_already_exists
         SCRIPT_PLACEHOLDER::route_through_appliance._create_route
+        SCRIPT_PLACEHOLDER::route_through_appliance._create_route_and_wait
         SCRIPT_PLACEHOLDER::route_through_appliance.create_nat_gw_routes
 
   - name: AssertAlarmToBeGreen

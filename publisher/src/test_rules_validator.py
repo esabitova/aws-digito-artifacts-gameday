@@ -16,12 +16,11 @@ class RulesValidatorForTestDocument(RulesValidator):
             ssm_doc_rules.required_parameters + [Parameter('.*AlarmName', 'String', True)],
             ssm_doc_rules.required_outputs,
             ssm_doc_rules.required_steps + [['AssertAlarmToBeGreenBeforeTest'],
-                                            self.alarm_red_steps,
                                             ['AssertAlarmToBeGreen']]))
 
     def _validate_custom_rules(self, document, file_path, violations):
         self.__validate_rollback(document, file_path, violations)
-        self.__validate_on_failure(document, file_path, violations)
+        self.__validate_alarm_red_steps(document, file_path, violations)
 
     def __validate_rollback(self, document, file_path, violations):
         parameters = document.get('parameters')
@@ -44,6 +43,17 @@ class RulesValidatorForTestDocument(RulesValidator):
                 violations.append('Missing step to validate equality of parameter value (of relevant parameters) '
                                   'with that of previous execution in [{}]'.format(file_path))
 
+    def __validate_alarm_red_steps(self, document, file_path, violations):
+        if self._find_match('SyntheticAlarmName', document.get('parameters')):
+            # We don't expect synthetic alarms to be triggered during test executions
+            return
+
+        if not self._is_step_present(self._get_step_names(document), self.alarm_red_steps):
+            violations.append('Missing step [{}] in [{}]'.format(str(self.alarm_red_steps), file_path))
+            return
+
+        self.__validate_on_failure(document, file_path, violations)
+
     def __validate_on_failure(self, document, file_path, violations):
         is_rollback_param_present = self._is_present(self.is_rollback_param.name, document.get('parameters'))
         if not is_rollback_param_present:
@@ -52,6 +62,12 @@ class RulesValidatorForTestDocument(RulesValidator):
         alarm_red_steps = self._get_steps(document, self.alarm_red_steps)
         if alarm_red_steps:
             alarm_red_step = alarm_red_steps[0]
+
+            if alarm_red_step.get('action') == 'aws:executeScript' and \
+                    alarm_red_step.get('inputs', {}).get('Handler', '') == 'verify_alarm_triggered':
+                # add exception when we look at alarm history as we would have rolled back by then
+                return
+
             if not alarm_red_step.get('onFailure'):
                 violations.append('Missing onFailure attribute for step [{}] in [{}]'
                                   .format(alarm_red_step.get('name'), file_path))

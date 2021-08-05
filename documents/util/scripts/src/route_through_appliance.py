@@ -1,6 +1,9 @@
 import json
-import boto3
+import logging
+import time
 from typing import List
+
+import boto3
 from botocore.config import Config
 
 INTERNET_DESTINATION = '0.0.0.0/0'
@@ -64,18 +67,25 @@ def cleanup_to_previous_route(events, context):
                 break
 
 
-def _get_nat_routes_filter(nat_gw_id: str, private_subnet_id: str = None) -> List[str]:
+def _get_nat_routes_filter(nat_gw_id: str,
+                           private_subnet_id: str = None,
+                           destination_ipv4_cidr_block: str = None) -> List[str]:
     filters = [{'Name': 'route.nat-gateway-id', 'Values': [nat_gw_id]}]
     if private_subnet_id:
         filters.append({'Name': 'association.subnet-id', 'Values': [private_subnet_id]})
+    if destination_ipv4_cidr_block:
+        filters.append({'Name': 'route.destination-cidr-block', 'Values': [destination_ipv4_cidr_block]})
 
     return filters
 
 
-def _get_ipv4_routes_to_nat(boto3_ec2_client, nat_gw_id: str,
-                            private_subnet_id: str = None) -> dict:
+def _get_ipv4_routes_to_nat(boto3_ec2_client,
+                            nat_gw_id: str,
+                            private_subnet_id: str = None,
+                            destination_ipv4_cidr_block=None) -> dict:
     describe_route_filters = _get_nat_routes_filter(nat_gw_id=nat_gw_id,
-                                                    private_subnet_id=private_subnet_id)
+                                                    private_subnet_id=private_subnet_id,
+                                                    destination_ipv4_cidr_block=destination_ipv4_cidr_block)
     print(f'filter: {describe_route_filters}')
 
     route_tables_response = boto3_ec2_client.describe_route_tables(Filters=describe_route_filters)
@@ -106,6 +116,36 @@ def _create_route(boto3_ec2_client, route_table_id: str,
     if not create_route_response['ResponseMetadata']['HTTPStatusCode'] == 200:
         print(create_route_response)
         raise ValueError('Failed to delete route')
+
+    return create_route_response
+
+
+def _create_route_and_wait(boto3_ec2_client, route_table_id: str,
+                           destination_ipv4_cidr_block: str,
+                           nat_gw_id: str,
+                           wait_timeout_seconds: int = 30) -> dict:
+
+    route = _create_route(boto3_ec2_client=boto3_ec2_client,
+                          route_table_id=route_table_id,
+                          destination_ipv4_cidr_block=destination_ipv4_cidr_block,
+                          nat_gw_id=nat_gw_id)
+
+    start = time.time()
+    elapsed = 0
+    while elapsed <= wait_timeout_seconds:
+        ipv4_rt_nat = _get_ipv4_routes_to_nat(boto3_ec2_client=boto3_ec2_client,
+                                              nat_gw_id=nat_gw_id,
+                                              private_subnet_id=None,
+                                              destination_ipv4_cidr_block=destination_ipv4_cidr_block)
+        if ipv4_rt_nat:
+            return route
+
+        end = time.time()
+        logging.debug(f'time elapsed {elapsed} seconds. The last result:{ipv4_rt_nat}')
+        time.sleep(10)
+        elapsed = end - start
+
+    raise TimeoutError(f'After {elapsed} route [{route}] hasn\'t been found in route table [{route_table_id}].')
 
 
 def _check_if_route_already_exists(route_table_id: str, cidr_ipv4: str, current_routes: dict) -> bool:
@@ -209,17 +249,14 @@ def create_nat_gw_routes(events, context):
             if exists:
                 print(f'The route to {cidr} already exists. Route tables is {route_table_id}')
                 continue
-            _create_route(boto3_ec2_client=ec2,
-                          route_table_id=route_table_id,
-                          destination_ipv4_cidr_block=cidr,
-                          nat_gw_id=nat_gw_id)
+            _create_route_and_wait(boto3_ec2_client=ec2,
+                                   route_table_id=route_table_id,
+                                   destination_ipv4_cidr_block=cidr,
+                                   nat_gw_id=nat_gw_id)
 
     ipv4_rt_nat = _get_ipv4_routes_to_nat(boto3_ec2_client=ec2,
                                           nat_gw_id=nat_gw_id,
                                           private_subnet_id=private_subnet_id)
-
-    if not ipv4_rt_nat:
-        raise ValueError(f'Route tables and routes not found: nat={nat_gw_id}, subnet={private_subnet_id}')
 
     return {
         'Response': json.dumps(ipv4_rt_nat)

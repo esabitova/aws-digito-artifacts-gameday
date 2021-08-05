@@ -44,10 +44,11 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              - ssm:StartAutomationExecution
               - cloudwatch:DescribeAlarms
               - elasticloadbalancing:DescribeTargetGroups
               - elasticloadbalancing:ModifyTargetGroup
+              - ssm:StartAutomationExecution
+              - ssm:GetAutomationExecution
           - Effect: Allow
             Resource:
               - !GetAtt DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole.Arn

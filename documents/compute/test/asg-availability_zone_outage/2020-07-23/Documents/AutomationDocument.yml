@@ -96,7 +96,7 @@ mainSteps:
     onCancel: 'step:TriggerRollback'
     inputs:
       Duration: 'PT{{TestDurationInMinutes}}M'
-  - name: AssertSyntheticAlarmToBeGreenAfterTest
+  - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
     maxAttempts: 10
     timeoutSeconds: 600
