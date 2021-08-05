@@ -23,13 +23,19 @@ cache_primary_and_replica_cluster_ids_expression = 'cache PrimaryClusterId and R
 @given(parsers.parse(cache_primary_and_replica_cluster_ids_expression))
 @when(parsers.parse(cache_primary_and_replica_cluster_ids_expression))
 @then(parsers.parse(cache_primary_and_replica_cluster_ids_expression))
-def cache_primary_and_replica_cluster_ids(resource_pool, ssm_test_cache, boto3_session, step_key, input_parameters):
+def cache_primary_or_replica_cluster_ids_for_cluster_mode_disabled(resource_pool, ssm_test_cache, boto3_session,
+                                                                   step_key, input_parameters):
+    """
+    Applicable only for Redis (cluster mode disabled) replication groups.
+    Cache primary or replica cluster ids.
+    """
     elasticache_client = client('elasticache', boto3_session)
     replication_group_id = extract_param_value(input_parameters, 'ReplicationGroupId', resource_pool, ssm_test_cache)
     group_description = elasticache_client.describe_replication_groups(ReplicationGroupId=replication_group_id)
     node_group_members = group_description['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']
     for node_group_member in node_group_members:
-        if node_group_member.get('CurrentRole') == 'primary':
+        # CurrentRole is obligatory for Redis (cluster mode disabled) replication groups
+        if node_group_member['CurrentRole'] == 'primary':
             put_to_ssm_test_cache(ssm_test_cache, step_key, 'PrimaryClusterId', node_group_member['CacheClusterId'])
         else:
             put_to_ssm_test_cache(ssm_test_cache, step_key, 'ReplicaClusterId', node_group_member['CacheClusterId'])
