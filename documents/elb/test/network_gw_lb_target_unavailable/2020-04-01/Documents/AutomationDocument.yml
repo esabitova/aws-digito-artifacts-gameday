@@ -73,6 +73,24 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
+  - name: GetBackedUpTargetGroupsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: TargetGroups
+        Selector: $.Payload.TargetGroups[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupCurrentExecution'
+        ResponseField: 'TargetGroups'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
   - name: AssertLoadBalancerArn
     action: aws:branch
     inputs:
@@ -88,7 +106,7 @@ mainSteps:
       Runtime: python3.7
       Handler: restore_targets_healthcheck_port
       InputPayload:
-        TargetGroups: '{{GetInputsFromPreviousExecution.LoadBalancerArn}}'
+        TargetGroups: '{{GetBackedUpTargetGroupsFromPreviousExecution.TargetGroups}}'
       Script: |-
         SCRIPT_PLACEHOLDER::elb_util.imports
 
@@ -113,7 +131,7 @@ mainSteps:
     outputs:
       - Name: TargetGroups
         Selector: $.Payload
-        Type: MapList
+        Type: String
     inputs:
       Runtime: python3.7
       Handler: backup_targets
