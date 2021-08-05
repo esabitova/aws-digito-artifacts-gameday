@@ -33,7 +33,7 @@ Parameters:
   NodeType:
     Description: The compute and memory capacity of the nodes in the node group (shard)
     Type: String
-    Default: cache.t2.medium
+    Default: cache.t3.micro
   VpcCIDR:
     Description: IP range in CIDR notation for the VPC
     Type: String
