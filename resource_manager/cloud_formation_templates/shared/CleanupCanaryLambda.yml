@@ -95,12 +95,12 @@ Resources:
           logger.setLevel(logging.INFO)
 
           def handler(event, context):
-              bucket_names = event['ResourceProperties']['BucketNames']
+              canary_names = event['ResourceProperties']['CanaryNames']
               try:
                 logger.info(event)
-                s3 = boto3.resource('s3')
+                s3 = boto3.resource('synthetics')
                 if event['RequestType'] == 'Delete':
-                  for bucket_name in bucket_names:
+                  for canary_name in canary_names:
                       bucket = s3.Bucket(name=bucket_name)
                       logger.info(f'Cleaning [{bucket.name}] S3 bucket.')
                       if s3.BucketVersioning(bucket_name).status == 'Enabled':
