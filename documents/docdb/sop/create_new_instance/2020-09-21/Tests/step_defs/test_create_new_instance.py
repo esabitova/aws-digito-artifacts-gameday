@@ -11,8 +11,8 @@ from pytest_bdd import (
 def test_create_new_instance():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
-#
-# @scenario('../features/create_new_instance.feature',
-#           'Create a new instance without specifying AZ')
-# def test_create_new_instance_without_specifying_az():
-#     """Create AWS resources using CloudFormation template and execute SSM automation document."""
+
+@scenario('../features/create_new_instance.feature',
+          'Create a new instance without specifying AZ')
+def test_create_new_instance_without_specifying_az():
+    """Create AWS resources using CloudFormation template and execute SSM automation document."""
