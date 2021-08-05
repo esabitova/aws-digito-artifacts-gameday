@@ -34,11 +34,15 @@ def cache_primary_or_replica_cluster_ids_for_cluster_mode_disabled(resource_pool
     group_description = elasticache_client.describe_replication_groups(ReplicationGroupId=replication_group_id)
     node_group_members = group_description['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']
     for node_group_member in node_group_members:
-        # CurrentRole is obligatory for Redis (cluster mode disabled) replication groups
-        if node_group_member['CurrentRole'] == 'primary':
-            put_to_ssm_test_cache(ssm_test_cache, step_key, 'PrimaryClusterId', node_group_member['CacheClusterId'])
-        else:
-            put_to_ssm_test_cache(ssm_test_cache, step_key, 'ReplicaClusterId', node_group_member['CacheClusterId'])
+        try:
+            # CurrentRole is obligatory for Redis (cluster mode disabled) replication groups
+            if node_group_member['CurrentRole'] == 'primary':
+                put_to_ssm_test_cache(ssm_test_cache, step_key, 'PrimaryClusterId', node_group_member['CacheClusterId'])
+            else:
+                put_to_ssm_test_cache(ssm_test_cache, step_key, 'ReplicaClusterId', node_group_member['CacheClusterId'])
+        except KeyError as e:
+            logger.error(f'CurrentRole property can be retrieved only from '
+                         f'Redis (cluster mode disabled) replication groups: {e}')
 
 
 cache_failover_settings_expression = 'cache FailoverSettings "{step_key}" SSM automation execution' \
