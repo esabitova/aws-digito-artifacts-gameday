@@ -14,5 +14,5 @@ phases:
       - aws --version
   build:
     commands:
-      # Executing destroy resources with [EXECUTE_FAILED] state which are older than [720] minutes or [12] hours.
-      - PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL -s EXECUTE_FAILED -a 720
+      # Executing destroy resources with [EXECUTE_FAILED] state which are older than [1440] minutes or [24] hours.
+      - PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL -s EXECUTE_FAILED -a 1440
