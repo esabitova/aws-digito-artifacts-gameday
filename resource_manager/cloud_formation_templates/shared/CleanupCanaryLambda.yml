@@ -158,7 +158,7 @@ Resources:
                                   )
 
                                   ec2_client.delete_network_interface(
-                                      NetworkInterfaceIds=eni_id
+                                      NetworkInterfaceId=eni_id
                                   )
                               except WaiterError:
                                   pass
