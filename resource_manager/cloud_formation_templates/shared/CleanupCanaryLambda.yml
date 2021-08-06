@@ -38,16 +38,27 @@ Resources:
   CleanupCanaryLambdaPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: CleanupS3BucketLambdaPolicy
+      PolicyName: CleanupCanaryLambdaPolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:*/*"
+            Resource: "*"
+            Action:
+              - "ec2:DescribeNetworkInterfaces"
+          - Effect: Allow
+            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:*"
             Action:
               - "ec2:DeleteNetworkInterface"
           - Effect: Allow
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:*/*"
+            Resource:
+              - !Sub "arn:aws:synthetics:${AWS::Region}:${AWS::AccountId}:canary:*"
+            Action:
+              - "synthetics:DeleteCanary"
+              - "synthetics:GetCanary"
+          - Effect: Allow
+            Resource:
+              - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
             Action:
               - "lambda:DeleteFunction"
       Roles:
@@ -56,7 +67,7 @@ Resources:
   LoggingCanaryLambdaLambdaPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: LoggingCanaryLambdaLambdaPolicy
+      PolicyName: LoggingCanaryLambdaPolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -151,8 +162,9 @@ Resources:
                                   )
                               except WaiterError:
                                   pass
-
+                  send_response(event, context, canary_names, cfnresponse.SUCCESS)
               except Exception as e:
+                  event['Error'] = str(e)
                   send_response(event, context, canary_names, cfnresponse.FAILED)
 
 

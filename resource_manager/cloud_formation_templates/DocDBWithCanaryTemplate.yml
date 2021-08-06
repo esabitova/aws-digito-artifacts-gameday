@@ -85,6 +85,9 @@ Parameters:
   CleanupS3BucketLambdaArn:
     Description: ARN of Cleanup S3 Bucket Lambda Function
     Type: String
+  CleanupCanaryLambdaArn:
+    Description: ARN of Cleanup Canary Lambda Function
+    Type: String
 Conditions:
   CanaryS3ObjectHasVersion: !Not
     - !Equals
@@ -364,3 +367,11 @@ Resources:
       ServiceToken: !Ref CleanupS3BucketLambdaArn
       BucketNames:
         - !Ref S3BucketForCanaryLogs
+
+  # To clean canary before deleting stack.
+  CleanupCanaryOnDelete:
+    Type: Custom::CleanupCanaryOnDelete
+    Properties:
+      ServiceToken: !Ref CleanupCanaryLambdaArn
+      CanaryNames:
+        - !Ref DocumentDbConnectionAttemptCanary
