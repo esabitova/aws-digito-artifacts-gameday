@@ -41,8 +41,8 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | {{cache:SsmExecutionId>2}} |
     And cache usage plan rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
 
-    Then assert "OldRateLimit" at "before" became equal to "ActualRateLimit" at "after"
-    And assert "OldBurstLimit" at "before" became equal to "ActualBurstLimit" at "after"
+    Then assert "RateLimit" at "before" became equal to "RateLimit" at "after"
+    And assert "BurstLimit" at "before" became equal to "BurstLimit" at "after"
     And assert "CheckIsRollback,GetInputsFromPreviousExecution" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
@@ -88,8 +88,8 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | {{cache:SsmExecutionId>2}} |
     And cache usage plan rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
 
-    Then assert "OldRateLimit" at "before" became equal to "ActualRateLimit" at "after"
-    And assert "OldBurstLimit" at "before" became equal to "ActualBurstLimit" at "after"
+    Then assert "RateLimit" at "before" became equal to "RateLimit" at "after"
+    And assert "BurstLimit" at "before" became equal to "BurstLimit" at "after"
     And assert "CheckIsRollback,GetInputsFromPreviousExecution" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
@@ -134,8 +134,8 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
       | {{cache:SsmExecutionId>2}} |
     And cache usage plan rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
 
-    Then assert "OldRateLimit" at "before" became equal to "ActualRateLimit" at "after"
-    And assert "OldBurstLimit" at "before" became equal to "ActualBurstLimit" at "after"
+    Then assert "RateLimit" at "before" became equal to "RateLimit" at "after"
+    And assert "BurstLimit" at "before" became equal to "BurstLimit" at "after"
     And assert "CheckIsRollback,GetInputsFromPreviousExecution" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
