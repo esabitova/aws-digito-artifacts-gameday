@@ -88,39 +88,85 @@ Resources:
           import cfnresponse
           import logging
           import boto3
-          import json
           from random import randint
+
+          from botocore.exceptions import WaiterError
 
           logger = logging.getLogger()
           logger.setLevel(logging.INFO)
 
+
           def handler(event, context):
               canary_names = event['ResourceProperties']['CanaryNames']
               try:
-                logger.info(event)
-                s3 = boto3.resource('synthetics')
-                if event['RequestType'] == 'Delete':
-                  for canary_name in canary_names:
-                      bucket = s3.Bucket(name=bucket_name)
-                      logger.info(f'Cleaning [{bucket.name}] S3 bucket.')
-                      if s3.BucketVersioning(bucket_name).status == 'Enabled':
-                        bucket.object_versions.delete()
-                      else:
-                        bucket.objects.delete()
-                  logger.info(f'S3 buckets {bucket_names} successfully cleaned.')
-                send_response(event, context, bucket_names, cfnresponse.SUCCESS)
-              except Exception as e:
-                send_response(event, context, bucket_names, cfnresponse.FAILED)
+                  logger.info(event)
+                  session = boto3.Session()
+                  synthetics_client = session.client('synthetics')
+                  lambda_client = session.client('lambda')
+                  iam_client = session.client('iam')
+                  ec2_client = session.client('ec2')
+                  if event['RequestType'] == 'Delete':
+                      for canary_name in canary_names:
+                          canary_desc = synthetics_client.get_canary(
+                              Name=canary_name
+                          )
+                          lambda_arn = canary_desc["Canary"]["EngineArn"]
+                          eni_ids = []
+                          eni_desc = ec2_client.describe_network_interfaces(
+                              Filters=[
+                                  {
+                                      'Name': 'description',
+                                      'Values': [
+                                          f'AWS Lambda VPC ENI-cwsyn-{canary_name}*',
+                                      ]
+                                  },
+                              ],
+                          )
+                          if eni_desc['NetworkInterfaces']:
+                              eni_ids = [x['NetworkInterfaceId'] for x in eni_desc['NetworkInterfaces']]
+                          else:
+                              raise KeyError(f'Not found ENI for canary {canary_name}')
+                          logger.info(f'Deleting canary: [{canary_name}].')
+                          synthetics_client.delete_canary(
+                              Name=canary_name
+                          )
+                          logger.info(f'Deleting lambda: [{lambda_arn}].')
+                          lambda_client.delete_function(
+                              FunctionName=lambda_arn.rsplit(':',1)[0],
+                          )
+                          for eni_id in eni_ids:
+                              logger.info(f'Deleting eni: [{eni_id}].')
+                              try:
+                                  eni_waiter = ec2_client.get_waiter('network_interface_available')
+                                  eni_waiter.wait(
+                                      NetworkInterfaceIds=[eni_id],
+                                      WaiterConfig={
+                                          'Delay': 10,
+                                          'MaxAttempts': 60
+                                      }
+                                  )
 
-          def send_response(event, context, bucket_names, response_status):
+                                  ec2_client.delete_network_interface(
+                                      NetworkInterfaceIds=eni_id
+                                  )
+                              except WaiterError:
+                                  pass
+
+              except Exception as e:
+                  send_response(event, context, canary_names, cfnresponse.FAILED)
+
+
+          def send_response(event, context, canary_names, response_status):
               physical_id = get_physical_id(event)
               response_data = {'Event': event}
               cfnresponse.send(event, context, response_status, response_data, physical_id)
 
+
           def get_physical_id(event):
               if event.get('PhysicalResourceId'):
-                return event['PhysicalResourceId']
+                  return event['PhysicalResourceId']
               return f'CustomResource-{random_with_N_digits(5)}'
+
 
           def random_with_N_digits(n):
               range_start = 10 ** (n - 1)
