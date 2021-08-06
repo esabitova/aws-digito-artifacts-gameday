@@ -7,13 +7,15 @@ Feature: SSM automation document to clean up SQS queue
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                          | ON_DEMAND    |
       | documents/sqs/sop/purge-queue/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-PurgeQueue_2021-03-11" SSM document
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
     And send "25" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    # sleep before PurgeQueue execution by Digito-PurgeQueue_2021-03-11
     And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                       |
@@ -31,3 +33,5 @@ Feature: SSM automation document to clean up SQS queue
 
     Then assert "NumberOfMessages" at "before" became not equal to "NumberOfMessages" at "after"
     And assert "NumberOfMessages" at "after" became equal to "0"
+    # only one PurgeQueue is allowed during 60 seconds when the Digito-PurgeQueue_2021-03-11 internally purged the queue
+    And sleep for "60" seconds
