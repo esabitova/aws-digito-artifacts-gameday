@@ -3,6 +3,7 @@ import json
 import time
 from boto3 import Session
 from botocore.exceptions import ClientError
+from .boto3_client_factory import client
 
 
 def send_message_to_standard_queue(boto3_session, queue_url: str, body: str, message_attributes: dict = None) -> dict:
@@ -13,7 +14,7 @@ def send_message_to_standard_queue(boto3_session, queue_url: str, body: str, mes
     :param message_attributes Message attributes
     :param body Message body
     """
-    sqs_client = boto3_session.client('sqs')
+    sqs_client = client('sqs', boto3_session)
     logging.debug(f'Arguments for send_message method: QueueUrl={queue_url}, MessageBody={body}, '
                   f'MessageAttributes={message_attributes}')
     if message_attributes is not None:
@@ -34,7 +35,7 @@ def send_message_to_fifo_queue(boto3_session, queue_url: str, body: str, message
     :param token Unique token for MessageDeduplicationId for FIFO queue message
     :param message_group_id MessageGroupId for FIFO queue
     """
-    sqs_client = boto3_session.client('sqs')
+    sqs_client = client('sqs', boto3_session)
     logging.debug(f'Arguments for send_message method: QueueUrl={queue_url}, MessageBody={body}, '
                   f'MessageDeduplicationId={token}, MessageGroupId= {message_group_id}'
                   f', MessageAttributes={message_attributes}')
@@ -117,7 +118,7 @@ def get_number_of_messages(boto3_session: Session, queue_url: str):
     :param queue_url The URL of the queue
     :return Number of messages in queue
     """
-    sqs_client = boto3_session.client('sqs')
+    sqs_client = client('sqs', boto3_session)
     response = sqs_client.get_queue_attributes(
         QueueUrl=queue_url,
         AttributeNames=['ApproximateNumberOfMessages']
@@ -138,7 +139,7 @@ def get_policy(boto3_session, queue_url: str):
     :param queue_url The URL of the queue
     :return Policy of the queue
     """
-    sqs_client = boto3_session.client('sqs')
+    sqs_client = client('sqs', boto3_session)
     response = sqs_client.get_queue_attributes(
         QueueUrl=queue_url,
         AttributeNames=['Policy']
@@ -157,7 +158,7 @@ def get_queue_attribute(boto3_session, queue_url: str, attribute_name: str):
     :param attribute_name Attribute name
     :return Attribute value
     """
-    sqs_client = boto3_session.client('sqs')
+    sqs_client = client('sqs', boto3_session)
     response = sqs_client.get_queue_attributes(
         QueueUrl=queue_url,
         AttributeNames=[attribute_name]

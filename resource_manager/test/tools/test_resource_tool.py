@@ -1,5 +1,6 @@
 import unittest
 import pytest
+import pytz
 import resource_manager.src.tools.resource_tool as resource_tool
 import resource_manager.src.util.boto3_client_factory as client_factory
 from unittest.mock import patch, MagicMock
@@ -7,6 +8,7 @@ from botocore.exceptions import ClientError
 from resource_manager.src.tools.resource_tool import ResourceTool
 from resource_manager.src.resource_model import ResourceModel
 from resource_manager.test.util.mock_sleep import MockSleep
+from datetime import datetime, timedelta
 
 
 @pytest.mark.unit_test
@@ -35,18 +37,30 @@ class TestResourceTool(unittest.TestCase):
         self.mock_s3_bucket = MagicMock()
         self.mock_s3_resource.Bucket.return_value = self.mock_s3_bucket
 
+        current_time = datetime.utcnow().replace(tzinfo=pytz.UTC)
+        updated_on_current = datetime.strftime(current_time, '%Y-%m-%d %H:%M:%S.%f%z')
+        updated_on_old = (current_time - timedelta(minutes=5))
+
         self.resource_a = MagicMock()
         self.resource_a.configure_mock(cf_template_name='path/to/template_a.yml',
                                        cf_stack_name='template_a_stack_a_1',
-                                       status=ResourceModel.Status.AVAILABLE.name)
+                                       status=ResourceModel.Status.AVAILABLE.name,
+                                       updated_on=updated_on_current)
         self.resource_b = MagicMock()
         self.resource_b.configure_mock(cf_template_name='path/to/template_b.yml',
                                        cf_stack_name='template_a_stack_b_1',
-                                       status=ResourceModel.Status.AVAILABLE.name)
+                                       status=ResourceModel.Status.AVAILABLE.name,
+                                       updated_on=updated_on_old)
         self.resource_c = MagicMock()
         self.resource_c.configure_mock(cf_template_name='path/to/template_b.yml',
                                        cf_stack_name='template_a_stack_b_2',
-                                       status=ResourceModel.Status.AVAILABLE.name)
+                                       status=ResourceModel.Status.AVAILABLE.name,
+                                       updated_on=updated_on_current)
+        self.resource_d = MagicMock()
+        self.resource_d.configure_mock(cf_template_name='path/to/template_a.yml',
+                                       cf_stack_name='template_a_stack_a_2',
+                                       status=ResourceModel.Status.EXECUTE_FAILED.name,
+                                       updated_on=updated_on_old)
         self.err_message = lambda stack_name: f'Stack with id {stack_name} does not exist'
 
     def tearDown(self):
@@ -59,6 +73,24 @@ class TestResourceTool(unittest.TestCase):
     def test_list_command_success(self, scan):
         scan.return_value = [self.resource_a, self.resource_b, self.resource_c]
         resource_tool.main(['-c', 'LIST'])
+        scan.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    def test_list_command_by_age_success(self, scan):
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c]
+        resource_tool.main(['-c', 'LIST', '-a', '4'])
+        scan.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    def test_list_command_by_age_and_status_success(self, scan):
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c]
+        resource_tool.main(['-c', 'LIST', '-a', '4', '-s', 'AVAILABLE'])
+        scan.assert_called_once()
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    def test_list_command_by_status_success(self, scan):
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c]
+        resource_tool.main(['-c', 'LIST', '-s', 'AVAILABLE'])
         scan.assert_called_once()
 
     @patch('resource_manager.src.resource_model.ResourceModel.scan')
@@ -86,6 +118,38 @@ class TestResourceTool(unittest.TestCase):
 
     @patch('resource_manager.src.resource_model.ResourceModel.scan')
     @patch('resource_manager.src.resource_model.ResourceModel.configure')
+    def test_destroy_by_status_command_success(self, configure, scan):
+        error_response = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_a_2')}}
+        self.mock_cfn_service.describe_stacks.side_effect = ClientError(error_response, 'DescribeStacks')
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c, self.resource_d]
+
+        resource_tool.main(['-c', 'DESTROY', '-t', 'template_a', '-s', 'EXECUTE_FAILED'])
+
+        self.assertEqual(scan.call_count, 2)
+        self.mock_s3_bucket.delete_objects.assert_called_once()
+        self.assertEqual(self.resource_a.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_d.status, ResourceModel.Status.DELETED.name)
+        self.assertEqual(self.resource_b.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_c.status, ResourceModel.Status.AVAILABLE.name)
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    @patch('resource_manager.src.resource_model.ResourceModel.configure')
+    def test_destroy_by_age_command_success(self, configure, scan):
+        error_response = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_b_1')}}
+        self.mock_cfn_service.describe_stacks.side_effect = ClientError(error_response, 'DescribeStacks')
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c, self.resource_d]
+
+        resource_tool.main(['-c', 'DESTROY', '-t', 'template_b', '-a', '3'])
+
+        self.assertEqual(scan.call_count, 2)
+        self.mock_s3_bucket.delete_objects.assert_called_once()
+        self.assertEqual(self.resource_a.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_d.status, ResourceModel.Status.EXECUTE_FAILED.name)
+        self.assertEqual(self.resource_b.status, ResourceModel.Status.DELETED.name)
+        self.assertEqual(self.resource_c.status, ResourceModel.Status.AVAILABLE.name)
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    @patch('resource_manager.src.resource_model.ResourceModel.configure')
     def test_destroy_all_command_success(self, configure, scan):
         error_1 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_a_1')}}
         error_2 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_b_1')}}
@@ -106,6 +170,44 @@ class TestResourceTool(unittest.TestCase):
         self.assertEqual(self.resource_a.status, ResourceModel.Status.DELETED.name)
         self.assertEqual(self.resource_b.status, ResourceModel.Status.DELETED.name)
         self.assertEqual(self.resource_c.status, ResourceModel.Status.DELETED.name)
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    @patch('resource_manager.src.resource_model.ResourceModel.configure')
+    def test_destroy_all_by_status_command_success(self, configure, scan):
+        error_response = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_a_2')}}
+        self.mock_cfn_service.describe_stacks.side_effect = ClientError(error_response, 'DescribeStacks')
+
+        self.mock_cfn_resource.Stack.side_effect = [self.resource_a, self.resource_b, self.resource_c, self.resource_d]
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c, self.resource_d]
+
+        resource_tool.main(['-c', 'DESTROY_ALL', '-s', 'EXECUTE_FAILED'])
+        self.assertEqual(scan.call_count, 2)
+        self.mock_s3_bucket.delete_objects.assert_called_once()
+        self.assertEqual(self.mock_cfn_service.delete_stack.call_count, 1)
+        self.assertEqual(self.resource_a.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_b.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_c.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_d.status, ResourceModel.Status.DELETED.name)
+
+    @patch('resource_manager.src.resource_model.ResourceModel.scan')
+    @patch('resource_manager.src.resource_model.ResourceModel.configure')
+    def test_destroy_all_by_age_command_success(self, configure, scan):
+        error_response1 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_b_1')}}
+        error_response2 = {'Error': {'Code': 'ValidationError', 'Message': self.err_message('template_a_stack_a_2')}}
+        self.mock_cfn_service.describe_stacks.side_effect = [ClientError(error_response1, 'DescribeStacks'),
+                                                             ClientError(error_response2, 'DescribeStacks')]
+
+        self.mock_cfn_resource.Stack.side_effect = [self.resource_a, self.resource_b, self.resource_c, self.resource_d]
+        scan.return_value = [self.resource_a, self.resource_b, self.resource_c, self.resource_d]
+
+        resource_tool.main(['-c', 'DESTROY_ALL', '-a', '3'])
+        self.assertEqual(scan.call_count, 2)
+        self.mock_s3_bucket.delete_objects.assert_called_once()
+        self.assertEqual(self.mock_cfn_service.delete_stack.call_count, 2)
+        self.assertEqual(self.resource_a.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_b.status, ResourceModel.Status.DELETED.name)
+        self.assertEqual(self.resource_c.status, ResourceModel.Status.AVAILABLE.name)
+        self.assertEqual(self.resource_d.status, ResourceModel.Status.DELETED.name)
 
     @patch('resource_manager.src.resource_model.ResourceModel.scan')
     @patch('resource_manager.src.resource_model.ResourceModel.configure')

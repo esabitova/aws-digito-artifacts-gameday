@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError
 
 import resource_manager.src.util.sqs_utils as sqs_utils
 from documents.util.scripts.test.mock_sleep import MockSleep
+import resource_manager.src.util.boto3_client_factory as client_factory
 
 
 SQS_QUEUE_URL = "https://this.is.some.url"
@@ -41,10 +42,13 @@ class TestSQSUtil(unittest.TestCase):
             'sqs': self.mock_sqs_service,
 
         }
-        self.session_mock.client.side_effect = lambda service_name: self.client_side_effect_map.get(service_name)
+        self.session_mock.client.side_effect = lambda service_name, config=None: \
+            self.client_side_effect_map.get(service_name)
 
     def tearDown(self):
-        pass
+        # Clean client factory cache after each test.
+        client_factory.clients = {}
+        client_factory.resources = {}
 
     def mock_sleep(self, time):
         """

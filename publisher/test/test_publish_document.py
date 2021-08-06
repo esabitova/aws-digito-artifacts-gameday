@@ -62,7 +62,7 @@ class TestPublishDocuments(unittest.TestCase):
     @pytest.mark.style_validator
     @pytest.mark.ssm_document_validator
     def test_validate_automation_document(self):
-        existing_services = ['rds', 'compute', 'sqs', 'docdb', 'lambda', 's3', 'nat-gw']
+        existing_services = ['sqs', 'docdb', 'lambda', 's3', 'nat-gw']
         fail_messages = []
         warn_messages = []
         for root, dirs, files in os.walk("documents"):

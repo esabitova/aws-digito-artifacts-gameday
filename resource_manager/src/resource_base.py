@@ -1,8 +1,11 @@
 import resource_manager.src.constants as constants
 import time
 import logging
+import pytz
+from datetime import datetime
 from .resource_model import ResourceModel
 from resource_manager.src.cloud_formation import CloudFormationTemplate
+from pynamodb.attributes import UTCDateTimeAttribute
 
 
 class ResourceBase:
@@ -22,7 +25,7 @@ class ResourceBase:
         cfn_stack_name = resource_to_delete.cf_stack_name
         sleep_time_secs = constants.cf_operation_sleep_time_secs
         try:
-            ResourceModel.update_resource_status(resource_to_delete, ResourceModel.Status.DELETING)
+            ResourceModel.update_status(resource_to_delete, ResourceModel.Status.DELETING)
             dependent_stack_name = ResourceBase._get_dependents(cfn_stack_name, all_resources, logger)
             while len(dependent_stack_name) > 0:
                 logger.info(f'Waiting for stack(s) [{",".join(dependent_stack_name)}] to be deleted before '
@@ -32,10 +35,10 @@ class ResourceBase:
 
             # Delete stack.
             cfn_helper.delete_cf_stack(cfn_stack_name)
-            ResourceModel.update_resource_status(resource_to_delete, ResourceModel.Status.DELETED)
+            ResourceModel.update_status(resource_to_delete, ResourceModel.Status.DELETED)
         except Exception as e:
             logger.error(f'Failed to delete [{cfn_stack_name}] stack due to: {e}')
-            ResourceModel.update_resource_status(resource_to_delete, ResourceModel.Status.DELETE_FAILED)
+            ResourceModel.update_status(resource_to_delete, ResourceModel.Status.DELETE_FAILED)
 
     @staticmethod
     def _get_dependents(cfn_stack_name: str, all_resources: [], logger=logging.getLogger()) -> str:
@@ -57,3 +60,13 @@ class ResourceBase:
                     raise Exception(err_message)
                 dependents.append(resource.cf_stack_name)
         return dependents
+
+    def _to_utc_datetime(self, timestamp: UTCDateTimeAttribute):
+        """
+        Converts pynamodb.attributes.UTCDateTimeAttribute to datetime.datetime UTC aware.
+        :param timestamp: The timestamp to be converted.
+        :return: The converted UTC aware datetime.
+        """
+        date_time_format = '%Y-%m-%d %H:%M:%S.%f%z'
+        start = datetime.strptime(str(timestamp), date_time_format)
+        return start.replace(tzinfo=pytz.UTC)
