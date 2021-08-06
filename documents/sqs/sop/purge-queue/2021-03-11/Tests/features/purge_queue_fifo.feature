@@ -32,5 +32,3 @@ Feature: SSM automation document to clean up SQS queue
 
     Then assert "NumberOfMessages" at "before" became not equal to "NumberOfMessages" at "after"
     And assert "NumberOfMessages" at "after" became equal to "0"
-    # only one PurgeQueue is allowed during 60 seconds when the Digito-PurgeQueue_2021-03-11 internally purged the queue
-    And sleep for "60" seconds
