@@ -3,10 +3,11 @@ Feature: SSM automation document to promote read replica.
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document for promoting DocDb replica to the primary instance
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                | ResourceType | VPC                      | VPCCIDR                    | PrivateSubnet01                                | PrivateSubnet02                                |
-      | resource_manager/cloud_formation_templates/shared/VPC.yml                                      | SHARED       |                          |                            |                                                |                                                |
-      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                   | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>VPCCidr}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>PrivateSubnetWithInternet02}} |
-      | documents/docdb/sop/promote_read_replica/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                            |                                                |                                                |
+      | CfnTemplatePath                                                                                | ResourceType | VPC                      | VPCCIDR                    | PrivateSubnet01                                | PrivateSubnet02                                | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                      | SHARED       |                          |                            |                                                |                                                |                                     |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml                                      | SHARED       |                          |                            |                                                |                                                |                                     |
+      | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                   | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>VPCCidr}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>PrivateSubnetWithInternet02}} | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | documents/docdb/sop/promote_read_replica/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                            |                                                |                                                |                                     |
     And published "Digito-PromoteReadReplica_2020-09-21" SSM document
     And cache replica instance identifier as "DBInstanceReplicaIdentifier" at step "before"
       | DBClusterIdentifier                              |
