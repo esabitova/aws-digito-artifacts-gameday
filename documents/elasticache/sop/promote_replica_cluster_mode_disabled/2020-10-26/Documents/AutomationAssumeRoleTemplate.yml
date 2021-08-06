@@ -46,5 +46,8 @@ Resources:
             Action:
               - elasticache:ModifyReplicationGroup
               - elasticache:DescribeReplicationGroups
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
       Roles:
         - Ref: DigitoElasticachePromoteReplicaClusterModeDisabledAssumeRole

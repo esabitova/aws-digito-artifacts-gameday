@@ -541,6 +541,18 @@ class TestDynamoDbUtil(unittest.TestCase):
         describe_mock.assert_called_with(boto3_session=self.session_mock,
                                          table_name="my_table")
 
+    @patch('resource_manager.src.util.dynamo_db_utils._get_global_table_all_regions',
+           side_effect=ClientError({'Error': {'Code': 'ResourceNotFoundException'}}, ""))
+    def test__check_if_replicas_exist__missing(self, describe_mock):
+
+        replicas, exists = _check_if_replicas_exist(boto3_session=self.session_mock,
+                                                    table_name="my_table")
+
+        self.assertFalse(exists)
+        self.assertEqual(replicas, [])
+        describe_mock.assert_called_with(boto3_session=self.session_mock,
+                                         table_name="my_table")
+
     @patch('resource_manager.src.util.dynamo_db_utils._describe_table',
            return_value={'Table': {'Replicas': ['my-region-1']}})
     def test__get_global_table_all_regions(self, describe_mock):

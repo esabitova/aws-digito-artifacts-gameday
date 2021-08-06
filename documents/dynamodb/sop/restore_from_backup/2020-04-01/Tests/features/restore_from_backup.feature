@@ -41,9 +41,10 @@ Feature: SSM automation document to restore the database from a backup.
 
   Scenario: Restores table from backup. Kinesis Enabled
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                  | ResourceType |
-      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                       | ON_DEMAND    |
-      | documents/dynamodb/sop/restore_from_backup/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                  | ResourceType | KmsKey                              |
+      | resource_manager/cloud_formation_templates/shared/KMS.yml                                        | SHARED       |                                     |
+      | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                       | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | documents/dynamodb/sop/restore_from_backup/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
     And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName

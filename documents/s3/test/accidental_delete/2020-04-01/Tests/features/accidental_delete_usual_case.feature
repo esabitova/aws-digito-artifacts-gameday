@@ -45,6 +45,6 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
 
     Then assert "NumberOfFiles" at "before" became not equal to "ActualNumberOfFiles" at "after_delete"
     Then assert "NumberOfFiles" at "before" became equal to "ActualNumberOfFiles" at "after"
-    And assert "CheckIsRollback, BackupS3BucketWhereObjectsWillBeDeletedFrom, CleanS3BucketWhereObjectsWillBeDeletedFrom, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
+    And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupS3BucketWhereObjectsWillBeDeletedFrom, CleanS3BucketWhereObjectsWillBeDeletedFrom, AssertAlarmToBeRed, RollbackCurrentExecution, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |

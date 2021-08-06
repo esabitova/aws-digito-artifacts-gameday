@@ -1,5 +1,6 @@
 import logging
 import time
+
 import boto3
 
 
@@ -11,30 +12,27 @@ def check_required_params(required_params, events):
 
 def verify_all_nodes_in_rg_available(events, context):
     """
-    checks that replication group is in 'available' state and all nodes are in 'available' state
+    Checks that replication group is in 'available' state and all nodes are in 'available' state
     :param events dict with the following keys
             * ReplicationGroupId (Required) - Id of replication group
             * Timeout (Optional) - time to wait for verifying
+            * Sleep (Optional) - time to sleep between verification attempts
     :param context context
     """
-    required_params = [
-        'ReplicationGroupId'
-    ]
-    check_required_params(required_params, events)
+    check_required_params(['ReplicationGroupId'], events)
     elasticache_client = boto3.client('elasticache')
     time_to_wait = events.get('Timeout', 900)
+    time_to_sleep = int(events.get('Sleep', 15))
     timeout_timestamp = time.time() + int(time_to_wait)
     while time.time() < timeout_timestamp:
-        rg = elasticache_client.describe_replication_groups(
-            ReplicationGroupId=events['ReplicationGroupId']
-        )
+        rg = elasticache_client.describe_replication_groups(ReplicationGroupId=events['ReplicationGroupId'])
         status = rg['ReplicationGroups'][0]['Status']
         desired_members_count = len(rg['ReplicationGroups'][0]['MemberClusters'])
         available_members_count = len([x for x in rg['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']])
         logging.info(f'Expected {desired_members_count} members, got {available_members_count}')
         if status == 'available' and available_members_count == desired_members_count:
             return True
-        time.sleep(15)
+        time.sleep(time_to_sleep)
     raise TimeoutError(f'Replication group {events["ReplicationGroupId"]} couldn\'t '
                        f'be scaled in {time_to_wait} seconds')
 
@@ -46,11 +44,11 @@ def assert_cluster_mode_disabled(events, context):
     check_required_params(['ReplicationGroupId'], events)
     replication_group_id = events['ReplicationGroupId']
     elasticache_client = boto3.client('elasticache')
-    node_groups = elasticache_client.describe_replication_groups(
-        ReplicationGroupId=replication_group_id)['ReplicationGroups'][0]['NodeGroups']
-    if len(node_groups) > 1:
+    cluster_mode = elasticache_client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id)['ReplicationGroups'][0]['ClusterEnabled']
+    if cluster_mode:
         raise AssertionError('Cluster mode is enabled. '
-                             'This SOP is applicable only for replication group with cluster mode disabled')
+                             'This automation is applicable only for replication group with "cluster mode" disabled')
 
 
 def get_failover_settings(events, context):

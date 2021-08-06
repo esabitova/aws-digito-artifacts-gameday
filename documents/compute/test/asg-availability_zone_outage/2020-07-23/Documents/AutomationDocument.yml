@@ -45,14 +45,14 @@ mainSteps:
         SCRIPT_PLACEHOLDER::asg_util.imports
 
         SCRIPT_PLACEHOLDER::asg_util.assert_no_suspended_process
-  - name: AssertSyntheticAlarmToBeGreenBeforeTest
+  - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
     onFailure: Abort
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-      - "{{SyntheticAlarmName}}"
+        - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
   - name: SuspendLaunchProcessInAsg
@@ -96,7 +96,7 @@ mainSteps:
     onCancel: 'step:TriggerRollback'
     inputs:
       Duration: 'PT{{TestDurationInMinutes}}M'
-  - name: AssertSyntheticAlarmToBeGreenAfterTest
+  - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
     maxAttempts: 10
     timeoutSeconds: 600

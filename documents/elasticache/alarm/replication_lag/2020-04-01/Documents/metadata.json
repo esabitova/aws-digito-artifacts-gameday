@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis ReplicationLag Alarm",
+  "description": "Alarm by Digito for Elasticache Redis that indicates how far behind replica node is based on {$Threshold} seconds",
+  "alarmName": "Digito-elasticache-redis:replication_lag:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:replication_lag:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

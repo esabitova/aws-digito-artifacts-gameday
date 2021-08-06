@@ -194,6 +194,13 @@ def get_sample_delete_route_response():
     return response
 
 
+def get_sample_create_route_response():
+    response = {}
+    response['ResponseMetadata'] = {'HTTPStatusCode': 200}
+
+    return response
+
+
 def get_sample_describe_db_instances_response():
     db_instances_response = {}
 
