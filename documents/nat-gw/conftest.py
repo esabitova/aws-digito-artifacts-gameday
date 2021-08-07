@@ -25,4 +25,4 @@ def trigger_lambda_async(resource_pool,
                             payload=payload,
                             invocation_type=LambdaInvocationType.Event,
                             session=boto3_session)
-    logging.info(result['Payload'])
+    logging.info(f"Lambda Function: {lambda_arn} has been triggered with the result {result['Payload']}")
