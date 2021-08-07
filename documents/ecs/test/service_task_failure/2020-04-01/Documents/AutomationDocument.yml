@@ -19,7 +19,7 @@ description: "Service task failure"
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
-  Cluster:
+  ClusterName:
     type: String
     description: (Required) The name of the ECS Cluster
   ServiceName:
@@ -28,15 +28,64 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    description: (Required) The Synthetic Alarm which should be green within recovery time.
   TaskRestoreWaitTimeout:
     type: Integer
-    description: (Optional) The amount of minutes that test will wait task to be restored.
-    default: 10
+    description: (Optional) The number of minutes that test will wait task to be restored. Maximum 9 minutes
+    default: 9
+  NumberOfTasksToStop:
+    type: Integer
+    description: (Optional) The number of tasks to be stopped. if it's more than the number of tasks in the service, then all tasks will be stopped. Only positive integer values, greater than 1
+    default: 1
 mainSteps:
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{${alarmPrefix}AlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: InjectFailure
+    # Check input.TaskRestoreWaitTimeout should be between 1 and 9 (inclusive). The maximum is stipulated in the current service limitations (executeScript action run time) https://docs.aws.amazon.com/general/latest/gr/ssm.html
+    # Check input.NumberOfTasksToStop should be greater than 1
     # add one or more steps to inject failures
     # 1. get list of tasks in the service
-    # 2. stop one of the tasks
+    #   Call [boto3.describe_services]
+    #     Parameters:
+    #       cluster = params.ClusterName
+    #       services = [params.ServiceName]
+    #     Take params.NumberOfTasksToStop of '.services[].taskSets[].id'. if params.NumberOfTasksToStop is greater than the total number RUNNING tasks then take all.
+    #     Take total number of tasks running '.services[].taskSets[]'
+    # 2. stop the selected of the tasks
+    #   Call [boto3.stop_task]
+    #     Parameters:
+    #       cluster = params.ClusterName
+    #       task = task_id
+    #     
   - name: WaitTasksToBeRestored
     # add one or more steps to inject failures
     # 3. wait while total number of RUNNING tasks be equal intended
+    #   Call [boto3.describe_services]
+    #     Parameters:
+    #       cluster = params.ClusterName
+    #       services = [params.ServiceName]
+    #     Take total number of tasks running '.services[].taskSets[]'
+    #     Wait [params.TaskRestoreWaitTimeout] minutes. Fail if timeout
+  - name: AssertAlarmToBeGreen
+    action: aws:assertAwsResourceProperty
+    maxAttempts: 10
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+    isEnd: true
