@@ -298,8 +298,8 @@ def get_throttling_config(events: dict, context: dict) -> dict:
     http_method: str = events.get('RestApiGwHttpMethod', '*')
 
     # Need to have it here for rollback case to overcame issue DIG-853 with get_inputs_from_ssm_execution
-    gateway_id = None if gateway_id.startswith('{{') else gateway_id
-    stage_name = None if stage_name.startswith('{{') else stage_name
+    if (stage_name and stage_name.startswith('{{')) and (gateway_id and gateway_id.startswith('{{')):
+        gateway_id = stage_name = None
     resource_path = '*' if resource_path.startswith('{{') else resource_path
     http_method = '*' if http_method.startswith('{{') else http_method
 
@@ -399,8 +399,8 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     ]
 
     # Need to have it here for rollback case to overcame issue DIG-853 with get_inputs_from_ssm_execution
-    gateway_id = None if gateway_id.startswith('{{') else gateway_id
-    stage_name = None if stage_name.startswith('{{') else stage_name
+    if (stage_name and stage_name.startswith('{{')) and (gateway_id and gateway_id.startswith('{{')):
+        gateway_id = stage_name = None
     resource_path = '*' if resource_path.startswith('{{') else resource_path
     http_method = '*' if http_method.startswith('{{') else http_method
 
@@ -448,10 +448,10 @@ def wait_throttling_config_updated(events: dict, context: dict) -> None:
         actual_throttling_config = get_throttling_config(events, None)
         actual_rate_limit = actual_throttling_config['RateLimit']
         actual_burst_limit = actual_throttling_config['BurstLimit']
-        if actual_rate_limit == expected_rate_limit and actual_burst_limit == expected_burst_limit:
+        if int(actual_rate_limit) == int(expected_rate_limit) and actual_burst_limit == expected_burst_limit:
             return
         log.info(f'Waiting for expected values: [RateLimit: {expected_rate_limit}, BurstLimit: {expected_burst_limit}],'
-                 f'actual values: [RateLimit: {expected_rate_limit}, BurstLimit: {expected_burst_limit}]')
+                 f'actual values: [RateLimit: {actual_rate_limit}, BurstLimit: {actual_burst_limit}]')
         max_retries -= 1
         time.sleep(timeout)
     raise TimeoutError('Error to wait for throttling config update. Maximum timeout exceeded!')

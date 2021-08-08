@@ -36,7 +36,7 @@ QUOTA_BURST_LIMIT: float = 5000.0
 QUOTA_BURST_LIMIT_CODE: str = 'L-CDF5615A'
 
 USAGE_PLAN_THROTTLE_RATE_LIMIT: float = 100.0
-USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT: float = 100.0
+USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT: float = 90.0
 NEW_THROTTLE_RATE_LIMIT: float = 80.0
 LESS_THROTTLE_RATE_LIMIT: float = 49.0
 MORE_THROTTLE_RATE_LIMIT: float = 151.0
@@ -74,7 +74,11 @@ def get_sample_https_status_code_403_response():
     return response
 
 
-def get_sample_get_usage_plan_response():
+def get_sample_get_usage_plan_response(
+        throttle_burst_limit=USAGE_PLAN_THROTTLE_BURST_LIMIT,
+        throttle_rate_limit=USAGE_PLAN_THROTTLE_RATE_LIMIT,
+        stage_throttle_burst_limit=USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT,
+        stage_throttle_rate_limit=USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT):
     response = {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
@@ -84,8 +88,8 @@ def get_sample_get_usage_plan_response():
             "period": USAGE_PLAN_PERIOD
         },
         "throttle": {
-            "burstLimit": USAGE_PLAN_THROTTLE_BURST_LIMIT,
-            "rateLimit": USAGE_PLAN_THROTTLE_RATE_LIMIT
+            "burstLimit": throttle_burst_limit,
+            "rateLimit": throttle_rate_limit
         },
         "apiStages": [
             {
@@ -93,8 +97,8 @@ def get_sample_get_usage_plan_response():
                 "stage": REST_API_GW_STAGE_NAME,
                 "throttle": {
                     "*/*": {
-                        "burstLimit": USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT,
-                        "rateLimit": USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT
+                        "burstLimit": stage_throttle_burst_limit,
+                        "rateLimit": stage_throttle_rate_limit
                     }
                 }
             }
@@ -596,7 +600,10 @@ class TestApigwUtil(unittest.TestCase):
         self.assertTrue(exception_info.match('Burst rate limit is going to be changed more than 50%, please use smaller'
                                              ' increments or use ForceExecution parameter to disable validation'))
 
-    def test_set_throttling_config_with_provided_stage_name(self):
+    @patch('time.sleep')
+    def test_set_throttling_config_with_provided_stage_name(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         events = {
             'RestApiGwId': REST_API_GW_ID,
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
@@ -605,6 +612,12 @@ class TestApigwUtil(unittest.TestCase):
             'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
         }
         self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        self.mock_apigw.get_usage_plan.side_effect = [
+            get_sample_get_usage_plan_response(stage_throttle_burst_limit=USAGE_PLAN_THROTTLE_BURST_LIMIT,
+                                               stage_throttle_rate_limit=USAGE_PLAN_THROTTLE_RATE_LIMIT),
+            get_sample_get_usage_plan_response(stage_throttle_burst_limit=NEW_THROTTLE_BURST_LIMIT,
+                                               stage_throttle_rate_limit=NEW_THROTTLE_RATE_LIMIT),
+        ]
         output = apigw_utils.set_throttling_config(events, None)
         self.mock_apigw.update_usage_plan.assert_called_with(
             usagePlanId=USAGE_PLAN_ID,
@@ -625,13 +638,22 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
 
-    def test_set_throttling_config_without_provided_stage_name(self):
+    @patch('time.sleep')
+    def test_set_throttling_config_without_provided_stage_name(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
             'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
             'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
         }
         self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        self.mock_apigw.get_usage_plan.side_effect = [
+            get_sample_get_usage_plan_response(throttle_burst_limit=USAGE_PLAN_THROTTLE_BURST_LIMIT,
+                                               throttle_rate_limit=USAGE_PLAN_THROTTLE_RATE_LIMIT),
+            get_sample_get_usage_plan_response(throttle_burst_limit=NEW_THROTTLE_BURST_LIMIT,
+                                               throttle_rate_limit=NEW_THROTTLE_RATE_LIMIT),
+        ]
         output = apigw_utils.set_throttling_config(events, None)
         self.mock_apigw.update_usage_plan.assert_called_with(
             usagePlanId=USAGE_PLAN_ID,
@@ -652,7 +674,10 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
 
-    def test_set_throttling_config_without_provided_stage_name_for_rollback_case(self):
+    @patch('time.sleep')
+    def test_set_throttling_config_without_provided_stage_name_for_rollback_case(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
             'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
@@ -663,6 +688,12 @@ class TestApigwUtil(unittest.TestCase):
             'RestApiGwHttpMethod': '{{ GetInputsFromPreviousExecution.RestApiGwHttpMethod }}'
         }
         self.mock_service_quotas.get_service_quota.side_effect = get_sample_get_service_quota_response_side_effect()
+        self.mock_apigw.get_usage_plan.side_effect = [
+            get_sample_get_usage_plan_response(throttle_burst_limit=USAGE_PLAN_THROTTLE_BURST_LIMIT,
+                                               throttle_rate_limit=USAGE_PLAN_THROTTLE_RATE_LIMIT),
+            get_sample_get_usage_plan_response(throttle_burst_limit=NEW_THROTTLE_BURST_LIMIT,
+                                               throttle_rate_limit=NEW_THROTTLE_RATE_LIMIT),
+        ]
         output = apigw_utils.set_throttling_config(events, None)
         self.mock_apigw.update_usage_plan.assert_called_with(
             usagePlanId=USAGE_PLAN_ID,
@@ -708,7 +739,7 @@ class TestApigwUtil(unittest.TestCase):
                                              f'can not be more than service quota Throttle burst rate: '
                                              f'{QUOTA_BURST_LIMIT}'))
 
-    def test_get_throttling_config_without_provided_stage_name(self):
+    def test_get_throttling_config_with_provided_stage_name(self):
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
             'RestApiGwStageName': REST_API_GW_STAGE_NAME,
@@ -720,7 +751,7 @@ class TestApigwUtil(unittest.TestCase):
         self.assertEqual(USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT, output['BurstLimit'])
 
-    def test_get_throttling_config_with_provided_stage_name(self):
+    def test_get_throttling_config_without_provided_stage_name(self):
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID
         }
