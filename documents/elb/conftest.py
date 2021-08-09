@@ -50,4 +50,3 @@ def break_targets_healthcheck_port_teardown(boto3_session):
         TargetGroupArn=target_group_arn,
         HealthCheckPort=str(previous_healthcheck_port)
     )
-
