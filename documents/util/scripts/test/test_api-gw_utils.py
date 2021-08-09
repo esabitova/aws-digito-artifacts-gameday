@@ -15,9 +15,9 @@ from documents.util.scripts.test.mock_sleep import MockSleep
 BOTO3_CONFIG: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 
 USAGE_PLAN_ID: str = "jvgy9s"
-USAGE_PLAN_LIMIT = 50000
-USAGE_PLAN_PERIOD: str = "WEEK"
-NEW_USAGE_PLAN_QUOTA_LIMIT = 50000
+USAGE_PLAN_QUOTA_LIMIT = 50000
+USAGE_PLAN_QUOTA_PERIOD: str = "WEEK"
+NEW_USAGE_PLAN_QUOTA_LIMIT = 30000
 NEW_HUGECHANGE_USAGE_PLAN_LIMIT = 5000
 NEW_USAGE_PLAN_QUOTA_PERIOD: str = "WEEK"
 
@@ -66,26 +66,27 @@ VPC_ENDPOINTS_SECURITY_GROUPS_MAPPING = {
 
 
 def get_sample_https_status_code_403_response():
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 403
         }
     }
-    return response
 
 
 def get_sample_get_usage_plan_response(
         throttle_burst_limit=USAGE_PLAN_THROTTLE_BURST_LIMIT,
         throttle_rate_limit=USAGE_PLAN_THROTTLE_RATE_LIMIT,
         stage_throttle_burst_limit=USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT,
-        stage_throttle_rate_limit=USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT):
-    response = {
+        stage_throttle_rate_limit=USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT,
+        quota_limit=USAGE_PLAN_QUOTA_LIMIT,
+        quota_period=USAGE_PLAN_QUOTA_PERIOD):
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
         "quota": {
-            "limit": USAGE_PLAN_LIMIT,
-            "period": USAGE_PLAN_PERIOD
+            "limit": quota_limit,
+            "period": quota_period
         },
         "throttle": {
             "burstLimit": throttle_burst_limit,
@@ -104,11 +105,10 @@ def get_sample_get_usage_plan_response(
             }
         ]
     }
-    return response
 
 
 def get_sample_update_usage_plan_response():
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
@@ -133,44 +133,40 @@ def get_sample_update_usage_plan_response():
             }
         ]
     }
-    return response
 
 
 def get_sample_get_stage_response():
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
         "deploymentId": REST_API_GW_DEPLOYMENT_ID_V1,
         "stageName": REST_API_GW_STAGE_NAME
     }
-    return response
 
 
 def get_sample_update_stage_response():
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
         "deploymentId": REST_API_GW_DEPLOYMENT_ID_V2,
         "stageName": REST_API_GW_STAGE_NAME
     }
-    return response
 
 
 def get_sample_get_deployment_response(deployment_id, created_date):
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
         "id": deployment_id,
         "createdDate": created_date
     }
-    return response
 
 
 def get_sample_get_deployments_response_with_1_deployment():
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
@@ -182,11 +178,10 @@ def get_sample_get_deployments_response_with_1_deployment():
             }
         ]
     }
-    return response
 
 
 def get_sample_get_deployments_response_with_2_deployments():
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
@@ -203,34 +198,56 @@ def get_sample_get_deployments_response_with_2_deployments():
             }
         ]
     }
-    return response
 
 
 def get_sample_get_deployments_response_with_6_deployments():
-    response = {
-        "ResponseMetadata": {
-            "HTTPStatusCode": 200
-        },
+    return {
+        "ResponseMetadata": {"HTTPStatusCode": 200},
         "items": [
-            {'id': 'zpju28', 'description': 'Dummy deployment 6',
-             'createdDate': datetime.datetime(2021, 4, 21, 18, 11, 10, tzinfo=tzlocal())},
-            {'id': 'zo5n6k', 'description': 'Dummy deployment 5',
-             'createdDate': datetime.datetime(2021, 4, 21, 18, 10, 10, tzinfo=tzlocal())},
-            {'id': 'zk1f7c', 'description': 'Dummy deployment 4',
-             'createdDate': datetime.datetime(2021, 4, 21, 18, 9, 10, tzinfo=tzlocal())},
-            {'id': REST_API_GW_DEPLOYMENT_ID_V1, 'description': 'Dummy deployment 3',
-             'createdDate': REST_API_GW_DEPLOYMENT_CREATED_DATE_V1},
-            {'id': REST_API_GW_DEPLOYMENT_ID_V2, 'description': 'Dummy deployment 2',
-             'createdDate': REST_API_GW_DEPLOYMENT_CREATED_DATE_LESS_THAN_V1},
-            {'id': 'xfjve2', 'description': 'Dummy deployment 1',
-             'createdDate': datetime.datetime(2021, 4, 21, 18, 6, 10, tzinfo=tzlocal())}
-        ]
+            {
+                'id': 'zpju28',
+                'description': 'Dummy deployment 6',
+                'createdDate': datetime.datetime(
+                    2021, 4, 21, 18, 11, 10, tzinfo=tzlocal()
+                )
+            },
+            {
+                'id': 'zo5n6k',
+                'description': 'Dummy deployment 5',
+                'createdDate': datetime.datetime(
+                    2021, 4, 21, 18, 10, 10, tzinfo=tzlocal()
+                )
+            },
+            {
+                'id': 'zk1f7c',
+                'description': 'Dummy deployment 4',
+                'createdDate': datetime.datetime(
+                    2021, 4, 21, 18, 9, 10, tzinfo=tzlocal()
+                )
+            },
+            {
+                'id': REST_API_GW_DEPLOYMENT_ID_V1,
+                'description': 'Dummy deployment 3',
+                'createdDate': REST_API_GW_DEPLOYMENT_CREATED_DATE_V1,
+            },
+            {
+                'id': REST_API_GW_DEPLOYMENT_ID_V2,
+                'description': 'Dummy deployment 2',
+                'createdDate': REST_API_GW_DEPLOYMENT_CREATED_DATE_LESS_THAN_V1,
+            },
+            {
+                'id': 'xfjve2',
+                'description': 'Dummy deployment 1',
+                'createdDate': datetime.datetime(
+                    2021, 4, 21, 18, 6, 10, tzinfo=tzlocal()
+                )
+            },
+        ],
     }
-    return response
 
 
 def get_sample_get_service_quota_response(quota_code: str, limit: float):
-    response = {
+    return {
         "ResponseMetadata": {
             "HTTPStatusCode": 200
         },
@@ -240,19 +257,15 @@ def get_sample_get_service_quota_response(quota_code: str, limit: float):
             'Value': limit
         }
     }
-    return response
 
 
 def get_sample_get_service_quota_response_side_effect():
-    response = [
-        get_sample_get_service_quota_response(QUOTA_RATE_LIMIT_CODE, QUOTA_RATE_LIMIT),
-        get_sample_get_service_quota_response(QUOTA_BURST_LIMIT_CODE, QUOTA_BURST_LIMIT)
-    ]
-    return response
+    return [get_sample_get_service_quota_response(QUOTA_RATE_LIMIT_CODE, QUOTA_RATE_LIMIT),
+            get_sample_get_service_quota_response(QUOTA_BURST_LIMIT_CODE, QUOTA_BURST_LIMIT)]
 
 
 def get_sample_get_rest_api_response(vps_endpoint_ids):
-    response = {
+    return {
         'ResponseMetadata': {
             'HTTPStatusCode': 200,
         },
@@ -262,11 +275,10 @@ def get_sample_get_rest_api_response(vps_endpoint_ids):
             'vpcEndpointIds': vps_endpoint_ids
         }
     }
-    return response
 
 
 def get_sample_describe_vpc_endpoints_response():
-    response = {
+    return {
         'ResponseMetadata': {
             'HTTPStatusCode': 200,
         },
@@ -283,37 +295,33 @@ def get_sample_describe_vpc_endpoints_response():
             }
         ]
     }
-    return response
 
 
 def get_sample_describe_security_groups_response(security_groups):
-    output = {
+    return {
         'ResponseMetadata': {
             'HTTPStatusCode': 200
         },
         'SecurityGroups': security_groups
     }
-    return output
 
 
 def get_sample_create_security_group_response():
-    output = {
+    return {
         'GroupId': DUMMY_SECURITY_GROUP_ID,
         'ResponseMetadata': {
             'HTTPStatusCode': 200
         }
     }
-    return output
 
 
 def get_sample_modify_vpc_endpoint_response(return_value):
-    output = {
+    return {
         'Return': return_value,
         'ResponseMetadata': {
             'HTTPStatusCode': 200
         }
     }
-    return output
 
 
 @pytest.mark.unit_test
@@ -350,17 +358,39 @@ class TestApigwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual("ok", output['Result'])
 
-    def test_set_limit_and_period(self):
+    @patch('time.sleep')
+    def test_set_limit_and_period(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
         events = {
             'RestApiGwUsagePlanId': USAGE_PLAN_ID,
             'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
             'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD
         }
-
+        self.mock_apigw.get_usage_plan.side_effect = [
+            get_sample_get_usage_plan_response(quota_limit=USAGE_PLAN_QUOTA_LIMIT,
+                                               quota_period=USAGE_PLAN_QUOTA_PERIOD),
+            get_sample_get_usage_plan_response(quota_limit=NEW_USAGE_PLAN_QUOTA_LIMIT,
+                                               quota_period=NEW_USAGE_PLAN_QUOTA_PERIOD),
+        ]
         output = apigw_utils.set_limit_and_period(events, None)
         self.assertIsNotNone(output)
         self.assertEqual(NEW_USAGE_PLAN_QUOTA_LIMIT, output['Limit'])
         self.assertEqual(NEW_USAGE_PLAN_QUOTA_PERIOD, output['Period'])
+
+    @patch('time.sleep')
+    def test_wait_limit_and_period_updated_timeout(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwQuotaLimit': NEW_USAGE_PLAN_QUOTA_LIMIT,
+            'RestApiGwQuotaPeriod': NEW_USAGE_PLAN_QUOTA_PERIOD,
+            'MaxRetries': 3
+        }
+        with pytest.raises(TimeoutError) as exception_info:
+            apigw_utils.wait_limit_and_period_updated(events, None)
+        self.assertTrue(exception_info.match('.*'))
 
     def test_get_deployment(self):
         self.mock_apigw.get_deployment.return_value = get_sample_get_deployment_response(
@@ -738,6 +768,19 @@ class TestApigwUtil(unittest.TestCase):
         self.assertTrue(exception_info.match(f'Given value of RestApiGwThrottlingBurst: {HUGE_THROTTLE_BURST_LIMIT}, '
                                              f'can not be more than service quota Throttle burst rate: '
                                              f'{QUOTA_BURST_LIMIT}'))
+
+    @patch('time.sleep')
+    def test_wait_throttling_config_updated_timeout(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        events = {
+            'RestApiGwUsagePlanId': USAGE_PLAN_ID,
+            'RestApiGwThrottlingRate': NEW_THROTTLE_RATE_LIMIT,
+            'RestApiGwThrottlingBurst': NEW_THROTTLE_BURST_LIMIT
+        }
+        with pytest.raises(TimeoutError) as exception_info:
+            apigw_utils.wait_throttling_config_updated(events, None)
+        self.assertTrue(exception_info.match('.*'))
 
     def test_get_throttling_config_with_provided_stage_name(self):
         events = {

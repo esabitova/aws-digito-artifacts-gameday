@@ -85,7 +85,6 @@ def set_limit_and_period(events, context):
     new_usage_plan_limit = events['RestApiGwQuotaLimit']
     new_usage_plan_period = events['RestApiGwQuotaPeriod']
 
-    log.debug(f'Getting limit and period from Plan {usage_plan_id} ...')
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     apigw_client = boto3.client('apigateway', config=config)
 
@@ -108,14 +107,30 @@ def set_limit_and_period(events, context):
         log.error(f'Failed to update usage plan with id {usage_plan_id}, response is {apigw_usage_plan}')
         raise ValueError('Failed to update usage plan limit and period')
 
-    current_usage_plan_limit = apigw_usage_plan["quota"]["limit"]
-    current_usage_plan_period = apigw_usage_plan["quota"]["period"]
+    wait_limit_and_period_updated(events, None)
 
-    log.debug(f'The new limit is {current_usage_plan_limit}')
-    log.debug(f'The new period is {current_usage_plan_period}')
+    return {"Limit": apigw_usage_plan["quota"]["limit"],
+            "Period": apigw_usage_plan["quota"]["period"]}
 
-    return {"Limit": current_usage_plan_limit,
-            "Period": current_usage_plan_period}
+
+def wait_limit_and_period_updated(events, context):
+    expected_quota_limit: int = events['RestApiGwQuotaLimit']
+    expected_quota_period: str = events['RestApiGwQuotaPeriod']
+    max_retries: int = events.get('MaxRetries', 40)
+    timeout: int = events.get('Timeout', 15)
+    while max_retries > 0:
+        actual_throttling_config = get_throttling_config(events, None)
+        actual_quota_limit = actual_throttling_config['QuotaLimit']
+        actual_quota_period = actual_throttling_config['QuotaPeriod']
+        if actual_quota_limit == expected_quota_limit and actual_quota_period == expected_quota_period:
+            return
+        log.info(f'Waiting for expected values: '
+                 f'[QuotaLimit: {expected_quota_limit}, QuotaPeriod: {expected_quota_period}], '
+                 f'actual values: [QuotaLimit: {actual_quota_limit}, QuotaPeriod: {actual_quota_period}]')
+        max_retries -= 1
+        time.sleep(timeout)
+
+    raise TimeoutError('Error to wait for QuotaLimit and QuotaPeriod update. Maximum timeout exceeded!')
 
 
 def assert_https_status_code_200(response: dict, error_message: str) -> None:
@@ -454,6 +469,7 @@ def wait_throttling_config_updated(events: dict, context: dict) -> None:
                  f' actual values: [RateLimit: {actual_rate_limit}, BurstLimit: {actual_burst_limit}]')
         max_retries -= 1
         time.sleep(timeout)
+
     raise TimeoutError('Error to wait for throttling config update. Maximum timeout exceeded!')
 
 
