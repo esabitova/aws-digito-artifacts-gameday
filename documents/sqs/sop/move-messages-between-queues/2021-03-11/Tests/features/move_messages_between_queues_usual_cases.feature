@@ -31,10 +31,11 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    And sleep for "60" seconds
 
     Then assert the difference between "SourceNumberOfMessages" at "before" and "SourceNumberOfMessages" at "after" became "10"
     And assert the difference between "TargetNumberOfMessages" at "after" and "TargetNumberOfMessages" at "before" became "10"
@@ -69,10 +70,11 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "60" seconds
 
     Then assert "SourceNumberOfMessages" at "before" became equal to "SourceNumberOfMessages" at "after"
     And assert the difference between "TargetNumberOfMessages" at "after" and "TargetNumberOfMessages" at "before" became "10"
@@ -107,10 +109,11 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    And sleep for "60" seconds
 
     Then assert "SourceNumberOfMessages" at "before" became equal to "SourceNumberOfMessages" at "after"
     And assert the difference between "TargetNumberOfMessages" at "after" and "TargetNumberOfMessages" at "before" became "10"
@@ -145,10 +148,11 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
-    And sleep for "60" seconds
 
     Then assert "SourceNumberOfMessages" at "before" became equal to "SourceNumberOfMessages" at "after"
     And assert the difference between "TargetNumberOfMessages" at "after" and "TargetNumberOfMessages" at "before" became "10"
@@ -183,10 +187,11 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    And sleep for "60" seconds
 
 
     Then assert "SourceNumberOfMessages" at "before" became equal to "SourceNumberOfMessages" at "after"

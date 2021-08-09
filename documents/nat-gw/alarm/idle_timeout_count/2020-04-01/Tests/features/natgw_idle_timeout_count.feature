@@ -3,7 +3,7 @@ Feature: Alarm Setup - NatGW IdleTimeoutCount
   Scenario: Check alarm for number of connections that transitioned from the active state to the idle state
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                    | ResourceType |
-      | resource_manager/cloud_formation_templates/NatCfnTemplate.yml      | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/NatCfnTemplate.yml      | DEDICATED    |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED       |
 
     When alarm "nat-gw:alarm:idle_timeout_count:2020-04-01" is installed
