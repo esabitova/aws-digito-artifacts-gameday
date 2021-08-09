@@ -33,7 +33,7 @@ def check_limit_and_period(events, context):
 
     log.debug(f'Getting limit and period from Plan {usage_plan_id} ...')
     apigw_usage_plan = apigw_client.get_usage_plan(usagePlanId=usage_plan_id)
-    if not apigw_usage_plan['ResponseMetadata']['HTTPStatusCode'] == 200:
+    if apigw_usage_plan['ResponseMetadata']['HTTPStatusCode'] != 200:
         log.error(f'Failed to get usage plan with id {usage_plan_id}, response is {apigw_usage_plan}')
         raise ValueError('Failed to get usage plan limit and period')
 
@@ -85,7 +85,6 @@ def set_limit_and_period(events, context):
     new_usage_plan_limit = events['RestApiGwQuotaLimit']
     new_usage_plan_period = events['RestApiGwQuotaPeriod']
 
-    log.debug(f'Getting limit and period from Plan {usage_plan_id} ...')
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     apigw_client = boto3.client('apigateway', config=config)
 
@@ -104,22 +103,38 @@ def set_limit_and_period(events, context):
             }
         ])
     log.debug(f'The response from the API : {apigw_usage_plan}')
-    if not apigw_usage_plan['ResponseMetadata']['HTTPStatusCode'] == 200:
+    if apigw_usage_plan['ResponseMetadata']['HTTPStatusCode'] != 200:
         log.error(f'Failed to update usage plan with id {usage_plan_id}, response is {apigw_usage_plan}')
         raise ValueError('Failed to update usage plan limit and period')
 
-    current_usage_plan_limit = apigw_usage_plan["quota"]["limit"]
-    current_usage_plan_period = apigw_usage_plan["quota"]["period"]
+    wait_limit_and_period_updated(events, None)
 
-    log.debug(f'The new limit is {current_usage_plan_limit}')
-    log.debug(f'The new period is {current_usage_plan_period}')
+    return {"Limit": apigw_usage_plan["quota"]["limit"],
+            "Period": apigw_usage_plan["quota"]["period"]}
 
-    return {"Limit": current_usage_plan_limit,
-            "Period": current_usage_plan_period}
+
+def wait_limit_and_period_updated(events, context):
+    expected_quota_limit: int = events['RestApiGwQuotaLimit']
+    expected_quota_period: str = events['RestApiGwQuotaPeriod']
+    max_retries: int = events.get('MaxRetries', 40)
+    timeout: int = events.get('Timeout', 15)
+    while max_retries > 0:
+        actual_throttling_config = get_throttling_config(events, None)
+        actual_quota_limit = actual_throttling_config['QuotaLimit']
+        actual_quota_period = actual_throttling_config['QuotaPeriod']
+        if actual_quota_limit == expected_quota_limit and actual_quota_period == expected_quota_period:
+            return
+        log.info(f'Waiting for expected values: '
+                 f'[QuotaLimit: {expected_quota_limit}, QuotaPeriod: {expected_quota_period}], '
+                 f'actual values: [QuotaLimit: {actual_quota_limit}, QuotaPeriod: {actual_quota_period}]')
+        max_retries -= 1
+        time.sleep(timeout)
+
+    raise TimeoutError('Error to wait for QuotaLimit and QuotaPeriod update. Maximum timeout exceeded!')
 
 
 def assert_https_status_code_200(response: dict, error_message: str) -> None:
-    if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
+    if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         raise ValueError(f'{error_message} Response is: {response}')
 
 
@@ -297,6 +312,12 @@ def get_throttling_config(events: dict, context: dict) -> dict:
     resource_path: str = events.get('RestApiGwResourcePath', '*')
     http_method: str = events.get('RestApiGwHttpMethod', '*')
 
+    # Need to have it here for rollback case to overcame issue DIG-853 with get_inputs_from_ssm_execution
+    if (stage_name and stage_name.startswith('{{')) and (gateway_id and gateway_id.startswith('{{')):
+        gateway_id = stage_name = None
+    resource_path = '*' if resource_path.startswith('{{') else resource_path
+    http_method = '*' if http_method.startswith('{{') else http_method
+
     config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     client = boto3.client('apigateway', config=config)
     usage_plan = client.get_usage_plan(usagePlanId=usage_plan_id)
@@ -393,12 +414,10 @@ def set_throttling_config(events: dict, context: dict) -> dict:
     ]
 
     # Need to have it here for rollback case to overcame issue DIG-853 with get_inputs_from_ssm_execution
-    if resource_path.startswith('{{') and http_method.startswith('{{'):
-        resource_path = http_method = '*'
-
-    if stage_name and gateway_id:
-        if stage_name.startswith('{{') and gateway_id.startswith('{{'):
-            stage_name = gateway_id = None
+    if (stage_name and stage_name.startswith('{{')) and (gateway_id and gateway_id.startswith('{{')):
+        gateway_id = stage_name = None
+    resource_path = '*' if resource_path.startswith('{{') else resource_path
+    http_method = '*' if http_method.startswith('{{') else http_method
 
     boto3_config: object = Config(retries={'max_attempts': 20, 'mode': 'standard'})
 
@@ -430,8 +449,28 @@ def set_throttling_config(events: dict, context: dict) -> dict:
         output['BurstLimit'] = updated_usage_plan['throttle']['burstLimit']
 
     output['RateLimit'] = int(output['RateLimit'])
+    wait_throttling_config_updated(events, None)
 
     return output
+
+
+def wait_throttling_config_updated(events: dict, context: dict) -> None:
+    expected_rate_limit: int = int(events['RestApiGwThrottlingRate'])
+    expected_burst_limit: int = int(events['RestApiGwThrottlingBurst'])
+    max_retries: int = events.get('MaxRetries', 40)
+    timeout: int = events.get('Timeout', 15)
+    while max_retries > 0:
+        actual_throttling_config = get_throttling_config(events, None)
+        actual_rate_limit = actual_throttling_config['RateLimit']
+        actual_burst_limit = actual_throttling_config['BurstLimit']
+        if actual_rate_limit == expected_rate_limit and actual_burst_limit == expected_burst_limit:
+            return
+        log.info(f'Waiting for expected values: [RateLimit: {expected_rate_limit}, BurstLimit: {expected_burst_limit}],'
+                 f' actual values: [RateLimit: {actual_rate_limit}, BurstLimit: {actual_burst_limit}]')
+        max_retries -= 1
+        time.sleep(timeout)
+
+    raise TimeoutError('Error to wait for throttling config update. Maximum timeout exceeded!')
 
 
 def assert_inputs_before_throttling_rollback(events: dict, context: dict) -> None:
@@ -520,9 +559,8 @@ def update_endpoint_security_group_config(events: dict, context: dict) -> None:
     ec2_client = boto3.client('ec2')
 
     for vpc_endpoint_id, security_groups_config in vpc_endpoint_security_groups_map.items():
-        original_security_group_ids = []
-        for security_group in security_groups_config:
-            original_security_group_ids.append(security_group['GroupId'])
+        original_security_group_ids = [security_group['GroupId']
+                                       for security_group in security_groups_config]
 
         dummy_sg_name = 'dummy-sg-' + vpc_endpoint_id
         describe_dummy_sg_args = {'Filters': [dict(Name='group-name', Values=[dummy_sg_name])]}
@@ -558,7 +596,7 @@ def update_endpoint_security_group_config(events: dict, context: dict) -> None:
             add_security_group_ids = [dummy_sg_id]
             remove_security_group_ids = original_security_group_ids
 
-        if action == 'ReplaceWithOriginalSg':
+        elif action == 'ReplaceWithOriginalSg':
             add_security_group_ids = original_security_group_ids
             remove_security_group_ids = [dummy_sg_id] if dummy_sg_id else []
 
