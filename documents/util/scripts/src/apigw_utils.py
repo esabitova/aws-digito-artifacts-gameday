@@ -440,7 +440,7 @@ def set_throttling_config(events: dict, context: dict) -> dict:
 
 
 def wait_throttling_config_updated(events: dict, context: dict) -> None:
-    expected_rate_limit: float = float(events['RestApiGwThrottlingRate'])
+    expected_rate_limit: int = int(events['RestApiGwThrottlingRate'])
     expected_burst_limit: int = int(events['RestApiGwThrottlingBurst'])
     max_retries: int = events.get('MaxRetries', 40)
     timeout: int = events.get('Timeout', 15)
@@ -448,10 +448,10 @@ def wait_throttling_config_updated(events: dict, context: dict) -> None:
         actual_throttling_config = get_throttling_config(events, None)
         actual_rate_limit = actual_throttling_config['RateLimit']
         actual_burst_limit = actual_throttling_config['BurstLimit']
-        if int(actual_rate_limit) == int(expected_rate_limit) and actual_burst_limit == expected_burst_limit:
+        if actual_rate_limit == expected_rate_limit and actual_burst_limit == expected_burst_limit:
             return
         log.info(f'Waiting for expected values: [RateLimit: {expected_rate_limit}, BurstLimit: {expected_burst_limit}],'
-                 f'actual values: [RateLimit: {actual_rate_limit}, BurstLimit: {actual_burst_limit}]')
+                 f' actual values: [RateLimit: {actual_rate_limit}, BurstLimit: {actual_burst_limit}]')
         max_retries -= 1
         time.sleep(timeout)
     raise TimeoutError('Error to wait for throttling config update. Maximum timeout exceeded!')
