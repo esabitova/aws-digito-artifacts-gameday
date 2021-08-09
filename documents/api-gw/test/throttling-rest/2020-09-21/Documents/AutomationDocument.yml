@@ -169,6 +169,8 @@ mainSteps:
         SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
         SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
         SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
+        SCRIPT_PLACEHOLDER::apigw_utils.wait_throttling_config_updated
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
         SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
     isEnd: true
 
@@ -238,6 +240,8 @@ mainSteps:
         SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
         SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
         SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
+        SCRIPT_PLACEHOLDER::apigw_utils.wait_throttling_config_updated
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
         SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
 
   - name: AssertAlarmToBeRed
@@ -284,6 +288,8 @@ mainSteps:
         SCRIPT_PLACEHOLDER::apigw_utils.execute_boto3_with_backoff
         SCRIPT_PLACEHOLDER::apigw_utils.get_service_quota
         SCRIPT_PLACEHOLDER::apigw_utils.update_usage_plan
+        SCRIPT_PLACEHOLDER::apigw_utils.wait_throttling_config_updated
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
         SCRIPT_PLACEHOLDER::apigw_utils.set_throttling_config
 
   - name: AssertAlarmToBeGreen

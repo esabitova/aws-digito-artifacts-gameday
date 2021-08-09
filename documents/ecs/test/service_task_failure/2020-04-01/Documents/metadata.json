@@ -1,0 +1,15 @@
+{
+  "displayName": "Service task failure",
+  "description": "Service task failure",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ServiceTaskFailure_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "AZ,SOFTWARE,HARDWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "enabled": "false",
+  "tag": "ecs:test:service_task_failure:2020-04-01",
+  "recommendedAlarms": { "SyntheticAlarmNameAlarmName": "myalarm" }
+}

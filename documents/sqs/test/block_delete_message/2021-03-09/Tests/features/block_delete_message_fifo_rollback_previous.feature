@@ -10,11 +10,11 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    # Only one PurgeQueue operation is allowed every 60 seconds.
-    When sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -25,7 +25,8 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When send "5" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "5" seconds
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -57,10 +58,11 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "60" seconds
     And Wait for alarm to be in state "OK" for "600" seconds
       | AlarmName                                                            |
       | {{cfn-output:SqsTemplate>ApproximateAgeOfOldestMessageMaximumFifoAlarm}} |

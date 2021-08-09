@@ -7,10 +7,11 @@ Feature: SSM automation document to clean up SQS queue
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                          | ON_DEMAND    |
       | documents/sqs/sop/purge-queue/2021-03-11/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-PurgeQueue_2021-03-11" SSM document
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "60" seconds
     And send "25" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |

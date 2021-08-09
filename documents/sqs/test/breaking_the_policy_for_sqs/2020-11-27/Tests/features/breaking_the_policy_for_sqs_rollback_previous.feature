@@ -13,10 +13,11 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
     And SSM automation document "Digito-BreakingThePolicyForSQS_2020-11-27" executed
       | QueueUrl                                       | AutomationAssumeRole                                                                | SQSUserErrorAlarmName                                |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |

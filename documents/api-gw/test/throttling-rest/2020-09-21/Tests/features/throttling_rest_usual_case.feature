@@ -18,7 +18,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get API key and perform "12" https "GET" requests with interval "20" seconds
+    And get API key and perform "24" https "GET" requests with interval "10" seconds
     And cache usage plan rate limit as "AppliedRateLimit" and burst limit as "AppliedBurstLimit" "after" SSM automation execution
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Success"
       | ExecutionId                |
@@ -49,7 +49,7 @@ Feature: SSM automation document Digito-RestApiGwThrottling_2020-09-21
     And Wait for the SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution is on step "SetThrottlingConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get API key and perform "12" https "GET" requests with interval "20" seconds
+    And get API key and perform "24" https "GET" requests with interval "10" seconds
     And cache usage plan rate limit as "AppliedRateLimit" and burst limit as "AppliedBurstLimit" "after" SSM automation execution
     And SSM automation document "Digito-RestApiGwThrottling_2020-09-21" execution in status "Success"
       | ExecutionId                |
