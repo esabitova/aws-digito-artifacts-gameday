@@ -1,9 +1,6 @@
 SHELL := /bin/bash
 CWD:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-export AWS_DEFAULT_REGION=eu-west-1
-export AWS_PROFILE=ut
-
 clean:
 	rm -rf venv
 
