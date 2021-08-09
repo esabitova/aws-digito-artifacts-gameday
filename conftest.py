@@ -63,6 +63,10 @@ def pytest_addoption(parser):
                      action="store_true",
                      default=False,
                      help="Flag to keep test resources (created by Resource Manager) after all tests. Default False.")
+    parser.addoption("--release_failed_resources",
+                     action="store_true",
+                     default=False,
+                     help="Flag to release failed test resources to the pool. Default False.")
     parser.addoption("--pool_size",
                      action="store",
                      help="Comma separated key=value pair of cloud formation file template names mapped to number of "
@@ -253,7 +257,9 @@ def resource_pool(request, boto3_session, ssm_test_cache, function_logger):
     # interrupted/cancelled. In case of interruption resources will be
     # released and fixed on 'pytest_sessionfinish'
     if request.session.exitstatus != ExitCode.INTERRUPTED:
-        rp.release_resources(request.session.test_report)
+        test_execution_report = request.session.test_report
+        release_failed_resources = request.session.config.option.release_failed_resources
+        rp.release_resources(test_execution_report, release_failed_resources)
 
 
 @pytest.fixture(scope='function')
