@@ -3,7 +3,7 @@ Feature: Alarm Setup - NatGW ErrorPortAllocation
   Scenario: Check alarm for number of times the NAT gateway could not allocate a source port
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                    | ResourceType |
-      | resource_manager/cloud_formation_templates/NatCfnTemplate.yml      | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/NatCfnTemplate.yml      | DEDICATED    |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED       |
 
     When alarm "nat-gw:alarm:error_port_allocation:2020-04-01" is installed
