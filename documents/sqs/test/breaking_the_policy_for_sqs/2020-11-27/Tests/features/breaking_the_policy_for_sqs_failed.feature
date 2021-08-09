@@ -13,10 +13,11 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
