@@ -31,6 +31,17 @@ parameters:
       (Required) The ARN of the role that allows Automation to perform the
       actions on your behalf.
 mainSteps:
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: AssertNotRebooting
     action: aws:assertAwsResourceProperty
     isCritical: false

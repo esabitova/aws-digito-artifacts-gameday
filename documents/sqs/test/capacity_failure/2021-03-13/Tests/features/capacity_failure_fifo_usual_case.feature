@@ -7,10 +7,11 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                | ON_DEMAND    |
       | documents/sqs/test/capacity_failure/2021-03-13/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-SQSCapacityFailure_2021-03-13" SSM document
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |

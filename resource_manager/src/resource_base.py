@@ -1,8 +1,11 @@
 import resource_manager.src.constants as constants
 import time
 import logging
+import pytz
+from datetime import datetime
 from .resource_model import ResourceModel
 from resource_manager.src.cloud_formation import CloudFormationTemplate
+from pynamodb.attributes import UTCDateTimeAttribute
 
 
 class ResourceBase:
@@ -57,3 +60,13 @@ class ResourceBase:
                     raise Exception(err_message)
                 dependents.append(resource.cf_stack_name)
         return dependents
+
+    def _to_utc_datetime(self, timestamp: UTCDateTimeAttribute):
+        """
+        Converts pynamodb.attributes.UTCDateTimeAttribute to datetime.datetime UTC aware.
+        :param timestamp: The timestamp to be converted.
+        :return: The converted UTC aware datetime.
+        """
+        date_time_format = '%Y-%m-%d %H:%M:%S.%f%z'
+        start = datetime.strptime(str(timestamp), date_time_format)
+        return start.replace(tzinfo=pytz.UTC)

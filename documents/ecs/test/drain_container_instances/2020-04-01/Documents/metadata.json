@@ -1,0 +1,14 @@
+{
+  "displayName": "Drains container instances",
+  "description": "Changes status of container instances to DRAINED",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-DrainContainerInstances_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "enabled": "false",
+  "tag": "ecs:test:drain_container_instances:2020-04-01"
+}

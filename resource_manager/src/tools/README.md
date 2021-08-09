@@ -11,6 +11,7 @@ For this purpose we have cerated tool which you can execute using following comm
   * LIST - lists templates which are deployed with associated stacks  
 * -t, --cfn_templates (required): Comma separated list of cloud formation templates. Example: -t RdsCfnTemplate,S3Template (no file path/extension).
 * -s, --status (optional): Comma separated list of resource statuses to perform operation against. Example: -s EXECUTE_FAILED,CREATE_FAILED,UPDATE_FAILED,AVAILABLE
+* -a, --age (optional): Age in minutes of resource in latest resource status to perform operation against.
 * -p, --aws_profile (optional): AWS profile name for boto3 session creation.
 NOTE: More information about how to use this tool you can execure command: ```python3.8 resource_manager/src/tools/resource_tool.py --help``` 
 #### Credentials

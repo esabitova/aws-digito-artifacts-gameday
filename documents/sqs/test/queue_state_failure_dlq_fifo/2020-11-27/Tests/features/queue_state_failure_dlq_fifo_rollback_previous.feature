@@ -16,10 +16,11 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
-    And sleep for "60" seconds
     And cache number of messages in queue as "NumberOfMessagesDLQ" "before" SSM automation execution
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
@@ -66,10 +67,11 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
+    # only one PurgeQueue is allowed during 60 seconds
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsDlqForFifoQueueUrl}} |
-    And sleep for "60" seconds
 
     Then assert "VisibilityTimeout" at "before" became equal to "VisibilityTimeout" at "after"
     And assert "RedrivePolicy" at "before" became equal to "RedrivePolicy" at "after"

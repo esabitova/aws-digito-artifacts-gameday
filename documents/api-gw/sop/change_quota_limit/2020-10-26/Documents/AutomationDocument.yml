@@ -116,6 +116,9 @@ mainSteps:
         RestApiGwQuotaPeriod: "{{ RestApiGwQuotaPeriod }}"
       Script: |-
         SCRIPT_PLACEHOLDER::apigw_utils.imports
+        SCRIPT_PLACEHOLDER::apigw_utils.assert_https_status_code_200
+        SCRIPT_PLACEHOLDER::apigw_utils.get_throttling_config
+        SCRIPT_PLACEHOLDER::apigw_utils.wait_limit_and_period_updated
         SCRIPT_PLACEHOLDER::apigw_utils.set_limit_and_period
   - name: OutputRecoveryTime
     action: 'aws:executeScript'

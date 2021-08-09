@@ -3,7 +3,7 @@ Feature: Alarm Setup - NatGW ConnectionAttemptCount
   Scenario: Check alarm for number of connection attempts for which there was no response
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                    | ResourceType |
-      | resource_manager/cloud_formation_templates/NatCfnTemplate.yml      | ON_DEMAND    |
+      | resource_manager/cloud_formation_templates/NatCfnTemplate.yml      | DEDICATED    |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED       |
 
     When alarm "nat-gw:alarm:connection_attempt_count:2020-04-01" is installed

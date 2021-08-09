@@ -36,6 +36,17 @@ parameters:
     description: (Optional) The expected recovery time after process dies (default 300)
     default: '300'
 mainSteps:
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
   - name: KillProcess
     action: aws:runCommand
     maxAttempts: 3

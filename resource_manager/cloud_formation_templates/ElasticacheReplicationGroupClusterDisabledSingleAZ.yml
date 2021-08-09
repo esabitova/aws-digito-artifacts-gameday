@@ -37,7 +37,7 @@ Parameters:
   NodeType:
     Description: The compute and memory capacity of the nodes in the node group (shard)
     Type: String
-    Default: cache.t2.small
+    Default: cache.t3.micro
   NumCacheClusters:
     Description: The number of clusters this replication group initially has. The maximum permitted value for NumCacheClusters is 6 (1 primary plus 5 replicas).
     Type: Number
