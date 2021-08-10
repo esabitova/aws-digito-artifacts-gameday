@@ -3,7 +3,7 @@ import pytest
 import re
 from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
-from resource_manager.src.alarm_manager import AlarmManager
+from resource_manager.src.alarm_manager import AlarmManager, _resolve_yaml_reference
 from publisher.src.alarm_document_parser import AlarmDocumentParser
 import resource_manager.src.util.boto3_client_factory as client_factory
 
@@ -266,3 +266,20 @@ class TestAlarmManager(unittest.TestCase):
             self.alarm_manager.collect_alarms_without_data(300)
 
         assert "contained no metrics" in str(err)
+
+    def test_replace_yaml_reference_noop_primitive(self):
+        self.assertTrue(_resolve_yaml_reference("string", {}), "string")
+        self.assertTrue(_resolve_yaml_reference(12345, {}), 12345)
+
+    def test_replace_yaml_reference_noop_unexpected(self):
+        self.assertTrue(_resolve_yaml_reference({"weird": "value"}, {}), {"weird": "value"})
+        self.assertTrue(_resolve_yaml_reference({"Ref": "param1", "weird": "value"}, {}),
+                        {"Ref": "param1", "weird": "value"})
+
+    def test_replace_yaml_reference_replace_ref(self):
+        self.assertTrue(_resolve_yaml_reference({"Ref": "param1"}, {"param1": "value"}), "value")
+
+    def test_replace_yaml_reference_fails_if_missing(self):
+        with pytest.raises(ValueError) as err:
+            self.assertTrue(_resolve_yaml_reference({"Ref": "param1"}, {}))
+        assert "Failed to Replace Ref" in str(err)

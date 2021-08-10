@@ -16,13 +16,16 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-DrainContainerInstances_2020-04-01
+Description: Role for Cross Region Recovery
 Outputs:
-  DigitoEcsDrainContainerInstancesAssumeRole:
-    Description: Digito-DrainContainerInstances_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoEcsDrainContainerInstancesAssumeRole.Arn
+  DigitoAppCommonCrossRegionRecoveryAssumeRole:
+    Description: DigitoAppCommonCrossRegionRecovery Automation Assume Role ARN
+    Value:
+      Fn::GetAtt: DigitoAppCommonCrossRegionRecoveryAssumeRole.Arn
+    Export:
+      Name: DigitoAppCommonCrossRegionRecoveryAssumeRole
 Resources:
-  DigitoEcsDrainContainerInstancesAssumeRole:
+  DigitoAppCommonCrossRegionRecoveryAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,20 +37,16 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEcsDrainContainerInstancesAssumePolicy:
-    Type: AWS::IAM::Policy
+  DigitoAsgScaleOutAssumePolicy:
+    Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: DigitoEcsDrainContainerInstancesAssumePolicy
+      PolicyName: "DigitoAsgScaleOutAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: "*"
             Action:
-              # required for FIS aws:ecs:drain-container-instances
-              - ecs:DescribeClusterInstances
-              - ecs:UpdateContainerInstancesState
-              - ecs:ListContainerInstances
-              # add permissions required by automation document here
+              - cloudwatch:DescribeAlarms
       Roles:
-        - Ref: DigitoEcsDrainContainerInstancesAssumeRole
+        - Ref: DigitoAppCommonCrossRegionRecoveryAssumeRole

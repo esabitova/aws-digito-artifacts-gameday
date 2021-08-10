@@ -1,0 +1,11 @@
+{
+  "displayName": "MaintenanceMode",
+  "description": "Alarm by Digito that AWS Redshift Cluster is in maintenance mode.",
+  "alarmName": "Digito-MaintenanceMode_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "redshift:alarm:maintenance_mode:2020-04-01",
+  "failureType": "HARDWARE",
+  "minorVersion": "001"
+}
