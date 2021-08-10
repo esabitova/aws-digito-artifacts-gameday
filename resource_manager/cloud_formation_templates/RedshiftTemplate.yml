@@ -18,6 +18,37 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Test cluster for Redshift
 Outputs:
+  DatabaseName:
+    Description: Database name
+    Value: !Join
+      - "-"
+      - - "digito-redshift-db"
+        - !Select
+          - 0
+          - !Split
+            - "-"
+            - !Select
+              - 2
+              - !Split
+                - "/"
+                - !Ref "AWS::StackId"
+  SchemaName:
+    Description: Schema name
+    Value: !Join
+      - "-"
+      - - "schema"
+        - !Select
+          - 0
+          - !Split
+            - "-"
+            - !Select
+              - 2
+              - !Split
+                - "/"
+                - !Ref "AWS::StackId"
+  LambdaArn:
+    Description: arn of lambda function
+    Value: !GetAtt LambdaFunction.Arn
   ClusterEndpoint:
     Description: Cluster endpoint
     Value: !Sub "${RedshiftCluster.Endpoint.Address}:${RedshiftCluster.Endpoint.Port}"
@@ -171,3 +202,141 @@ Resources:
           IpProtocol: tcp
       VpcId:
         Ref: VPC
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      KmsKeyArn: !Ref KmsKey
+      Code:
+        ZipFile: >
+          import json
+
+          import os
+
+
+
+          import boto3
+
+
+
+          db = os.environ['REDSHIFT_DB']
+
+          cluster_id = os.environ['REDSHIFT_CLUSTER_ID']
+
+          db_user = os.environ['REDSHIFT_DB_USER']
+
+          schema_name = os.environ['REDSHIFT_SCHEMA_NAME']
+
+          def lambda_handler(event, context):
+              client = boto3.client('redshift-data')
+              sqls = [  f"""
+                         create schema if not exists "{schema_name}" quota 2048;
+                         """
+                      ]
+              responses = []
+              for sql in sqls:
+
+                  statement = client.execute_statement(
+                      ClusterIdentifier=cluster_id,
+                      Database=db,
+                      DbUser=db_user,
+                      # SecretArn='arn:aws:secretsmanager:af-south-1:435978235099:secret:GeneratedSecretString-FvQtH1guiTSk-2P6sBg',
+                      Sql=sql
+                      )
+                  status = 'SUBMITTED'
+                  while status != 'FINISHED':
+                      response = client.describe_statement(Id=statement['Id'])
+                      status = response['Status']
+                  print(response)
+                  responses.append(response['Status'])
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps({'responses': responses})
+              }
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 30
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          REDSHIFT_CLUSTER_ID: !Ref RedshiftCluster
+          REDSHIFT_DB:  !Join
+            - "-"
+            - - "digito-redshift-db"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+          REDSHIFT_SCHEMA_NAME: !Join
+            - "-"
+            - - "schema"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+          REDSHIFT_DB_USER: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: Lambda Role
+  LambdaRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DigitoLambdaBreakSecurityGroupAssumePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - redshift:GetClusterCredentials
+            Resource:
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:redshift:*:*:dbname:"
+                    - Fn::Join:
+                        - "/"
+                        - - !Ref RedshiftCluster
+                          - !Join
+                            - "-"
+                            - - "digito-redshift-db"
+                              - !Select
+                                - 0
+                                - !Split
+                                  - "-"
+                                  - !Select
+                                    - 2
+                                    - !Split
+                                      - "/"
+                                      - !Ref "AWS::StackId"
+              - Fn::Join:
+                  - ""
+                  - - "arn:aws:redshift:*:*:dbuser:"
+                    - Fn::Join:
+                        - "/"
+                        - - !Ref RedshiftCluster
+                          - !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
+          - Effect: Allow
+            Action:
+              - redshift-data:*
+            Resource: '*'
+      Roles:
+        - Ref: LambdaRole
