@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  install:
+    #If you use the Ubuntu standard image 2.0 or later, you must specify runtime-versions.
+    #If you specify runtime-versions and use an image other than Ubuntu standard image 2.0, the build fails.
+    runtime-versions:
+      python: latest
+    commands:
+      - curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+      - python get-pip.py
+      - python -m pip install -r requirements.txt
+      - pip install --upgrade awscli
+      - aws --version
+  build:
+    commands:
+      # Manual command execution against integration test resources, command should be passed over environment variables:
+      # https://us-west-2.console.aws.amazon.com/codesuite/codecommit/repositories/aws-digito-artifacts-gameday/browse/refs/heads/master/--/resource_manager/src/tools/README.md?region=us-west-2
+      - PYTHONPATH=. python resource_manager/src/tools/resource_tool.py `echo $COMMAND`
