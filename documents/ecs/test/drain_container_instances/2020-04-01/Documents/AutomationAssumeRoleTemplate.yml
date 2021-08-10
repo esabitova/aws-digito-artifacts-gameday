@@ -43,6 +43,7 @@ Resources:
         Statement:
           - Effect: Allow
             Resource: "*"
+            Action:
               # required for FIS aws:ecs:drain-container-instances
               - ecs:DescribeClusterInstances
               - ecs:UpdateContainerInstancesState
