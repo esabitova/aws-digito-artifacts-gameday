@@ -150,15 +150,12 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        # Inject failure by removing security groups
         - NextStep: RemoveSecurityGroupsFromList
           Variable: "{{ LengthOfSecurityGroupsIdsToDelete.Length }}"
           NumericGreater: 0
-      # Inject failure by setting dummy security group
       Default:
           CreateEmptySecurityGroup
 
-  # Inject failure by removing security groups
   - name: RemoveSecurityGroupsFromList
     action: aws:executeScript
     outputs:
@@ -193,7 +190,6 @@ mainSteps:
         Type: StringList
     nextStep: AssertAlarmToBeRed
 
-  # Inject failure by setting dummy security group
   - name: CreateEmptySecurityGroup
     action: aws:executeScript
     onFailure: step:RollbackCurrentExecution
@@ -246,9 +242,6 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["ALARM"]
 
-  # rollback current execution
-  # 1. Update list of security groups. Call [boto3.set_security_groups]
-  #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
   - name: RollbackCurrentExecution
     action: aws:executeAwsApi
     onCancel: step:TriggerRollback
