@@ -66,7 +66,7 @@ Parameters:
   ClusterType:
     Description: The type of cluster
     Type: String
-    Default: single-node
+    Default: multi-node
     AllowedValues:
     - single-node
     - multi-node
@@ -74,7 +74,7 @@ Parameters:
     Description: The number of compute nodes in the cluster. For multi-node clusters,
       the NumberOfNodes parameter must be greater than 1
     Type: Number
-    Default: '1'
+    Default: '2'
   NodeType:
     Description: The type of node to be provisioned
     Type: String
