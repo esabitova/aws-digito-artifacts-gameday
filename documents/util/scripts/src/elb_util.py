@@ -2,7 +2,6 @@ import json
 import boto3
 import logging
 
-
 from botocore.config import Config
 
 logger = logging.getLogger(__name__)
@@ -54,10 +53,6 @@ def backup_targets(events: dict, context: dict) -> str:
 
 
 def break_targets_healthcheck_port(events: dict, context: dict) -> None:
-    """
-    :param events:
-    :param context:
-    """
     required_params = [
         "TargetGroups",
         "HealthCheckPort"
