@@ -323,13 +323,13 @@ role. Please do not specify Resources as * and only restrict this permission to 
          Version: 2012-10-17
          Statement:
                ...
-	           - Effect: Allow
-	             Resource:
-	               - !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
-	             Action:
-	               - iam:PassRole
+             - Effect: Allow
+               Resource:
+                 - !GetAtt DigitoSimulateHighCpuLoadInAsgAssumeRole.Arn
+               Action:
+                 - iam:PassRole
        Roles:
-	         - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
+           - Ref: DigitoSimulateHighCpuLoadInAsgAssumeRole
 ```
 * Please include rollback test in cucumber too with following steps, example: documents/compute/test/ec2-network_unavailable/2020-07-23/Tests/features/ec2_network_unavailable.feature -
 ```
@@ -695,6 +695,7 @@ Integration test execution command line:
 * -m integration - (Optional) When here is a need to execute selected  tests by given [markers](https://pytest-bdd.readthedocs.io/en/stable/#organizing-your-scenarios). 
 * --run_integration_tests (Required) - Required in case if running integration tests. This wll trigger creation AWS resources to support integration test framework: S3 bucket, DynamoDB table. 
 * --keep_test_resources - (Optional) If specified created CFN resources should be kept after test execution. By default (if not specified) after test execution resources will be removed and DynamoDB table, S3 bucket will be removed. 
+* --release_failed_resources - (Optional) Flag to release failed test resources to the pool. Default False.
 * --workers 2 - (Optional) Number of parallel processes. Supported
   by [pytest-parallel](https://pypi.org/project/pytest-parallel/).
 * --aws_profile - (Optional, optional, if not given 'default' is used) The name
@@ -780,4 +781,3 @@ Coming soon...
 # TODO List
 * https://issues.amazon.com/issues/Digito-2023 - [SSM Testing Framework] Investigate possibility reduce pool size with deleting stacks 
 * https://issues.amazon.com/issues/Digito-1208 - [SSM Testing Framework] Investigate possibility to generate tests based on SSM document content
-

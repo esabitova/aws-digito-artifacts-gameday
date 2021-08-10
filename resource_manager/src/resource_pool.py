@@ -268,11 +268,11 @@ class ResourcePool(ResourceBase):
                     return resource
         return None
 
-    def release_resources(self, test_report: TestReport):
+    def release_resources(self, test_report: TestReport, release_failed_resources: bool = False):
         """
         Releases resources - updates records in Dynamo DB table with status 'AVAILABLE'.
-        :param test_report:
-        :return:
+        :param test_report: The test execution report object.
+        :param release_failed_resources: The flag to release resources for failed tests if True, otherwise false.
         """
         self.logger.info("Releasing test resources.")
         # We do release/delete resources in reverse order, from bottom to top
@@ -284,7 +284,7 @@ class ResourcePool(ResourceBase):
                         or resource.type == ResourceModel.Type.ON_DEMAND.name:
                     # Sets last test executed using this resource
                     resource.last_execution = test_report.nodeid
-                    if test_report.outcome == 'failed':
+                    if test_report.outcome == 'failed' and not release_failed_resources:
                         ResourceModel.update_status(resource, ResourceModel.Status.EXECUTE_FAILED)
                     elif resource.type == ResourceModel.Type.DEDICATED.name:
                         # Deleting resource/stack for DEDICATED type.
