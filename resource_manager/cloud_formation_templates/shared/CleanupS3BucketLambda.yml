@@ -15,7 +15,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Description: Test stack for S3 and related resources. Contains all alarms
 Outputs:
   CleanupS3BucketLambdaArn:
@@ -26,7 +26,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Principal:
@@ -40,7 +40,7 @@ Resources:
     Properties:
       PolicyName: CleanupS3BucketLambdaPolicy
       PolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Resource: "arn:aws:s3:::*"
@@ -58,7 +58,7 @@ Resources:
     Properties:
       PolicyName: LoggingS3BucketLambdaPolicy
       PolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Statement:
           - Effect: Allow
             Resource:
