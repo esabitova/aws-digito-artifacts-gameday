@@ -49,10 +49,10 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "RollbackCurrentExecution" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    And sleep for "60" seconds
     And send "5" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
