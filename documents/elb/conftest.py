@@ -1,4 +1,5 @@
 import logging
+import base64
 
 import pytest
 from pytest_bdd import (
@@ -6,6 +7,7 @@ from pytest_bdd import (
     given,
     parsers
 )
+from sttable import parse_str_table
 
 from resource_manager.src.util import boto3_client_factory
 from resource_manager.src.util.param_utils import parse_param_value
@@ -50,3 +52,35 @@ def break_targets_healthcheck_port_teardown(boto3_session):
         TargetGroupArn=target_group_arn,
         HealthCheckPort=str(previous_healthcheck_port)
     )
+
+
+@given(parsers.parse('store to cache input parameters\n{input_parameters}'))
+def given_cached_input_parameters(ssm_test_cache, input_parameters):
+    for parm_name, param_val in parse_str_table(input_parameters).rows[0].items():
+        ssm_test_cache[parm_name] = str(param_val)
+
+
+# todo: add teardown for ssl certificate
+@given(parsers.parse('self-signed ssl certificate is created and cache arn as "{certificate_arn_cache_key}"'
+                     '\n{input_parameters_table}'))
+@when(parsers.parse('self-signed ssl certificate is created and cache arn as "{certificate_arn_cache_key}"'
+                    '\n{input_parameters_table}'))
+def self_signed_ssl_certificate_is_installed(
+    boto3_session, resource_pool, cfn_output_params, ssm_test_cache, certificate_arn_cache_key,
+        input_parameters_table
+):
+    parameters = parse_str_table(input_parameters_table, False).rows
+    cert_params = {}
+    for item in parameters:
+        param_name = item['0']
+        param_value = item['1']
+        cert_params[param_name] = param_value
+
+    acm_client = boto3_session.client('acm')
+    response = acm_client.import_certificate(
+        Certificate=base64.b64decode(cert_params['certificate_bytes']),
+        PrivateKey=base64.b64decode(cert_params['private_key_bytes'])
+    )
+
+    ssm_test_cache[certificate_arn_cache_key] = response['CertificateArn']
+    # ssm_test_cache step_key, certificate_arn_cache_key, response['CertificateArn'])
