@@ -20,7 +20,8 @@ clean_all: clean clean_test_artifacts clean_canary_artifacts
 
 enable_git_hooks:
 	cp -R ./.githooks/* ./.git/hooks/ && \
-	chmod +x ./.git/hooks/*
+	chmod +x ./.git/hooks/* && \
+	echo "Git hooks were updated from ./.githooks/ into ./.git/hooks/"
 
 install_virtualenv:
 	python3.7 -m pip install virtualenv

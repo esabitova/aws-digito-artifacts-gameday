@@ -1,0 +1,11 @@
+{
+  "displayName": "PercentageQuotaUsed",
+  "description": "Alarm by Digito that AWS Redshift Cluster have no schemas with quotas used more then ${Threshold} percent.",
+  "alarmName": "Digito-PercentageQuotaUsed_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "redshift:alarm:percent_quota_used:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

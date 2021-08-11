@@ -51,10 +51,11 @@ def _get_param_value(param_container, param_val_ref):
     value = param_container
     params = param_val_ref.split(">")
     for i in range(len(params)):
-        value = value.get(params[i])
+        container = value
+        value = container.get(params[i])
         if value is None:
             raise Exception("Parameter reference with name [{}] does not exist. Container {} keys are: [{}]".
-                            format(param_val_ref, params[0], ','.join(param_container.keys())))
+                            format(param_val_ref, params[0], ','.join(container.keys())))
     return value
 
 

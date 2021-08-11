@@ -1,0 +1,11 @@
+{
+  "displayName": "NumExceededSchemaQuotas",
+  "description": "Alarm by Digito that AWS Redshift Cluster have no schemas with exceeded quotas.",
+  "alarmName": "Digito-NumExceededSchemaQuotas_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "redshift:alarm:num_exceeded_schema_quotas:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
