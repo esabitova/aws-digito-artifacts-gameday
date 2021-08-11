@@ -981,3 +981,49 @@ class TestResourcePool(unittest.TestCase):
         self.assertEqual(ResourceModel.Status.AVAILABLE.name, assume_role.status)
 
         self.cfn_helper_mock.delete_cf_stack.assert_not_called()
+
+    def test_release_resources_on_test_fail_release_failed_resources_success(self):
+        on_demand = MagicMock()
+        on_demand.configure_mock(cf_stack_index=1,
+                                 type=ResourceModel.Type.ON_DEMAND.name,
+                                 status=ResourceModel.Status.LEASED.name,
+                                 cf_template_sha1=self.cfn_content_sha1,
+                                 cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        dedicated = MagicMock()
+        dedicated.configure_mock(cf_stack_index=1,
+                                 type=ResourceModel.Type.DEDICATED.name,
+                                 status=ResourceModel.Status.LEASED.name,
+                                 cf_template_sha1=self.cfn_content_sha1,
+                                 cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        shared = MagicMock()
+        shared.configure_mock(cf_stack_index=1,
+                              type=ResourceModel.Type.SHARED.name,
+                              status=ResourceModel.Status.AVAILABLE.name,
+                              cf_template_sha1=self.cfn_content_sha1,
+                              cf_input_parameters_sha1=self.cfn_input_param_sha1)
+        assume_role = MagicMock()
+        assume_role.configure_mock(cf_stack_index=1,
+                                   type=ResourceModel.Type.ASSUME_ROLE.name,
+                                   status=ResourceModel.Status.AVAILABLE.name,
+                                   cf_template_sha1=self.cfn_content_sha1,
+                                   cf_input_parameters_sha1=self.cfn_input_param_sha1)
+
+        self.rm.cfn_templates['on_demand_template'] = {ResourcePool.CFN_RESOURCE_PARAM: on_demand}
+        self.rm.cfn_templates['dedicated_template'] = {ResourcePool.CFN_RESOURCE_PARAM: dedicated}
+        self.rm.cfn_templates['shared_template'] = {ResourcePool.CFN_RESOURCE_PARAM: shared}
+        self.rm.cfn_templates['assume_role_template'] = {ResourcePool.CFN_RESOURCE_PARAM: assume_role}
+
+        report = TestReport(nodeid='dummy_node_id',
+                            location='execute',
+                            keywords=None,
+                            outcome=TestResourcePool.FAILED,
+                            longrepr=None,
+                            when=None)
+        self.rm.release_resources(report, True)
+
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, on_demand.status)
+        self.assertEqual(ResourceModel.Status.DELETED.name, dedicated.status)
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, shared.status)
+        self.assertEqual(ResourceModel.Status.AVAILABLE.name, assume_role.status)
+
+        self.cfn_helper_mock.delete_cf_stack.assert_called_once()

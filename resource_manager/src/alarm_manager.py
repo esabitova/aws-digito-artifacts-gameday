@@ -1,12 +1,13 @@
 import logging
 import re
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta, datetime
 
 from cfn_tools import load_yaml
 
-from .util.cw_util import get_cw_metric_statistics
 from publisher.src.alarm_document_parser import AlarmDocumentParser
+from .util.cw_util import get_cw_metric_statistics
 
 
 class AlarmManager:
@@ -91,13 +92,13 @@ class AlarmManager:
         self.logger.info(f"Destroying [{alarm_id}] alarm_stack {alarm_name}.")
         self.cfn_helper.delete_cf_stack(alarm_name)
 
-    def collect_alarms_without_data(self, data_period_seconds):
+    def collect_alarms_without_data(self, data_period_seconds, input_params={}):
         """
         Verifies that all alarm metrics have data on the requested dimension
         Returns list of alarms that do not report data
         """
         alarms_without_data = {
-            alarm: self._collect_alarms_without_data(alarm, data_period_seconds)
+            alarm: self._collect_alarms_without_data(alarm, data_period_seconds, input_params)
             for alarm in self.deployed_alarms.keys()
         }
         return {alarm: missing_metrics
@@ -105,7 +106,7 @@ class AlarmManager:
                 if len(missing_metrics) > 0
                 }
 
-    def _collect_alarms_without_data(self, alarm_id, data_period_seconds):
+    def _collect_alarms_without_data(self, alarm_id, data_period_seconds, input_params):
         # iterate over Resources of type Alarm AWS::CloudWatch::Alarm
         alarm = self.deployed_alarms[alarm_id]["content"]
         alarm_name = self.deployed_alarms[alarm_id]["alarm_name"]
@@ -120,10 +121,11 @@ class AlarmManager:
                     if 'MetricStat' in metric:
                         metric_props = metric['MetricStat']
                         metrics[f'{res_name}/{metric["Id"]}'] = {
-                            'metric_namespace': metric_props['Metric']['Namespace'],
-                            'metric_name': metric_props['Metric']['MetricName'],
+                            'metric_namespace': _resolve_yaml_reference(metric_props['Metric']['Namespace'],
+                                                                        input_params),
+                            'metric_name': _resolve_yaml_reference(metric_props['Metric']['MetricName'], input_params),
                             'metric_dimensions': {
-                                i['Name']: i['Value']
+                                i['Name']: _resolve_yaml_reference(i['Value'], input_params)
                                 for i in metric_props['Metric'].get('Dimensions', [])
                             },
                             'period': metric_props['Period'],
@@ -132,10 +134,10 @@ class AlarmManager:
             else:
                 metric_props = resource['Properties']
                 metrics[res_name] = {
-                    'metric_namespace': metric_props['Namespace'],
-                    'metric_name': metric_props['MetricName'],
+                    'metric_namespace': _resolve_yaml_reference(metric_props['Namespace'], input_params),
+                    'metric_name': _resolve_yaml_reference(metric_props['MetricName'], input_params),
                     'metric_dimensions': {
-                        i['Name']: i['Value']
+                        i['Name']: _resolve_yaml_reference(i['Value'], input_params)
                         for i in metric_props.get('Dimensions', [])
                     },
                     'period': metric_props['Period'],
@@ -153,6 +155,20 @@ class AlarmManager:
                 metrics_without_data[metric_name] = metric_props
 
         return metrics_without_data
+
+
+def _resolve_yaml_reference(yaml_snippet, input_params):
+    """
+    A utility function that can replace calls to
+      {"Ref" : "????"}
+    with the value from input_params.
+    """
+    if isinstance(yaml_snippet, Mapping) and len(yaml_snippet) == 1:
+        if 'Ref' in yaml_snippet:
+            if not yaml_snippet['Ref'] in input_params:
+                raise ValueError(f"Failed to Replace Ref:{yaml_snippet['Ref']} in AlarmDocument. Missing input value")
+            return input_params[yaml_snippet['Ref']]
+    return yaml_snippet
 
 
 def _remove_special_characters(str):
