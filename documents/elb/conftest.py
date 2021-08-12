@@ -1,7 +1,4 @@
 import logging
-import base64
-import string
-import random
 
 import pytest
 from pytest_bdd import (
@@ -9,7 +6,6 @@ from pytest_bdd import (
     given,
     parsers
 )
-from sttable import parse_str_table
 
 from resource_manager.src.util import boto3_client_factory
 from resource_manager.src.util.param_utils import parse_param_value
@@ -54,52 +50,3 @@ def break_targets_healthcheck_port_teardown(boto3_session):
         TargetGroupArn=target_group_arn,
         HealthCheckPort=str(previous_healthcheck_port)
     )
-
-
-# todo: add teardown for ssl certificate
-@given(parsers.parse('self-signed ssl certificate is created and cache arn as "{certificate_arn_cache_key}"'
-                     '\n{input_parameters_table}'))
-@when(parsers.parse('self-signed ssl certificate is created and cache arn as "{certificate_arn_cache_key}"'
-                    '\n{input_parameters_table}'))
-def self_signed_ssl_certificate_is_installed(
-    boto3_session, resource_pool, ssm_test_cache, certificate_arn_cache_key, input_parameters_table,
-        self_signed_ssl_certificate_teardown
-):
-    parameters = parse_str_table(input_parameters_table, False).rows
-    cert_params = {}
-    for item in parameters:
-        param_name = item['0']
-        param_value = item['1']
-        cert_params[param_name] = param_value
-
-    unique_name = 'Digito_ALB_Test_Temporary_Certificate_' + \
-                  ''.join(random.Random().choices(string.ascii_letters + string.digits, k=4))
-
-    acm_client = boto3_session.client('acm')
-    response = acm_client.import_certificate(
-        Certificate=base64.b64decode(cert_params['certificate_bytes']),
-        PrivateKey=base64.b64decode(cert_params['private_key_bytes']),
-        Tags=[
-            {
-                'Key': 'Name',
-                'Value': unique_name
-            }
-        ]
-    )
-
-    ssm_test_cache[certificate_arn_cache_key] = response['CertificateArn']
-    self_signed_ssl_certificate_teardown['certificate_arn'] = response['CertificateArn']
-
-
-@pytest.fixture(scope='function')
-def self_signed_ssl_certificate_teardown(boto3_session):
-    teardown_dict = {}
-    yield teardown_dict
-
-    # acm_client = boto3_session.client('acm')
-
-    # todo: fix problem with ceritificate delete - botocore.errorfactory.ResourceInUseException
-    # An error occurred (ResourceInUseException) when calling the DeleteCertificate
-    # acm_client.delete_certificate(
-    #     CertificateArn=teardown_dict['certificate_arn']
-    # )
