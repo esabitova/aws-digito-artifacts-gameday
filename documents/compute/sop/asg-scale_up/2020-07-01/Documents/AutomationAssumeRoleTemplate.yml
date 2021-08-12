@@ -59,6 +59,12 @@ Resources:
               - 'ec2:CreateLaunchTemplateVersion'
               - 'ec2:DeleteLaunchTemplateVersions'
               - 'ec2:RunInstances'
+          - Effect: Allow
+            Resource: '*'
+            Action:
               - 'iam:PassRole'
+            Condition:
+              StringEquals:
+                iam:PassedToService: ec2.amazonaws.com
       Roles:
         - Ref: DigitoAsgScaleUpAssumeRole

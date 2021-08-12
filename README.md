@@ -13,6 +13,7 @@
   10. [SyntheticAlarmName](#synthetic-alarm-name)
   11. [RecoveryTime/RecoveryPoint](#recovery-time-recovery-point)
   12. [Risk classification](#risk-classification)
+  13. [Permissions in AutomationAssumeRoleTemplate] (#permissions-in-automationassumeroletemplate)
 3. [Build validation](#build-validation)
    1. [Unit tests](#unit-tests)
    2. [Code Style](#code-style)
@@ -287,6 +288,7 @@ Script: |-
 * Execution should branch based on IsRollback
 * Example : documents/compute/test/ec2-network_unavailable/2020-07-23/Documents/AutomationDocument.yml
 * Add a step to TriggerRollback to start rollback execution when execution is cancelled
+
 ```yaml
   - name: TriggerRollback
     action: 'aws:executeScript'
@@ -308,6 +310,7 @@ Script: |-
 
 ```
 * All steps after(including) the failure injection or where initial state of resource is changed need to have an onCancel definition to TriggerRollback step and an onFailure definition to either go to the correct rollback step or go to the TriggerRollback step in case a rollback step is not present (ex - in case of command execution)
+
 ```yaml
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
@@ -376,6 +379,35 @@ Tests with recommended alarms would have following three mandatory steps. See do
 * low -  we don’t expect any outage because of redundancy setup of the resource, for example rebooting one instance in ASG
 * medium - can create outage if application code can not handle temp restart like rebooting db
 * high - will create outage for more than x minutes like network outage or the sqs queue policy changes to disable permission
+
+## Permissions in AutomationAssumeRoleTemplate
+* When adding powerful permissions on '*' resources, try to scope it down using the Condition field in IAM Policy.
+  For some known cases, we enforce specific conditions using cfn-lint -
+  * iam:PassRole must be restricted using iam:PassedToService
+
+  ```
+  - Effect: Allow
+    Resource: "*"
+    Action:
+      - "iam:PassRole"
+    Condition:
+      StringEquals:
+        iam:PassedToService: backup.amazonaws.com
+  ```
+
+  * kms:GenerateDataKey, kms:Decrypt, kms:Encrypt, kms:CreateGrant on must be restricted using kms:ViaService
+
+  ```
+  - Effect: Allow
+    Resource: "*"
+    Action:
+      - kms:GenerateDataKey
+      - kms:Decrypt
+      - kms:Encrypt
+    Condition:
+      StringLike:
+        kms:ViaService: sqs.*.amazonaws.com
+  ```
 
 # Build validation
 ## Unit tests

@@ -45,7 +45,6 @@ Resources:
             Resource: "*"
             Action:
               # add permissions required by automation document here
-                - iam:PassRole
                 - elbv2:SetSecurityGroups
                 - elbv2:CreateSecurityGroup
                 - elbv2:DescribeLoadBalancers
