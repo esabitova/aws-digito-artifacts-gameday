@@ -96,8 +96,10 @@ def self_signed_ssl_certificate_teardown(boto3_session):
     teardown_dict = {}
     yield teardown_dict
 
-    acm_client = boto3_session.client('acm')
+    # acm_client = boto3_session.client('acm')
 
-    acm_client.delete_certificate(
-        CertificateArn=teardown_dict['certificate_arn']
-    )
+    # todo: fix problem with ceritificate delete - botocore.errorfactory.ResourceInUseException
+    # An error occurred (ResourceInUseException) when calling the DeleteCertificate
+    # acm_client.delete_certificate(
+    #     CertificateArn=teardown_dict['certificate_arn']
+    # )
