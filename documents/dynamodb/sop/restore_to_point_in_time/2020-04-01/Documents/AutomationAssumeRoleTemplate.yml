@@ -73,10 +73,16 @@ Resources:
               - "dynamodb:UpdateContinuousBackups"
               - 'ssm:GetAutomationExecution'
               - 'ssm:StartAutomationExecution'
-              - 'iam:PassRole' # needed to RegisterScalableTarget with RoleARN
               - "kinesis:PutRecord" # needed to enabled kinesis destination
               - "kinesis:PutRecords" # needed to enabled kinesis destination
               - "kinesis:DescribeStream" # needed to enabled kinesis destination
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              - iam:PassRole
+            Condition:
+              StringEquals:
+                iam:PassedToService: application-autoscaling.amazonaws.com # needed to RegisterScalableTarget with RoleARN
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoDynamodbRestoreFromPointInTimeAssumeRole.Arn
