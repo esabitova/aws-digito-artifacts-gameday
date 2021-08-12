@@ -396,7 +396,6 @@ Resources:
       Threshold: 100
       TreatMissingData: notBreaching
 
-  # Lambda resources
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -441,7 +440,6 @@ Resources:
       FunctionName: !Ref LambdaFunction
       Description: v1
 
-  # Lambda resources
   ProxyLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -621,8 +619,6 @@ Resources:
       InstanceInitiatedShutdownBehavior: stop
       InstanceType: !Ref InstanceType
       Monitoring: true
-      # todo: remove from final version
-      KeyName: 'test1234'
       NetworkInterfaces:
         - AssociatePublicIpAddress: true
           DeviceIndex: '0'
