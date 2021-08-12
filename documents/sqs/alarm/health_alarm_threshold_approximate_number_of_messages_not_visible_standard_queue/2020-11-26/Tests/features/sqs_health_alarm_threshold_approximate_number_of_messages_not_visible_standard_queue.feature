@@ -19,7 +19,7 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleStandar
     And receive "50" messages from queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
 
   Scenario: Check Alarm by Digito that checks that amount of inflight messages is not reaching the quota for Standard queue - red
@@ -41,5 +41,5 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleStandar
     And receive "50" messages from queue
       | QueueUrl                                       | VisibilityTimeout |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | 1800              |
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 300 seconds, check every 15 seconds
