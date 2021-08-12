@@ -16,7 +16,7 @@ Feature: Alarm Setup - DocDb Errors
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml          | SHARED       |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
     When alarm "docdb:alarm:health-cpu:2020-04-01" is installed
       | alarmId    |DBInstancePrimaryIdentifier                              | Threshold   | SNSTopicARN                       |
-      | under_test |{{cfn-output:DocDbTemplate>DBInstancePrimaryIdentifier}} | 10          | {{cfn-output:SnsForAlarms>Topic}} |
+      | under_test |{{cfn-output:DocDBTemplate>DBInstancePrimaryIdentifier}} | 10          | {{cfn-output:SnsForAlarms>Topic}} |
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 120 seconds, check every 20 seconds
 

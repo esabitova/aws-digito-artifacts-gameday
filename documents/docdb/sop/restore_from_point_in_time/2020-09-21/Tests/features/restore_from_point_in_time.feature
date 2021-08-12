@@ -18,28 +18,28 @@ Feature: SSM automation document to recover the database into a known good state
     And published "Digito-RestoreFromPointInTime_2020-09-21" SSM document
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache cluster params includingAZ="False" in object "ClusterInfo" in step "before"
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
       | DBClusterIdentifier                              | AutomationAssumeRole                                                               |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And wait for instances to be available for "120" seconds
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache cluster params includingAZ="False" in object "ClusterInfo" in step "after"
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
     And assert "ClusterInfo" at "after" became equal to "ClusterInfo" at "before"
 
@@ -61,30 +61,30 @@ Feature: SSM automation document to recover the database into a known good state
     And published "Digito-RestoreFromPointInTime_2020-09-21" SSM document
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache cluster params includingAZ="False" in object "ClusterInfo" in step "before"
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache earliest restorable time as "EarliestRestorableTime" in "before" step
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
       | DBClusterIdentifier                              | RestoreToDate                           | AutomationAssumeRole                                                               |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>EarliestRestorableTime}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | {{cache:before>EarliestRestorableTime}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
     Then SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And wait for instances to be available for "120" seconds
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And cache cluster params includingAZ="False" in object "ClusterInfo" in step "after"
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
     And assert "ClusterInfo" at "after" became equal to "ClusterInfo" at "before"

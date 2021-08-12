@@ -20,28 +20,28 @@ Feature: SSM automation document for scaling down DocDb instances.
     And published "Digito-ScalingUp_2020-09-21" SSM document
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     And SSM automation document "Digito-ScalingDown_2020-09-21" executed
       | DBClusterIdentifier                              | DBInstanceReplicaIdentifier                              | AutomationAssumeRole                                                    |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:DocDbTemplate>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingDownAssumeRole}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | {{cfn-output:DocDBTemplate>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingDownAssumeRole}} |
 
     When SSM automation document "Digito-ScalingDown_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache current number of instances as "NumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
 
     Then assert "NumberOfInstances" at "before" became not equal to "NumberOfInstances" at "after"
     And SSM automation document "Digito-ScalingUp_2020-09-21" executed
       | DBClusterIdentifier                              | DBInstanceReplicaIdentifier                              | AutomationAssumeRole                                                  |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:DocDbTemplate>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingUpAssumeRole}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | {{cfn-output:DocDBTemplate>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScalingUpAssumeRole}} |
 
     When SSM automation document "Digito-ScalingUp_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And cache current number of instances as "NumberOfInstances" "finally" SSM automation execution
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     Then assert "NumberOfInstances" at "before" became equal to "NumberOfInstances" at "finally"
 

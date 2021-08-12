@@ -19,7 +19,7 @@ Feature: Alarm Setup - DocumentDB HighReplicaLagMaximum
 
     When alarm "docdb:alarm:recovery-cluster_replica_lag:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | DBClusterIdentifier                              | Threshold |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | 10000     |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | 10000     |
     Then assert metrics for all alarms are populated
     And sleep for "30" seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
@@ -41,7 +41,7 @@ Feature: Alarm Setup - DocumentDB HighReplicaLagMaximum
 
     When alarm "docdb:alarm:recovery-cluster_replica_lag:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | DBClusterIdentifier                              | Threshold |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | 1         |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | 1         |
     Then assert metrics for all alarms are populated
     And sleep for "30" seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 300 seconds, check every 15 seconds

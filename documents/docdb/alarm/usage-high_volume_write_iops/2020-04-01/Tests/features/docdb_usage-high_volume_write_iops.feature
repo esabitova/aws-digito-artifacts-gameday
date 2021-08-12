@@ -18,5 +18,5 @@ Feature: Alarm Setup - DocumentDb HighVolumeWriteIOPS
 
     When alarm "docdb:alarm:usage-high_volume_write_iops:2020-04-01" is installed
       | SNSTopicARN                       | DBClusterIdentifier                              | Threshold |
-      | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | 5         |
+      | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | 5         |
     Then assert metrics for all alarms are populated

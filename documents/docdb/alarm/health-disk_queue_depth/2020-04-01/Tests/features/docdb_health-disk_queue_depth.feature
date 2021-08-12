@@ -19,7 +19,7 @@ Feature: Alarm Setup - DocumentDB HighDiskQueueDepth
 
     When alarm "docdb:alarm:health-disk_queue_depth:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | DBInstanceIdentifier                                     | Threshold |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDbTemplate>DBInstancePrimaryIdentifier}} | 3         |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDBTemplate>DBInstancePrimaryIdentifier}} | 3         |
     Then assert metrics for all alarms are populated
     And sleep for "30" seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
@@ -41,7 +41,7 @@ Feature: Alarm Setup - DocumentDB HighDiskQueueDepth
 
     When alarm "docdb:alarm:health-disk_queue_depth:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | DBInstanceIdentifier                                     | Threshold |
-      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDbTemplate>DBInstancePrimaryIdentifier}} | 0         |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:DocDBTemplate>DBInstancePrimaryIdentifier}} | 0         |
     Then assert metrics for all alarms are populated
     And sleep for "30" seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 300 seconds, check every 15 seconds

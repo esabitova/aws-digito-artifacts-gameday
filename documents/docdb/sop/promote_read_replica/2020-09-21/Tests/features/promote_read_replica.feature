@@ -18,10 +18,10 @@ Feature: SSM automation document to promote read replica.
     And published "Digito-PromoteReadReplica_2020-09-21" SSM document
     And cache replica instance identifier as "DBInstanceReplicaIdentifier" at step "before"
       | DBClusterIdentifier                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-PromoteReadReplica_2020-09-21" executed
       | DBClusterIdentifier                              | DBInstanceReplicaIdentifier                  | AutomationAssumeRole                                                           |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoPromoteReadReplicaAssumeRole}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoPromoteReadReplicaAssumeRole}} |
 
     Then SSM automation document "Digito-PromoteReadReplica_2020-09-21" execution in status "Success"
       | ExecutionId                |
@@ -29,4 +29,4 @@ Feature: SSM automation document to promote read replica.
     And sleep for "120" seconds
     And assert if the cluster member is the primary instance
       | DBClusterIdentifier                              | DBInstanceIdentifier                         |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} |
+      | {{cfn-output:DocDBTemplate>DBClusterIdentifier}} | {{cache:before>DBInstanceReplicaIdentifier}} |
