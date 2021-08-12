@@ -55,6 +55,15 @@ Parameters:
   SSLCertificateArn:
     Type: String
     Description: SSL Certificate Arn for load balancer
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  InstanceType:
+    Type: String
+    Default: t3.small
+  ListenPort:
+    Type: String
+    Default: 80
 Resources:
   LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
@@ -150,6 +159,29 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
+          CidrIp: !Ref VPCCidr
+
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Access to the ec2 hosts
+      VpcId: !Ref 'VPC'
+      SecurityGroupIngress:
+        - IpProtocol: icmp
+          FromPort: 0
+          ToPort: 0
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          FromPort: !Ref ListenPort
+          ToPort: !Ref ListenPort
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
           CidrIp: !Ref VPCCidr
 
   ApplicationELB:
@@ -433,6 +465,7 @@ Resources:
 
   TargetGroupLambda:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: LambdaInvokePermission
     Properties:
       HealthCheckEnabled: false
       Name: LambdaTargets
@@ -442,6 +475,7 @@ Resources:
 
   UnhealthyTargetGroupLambda:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: LambdaInvokePermission
     Properties:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 11
@@ -454,3 +488,36 @@ Resources:
       TargetType: lambda
       Targets:
         - Id: !GetAtt "LambdaFunction.Arn"
+
+  AmazonLinuxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceInitiatedShutdownBehavior: stop
+      InstanceType: !Ref InstanceType
+      Monitoring: true
+      # todo: remove from final version
+      KeyName: 'test1234'
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeviceIndex: '0'
+          GroupSet:
+            - !Ref EC2SecurityGroup
+          SubnetId:
+            Ref: Subnet1
+      Tenancy: default
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          cd /tmp
+          yum update -y
+          yum install -y httpd
+          yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
+          echo "Healthy" > /var/www/html/index.html
+          echo "Listen 443" >> /etc/httpd/conf/httpd.conf
+          service httpd start
+          /opt/aws/bin/cfn-signal \
+            -e $? \
+            --stack ${AWS::StackName} \
+            --resource AmazonLinuxInstance \
+            --region ${AWS::Region}
