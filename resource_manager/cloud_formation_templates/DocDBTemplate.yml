@@ -59,6 +59,9 @@ Parameters:
   PrivateSubnet02:
     Type: String
     Description: PrivateSubnet ID
+  PrivateSubnet03:
+    Type: String
+    Description: PrivateSubnet ID
   DbClusterPort:
     Type: Number
     Description: DocDb cluster port
@@ -154,6 +157,7 @@ Resources:
       SubnetIds:
         - !Ref PrivateSubnet01
         - !Ref PrivateSubnet02
+        - !Ref PrivateSubnet03
 
   DBInstancePrimary:
     Type: "AWS::DocDB::DBInstance"
