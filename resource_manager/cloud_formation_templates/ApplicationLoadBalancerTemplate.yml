@@ -256,6 +256,7 @@ Resources:
       Scheme: 'internal'
       Type: 'application'
       Subnets:
+        - !Ref Subnet1
         - !Ref Subnet2
         - !Ref Subnet3
       SecurityGroups:
