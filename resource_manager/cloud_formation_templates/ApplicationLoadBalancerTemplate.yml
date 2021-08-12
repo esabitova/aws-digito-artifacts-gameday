@@ -36,9 +36,7 @@ Outputs:
   UnhealthyTargetFullName:
     Description: Unhealthy target group full name
     Value: !GetAtt UnhealthyTargetGroupLambda.TargetGroupFullName
-  SSLCertificateArn:
-    Description: ARN for ServerSertificate
-    Value: !GetAtt SSLCertificate.Arn
+
 Parameters:
   VPC:
     Type: String

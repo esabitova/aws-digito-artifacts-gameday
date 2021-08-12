@@ -3,7 +3,7 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
 
   Scenario: Create elb:alarm:network_unhealthy_host_count:2020-04-01 based on UnHealthyHostCount metric and test green state
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet                                             | VPCCidr                    |
+      | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet1                                            | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                  | SHARED       |                          |                                                    |                            |
       | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>VPCCidr}} |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml         | SHARED       |                          |                                                    |                            |
@@ -16,7 +16,7 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
 
   Scenario: Create elb:alarm:network_unhealthy_host_count:2020-04-01 based on UnHealthyHostCount metric and test red state
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet                                             | VPCCidr                    |
+      | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet1                                            | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                  | SHARED       |                          |                                                    |                            |
       | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>VPCCidr}} |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml         | SHARED       |                          |                                                    |                            |

@@ -2,7 +2,7 @@
 Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
   Scenario: Create Network LB and execute automation to make the target group unavailable in rollback
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet                            | VPCCidr                     |
+      | CfnTemplatePath                                                                                           | ResourceType |  VPC                     | Subnet1                            | VPCCidr                     |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                   |                             |
       | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                   |                             |
       | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} |{{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>VPCCidr}}  |
