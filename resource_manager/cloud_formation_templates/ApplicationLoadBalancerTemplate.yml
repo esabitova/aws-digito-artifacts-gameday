@@ -55,6 +55,9 @@ Parameters:
   Subnet3:
     Type: String
     Description: Subnet ID
+  EC2Subnet:
+    Type: String
+    Default: ""
   LatestAmiId:
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
@@ -118,6 +121,8 @@ Parameters:
       UhSDAkFfjNTnyh10qgiBDIcsohicdxMIYGyIMGl8C0Cbzd1bwneu2W3lL3hZD4RK
       KWeMzqbYKrW7t9ud74ONZ4Uu
       -----END PRIVATE KEY-----
+Conditions:
+  UseCustomSubnet: !Equals [!Ref EC2Subnet, ""]
 
 Resources:
   LoadBalancerSG:
@@ -239,14 +244,10 @@ Resources:
           ToPort: 443
           CidrIp: !Ref VPCCidr
       SecurityGroupEgress:
-        - CidrIp: !Ref VPCCidr
-          FromPort: 80
-          ToPort: 80
-          IpProtocol: "tcp"
-        - CidrIp: !Ref VPCCidr
-          FromPort: 443
-          ToPort: 443
-          IpProtocol: "tcp"
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 65535
 
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -362,6 +363,23 @@ Resources:
               - "/unhealthy_ping_invoke_lambda*"
       ListenerArn: !Ref HTTPListener
       Priority: 3
+
+  TargetTLSErrorRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref EC2TargetGroup
+                Weight: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/target_tls_negotiation_error"
+      ListenerArn: !Ref HTTPListener
+      Priority: 4
 
   AlwaysOKAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -573,13 +591,13 @@ Resources:
       Targets:
         - Id: !GetAtt "LambdaFunction.Arn"
 
-  EC2InstanceTargetGroup:
+  EC2TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 10
-      HealthCheckPort: "443"
-      HealthCheckProtocol: HTTPS
+      HealthCheckPort: "80"
+      HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 3
       HealthyThresholdCount: 2
       Port: 443
@@ -609,9 +627,7 @@ Resources:
           DeviceIndex: '0'
           GroupSet:
             - !Ref EC2SecurityGroup
-          SubnetId:
-            # same subnet as for ALB
-            Ref: Subnet2
+          SubnetId: !If [UseCustomSubnet, !Ref Subnet2, !Ref EC2Subnet]
       Tenancy: default
       UserData:
         Fn::Base64: !Sub |
