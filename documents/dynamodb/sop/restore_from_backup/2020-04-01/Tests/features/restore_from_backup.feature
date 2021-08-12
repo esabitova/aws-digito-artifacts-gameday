@@ -1,4 +1,4 @@
-@dynamodb @demo
+@dynamodb
 Feature: SSM automation document to restore the database from a backup.
 
   Scenario: Restores table from backup
