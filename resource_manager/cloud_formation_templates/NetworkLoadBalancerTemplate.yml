@@ -52,8 +52,10 @@ Parameters:
   ListenPort:
     Type: String
     Default: 80
+  SSLCertificateArn:
+    Type: String
+    Description: SSL Certificate Arn
 Resources:
-
   EC2SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -71,6 +73,10 @@ Resources:
         - IpProtocol: tcp
           FromPort: !Ref ListenPort
           ToPort: !Ref ListenPort
+          CidrIp: !Ref VPCCidr
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
           CidrIp: !Ref VPCCidr
 
   NetworkELB:
@@ -94,6 +100,20 @@ Resources:
       LoadBalancerArn: !Ref NetworkELB
       Port: !Ref ListenPort
       Protocol: TCP
+
+  Listener443:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref NLBTargetGroup
+      LoadBalancerArn: !Ref NetworkELB
+      SslPolicy: "ELBSecurityPolicy-2016-08"
+      Certificates:
+        -
+          CertificateArn: !Ref SSLCertificateArn
+      Port: 443
+      Protocol: TLS
 
   NLBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -139,7 +159,9 @@ Resources:
           cd /tmp
           yum update -y
           yum install -y httpd
+          yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
           echo "Healthy" > /var/www/html/index.html
+          echo "Listen 443" >> /etc/httpd/conf/httpd.conf
           service httpd start
           /opt/aws/bin/cfn-signal \
             -e $? \
