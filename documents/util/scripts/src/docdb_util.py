@@ -121,6 +121,14 @@ def restore_to_point_in_time(events, context):
         config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
         docdb = boto3.client('docdb', config=config)
         restorable_cluster_identifier = events['DBClusterIdentifier']
+        db_cluster = docdb.describe_db_clusters(
+            DBClusterIdentifier=events['DBClusterIdentifier']
+        )
+        if db_cluster['DBClusters']:
+            db_subnet_group = db_cluster['DBClusters'][0]['DBSubnetGroup']
+        else:
+            raise AssertionError(f'No db cluster found with id: {events["DBClusterIdentifier"]}')
+
         new_cluster_identifier = restorable_cluster_identifier + '-restored'
         date = events['RestoreToDate']
         security_groups = events['VpcSecurityGroupIds']
@@ -129,6 +137,7 @@ def restore_to_point_in_time(events, context):
                 DBClusterIdentifier=new_cluster_identifier,
                 SourceDBClusterIdentifier=restorable_cluster_identifier,
                 UseLatestRestorableTime=True,
+                DBSubnetGroupName=db_subnet_group,
                 VpcSecurityGroupIds=security_groups
             )
         else:
@@ -138,6 +147,7 @@ def restore_to_point_in_time(events, context):
                 DBClusterIdentifier=new_cluster_identifier,
                 SourceDBClusterIdentifier=restorable_cluster_identifier,
                 RestoreToTime=date,
+                DBSubnetGroupName=db_subnet_group,
                 VpcSecurityGroupIds=security_groups
             )
         return {'RestoredClusterIdentifier': new_cluster_identifier}
