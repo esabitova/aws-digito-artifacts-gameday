@@ -614,11 +614,13 @@ class TestDocDBUtil(unittest.TestCase):
             'RestoreToDate': 'latest',
             'VpcSecurityGroupIds': vpc_security_group_ids
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_to_point_in_time(events, None)
         new_cluster_identifier = DOCDB_CLUSTER_ID + '-restored'
         self.mock_docdb.restore_db_cluster_to_point_in_time.assert_called_once_with(
             DBClusterIdentifier=new_cluster_identifier,
             SourceDBClusterIdentifier=DOCDB_CLUSTER_ID,
+            DBSubnetGroupName=DBSUBNET_GROUP,
             UseLatestRestorableTime=True,
             VpcSecurityGroupIds=vpc_security_group_ids
         )
@@ -632,11 +634,13 @@ class TestDocDBUtil(unittest.TestCase):
             'RestoreToDate': date,
             'VpcSecurityGroupIds': vpc_security_group_ids
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_to_point_in_time(events, None)
         new_cluster_identifier = DOCDB_CLUSTER_ID + '-restored'
         self.mock_docdb.restore_db_cluster_to_point_in_time.assert_called_once_with(
             DBClusterIdentifier=new_cluster_identifier,
             SourceDBClusterIdentifier=DOCDB_CLUSTER_ID,
+            DBSubnetGroupName=DBSUBNET_GROUP,
             RestoreToTime=datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z"),
             VpcSecurityGroupIds=vpc_security_group_ids
         )
