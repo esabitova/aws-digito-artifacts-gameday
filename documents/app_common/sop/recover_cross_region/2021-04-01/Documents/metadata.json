@@ -1,0 +1,14 @@
+{
+  "displayName": "Recover Cross Region",
+  "description": "A suggested skeleton to help implement Cross Region Recovery. \nThis SOP contains the set of common steps that make up any manual cross region recovery procedure.\nWe encourage you to replace each step with your own automation script",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-AppCommonRecoverCrossRegion_2021-04-01",
+  "documentType": "Automation",
+  "failureType": "REGION",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "tag": "app_common:sop:recover_cross_region:2021-04-01",
+  "adkPath": "../../python/automation_document.py"
+}

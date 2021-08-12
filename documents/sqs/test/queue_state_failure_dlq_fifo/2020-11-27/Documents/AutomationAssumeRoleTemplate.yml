@@ -59,9 +59,15 @@ Resources:
               - logs:PutLogEvents
               - logs:DescribeLogGroups
               - logs:DescribeLogStreams
+          - Effect: Allow
+            Resource: "*"
+            Action:
               - kms:GenerateDataKey
               - kms:Decrypt
               - kms:Encrypt
+            Condition:
+              StringLike:
+                kms:ViaService: sqs.*.amazonaws.com
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoQueueStateFailureDlqFifoAssumeRole.Arn

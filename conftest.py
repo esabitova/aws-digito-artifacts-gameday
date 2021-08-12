@@ -680,19 +680,32 @@ def install_alarm_from_reference_id(alarm_reference_id, input_parameters_table,
     alarm_manager.deploy_alarm(alarm_reference_id, input_params)
 
 
+@then(parse('assert metrics for all alarms are populated with params\n{input_parameters_table}'))
+def verify_alarm_metrics_exist_with_inputs(input_parameters_table, alarm_manager, ssm_test_cache, cfn_output_params):
+    input_params = {name: parse_param_value(val, {'cache': ssm_test_cache,
+                                                  'cfn-output': cfn_output_params})
+                    for name, val in
+                    parse_str_table(input_parameters_table).rows[0].items()}
+    verify_alarm_metrics_impl(300, 15, alarm_manager, input_params)
+
+
 @then(parse('assert metrics for all alarms are populated'))
 def verify_alarm_metrics_exist_defaults(alarm_manager):
-    verify_alarm_metrics_exist(alarm_manager, 300, 15)
+    verify_alarm_metrics_impl(300, 15, alarm_manager, {})
 
 
 @then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '
             'check every {delay_sec:d} seconds'))
-def verify_alarm_metrics_exist(alarm_manager, wait_sec, delay_sec):
+def verify_alarm_metrics_exist(wait_sec, delay_sec, alarm_manager):
+    verify_alarm_metrics_impl(wait_sec, delay_sec, alarm_manager, {})
+
+
+def verify_alarm_metrics_impl(wait_sec, delay_sec, alarm_manager, input_params):
     elapsed = 0
     iteration = 1
     while elapsed < wait_sec:
         start = time.time()
-        alarms_missing_data = alarm_manager.collect_alarms_without_data(wait_sec)
+        alarms_missing_data = alarm_manager.collect_alarms_without_data(wait_sec, input_params)
         if not alarms_missing_data:
             return  # All alarms have data
         logging.info(f'#{iteration}; Alarms missing data: {alarms_missing_data} '

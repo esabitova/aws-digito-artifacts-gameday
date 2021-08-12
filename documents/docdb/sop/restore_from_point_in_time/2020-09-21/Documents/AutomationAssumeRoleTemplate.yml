@@ -51,7 +51,13 @@ Resources:
               - rds:ModifyDBCluster
               - rds:ModifyDBInstance
               - rds:RestoreDBClusterToPointInTime
+          - Effect: Allow
+            Resource: '*'
+            Action:
               - kms:CreateGrant
               - kms:DescribeKey
+            Condition:
+              StringLike:
+                kms:ViaService: rds.*.amazonaws.com
       Roles:
         - Ref: DigitoRestoreFromPointInTimeAssumeRole

@@ -25,7 +25,9 @@ class Automation(AbstractAutomationStep, AbstractDocument):
     """
     def __init__(self, step_name: str, steps: List[AbstractAutomationStep],
                  assume_role: str, inputs: List[Input],
-                 doc_outputs: List[str] = (), header: str = None, doc_name: str = None):
+                 doc_outputs: List[str] = (), header: str = None,
+                 doc_name: str = None,
+                 doc_description: str = None):
         AbstractAutomationStep.__init__(self, step_name)
         self._steps = self.step_validations(steps)
         self._inputs = inputs
@@ -35,6 +37,7 @@ class Automation(AbstractAutomationStep, AbstractDocument):
             else '{{ ' + self._subname(assume_role) + ' }}'
         self._header = header
         self._doc_name = doc_name if doc_name else step_name
+        self._doc_description = doc_description
         AbstractDocument.__init__(self, self._create_chain())
 
     def get_action(self) -> str:
@@ -118,7 +121,7 @@ class Automation(AbstractAutomationStep, AbstractDocument):
         ssm_steps = self.get_main_steps()
 
         root = {
-            'description': 'SOP By Digito: ' + self.name,
+            'description': self._doc_description or f'SOP By Digito: {self.name}',
             'schemaVersion': '0.3',
             'assumeRole': self._assume_role,
             'parameters': self._get_ssm_inputs()}

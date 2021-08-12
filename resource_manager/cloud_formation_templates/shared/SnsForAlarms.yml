@@ -15,7 +15,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: '2010-09-09'
 Description: Test stack for EC2 instance
 Outputs:
   Topic:
@@ -54,7 +54,7 @@ Resources:
     Type: AWS::SNS::TopicPolicy
     Properties:
       PolicyDocument:
-        Version: 2012-10-17
+        Version: '2012-10-17'
         Id: TopicPolicyId
         Statement:
           - Sid: AllowSelfAccess
