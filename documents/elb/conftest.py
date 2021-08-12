@@ -1,5 +1,7 @@
 import logging
 import base64
+import string
+import random
 
 import pytest
 from pytest_bdd import (
@@ -54,20 +56,14 @@ def break_targets_healthcheck_port_teardown(boto3_session):
     )
 
 
-@given(parsers.parse('store to cache input parameters\n{input_parameters}'))
-def given_cached_input_parameters(ssm_test_cache, input_parameters):
-    for parm_name, param_val in parse_str_table(input_parameters).rows[0].items():
-        ssm_test_cache[parm_name] = str(param_val)
-
-
 # todo: add teardown for ssl certificate
 @given(parsers.parse('self-signed ssl certificate is created and cache arn as "{certificate_arn_cache_key}"'
                      '\n{input_parameters_table}'))
 @when(parsers.parse('self-signed ssl certificate is created and cache arn as "{certificate_arn_cache_key}"'
                     '\n{input_parameters_table}'))
 def self_signed_ssl_certificate_is_installed(
-    boto3_session, resource_pool, cfn_output_params, ssm_test_cache, certificate_arn_cache_key,
-        input_parameters_table
+    boto3_session, resource_pool, ssm_test_cache, certificate_arn_cache_key, input_parameters_table,
+        self_signed_ssl_certificate_teardown
 ):
     parameters = parse_str_table(input_parameters_table, False).rows
     cert_params = {}
@@ -76,11 +72,32 @@ def self_signed_ssl_certificate_is_installed(
         param_value = item['1']
         cert_params[param_name] = param_value
 
+    unique_name = 'Digito_ALB_Test_Temporary_Certificate_' + \
+                  ''.join(random.Random().choices(string.ascii_letters + string.digits, k=4))
+
     acm_client = boto3_session.client('acm')
     response = acm_client.import_certificate(
         Certificate=base64.b64decode(cert_params['certificate_bytes']),
-        PrivateKey=base64.b64decode(cert_params['private_key_bytes'])
+        PrivateKey=base64.b64decode(cert_params['private_key_bytes']),
+        Tags=[
+            {
+                'Key': 'Name',
+                'Value': unique_name
+            }
+        ]
     )
 
     ssm_test_cache[certificate_arn_cache_key] = response['CertificateArn']
-    # ssm_test_cache step_key, certificate_arn_cache_key, response['CertificateArn'])
+    self_signed_ssl_certificate_teardown['certificate_arn'] = response['CertificateArn']
+
+
+@pytest.fixture(scope='function')
+def self_signed_ssl_certificate_teardown(boto3_session):
+    teardown_dict = {}
+    yield teardown_dict
+
+    acm_client = boto3_session.client('acm')
+
+    acm_client.delete_certificate(
+        CertificateArn=teardown_dict['certificate_arn']
+    )
