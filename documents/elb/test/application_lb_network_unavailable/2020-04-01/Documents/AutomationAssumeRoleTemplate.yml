@@ -46,7 +46,6 @@ Resources:
             Action:
                 - ssm:StartAutomationExecution
                 - cloudwatch:DescribeAlarms
-                - iam:PassRole
                 - elbv2:SetSecurityGroups
                 - elbv2:CreateSecurityGroup
                 - elbv2:DescribeLoadBalancers
