@@ -691,7 +691,8 @@ def verify_alarm_metrics_exist_with_inputs(input_parameters_table, alarm_manager
 
 @then(parse('assert metrics for all alarms are populated'))
 def verify_alarm_metrics_exist_defaults(alarm_manager):
-    verify_alarm_metrics_impl(300, 15, alarm_manager, {})
+    # Set 900 secs by default because most alarms need more time to be triggered
+    verify_alarm_metrics_impl(900, 15, alarm_manager, {})
 
 
 @then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '

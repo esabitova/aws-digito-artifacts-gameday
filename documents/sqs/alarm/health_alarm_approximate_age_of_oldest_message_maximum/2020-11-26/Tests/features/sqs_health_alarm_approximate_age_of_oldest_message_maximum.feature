@@ -17,7 +17,7 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageMaximum
       | QueueUrl                                          |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
   Scenario: Check age of the oldest message - red
@@ -37,7 +37,7 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageMaximum
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 180 seconds, check every 15 seconds
 
 

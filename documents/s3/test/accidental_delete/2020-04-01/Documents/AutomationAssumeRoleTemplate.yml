@@ -59,9 +59,15 @@ Resources:
               - sns:Publish
               - ssm:GetParameters
               - cloudwatch:DescribeAlarms
-              - kms:GenerateDataKey # for SNS Topic with KMS
-              - kms:Decrypt # for SNS Topic with KMS
-              - kms:Encrypt # for SNS Topic with KMS
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              - kms:GenerateDataKey  # for SNS Topic with KMS
+              - kms:Decrypt  # for SNS Topic with KMS
+              - kms:Encrypt  # for SNS Topic with KMS
+            Condition:
+              StringLike:
+                kms:ViaService: sns.*.amazonaws.com
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoAccidentalDeleteAssumeRole.Arn
