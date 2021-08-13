@@ -5,8 +5,6 @@ Feature: Alarm Setup - sqs SentMessageSize
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # only one PurgeQueue is allowed in 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -26,8 +24,6 @@ Feature: Alarm Setup - sqs SentMessageSize
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # only one PurgeQueue is allowed in 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

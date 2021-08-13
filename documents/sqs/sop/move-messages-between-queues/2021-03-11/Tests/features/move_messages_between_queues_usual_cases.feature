@@ -31,8 +31,6 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -70,8 +68,6 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -109,8 +105,6 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -148,8 +142,6 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
@@ -187,8 +179,6 @@ Feature: SSM automation document to move messages from one queue to another
     And cache number of messages in queue as "TargetNumberOfMessages" "after" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
