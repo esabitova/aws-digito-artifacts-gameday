@@ -159,6 +159,7 @@ Resources:
       Protocol: TCP
   SSLCertificate:
     Type: AWS::IAM::ServerCertificate
+    DependsOn: NetworkELB
     Properties:
       CertificateBody: !Ref SSLCertificateBody
       PrivateKey: !Ref SSLCertificatePrivateKey

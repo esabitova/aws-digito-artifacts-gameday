@@ -35,6 +35,9 @@ Outputs:
   PrivateSubnetWithoutInternetThree:
     Description: Private subnet w\o internet access
     Value: !Ref 'PrivateSubnetWithoutInternetThree'
+  PrivateSubnetWithNATGateway:
+    Description: Private subnet with outbound internet access through NAT Gateway
+    Value: !Ref 'PrivateSubnetWithNATGateway'
 Mappings:
   # Hard values for the subnet masks. These masks define
   # the range of internal IP addresses that can be assigned.
@@ -60,6 +63,10 @@ Mappings:
       CIDR: '10.0.3.0/24'
     PrivateNoInternet3:
       CIDR: '10.0.4.0/24'
+    PrivateNoInternet4:
+      CIDR: '10.0.5.0/24'
+    PublicDestinationAll:
+      CIDR: '0.0.0.0/0'
 Resources:
   # VPC in which containers will be networked.
   # It has two public subnets
@@ -123,6 +130,16 @@ Resources:
           - 2
           - Fn::GetAZs: {Ref: 'AWS::Region'}
 
+  PrivateSubnetWithNATGateway:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet4', 'CIDR']
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs: {Ref: 'AWS::Region'}
+
   # Setup networking resources for the public subnets. Containers
   # in the public subnets have public IP addresses and the routing table
   # sends network traffic via the internet gateway.
@@ -155,7 +172,17 @@ Resources:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable
 
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachement
+    Properties:
+      Domain: vpc
 
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnetOne
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -176,3 +203,16 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnetWithoutInternetThree
       RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithNATGatewayRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithNATGateway
+      RouteTableId: !Ref PrivateRouteTable
+
+  DefaultPrivateRouteForNATGateway:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayAttachement
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'PublicDestinationAll', 'CIDR']
+      NatGatewayId: !Ref NatGateway
