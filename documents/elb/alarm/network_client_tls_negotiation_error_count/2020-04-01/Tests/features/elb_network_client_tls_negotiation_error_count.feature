@@ -1,7 +1,7 @@
 @elb @integration @alarm
 Feature: Alarm Setup - network load-balancer ClientTLSNegotiationErrorCount
 
-  Scenario: Create elb:alarm:network_client_tls_negotiation_error_count:2020-04-01 based on ClientTLSNegotiationErrorCount metric normal case
+  Scenario: Create elb:alarm:network_client_tls_negotiation_error_count:2020-04-01 based on ClientTLSNegotiationErrorCount metric and check OK status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | VPCCidr                    | Subnet1                                            | Subnet2                                            | Subnet3                                              | EC2Subnet                          |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                            |                                                    |                                                    |                                                      |                                    |

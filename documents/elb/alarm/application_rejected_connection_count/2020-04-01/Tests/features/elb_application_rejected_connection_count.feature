@@ -1,7 +1,7 @@
 @elb @integration @alarm
 Feature: Alarm Setup - load-balancer RejectedConnectionCount
 
-  Scenario: Create elb:alarm:application_rejected_connection_count:2020-04-01 based on RejectedConnectionCount metric and test green state
+  Scenario: Create elb:alarm:application_rejected_connection_count:2020-04-01 based on RejectedConnectionCount metric and check OK status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                                                    |                                                    |                                                      |                            |

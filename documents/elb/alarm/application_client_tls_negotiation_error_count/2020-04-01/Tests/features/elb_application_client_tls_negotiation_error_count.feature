@@ -1,7 +1,7 @@
 @elb @integration @alarm
 Feature: Alarm Setup - application elastic load-balancer ClientTLSNegotiationErrorCount
 
-  Scenario: Create elb:alarm:application_client_tls_negotiation_error_count:2020-04-01 based on ClientTLSNegotiationErrorCount metric normal case
+  Scenario: Create elb:alarm:application_client_tls_negotiation_error_count:2020-04-01 based on ClientTLSNegotiationErrorCount metric and check OK status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                                                    |                                                    |                                                      |                            |
@@ -21,7 +21,7 @@ Feature: Alarm Setup - application elastic load-balancer ClientTLSNegotiationErr
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
-  Scenario: Create elb:alarm:application_client_tls_negotiation_error_count:2020-04-01 based on ClientTLSNegotiationErrorCount metric state.ALARM case
+  Scenario: Create elb:alarm:application_client_tls_negotiation_error_count:2020-04-01 based on ClientTLSNegotiationErrorCount metric and check ALARM status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                                                    |                                                    |                                                      |                            |

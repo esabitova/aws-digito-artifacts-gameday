@@ -212,7 +212,6 @@ Resources:
       UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
 
-  # Linux Instance with Apache running on Port 80
   AmazonLinuxInstance:
     Type: AWS::EC2::Instance
     Properties:

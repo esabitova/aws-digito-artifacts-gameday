@@ -1,7 +1,7 @@
 @elb @integration @alarm
 Feature: Alarm Setup - load-balancer LambdaUserError
 
-  Scenario: Create elb:alarm:application_lambda_user_error:2020-04-01 based on LambdaUserError metric and test green state
+  Scenario: Create elb:alarm:application_lambda_user_error:2020-04-01 based on LambdaUserError metric and check OK status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                                                    |                                                    |                                                      |                            |
@@ -20,7 +20,7 @@ Feature: Alarm Setup - load-balancer LambdaUserError
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
-  Scenario: Create elb:alarm:application_lambda_user_error:2020-04-01 based on LambdaUserError metric and test red state
+  Scenario: Create elb:alarm:application_lambda_user_error:2020-04-01 based on LambdaUserError metric and check ALARM status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                                                    |                                                    |                                                      |                            |

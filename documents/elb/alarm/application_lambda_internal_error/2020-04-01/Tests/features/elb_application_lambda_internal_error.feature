@@ -1,7 +1,7 @@
 @elb @integration @alarm
 Feature: Alarm Setup - load-balancer LambdaInternalError
 
-  Scenario: Create elb:alarm:application_lambda_internal_error:2020-04-01 based on LambdaInternalError metric and test green state
+  Scenario: Create elb:alarm:application_lambda_internal_error:2020-04-01 based on LambdaInternalError metric and check OK status
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                      | SHARED       |                          |                                                    |                                                    |                                                      |                            |
