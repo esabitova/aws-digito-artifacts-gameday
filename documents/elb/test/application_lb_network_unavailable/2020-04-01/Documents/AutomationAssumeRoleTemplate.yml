@@ -44,10 +44,17 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              # add permissions required by automation document here
+                - ssm:StartAutomationExecution
+                - cloudwatch:DescribeAlarms
                 - elbv2:SetSecurityGroups
                 - elbv2:CreateSecurityGroup
                 - elbv2:DescribeLoadBalancers
+                - ec2:CreateSecurityGroup
+                - ec2:DeleteSecurityGroup
+                - ec2:DescribeSecurityGroups
+                - ec2:RevokeSecurityGroupEgress
+                - elasticloadbalancing:SetSecurityGroups
+                - elasticloadbalancing:DescribeLoadBalancers
           - Effect: Allow
             Resource:
               - !GetAtt DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole.Arn
