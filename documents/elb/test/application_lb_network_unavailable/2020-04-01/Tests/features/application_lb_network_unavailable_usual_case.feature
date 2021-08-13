@@ -1,20 +1,22 @@
-# @elb
+@elb
 Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-01
 
-  Scenario: Execute SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-01
+  Scenario: Execute SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-01 usual case
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath     | ResourceType |
-      | resource_manager/cloud_formation_templates/ApplicationLoadBalancerTemplate.yml  | ON_DEMAND    |
-      | documents/elb/test/application_lb_network_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                                             | ResourceType | VPC                      | Subnet1                                            | Subnet2                                            | Subnet3                                              | VPCCidr                    |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                   | SHARED       |                          |                                                    |                                                    |                                                      |                            |
+      | resource_manager/cloud_formation_templates/ApplicationLoadBalancerTemplate.yml                              | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetTwo}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetThree}} | {{cfn-output:VPC>VPCCidr}} |
+      | documents/elb/test/application_lb_network_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                                    |                                                    |                                                      |                            |
+      | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                                          | SHARED       |                          |                                                    |                                                    |                                                      |                            |
+
     And published "Digito-ApplicationLbNetworkUnavailable_2020-04-01" SSM document
-    # Add any pre-execution caching and setup steps here
+    And alarm "elb:alarm:application_unhealthy_host_count:2020-04-01" is installed
+      | alarmId    | SNSTopicARN                       | ApplicationELBFullName                                                | LambdaTargetFullName                                                 | Threshold | EvaluationPeriods | DatapointsToAlarm |
+      | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>HealthyTargetFullName}} | 1         | 1                 | 1                 |
 
     When SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" executed
-    # Add other parameter names below
-      | LoadBalancerArn             | AutomationAssumeRole                                    | SyntheticAlarmName                               |
-    # Replace parameter values to point to the corresponding outputs in cloudformation template
-      | {{cfn-output:ApplicationLoadBalancerTemplate>LoadBalancerArn} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole}} | {{cfn-output:ApplicationLoadBalancerTemplate>SyntheticAlarmName}} |
-    # Add other steps that should run parallel to the document here
+      | LoadBalancerArn                                                  | AutomationAssumeRole                                                                                    | SyntheticAlarmName             |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole}} | {{alarm:under_test>AlarmName}} |
 
     Then SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |

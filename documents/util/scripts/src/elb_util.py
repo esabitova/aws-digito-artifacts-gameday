@@ -82,3 +82,40 @@ def restore_targets_healthcheck_port(events: dict, context: dict) -> None:
     for target_group in target_groups:
         target_group.pop('LoadBalancerArn')
         elb_client.modify_target_group(**target_group)
+
+
+def remove_security_groups_from_list(events: dict, context: dict) -> list:
+    """
+    Return result of subtraction security_group ids from the original list of security group ids
+    :param events: SecurityGroupIdsToDelete, SecurityGroups
+    :param context:
+    """
+    required_params = [
+        "SecurityGroups",
+        "SecurityGroupIdsToDelete"
+    ]
+    check_required_params(required_params, events)
+
+    security_group_ids_to_delete = events['SecurityGroupIdsToDelete']
+    security_groups = events['SecurityGroups']
+
+    new_security_groups = []
+    for security_group in security_groups:
+        if security_group not in security_group_ids_to_delete:
+            new_security_groups.append(security_group)
+
+    return new_security_groups
+
+
+def get_length_of_list(events: dict, context: dict) -> int:
+    """
+    :param events:
+    :param context:
+    :return:
+    """
+    required_params = [
+        "List"
+    ]
+    check_required_params(required_params, events)
+
+    return len(events['List'])

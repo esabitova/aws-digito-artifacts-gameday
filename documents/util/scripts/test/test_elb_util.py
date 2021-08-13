@@ -141,3 +141,37 @@ class TestELBUtil(unittest.TestCase):
         for group in tds:
             group.pop('LoadBalancerArn')
             self.mock_elb.modify_target_group.assert_called_once_with(**group)
+
+    def test_remove_security_groups_from_list(self):
+        security_group_1 = "sg-fffffffffffffffaa"
+        security_group_2 = "sg-fffffffffffffffbb"
+        security_group_3 = "sg-fffffffffffffffcc"
+        security_group_4 = "sg-fffffffffffffffdd"
+
+        security_groups = [security_group_1, security_group_2, security_group_3, security_group_4]
+        security_groups_to_delete = [security_group_2, security_group_3]
+        events = {
+            "SecurityGroups": security_groups,
+            "SecurityGroupIdsToDelete": security_groups_to_delete
+        }
+
+        normal_result = [security_group_1, security_group_4]
+        actual_result = elb_util.remove_security_groups_from_list(events, {})
+
+        self.assertEqual(normal_result, actual_result)
+
+    def test_get_length_of_list(self):
+        dummy_list = [1, 2, 3, 5]
+        events = {
+            'List': dummy_list
+        }
+        actual_result = elb_util.get_length_of_list(events, {})
+        self.assertEqual(actual_result, len(dummy_list))
+
+    def test_get_length_of_list_no_items(self):
+        dummy_list = []
+        events = {
+            'List': dummy_list
+        }
+        actual_result = elb_util.get_length_of_list(events, {})
+        self.assertEqual(actual_result, len(dummy_list))
