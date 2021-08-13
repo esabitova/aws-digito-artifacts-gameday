@@ -114,7 +114,7 @@ Feature: SSM automation document to restore the database from a backup.
     And the cached input parameters
       | GlobalTableSecondaryRegion |
       | ap-southeast-1             |
-    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 600 seconds with delay 20 seconds
+    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 1200 seconds with delay 20 seconds
     And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region {{cache:GlobalTableSecondaryRegion}}
     And Create backup {{cache:BackupName}} for table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} and wait for 600 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreFromBackup_2020-04-01" executed
