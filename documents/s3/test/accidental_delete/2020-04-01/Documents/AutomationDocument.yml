@@ -59,7 +59,7 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: GetS3BucketWhereObjectCouldBeDeletedFrom
+        - NextStep: GetInputsFromPreviousExecution
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default: AssertAlarmToBeGreenBeforeTest

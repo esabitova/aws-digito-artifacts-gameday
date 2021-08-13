@@ -42,11 +42,36 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRemoveOfFailureMessage
+        - NextStep: GetInputsFromPreviousExecution
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default:
         AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: '$.Payload.QueueUrl[0]'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertInputsFromPreviousExecution
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRemoveOfFailureMessage
+          Variable: '{{ GetInputsFromPreviousExecution.QueueUrl }}'
+          StringEquals: '{{ QueueUrl }}'
+    isEnd: true
 
   - name: PrepareRemoveOfFailureMessage
     action: aws:executeScript

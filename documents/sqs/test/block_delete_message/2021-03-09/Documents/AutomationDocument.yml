@@ -43,7 +43,7 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRollbackOfPreviousExecution
+        - NextStep: GetInputsFromPreviousExecution
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default: AssertAlarmToBeGreenBeforeTest
