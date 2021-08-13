@@ -40,11 +40,25 @@ parameters:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 outputs:
+  - "OutputRecoveryTime.RecoveryTime"
   - "TransferMessages.NumberOfMessagesTransferredToTarget"
   - "TransferMessages.NumberOfMessagesFailedToSendToTarget"
   - "TransferMessages.NumberOfMessagesFailedToDeleteFromSource"
   - "TransferMessages.TimeElapsed"
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: TransferMessages
     action: aws:executeScript
     outputs:
@@ -81,3 +95,18 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.transfer_messages
         SCRIPT_PLACEHOLDER::sqs_util.get_statistics
         SCRIPT_PLACEHOLDER::sqs_util.is_queue_fifo
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

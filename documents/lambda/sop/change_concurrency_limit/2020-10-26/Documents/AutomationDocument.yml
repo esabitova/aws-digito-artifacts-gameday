@@ -32,7 +32,7 @@ parameters:
     description: (Required) The ARN of the Lambda function.
   NewReservedConcurrentExecutions:
     type: Integer
-    description: (Required) New reserved concurrent executions
+    description: (Optional) New reserved concurrent executions
     default: 0
   AutomationAssumeRole:
     type: String

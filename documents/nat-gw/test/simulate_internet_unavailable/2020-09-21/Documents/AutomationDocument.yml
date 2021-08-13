@@ -42,6 +42,9 @@ parameters:
     description: >-
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ""
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should be green after test.
 mainSteps:
   - name: CheckIsRollback
     action: aws:branch
@@ -168,6 +171,20 @@ mainSteps:
         SCRIPT_PLACEHOLDER::route_through_appliance._get_nat_routes_filter
         SCRIPT_PLACEHOLDER::route_through_appliance._get_ipv4_routes_to_nat
         SCRIPT_PLACEHOLDER::route_through_appliance.get_nat_gw_routes
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    onFailure: 'step:RollbackCurrent'
+    onCancel: 'step:TriggerRollback'
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{BytesOutToSourceAlarm}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
 
   - name: DeleteRoute
     action: aws:executeScript
