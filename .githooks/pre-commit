@@ -5,7 +5,7 @@ check_branch_name() {
 
   local_branch="$(git rev-parse --abbrev-ref HEAD)"
   echo "Local branch name: $local_branch"
-  valid_branch_regex="^DIG-[0-9]{1,}_.+$"
+  valid_branch_regex="^(DIG|DIGITO)-[0-9]{1,}_.+$"
   message="Error occurred: the branch name $local_branch does not match to the regexp $valid_branch_regex
 Start the branch name with mention of the corresponding JIRA issue, e.g. DIG-519_scale_up_design.
 And make sure you have created necessary JIRA issue for your current work."
