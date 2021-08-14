@@ -18,7 +18,7 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageMaximum
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
     Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
-    And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
+    And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 900 seconds, check every 15 seconds
 
   Scenario: Check age of the oldest message - red
     Given the cloud formation templates as integration test resources
