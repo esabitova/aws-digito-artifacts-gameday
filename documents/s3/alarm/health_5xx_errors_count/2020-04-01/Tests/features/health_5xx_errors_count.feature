@@ -17,5 +17,5 @@ Feature: Alarm Setup - S3 Bucket 5xx Errors
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     # Since it is the request metric it occurs after huge delay
-    Then assert metrics for all alarms are populated within 3600 seconds, check every 15 seconds
-    And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 3600 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
+    And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 1200 seconds, check every 15 seconds
