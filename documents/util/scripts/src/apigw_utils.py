@@ -114,15 +114,17 @@ def set_limit_and_period(events, context):
 
 
 def wait_limit_and_period_updated(events, context):
-    expected_quota_limit: int = events['RestApiGwQuotaLimit']
+    expected_quota_limit: int = int(events['RestApiGwQuotaLimit'])
     expected_quota_period: str = events['RestApiGwQuotaPeriod']
     max_retries: int = events.get('MaxRetries', 40)
     timeout: int = events.get('Timeout', 15)
+    max_timeout = max_retries * timeout
     while max_retries > 0:
         actual_throttling_config = get_throttling_config(events, None)
         actual_quota_limit = actual_throttling_config['QuotaLimit']
         actual_quota_period = actual_throttling_config['QuotaPeriod']
         if actual_quota_limit == expected_quota_limit and actual_quota_period == expected_quota_period:
+            log.info('Quota limit and period updated')
             return
         log.info(f'Waiting for expected values: '
                  f'[QuotaLimit: {expected_quota_limit}, QuotaPeriod: {expected_quota_period}], '
@@ -130,7 +132,10 @@ def wait_limit_and_period_updated(events, context):
         max_retries -= 1
         time.sleep(timeout)
 
-    raise TimeoutError('Error to wait for QuotaLimit and QuotaPeriod update. Maximum timeout exceeded!')
+    raise TimeoutError(f'Error to wait for updated values of QuotaLimit and QuotaPeriod. '
+                       f'Expected values: [QuotaLimit: {expected_quota_limit}, QuotaPeriod: {expected_quota_period}]. '
+                       f'Actual values: [QuotaLimit: {actual_quota_limit}, QuotaPeriod: {actual_quota_period}] '
+                       f'Maximum timeout {max_timeout} seconds exceeded!')
 
 
 def assert_https_status_code_200(response: dict, error_message: str) -> None:
