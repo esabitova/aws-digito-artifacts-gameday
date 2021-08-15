@@ -1,7 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  PidPath:
-    Type: String
   SNSTopicARN:
     Type: String
 Resources:
