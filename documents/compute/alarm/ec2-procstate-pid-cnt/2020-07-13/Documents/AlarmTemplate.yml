@@ -18,7 +18,7 @@ Resources:
           Value: '${InstanceId}'
         - Name: pidfile
           Value:
-            Ref: PidPath
+            Ref: '${PidPath}'
         - Name: pid_finder
           Value: 'native'
       MetricName: procstat_lookup_pid_count
