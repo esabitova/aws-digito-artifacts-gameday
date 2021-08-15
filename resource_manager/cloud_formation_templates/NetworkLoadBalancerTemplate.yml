@@ -27,6 +27,9 @@ Outputs:
   NetworkELBFullName:
     Description: The Network Elastic Load Balancer Key For Alarm Setup
     Value: !GetAtt NetworkELB.LoadBalancerFullName
+  ProxyLambdaArn:
+    Description: The ARN for Lambda function which is used to trigger requests to private ELB endpoint
+    Value: !GetAtt ProxyLambdaFunction.Arn
   TargetGroup:
     Description: TargetGroup name
     Value: !GetAtt NLBTargetGroup.TargetGroupFullName
@@ -41,6 +44,9 @@ Parameters:
     Type: String
     Description: VPC Cidr
   Subnet1:
+    Type: String
+    Description: Subnet ID
+  Subnet2:
     Type: String
     Description: Subnet ID
   EC2Subnet:
@@ -109,8 +115,6 @@ Parameters:
       UhSDAkFfjNTnyh10qgiBDIcsohicdxMIYGyIMGl8C0Cbzd1bwneu2W3lL3hZD4RK
       KWeMzqbYKrW7t9ud74ONZ4Uu
       -----END PRIVATE KEY-----
-Conditions:
-  UseCustomSubnet: !Equals [!Ref EC2Subnet, ""]
 
 Resources:
   EC2SecurityGroup:
@@ -135,6 +139,11 @@ Resources:
           FromPort: 443
           ToPort: 443
           CidrIp: !Ref VPCCidr
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 65535
 
   NetworkELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -209,6 +218,9 @@ Resources:
         - Id:
             Ref: AmazonLinuxInstance
           Port: !Ref ListenPort
+        - Id:
+            Ref: AmazonLinuxInstance
+          Port: 443
       TargetType: instance
       UnhealthyThresholdCount: 2
       VpcId: !Ref VPC
@@ -225,7 +237,7 @@ Resources:
           DeviceIndex: '0'
           GroupSet:
             - !Ref EC2SecurityGroup
-          SubnetId: !If [UseCustomSubnet, !Ref Subnet1, !Ref EC2Subnet]
+          SubnetId: !Ref EC2Subnet
       Tenancy: default
       UserData:
         Fn::Base64: !Sub |
@@ -242,3 +254,134 @@ Resources:
             --stack ${AWS::StackName} \
             --resource AmazonLinuxInstance \
             --region ${AWS::Region}
+
+  ProxyLambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Proxy Lambda security group"
+      GroupName: !Join
+        - "-"
+        - - "ProxyLambdaSG"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref VPCCidr
+      SecurityGroupEgress:
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 65535
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Description: Lambda Role
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  ProxyLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.8
+      Timeout: 900
+      ReservedConcurrentExecutions: 5
+      VpcConfig:
+        SubnetIds:
+          - !Ref Subnet2
+        SecurityGroupIds:
+          - !Ref ProxyLambdaSG
+      Environment:
+        Variables:
+          Host: !GetAtt NetworkELB.DNSName
+      Code:
+        ZipFile: >
+          import http.client
+
+          import logging
+
+          from socket import gethostbyname
+
+          from time import sleep
+
+          from os import getenv
+
+          format = '[%(asctime)s] %(levelname)s %(message)s'
+
+          logging.basicConfig(format=format, level=logging.INFO, datefmt="%H:%M:%S")
+
+          log = logging.getLogger()
+
+          log.setLevel(logging.DEBUG)
+
+          def lambda_handler(event, context):
+            host = event['host'] if 'host' in event else getenv('Host', 'localhost')
+            path = event['path'] if 'path' in event else getenv('Path', '/')
+            schema = event['schema'] if 'schema' in event else getenv('Schema', 'http')
+            port = int(event['port']) if 'port' in event else None
+            request_interval = event['request_interval'] if 'request_interval' in event else getenv('RequestInterval', 10)
+            request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
+            request_count = int(request_count)
+            request_interval = int(request_interval)
+            method = 'GET'
+
+            latest_status = ''
+            latest_body = ''
+
+            log.debug(f'Ip: {gethostbyname(host)}, Target: {method} {schema}://{host}{path} Port: {port}')
+            log.debug(f'Count: {request_count}, Interval: {request_interval}')
+
+            while request_count > 0:
+                try:
+                    if schema == 'http':
+                        connection = http.client.HTTPConnection(host, timeout=request_interval, port=port)
+                    elif schema == 'https':
+                        connection = http.client.HTTPSConnection(host, timeout=request_interval, port=port)
+                    else:
+                        raise Exception(f'Unknown schema "{schema}"')
+                    connection.request(method, path)
+                    response = connection.getresponse()
+                    log.info(f'Status: {response.status}, Reason: {response.reason}, Body: {response.read()}')
+                    latest_status = response.status
+                    latest_body = response.read()
+                    sleep(request_interval)
+                except Exception as e:
+                    log.warning(f'Exception: {e}')
+                finally:
+                    connection.close()
+                    request_count -= 1
+
+            return {
+                "statusCode": latest_status,
+                "headers": {
+                    "Content-Type": "text/plain"
+                },
+                "body": latest_body
+            }
+
+  ProxyLambdaVersion:
+    Type: AWS::Lambda::Version
+    Properties:
+      FunctionName: !Ref ProxyLambdaFunction
+      Description: v1

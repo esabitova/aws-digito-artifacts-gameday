@@ -40,6 +40,9 @@ Parameters:
   Subnet:
     Type: String
     Description: Subnet ID
+  EC2Subnet:
+    Type: String
+    Description: Subnet ID for ec2
   InstanceType:
     Type: String
     Default: t3.small
@@ -121,7 +124,7 @@ Resources:
           GroupSet:
             - !Ref EC2SecurityGroup
           SubnetId:
-            Ref: Subnet
+            Ref: EC2Subnet
       Tenancy: default
       UserData:
         Fn::Base64: !Sub |

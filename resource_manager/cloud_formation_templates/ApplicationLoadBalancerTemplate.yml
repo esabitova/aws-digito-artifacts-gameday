@@ -184,10 +184,10 @@ Resources:
           ToPort: 65535
           CidrIp: !Ref VPCCidr
       SecurityGroupEgress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: !Ref VPCCidr
+        - CidrIp: "0.0.0.0/0"
+          IpProtocol: "-1"
+          FromPort: 0
+          ToPort: 65535
 
   TargetLambdaSG:
     Type: AWS::EC2::SecurityGroup
@@ -378,6 +378,7 @@ Resources:
               - "/target_tls_negotiation_error"
       ListenerArn: !Ref HTTPListener
       Priority: 4
+
   ListenerProxyLambda:
     Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
     Properties:
@@ -393,20 +394,7 @@ Resources:
             Values:
               - "/invoke_proxy_lambda*"
       ListenerArn: !Ref HTTPListener
-      Priority: 4
-  AlwaysOKAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      ActionsEnabled: false
-      AlarmDescription: 'elb:alarm:always_ok:2021-03-24'
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 1
-      MetricName: AlwaysOK
-      Namespace: AWS/ApplicationELB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 100
-      TreatMissingData: notBreaching
+      Priority: 5
 
   LambdaFunction:
     Type: AWS::Lambda::Function
@@ -492,20 +480,20 @@ Resources:
           log.setLevel(logging.DEBUG)
 
           def lambda_handler(event, context):
-              host = event['host'] if 'host' in event else getenv('Host', 'localhost')
-              path = event['path'] if 'path' in event else getenv('Path', '/')
-              schema = event['schema'] if 'schema' in event else getenv('Schema', 'http')
-              port = int(event['port']) if 'port' in event else None
-              request_interval = event['request_interval'] if 'request_interval' in event else getenv('RequestInterval', 10)
-              request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
-              request_count = int(request_count)
-              request_interval = int(request_interval)
-              method = 'GET'
+            host = event['host'] if 'host' in event else getenv('Host', 'localhost')
+            path = event['path'] if 'path' in event else getenv('Path', '/')
+            schema = event['schema'] if 'schema' in event else getenv('Schema', 'http')
+            port = int(event['port']) if 'port' in event else None
+            request_interval = event['request_interval'] if 'request_interval' in event else getenv('RequestInterval', 10)
+            request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
+            request_count = int(request_count)
+            request_interval = int(request_interval)
+            method = 'GET'
 
             latest_status = ''
             latest_body = ''
 
-            log.debug(f'Ip: {gethostbyname(host)}, Host: {host}, Path: {path}, Method: {method}')
+            log.debug(f'Ip: {gethostbyname(host)}, Target: {method} {schema}://{host}{path} Port: {port}')
             log.debug(f'Count: {request_count}, Interval: {request_interval}')
 
             while request_count > 0:

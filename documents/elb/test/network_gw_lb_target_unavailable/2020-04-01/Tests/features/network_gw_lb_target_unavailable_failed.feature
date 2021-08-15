@@ -3,11 +3,11 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
   Scenario: Create Network LB and execute automation to make the target group unavailable to test failure case
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                           | ResourceType | VPC                      | Subnet1                                        | VPCCidr                    |
-      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                                |                            |
-      | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                                |                            |
-      | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>VPCCidr}} |
-      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                                |                            |
+      | CfnTemplatePath                                                                                           | ResourceType | VPC                      | Subnet1                                        | Subnet2                                            | EC2Subnet                                      | VPCCidr                    |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                                |                                                    |                                                |                            |
+      | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                                |                                                    |                                                |                            |
+      | resource_manager/cloud_formation_templates/NetworkLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetTwo}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>VPCCidr}} |
+      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                                |                                                    |                                                |                            |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
     And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
       | LoadBalancerArn                                          |
@@ -33,11 +33,11 @@ Feature: SSM automation document Digito-NetworkGwLbTargetUnavailable_2020-04-01
 
   Scenario: Create Gateway LB and execute automation to make the target group unavailable to test failure case
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                           | ResourceType | VPC                      | Subnet                                         | VPCCidr                    |
-      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                                |                            |
-      | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                                |                            |
-      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>VPCCidr}} |
-      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                                |                            |
+      | CfnTemplatePath                                                                                           | ResourceType | VPC                      | Subnet                                         | EC2Subnet                                      | VPCCidr                    |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                                 | SHARED       |                          |                                                |                                                |                            |
+      | resource_manager/cloud_formation_templates/shared/CommonAlarms.yml                                        | SHARED       |                          |                                                |                                                |                            |
+      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml                                | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>VPCCidr}} |
+      | documents/elb/test/network_gw_lb_target_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                                |                                                |                            |
     And published "Digito-NetworkGwLbTargetUnavailable_2020-04-01" SSM document
     And cache target group HealthCheckPort as "OldPort" "before" SSM automation execution
       | LoadBalancerArn                                          |
