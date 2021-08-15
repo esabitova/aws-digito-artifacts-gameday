@@ -166,6 +166,7 @@ Resources:
       LoadBalancerArn: !Ref NetworkELB
       Port: !Ref ListenPort
       Protocol: TCP
+
   SSLCertificate:
     Type: AWS::IAM::ServerCertificate
     DependsOn: NetworkELB
