@@ -366,12 +366,13 @@ Resources:
                     log.info(f'Status: {response.status}, Reason: {response.reason}, Body: {response.read()}')
                     latest_status = response.status
                     latest_body = response.read()
-                    sleep(request_interval)
                 except Exception as e:
                     log.warning(f'Exception: {e}')
                 finally:
                     connection.close()
                     request_count -= 1
+                    if request_count > 0:
+                      sleep(request_interval)
 
             return {
                 "statusCode": latest_status,
