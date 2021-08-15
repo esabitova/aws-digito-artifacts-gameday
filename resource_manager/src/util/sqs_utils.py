@@ -166,3 +166,33 @@ def get_queue_attribute(boto3_session, queue_url: str, attribute_name: str):
     if 'Attributes' in response and attribute_name in response['Attributes']:
         return response['Attributes'][attribute_name]
     raise Exception('Queue not found')
+
+
+def purge_queue(boto3_session: Session, queue_url: str, purge_queue_duration: int = 60) -> None:
+    """
+    Purge queue and sleep 60 seconds while cleaning the messages
+    :param purge_queue_duration: duration in seconds to wait the cleaning of messages. 60 seconds by default.
+    Can be parametrized to speed up the tests
+    :param boto3_session: boto3 Session
+    :param queue_url: queue url
+    :return: None
+    """
+    sqs_client = client('sqs', boto3_session)
+
+    was_cleaned = False
+    while not was_cleaned:
+        logging.info(f'Purging the queue {queue_url} '
+                     f'and sleeping for {purge_queue_duration} seconds while cleaning the messages...')
+        try:
+            sqs_client.purge_queue(QueueUrl=queue_url)
+            time.sleep(purge_queue_duration)
+            was_cleaned = True
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'AWS.SimpleQueueService.PurgeQueueInProgress':
+                logging.error(f'Exception occurred while purging the queue {queue_url} '
+                              f'or sleeping for {purge_queue_duration} seconds: {e} \n'
+                              f'Trying again in {purge_queue_duration} seconds.')
+                time.sleep(purge_queue_duration)
+            else:
+                raise e
+    logging.info(f'The queue {queue_url} was purged successfully')
