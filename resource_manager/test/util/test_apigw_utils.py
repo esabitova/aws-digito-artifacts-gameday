@@ -307,8 +307,8 @@ class TestApiGwUtil(unittest.TestCase):
         self.assertEqual(NEW_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(NEW_THROTTLE_BURST_LIMIT, output['BurstLimit'])
 
-    def test_get_throttling_settings_with_provided_stage_name(self):
-        output = apigw_utils.get_throttling_settings(
+    def test_get_usage_plan_with_provided_stage_name(self):
+        output = apigw_utils.get_usage_plan(
             self.session_mock,
             USAGE_PLAN_ID,
             REST_API_GW_ID,
@@ -319,8 +319,8 @@ class TestApiGwUtil(unittest.TestCase):
         self.assertEqual(USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
 
-    def test_get_throttling_settings_without_provided_stage_name(self):
-        output = apigw_utils.get_throttling_settings(
+    def test_get_usage_plan_without_provided_stage_name(self):
+        output = apigw_utils.get_usage_plan(
             self.session_mock,
             USAGE_PLAN_ID
         )

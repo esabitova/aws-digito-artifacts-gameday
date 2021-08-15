@@ -157,12 +157,33 @@ def set_throttling_settings(
     return output
 
 
-def get_throttling_settings(
+def set_quota_settings(session: Session, usage_plan_id: str, quota_limit: int, quota_period: str) -> dict:
+    """
+    Set quota settings for provided usage_plan_id
+    :param session: The boto3 client session
+    :param usage_plan_id: The ID of REST API Gateway usage plan to be modified
+    :param quota_limit: The value of quota limit
+    :param quota_period: The value of quota period
+    """
+    patch_operations = [{'op': 'replace',
+                         'path': '/quota/limit',
+                         'value': str(quota_limit)},
+                        {'op': 'replace',
+                         'path': '/quota/period',
+                         'value': quota_period}]
+    updated_usage_plan = update_usage_plan(session, usage_plan_id, patch_operations)
+    wait_quota_settings_updated(session, usage_plan_id, quota_limit, quota_period)
+
+    return {'QuotaLimit': updated_usage_plan['quota']['limit'],
+            'QuotaPeriod': updated_usage_plan['quota']['period']}
+
+
+def get_usage_plan(
         session: Session, usage_plan_id: str, gateway_id: str = None,
         stage_name: str = None, resource_path: str = '*', http_method: str = '*'
 ) -> dict:
     """
-    Get throttling settings for provided usage_plan_id
+    Get throttling and quota settings for provided usage_plan_id
     :param session: The boto3 client session
     :param usage_plan_id: The ID of REST API Gateway usage plan to be modified
     :param stage_name: (Optional) The name of the Stage which throttling settings should be get from.
@@ -192,4 +213,28 @@ def get_throttling_settings(
         burst_limit: int = usage_plan['throttle']['burstLimit']
 
     return {'RateLimit': rate_limit,
-            'BurstLimit': burst_limit}
+            'BurstLimit': burst_limit,
+            'QuotaLimit': usage_plan['quota']['limit'],
+            'QuotaPeriod': usage_plan['quota']['period']}
+
+
+def wait_quota_settings_updated(session: Session, usage_plan_id: str, expected_quota_limit: int,
+                                expected_quota_period: str, max_retries: int = 40, timeout: int = 15) -> None:
+    max_timeout = max_retries * timeout
+    while max_retries > 0:
+        actual_usage_plan = get_usage_plan(session, usage_plan_id)
+        actual_quota_limit = actual_usage_plan['QuotaLimit']
+        actual_quota_period = actual_usage_plan['QuotaPeriod']
+        if actual_quota_limit == expected_quota_limit and actual_quota_period == expected_quota_period:
+            logging.info('Quota settings updated')
+            return
+        logging.info(f'Waiting for expected values: '
+                     f'[QuotaLimit: {expected_quota_limit}, QuotaPeriod: {expected_quota_period}], '
+                     f'actual values: [QuotaLimit: {actual_quota_limit}, QuotaPeriod: {actual_quota_period}]')
+        max_retries -= 1
+        time.sleep(timeout)
+
+    raise TimeoutError(f'Error to wait for updated values of QuotaLimit and QuotaPeriod. '
+                       f'Expected values: [QuotaLimit: {expected_quota_limit}, QuotaPeriod: {expected_quota_period}]. '
+                       f'Actual values: [QuotaLimit: {actual_quota_limit}, QuotaPeriod: {actual_quota_period}] '
+                       f'Maximum timeout {max_timeout} seconds exceeded!')

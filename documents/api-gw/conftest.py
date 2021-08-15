@@ -379,12 +379,12 @@ def cache_throttling_settings(
     stage_name = cache_before.get('RestApiGwStageName')
     gateway_id = cache_before.get('RestApiGwId')
 
-    throttling_settings = apigw_utils.get_throttling_settings(
+    usage_plan = apigw_utils.get_usage_plan(
         boto3_session, usage_plan_id, gateway_id, stage_name
     )
 
-    put_to_ssm_test_cache(ssm_test_cache, step_key, rate_limit_key, throttling_settings['RateLimit'])
-    put_to_ssm_test_cache(ssm_test_cache, step_key, burst_limit_key, throttling_settings['BurstLimit'])
+    put_to_ssm_test_cache(ssm_test_cache, step_key, rate_limit_key, usage_plan['RateLimit'])
+    put_to_ssm_test_cache(ssm_test_cache, step_key, burst_limit_key, usage_plan['BurstLimit'])
 
 
 @pytest.fixture(scope='function')
@@ -613,3 +613,27 @@ def call_ws_endpoint(
             logging.info(f'Handshake failed with {str(e.status_code)}')
         sleep(request_delay)
         request_count -= 1
+
+
+@given(parsers.parse('register quota settings for teardown\n{input_parameters}'))
+def register_quota_settings_for_teardown(resource_pool, ssm_test_cache, rollback_quota_settings, input_parameters):
+    rollback_quota_settings['UsagePlanId'] = \
+        extract_param_value(input_parameters, 'UsagePlanId', resource_pool, ssm_test_cache)
+    rollback_quota_settings['QuotaLimit'] = \
+        extract_param_value(input_parameters, 'QuotaLimit', resource_pool, ssm_test_cache)
+    rollback_quota_settings['QuotaPeriod'] = \
+        extract_param_value(input_parameters, 'QuotaPeriod', resource_pool, ssm_test_cache)
+
+
+@pytest.fixture(scope='function')
+def rollback_quota_settings(ssm_test_cache, boto3_session):
+    rollback_quota_settings = {}
+    yield rollback_quota_settings
+    usage_plan_id = rollback_quota_settings['UsagePlanId']
+    original_quota_limit = rollback_quota_settings['QuotaLimit']
+    original_quota_period = rollback_quota_settings['QuotaPeriod']
+    logging.info(f'Rolling back API GW quota settings {rollback_quota_settings} ...')
+    updated_quota_settings = apigw_utils.set_quota_settings(
+        boto3_session, usage_plan_id, original_quota_limit, original_quota_period)
+    assert updated_quota_settings['QuotaLimit'] == original_quota_limit
+    assert updated_quota_settings['QuotaPeriod'] == original_quota_period
