@@ -49,5 +49,9 @@ Resources:
               - apigateway:POST
               - apigateway:PATCH
               - ssm:GetAutomationExecution
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
       Roles:
         - Ref: DigitoRESTAPIGWChangeQuotaLimitAssumeRole
