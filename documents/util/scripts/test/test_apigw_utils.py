@@ -135,20 +135,20 @@ def get_sample_update_usage_plan_response():
     }
 
 
-def get_sample_get_stage_response():
+def get_sample_get_stage_response(https_status_code=200):
     return {
         "ResponseMetadata": {
-            "HTTPStatusCode": 200
+            "HTTPStatusCode": https_status_code
         },
         "deploymentId": REST_API_GW_DEPLOYMENT_ID_V1,
         "stageName": REST_API_GW_STAGE_NAME
     }
 
 
-def get_sample_update_stage_response():
+def get_sample_update_stage_response(https_status_code=200):
     return {
         "ResponseMetadata": {
-            "HTTPStatusCode": 200
+            "HTTPStatusCode": https_status_code
         },
         "deploymentId": REST_API_GW_DEPLOYMENT_ID_V2,
         "stageName": REST_API_GW_STAGE_NAME
