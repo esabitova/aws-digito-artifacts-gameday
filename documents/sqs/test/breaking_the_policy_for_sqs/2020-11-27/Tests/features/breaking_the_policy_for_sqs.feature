@@ -24,7 +24,7 @@ Feature: SSM automation document to to test behavior when messages cannot be sen
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakingThePolicyForSQSAssumeRole}} | {{cfn-output:SqsTemplate>NumberOfMessagesSentAlarm}} |
 
     # Keep sending messages long enough so SSM times out if sending is not stopped by access denied error
-    And send messages for "1200" seconds until access denied
+    And send messages for "2400" seconds until access denied
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
