@@ -176,8 +176,6 @@ mainSteps:
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
     timeoutSeconds: 600
-    onFailure: 'step:RollbackCurrent'
-    onCancel: 'step:TriggerRollback'
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
