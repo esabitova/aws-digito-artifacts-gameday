@@ -87,4 +87,4 @@ def get_ssm_step_inputs(session: Session, execution_id: str, step_name: str) -> 
     for step in ssm_response['AutomationExecution']['StepExecutions']:
         if step['StepName'] == step_name:
             return step.get('Inputs')
-    raise Exception('Step with name [{}:{}] was not found.'.format(execution_id, step_name))
+    raise Exception(f'Step with name [{execution_id}:{step_name}] was not found.')

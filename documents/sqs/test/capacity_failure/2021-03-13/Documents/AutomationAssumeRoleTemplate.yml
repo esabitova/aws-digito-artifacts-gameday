@@ -52,9 +52,15 @@ Resources:
               - ssm:GetAutomationExecution
               - ssm:GetParameters
               - ssm:StartAutomationExecution
+          - Effect: Allow
+            Resource: "*"
+            Action:
               - kms:GenerateDataKey
               - kms:Decrypt
               - kms:Encrypt
+            Condition:
+              StringLike:
+                kms:ViaService: sqs.*.amazonaws.com
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoSQSCapacityFailureAssumeRole.Arn

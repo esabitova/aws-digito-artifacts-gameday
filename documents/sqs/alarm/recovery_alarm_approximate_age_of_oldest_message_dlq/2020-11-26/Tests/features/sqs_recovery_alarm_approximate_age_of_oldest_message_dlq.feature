@@ -5,8 +5,6 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # purging api has a max calls within 60 seconds, so sleep to guarantee the purging
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -17,7 +15,7 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
     And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
 
   Scenario: Check age of the oldest message in DLQ - red
@@ -25,8 +23,6 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # purging api has a max calls within 60 seconds, so sleep to guarantee the purging
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -37,5 +33,5 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
     And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 300 seconds, check every 15 seconds

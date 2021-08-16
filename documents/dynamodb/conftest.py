@@ -30,15 +30,11 @@ from resource_manager.src.util.param_utils import parse_param_value
 
 
 @pytest.fixture(scope='function')
-def dynamodb_table_teardown(resource_pool, ssm_test_cache, boto3_session, target_table_name_ref,
-                            global_table_secondary_region_ref):
-    yield
-    cf_output = resource_pool.get_cfn_output_params()
-    param_containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
-    table_name = param_utils.parse_param_value(
-        target_table_name_ref, param_containers)
-    region_global_table = param_utils.parse_param_value(
-        global_table_secondary_region_ref, param_containers)
+def dynamodb_table_teardown(boto3_session):
+    teardown_dict = {}
+    yield teardown_dict
+    table_name = teardown_dict['table_name']
+    region_global_table = teardown_dict['region_global_table']
     wait_sec = 600
     delay_sec = 20
 
@@ -60,48 +56,51 @@ def dynamodb_table_teardown(resource_pool, ssm_test_cache, boto3_session, target
 
 
 @pytest.fixture(scope='function')
-def dynamodb_global_table_teardown(resource_pool, ssm_test_cache, boto3_session,
-                                   table_name_ref,
-                                   region_global_table_ref,
-                                   wait_sec,
-                                   delay_sec):
+def dynamodb_global_table_teardown(boto3_session):
     """
     Meant to be used for source table.
     We only need to disable replication but the table itself will be deleted by rolling back CFN stack
     """
-    yield
-    cf_output = resource_pool.get_cfn_output_params()
-    param_containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
-    table_name = param_utils.parse_param_value(
-        table_name_ref, param_containers)
-    region_global_table = param_utils.parse_param_value(
-        region_global_table_ref, param_containers)
+    global_table_teardown_dict = {}
+    yield global_table_teardown_dict
 
+    table_name = global_table_teardown_dict['table_name']
+    region_global_table = global_table_teardown_dict['region_global_table']
+    wait_sec = int(global_table_teardown_dict['wait_sec'])
+    delay_sec = int(global_table_teardown_dict['delay_sec'])
     remove_global_table_and_wait_for_active(table_name=table_name,
                                             global_table_regions=[region_global_table],
-                                            wait_sec=int(wait_sec),
-                                            delay_sec=int(delay_sec),
+                                            wait_sec=wait_sec,
+                                            delay_sec=delay_sec,
                                             boto3_session=boto3_session)
 
 
 @pytest.fixture(scope='function')
-def dynamodb_delete_backup(ssm_test_cache, boto3_session,
-                           wait_sec, delay_sec):
+def dynamodb_delete_backup(boto3_session):
     """
     """
-    yield
-    containers = {'cache': ssm_test_cache}
-    backup_arn = param_utils.parse_param_value("{{cache:BackupArn}}", containers)
+    backup_delete_dict = {}
+    yield backup_delete_dict
+
+    backup_arn = backup_delete_dict['backup_arn']
     delete_backup_and_wait(backup_arn=backup_arn,
                            boto3_session=boto3_session,
-                           wait_sec=int(wait_sec),
-                           delay_sec=int(delay_sec))
+                           wait_sec=int(backup_delete_dict['wait_sec']),
+                           delay_sec=int(backup_delete_dict['delay_sec']))
 
 
 @given(parsers.parse('register cleanup steps for table {target_table_name_ref} '
                      'with global table secondary region {global_table_secondary_region_ref}'))
-def register_tear_down(resource_pool, ssm_test_cache, boto3_session, target_table_name_ref,
-                       global_table_secondary_region_ref, dynamodb_table_teardown):
+def register_tear_down(ssm_test_cache, cfn_output_params,
+                       target_table_name_ref, global_table_secondary_region_ref,
+                       dynamodb_table_teardown):
+    param_containers = {
+        'cache': ssm_test_cache,
+        'cfn-output': cfn_output_params
+    }
+    dynamodb_table_teardown['table_name'] = param_utils.parse_param_value(target_table_name_ref, param_containers)
+    dynamodb_table_teardown['region_global_table'] = param_utils.parse_param_value(global_table_secondary_region_ref,
+                                                                                   param_containers)
     logging.info('cleanup steps registered')
 
 
@@ -155,6 +154,9 @@ def create_backup_and_wait_when_it_becomes_available(ssm_test_cache,
                                                       boto3_session=boto3_session,
                                                       wait_sec=int(wait_sec),
                                                       delay_sec=int(delay_sec))
+    dynamodb_delete_backup['backup_arn'] = backup_arn
+    dynamodb_delete_backup['wait_sec'] = wait_sec
+    dynamodb_delete_backup['delay_sec'] = delay_sec
     ssm_test_cache['BackupArn'] = backup_arn
 
 
@@ -193,6 +195,10 @@ def enable_global_table(ssm_test_cache,
                                          wait_sec=int(wait_sec),
                                          delay_sec=int(delay_sec),
                                          boto3_session=boto3_session)
+    dynamodb_global_table_teardown['table_name'] = table_name
+    dynamodb_global_table_teardown['region_global_table'] = region_global_table
+    dynamodb_global_table_teardown['wait_sec'] = wait_sec
+    dynamodb_global_table_teardown['delay_sec'] = delay_sec
 
 
 @then(parsers.parse('assert alarm {original_alarm_name_ref} copied for table {target_table_name_ref}'))

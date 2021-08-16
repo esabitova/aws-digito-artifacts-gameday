@@ -6,6 +6,7 @@ from sttable import parse_str_table
 
 import resource_manager.src.util.param_utils as param_utils
 import resource_manager.src.util.rds_util as rds_util
+import pytz
 
 
 @given(parsers.parse('cache DB cluster "{reader_cache_key}" and "{writer_cache_key}" as "{step_key}"\n'
@@ -23,9 +24,10 @@ def cache_db_cluster_reader_writer(boto3_session, resource_pool, ssm_test_cache,
     ssm_test_cache[step_key] = {reader_cache_key: reader, writer_cache_key: writer}
 
 
-@given(parsers.parse('assert db instance {db_instance} creation date is after {start_time}'))
-@then(parsers.parse('assert db instance {db_instance} creation date is after {start_time}'))
-def assert_db_instance_creation_date_after(resource_pool, ssm_test_cache, boto3_session, db_instance, start_time):
+@given(parsers.parse('assert db instance {db_instance} creation date is {operand} {start_time}'))
+@then(parsers.parse('assert db instance {db_instance} creation date is {operand} {start_time}'))
+def assert_db_instance_creation_date_after(resource_pool, ssm_test_cache, boto3_session,
+                                           db_instance, start_time, operand):
     cf_output = resource_pool.get_cfn_output_params()
     containers = {'cfn-output': cf_output, 'cache': ssm_test_cache}
     db_instance_id = param_utils.parse_param_value(db_instance, containers)
@@ -35,4 +37,9 @@ def assert_db_instance_creation_date_after(resource_pool, ssm_test_cache, boto3_
     logging.info(
         f'got instance details: {instance} for instance_id {db_instance_id}')
 
-    assert instance['InstanceCreateTime'].replace(tzinfo=None) > start_time_value
+    if operand == 'after':
+        assert instance['InstanceCreateTime'].replace(tzinfo=pytz.UTC) > start_time_value.replace(tzinfo=pytz.UTC)
+    elif operand == 'before':
+        assert instance['InstanceCreateTime'].replace(tzinfo=pytz.UTC) < start_time_value.replace(tzinfo=pytz.UTC)
+    else:
+        raise Exception(f'Operand with name {operand} is not supported. Supported operands: after | before.')

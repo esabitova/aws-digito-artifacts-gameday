@@ -10,8 +10,6 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -25,8 +23,6 @@ Feature: SSM automation document to block sqs:DeleteMessage
     When send "5" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -52,12 +48,9 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And sleep for "60" seconds
     And send "5" messages to FIFO queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |

@@ -23,5 +23,5 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: ${Threshold}
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Count

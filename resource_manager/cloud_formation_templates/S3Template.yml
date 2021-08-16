@@ -311,7 +311,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Count
   S3Health5xxErrorsCountAlarm:
     Type: "AWS::CloudWatch::Alarm"
@@ -329,7 +329,7 @@ Resources:
       DatapointsToAlarm: 1
       Threshold: 0
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Count
   S3TotalRequestLatencyAlarm:
     Type: "AWS::CloudWatch::Alarm"

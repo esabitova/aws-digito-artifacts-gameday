@@ -13,5 +13,6 @@ Feature: Alarm Setup - TotalRequestLatency
     And put "1" objects into the bucket
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
-    Then assert metrics for all alarms are populated
+    # Since it is the request metric it occurs after huge delay
+    Then assert metrics for all alarms are populated within 3600 seconds, check every 15 seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds

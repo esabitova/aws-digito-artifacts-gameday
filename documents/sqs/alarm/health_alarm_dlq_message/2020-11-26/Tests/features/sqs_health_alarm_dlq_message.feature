@@ -5,8 +5,6 @@ Feature: Alarm Setup - sqs DLQMessage
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # only one PurgeQueue is allowed in 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -21,7 +19,7 @@ Feature: Alarm Setup - sqs DLQMessage
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
 
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And sleep for "30" seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
@@ -30,8 +28,6 @@ Feature: Alarm Setup - sqs DLQMessage
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # only one PurgeQueue is allowed in 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -46,6 +42,6 @@ Feature: Alarm Setup - sqs DLQMessage
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
 
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
     And sleep for "30" seconds
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 180 seconds, check every 15 seconds

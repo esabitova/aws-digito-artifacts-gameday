@@ -63,3 +63,17 @@ class TestRdsUtil(unittest.TestCase):
         rds_util.delete_db_instance(self.session_mock, instance_id, async_mode=False)
         self.mock_rds_service.delete_db_instance.assert_called_once()
         self.mock_rds_service.get_waiter.assert_called_once()
+
+    def test_create_db_snapshot_async_success(self):
+        instance_id = 'db-instance-1'
+        snapshot_name = 'db-snapshot-name-1'
+        rds_util.create_db_snapshot(self.session_mock, instance_id, snapshot_name, async_mode=True)
+        self.mock_rds_service.create_db_snapshot.assert_called_once()
+        self.mock_rds_service.get_waiter.assert_not_called()
+
+    def test_create_db_snapshot_success(self):
+        instance_id = 'db-instance-1'
+        snapshot_name = 'db-snapshot-name-1'
+        rds_util.create_db_snapshot(self.session_mock, instance_id, snapshot_name, async_mode=False)
+        self.mock_rds_service.create_db_snapshot.assert_called_once()
+        self.mock_rds_service.get_waiter.assert_called_once()

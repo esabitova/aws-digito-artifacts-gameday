@@ -1,7 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Parameters:
-  PidPath:
-    Type: String
   SNSTopicARN:
     Type: String
 Resources:
@@ -19,8 +17,7 @@ Resources:
         - Name: InstanceId
           Value: '${InstanceId}'
         - Name: pidfile
-          Value:
-            Ref: PidPath
+          Value: '${PidPath}'
         - Name: pid_finder
           Value: 'native'
       MetricName: procstat_lookup_pid_count

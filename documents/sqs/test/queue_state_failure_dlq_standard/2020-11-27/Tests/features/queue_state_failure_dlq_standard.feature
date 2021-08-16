@@ -16,8 +16,6 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
@@ -50,8 +48,6 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |

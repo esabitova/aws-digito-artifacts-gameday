@@ -48,6 +48,12 @@ Resources:
               - backup:StartBackupJob
               - backup:DescribeBackupJob
               - elasticfilesystem:DescribeFileSystems
+          - Effect: Allow
+            Resource: "*"
+            Action:
               - iam:PassRole
+            Condition:
+              StringEquals:
+                iam:PassedToService: backup.amazonaws.com
       Roles:
         - Ref: DigitoCreateEfsBackupAssumeRole

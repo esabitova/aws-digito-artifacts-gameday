@@ -9,5 +9,5 @@ Feature: Alarm Setup - SQS NumberOfMessagesSentBand
     When alarm "sqs:alarm:health_alarm_number_of_messages_sent_band:2020-11-26" is installed
       | SNSTopicARN                       | QueueName                                   | Threshold
       | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:SqsTemplate>SqsFifoQueueName}} | 0.5
-    Then assert metrics for all alarms are populated
+    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
 

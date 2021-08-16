@@ -49,4 +49,4 @@ Feature: SSM automation document for restore from backup.
       | ExecutionId                | StepName        |
       | {{cache:SsmExecutionId>1}} | RecordStartTime |
 
-    And assert db instance {{cfn-output:RdsCfnTemplateSingleMAZ>InstanceId}} creation date is after {{cache:SsmStepExecutionInterval>1>RecordStartTime>StartTime}}
+    And assert db instance {{cfn-output:RdsCfnTemplateSingleMAZ>InstanceId}} creation date is before {{cache:SsmStepExecutionInterval>1>RecordStartTime>StartTime}}

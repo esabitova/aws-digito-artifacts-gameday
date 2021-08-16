@@ -56,6 +56,12 @@ Resources:
               - "logs:PutLogEvents"
               - "logs:DescribeLogGroups"
               - "logs:DescribeLogStreams"
+          - Effect: Allow
+            Resource: "*"
+            Action:
               - "iam:PassRole"
+            Condition:
+              StringEquals:
+                iam:PassedToService: backup.amazonaws.com
       Roles:
         - Ref: DigitoEFSRestoreBackupAssumeRole

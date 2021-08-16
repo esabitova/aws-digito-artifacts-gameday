@@ -8,8 +8,6 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleFifo
     When alarm "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26" is installed
       | alarmId    | SNSTopicARN                       | QueueName                                   | Threshold |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:SqsTemplate>SqsFifoQueueName}} | 20000     |
-    # purging api has a max calls within 10 seconds, so sleep to guarantee the purging
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -30,8 +28,6 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleFifo
     When alarm "sqs:alarm:health_alarm_threshold_approximate_number_of_messages_not_visible_fifo:2020-11-26" is installed
       | alarmId    | SNSTopicARN                       | QueueName                                   | Threshold |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:SqsTemplate>SqsFifoQueueName}} | 1         |
-    # purging api has a max calls within 10 seconds, so sleep to guarantee the purging
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
