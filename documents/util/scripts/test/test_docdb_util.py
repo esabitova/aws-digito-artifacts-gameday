@@ -614,11 +614,13 @@ class TestDocDBUtil(unittest.TestCase):
             'RestoreToDate': 'latest',
             'VpcSecurityGroupIds': vpc_security_group_ids
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_to_point_in_time(events, None)
         new_cluster_identifier = DOCDB_CLUSTER_ID + '-restored'
         self.mock_docdb.restore_db_cluster_to_point_in_time.assert_called_once_with(
             DBClusterIdentifier=new_cluster_identifier,
             SourceDBClusterIdentifier=DOCDB_CLUSTER_ID,
+            DBSubnetGroupName=DBSUBNET_GROUP,
             UseLatestRestorableTime=True,
             VpcSecurityGroupIds=vpc_security_group_ids
         )
@@ -632,11 +634,13 @@ class TestDocDBUtil(unittest.TestCase):
             'RestoreToDate': date,
             'VpcSecurityGroupIds': vpc_security_group_ids
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_to_point_in_time(events, None)
         new_cluster_identifier = DOCDB_CLUSTER_ID + '-restored'
         self.mock_docdb.restore_db_cluster_to_point_in_time.assert_called_once_with(
             DBClusterIdentifier=new_cluster_identifier,
             SourceDBClusterIdentifier=DOCDB_CLUSTER_ID,
+            DBSubnetGroupName=DBSUBNET_GROUP,
             RestoreToTime=datetime.strptime(date, "%Y-%m-%dT%H:%M:%S%z"),
             VpcSecurityGroupIds=vpc_security_group_ids
         )
@@ -906,11 +910,14 @@ class TestDocDBUtil(unittest.TestCase):
             'LatestSnapshotEngine': DOCDB_ENGINE,
             'AvailabilityZones': [DOCDB_AZ]
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_db_cluster(events, None)
         cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
         self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
             DBClusterIdentifier=cluster_id,
             SnapshotIdentifier='Snapshot3',
+            DBSubnetGroupName=DBSUBNET_GROUP,
+            VpcSecurityGroupIds=[SG_ID],
             Engine=DOCDB_ENGINE,
             AvailabilityZones=[DOCDB_AZ]
         )
@@ -924,11 +931,14 @@ class TestDocDBUtil(unittest.TestCase):
             'LatestSnapshotEngine': DOCDB_ENGINE,
             'AvailabilityZones': [DOCDB_AZ]
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_db_cluster(events, None)
         cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
         self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
             DBClusterIdentifier=cluster_id,
             SnapshotIdentifier='Snapshot3',
+            DBSubnetGroupName=DBSUBNET_GROUP,
+            VpcSecurityGroupIds=[SG_ID],
             Engine=DOCDB_ENGINE,
             AvailabilityZones=[DOCDB_AZ]
         )
@@ -942,15 +952,33 @@ class TestDocDBUtil(unittest.TestCase):
             'LatestSnapshotEngine': DOCDB_ENGINE,
             'AvailabilityZones': [DOCDB_AZ]
         }
+        self.mock_docdb.describe_db_clusters.return_value = DESCRIBE_DB_CLUSTER_RESPONSE
         response = restore_db_cluster(events, None)
         cluster_id = DOCDB_CLUSTER_ID + '-restored-from-backup'
         self.mock_docdb.restore_db_cluster_from_snapshot.assert_called_once_with(
             DBClusterIdentifier=cluster_id,
             SnapshotIdentifier='Snapshot2',
+            DBSubnetGroupName=DBSUBNET_GROUP,
+            VpcSecurityGroupIds=[SG_ID],
             Engine=DOCDB_ENGINE,
             AvailabilityZones=[DOCDB_AZ]
         )
         self.assertEqual({'RestoredClusterIdentifier': cluster_id}, response)
+
+    def test_restore_db_cluster_wrong_clusterid(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBSnapshotIdentifier': 'Snapshot2',
+            'LatestSnapshotIdentifier': 'Snapshot3',
+            'LatestSnapshotEngine': DOCDB_ENGINE,
+            'AvailabilityZones': [DOCDB_AZ]
+        }
+
+        self.mock_docdb.describe_db_clusters.return_value = {"DBClusters": []}
+        with pytest.raises(AssertionError) as assertion_error:
+            restore_db_cluster(events, None)
+        self.mock_docdb.restore_db_cluster_from_snapshot.assert_not_called()
+        self.assertEqual(f'No db cluster found with id: {DOCDB_CLUSTER_ID}', str(assertion_error.value))
 
     def test_restore_db_cluster_empty_events(self):
         self.assertRaises(Exception, restore_db_cluster, {}, None)

@@ -121,6 +121,14 @@ def restore_to_point_in_time(events, context):
         config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
         docdb = boto3.client('docdb', config=config)
         restorable_cluster_identifier = events['DBClusterIdentifier']
+        db_cluster = docdb.describe_db_clusters(
+            DBClusterIdentifier=events['DBClusterIdentifier']
+        )
+        if 'DBClusters' in db_cluster and db_cluster['DBClusters']:
+            db_subnet_group = db_cluster['DBClusters'][0]['DBSubnetGroup']
+        else:
+            raise AssertionError(f'No db cluster found with id: {events["DBClusterIdentifier"]}')
+
         new_cluster_identifier = restorable_cluster_identifier + '-restored'
         date = events['RestoreToDate']
         security_groups = events['VpcSecurityGroupIds']
@@ -129,6 +137,7 @@ def restore_to_point_in_time(events, context):
                 DBClusterIdentifier=new_cluster_identifier,
                 SourceDBClusterIdentifier=restorable_cluster_identifier,
                 UseLatestRestorableTime=True,
+                DBSubnetGroupName=db_subnet_group,
                 VpcSecurityGroupIds=security_groups
             )
         else:
@@ -138,6 +147,7 @@ def restore_to_point_in_time(events, context):
                 DBClusterIdentifier=new_cluster_identifier,
                 SourceDBClusterIdentifier=restorable_cluster_identifier,
                 RestoreToTime=date,
+                DBSubnetGroupName=db_subnet_group,
                 VpcSecurityGroupIds=security_groups
             )
         return {'RestoredClusterIdentifier': new_cluster_identifier}
@@ -261,10 +271,20 @@ def restore_db_cluster(events, context):
         config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
         docdb = boto3.client('docdb', config=config)
         restored_cluster_identifier = events['DBClusterIdentifier'] + '-restored-from-backup'
+        db_cluster = docdb.describe_db_clusters(
+            DBClusterIdentifier=events['DBClusterIdentifier']
+        )
+        if 'DBClusters' in db_cluster and db_cluster['DBClusters']:
+            db_subnet_group = db_cluster['DBClusters'][0]['DBSubnetGroup']
+            db_sgs = [x['VpcSecurityGroupId'] for x in db_cluster['DBClusters'][0]['VpcSecurityGroups']]
+        else:
+            raise AssertionError(f'No db cluster found with id: {events["DBClusterIdentifier"]}')
         if events['DBSnapshotIdentifier'] == '' or events['DBSnapshotIdentifier'] == 'latest':
             docdb.restore_db_cluster_from_snapshot(
                 DBClusterIdentifier=restored_cluster_identifier,
                 SnapshotIdentifier=events['LatestSnapshotIdentifier'],
+                DBSubnetGroupName=db_subnet_group,
+                VpcSecurityGroupIds=db_sgs,
                 Engine=events['LatestSnapshotEngine'],
                 AvailabilityZones=events['AvailabilityZones']
             )
@@ -272,6 +292,8 @@ def restore_db_cluster(events, context):
             docdb.restore_db_cluster_from_snapshot(
                 DBClusterIdentifier=restored_cluster_identifier,
                 SnapshotIdentifier=events['DBSnapshotIdentifier'],
+                DBSubnetGroupName=db_subnet_group,
+                VpcSecurityGroupIds=db_sgs,
                 Engine=events['LatestSnapshotEngine'],
                 AvailabilityZones=events['AvailabilityZones']
             )
