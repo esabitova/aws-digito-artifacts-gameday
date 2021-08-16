@@ -13,8 +13,6 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And cache redrive policy as "RedrivePolicy" "before" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -58,8 +56,6 @@ Feature: SSM automation document to test behavior of Standard Queue after receiv
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |

@@ -5,8 +5,6 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # purging api has a max calls within 60 seconds, so sleep to guarantee the purging
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
@@ -25,8 +23,6 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
       |CfnTemplatePath                                                    | ResourceType
       |resource_manager/cloud_formation_templates/SqsTemplate.yml         | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
-    # purging api has a max calls within 60 seconds, so sleep to guarantee the purging
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |

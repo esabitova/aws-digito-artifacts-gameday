@@ -14,6 +14,12 @@ Outputs:
   PublicSubnet1Cidr:
     Description: Public subnet 1 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
+  PrivateSubnet1Cidr:
+    Description: Private subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet1', 'CIDR']
+  PrivateSubnet2Cidr:
+    Description: Private subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
   PublicSubnetTwo:
     Description: Public subnet two
     Value: !Ref 'PublicSubnetTwo'
@@ -53,7 +59,7 @@ Mappings:
     PrivateNoInternet2:
       CIDR: '10.0.3.0/24'
     PrivateNoInternet3:
-      CIDR: '10.0.4.0/24'
+      CIDR: '10.0.5.0/24'
 Resources:
   # VPC in which containers will be networked.
   # It has two public subnets
@@ -114,7 +120,7 @@ Resources:
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet3', 'CIDR']
       AvailabilityZone:
         Fn::Select:
-          - 1
+          - 2
           - Fn::GetAZs: {Ref: 'AWS::Region'}
 
   # Setup networking resources for the public subnets. Containers
@@ -148,3 +154,22 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PrivateSubnetWithoutInternetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetOne
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithoutInternetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetTwo
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithoutInternetThreeRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetThree
+      RouteTableId: !Ref PrivateRouteTable

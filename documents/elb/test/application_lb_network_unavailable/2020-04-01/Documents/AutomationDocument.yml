@@ -32,7 +32,6 @@ parameters:
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
   SyntheticAlarmName:
     type: String
-    # e.g. TargetConnectionErrorCount
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   IsRollback:
     type: String
@@ -58,7 +57,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: LoadBalancerArn
-        Selector: $.Payload.LoadBalancerArn[0]
+        Selector: $.Payload.LoadBalancerArn
         Type: String
     inputs:
       Runtime: python3.7
@@ -80,8 +79,16 @@ mainSteps:
     isEnd: true
 
   - name: RollbackPreviousExecution
-    # 1. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+    action: aws:executeAwsApi
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
@@ -95,29 +102,130 @@ mainSteps:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
-  - name: BackupCurrentExecution
-    # 1.call [boto3.describe_load_balancers]
-    #   Params: LoadBalancerArns=[params.LoadBalancerArn]
-    #   take '.SecurityGroups[]' collection and return as SecurityGroups
 
-  - name: InjectFailure
+  - name: BackupCurrentExecution
+    action: aws:executeAwsApi
+    inputs:
+      Service: elbv2
+      Api: DescribeLoadBalancers
+      LoadBalancerArns:
+        - '{{ LoadBalancerArn }}'
+    outputs:
+      - Name: SecurityGroups
+        Selector: $.LoadBalancers[0].SecurityGroups
+        Type: StringList
+
+  - name: GetVpcId
+    action: aws:executeAwsApi
+    inputs:
+      Service: elbv2
+      Api: DescribeLoadBalancers
+      LoadBalancerArns:
+        - '{{ LoadBalancerArn }}'
+    outputs:
+      - Name: VpcId
+        Selector: $.LoadBalancers[0].VpcId
+        Type: String
+
+  - name: NumberOfSecurityGroupsIdsToDelete
+    action: aws:executeScript
+    onFailure: Abort
+    outputs:
+      - Name: Length
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: get_length_of_list
+      InputPayload:
+        List: '{{ SecurityGroupIdsToDelete }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
+
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.get_length_of_list
+
+  - name: CheckSecurityGroupIdsToDeleteParamIsNotEmpty
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RemoveSecurityGroupsFromList
+          Variable: "{{ NumberOfSecurityGroupsIdsToDelete.Length }}"
+          NumericGreater: 0
+      Default:
+          CreateEmptySecurityGroup
+
+  - name: RemoveSecurityGroupsFromList
+    action: aws:executeScript
+    outputs:
+      - Name: NewSecurityGroupIds
+        Selector: $.Payload
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: remove_security_groups_from_list
+      InputPayload:
+        SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+        SecurityGroupIdsToDelete: '{{ SecurityGroupIdsToDelete }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elb_util.imports
+
+        SCRIPT_PLACEHOLDER::elb_util.check_required_params
+        SCRIPT_PLACEHOLDER::elb_util.remove_security_groups_from_list
+    nextStep: SetNewSecurityGroups
+
+  - name: SetNewSecurityGroups
+    action: aws:executeAwsApi
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
-    # if SecurityGroupIdsToDelete NOT SPECIFIED
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups: '{{ RemoveSecurityGroupsFromList.NewSecurityGroupIds }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
+    nextStep: AssertAlarmToBeRed
 
-    # 1. Create an empty security group. Call [boto3.create_security_group]
-    #   Params: provide name and description
-    #   take '.GroupId' value from response as NewSecurityGroup
-    # 2. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[NewSecurityGroup]
-    #   return '.SecurityGroupIds[]' collection as an output
-    
-    # if SecurityGroupIdsToDelete SPECIFIED
+  - name: CreateEmptySecurityGroup
+    action: aws:executeScript
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    outputs:
+      - Name: EmptySecurityGroupId
+        Selector: $.Payload.EmptySecurityGroupId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: create_empty_security_group
+      InputPayload:
+        VpcId: '{{GetVpcId.VpcId}}'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
 
-    # 1. Remove from BackupCurrentExecution.SecurityGroups params.SecurityGroupIdsToDelete
-    # 2. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[LeftSGs]
-    #   return '.SecurityGroupIds[]' collection as an output
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+
+        SCRIPT_PLACEHOLDER::common_util.create_empty_security_group
+    nextStep: SetEmptySecurityGroupForLoadBalancer
+
+  - name: SetEmptySecurityGroupForLoadBalancer
+    action: aws:executeAwsApi
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups:
+        - '{{ CreateEmptySecurityGroup.EmptySecurityGroupId }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
+    nextStep: AssertAlarmToBeRed
 
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
@@ -131,15 +239,47 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "ALARM" ]
+      DesiredValues: ["ALARM"]
 
   - name: RollbackCurrentExecution
-    maxAttempts: 5
+    action: aws:executeAwsApi
     onCancel: step:TriggerRollback
-    # 1. Update list of security groups. Call [boto3.set_security_groups]
-    #   Params: SecurityGroups=[BackupCurrentExecution.SecurityGroups]
+    inputs:
+      Service: elbv2
+      Api: SetSecurityGroups
+      LoadBalancerArn: '{{ LoadBalancerArn }}'
+      SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+    outputs:
+      - Name: LoadBalancerSecurityGroups
+        Selector: $.SecurityGroupIds
+        Type: StringList
 
-  - name: AssertAlarmToBeGreen 
+  - name: DeleteEmptySecurityGroupIfCreated
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: DeleteEmptySecurityGroup
+          Variable: "{{ NumberOfSecurityGroupsIdsToDelete.Length }}"
+          NumericGreater: 0
+      Default:
+        AssertAlarmToBeGreen
+
+  - name: DeleteEmptySecurityGroup
+    action: aws:executeScript
+    onCancel: step:TriggerRollback
+    timeoutSeconds: 900
+    maxAttempts: 3
+    inputs:
+      Runtime: python3.7
+      Handler: remove_empty_security_group
+      InputPayload:
+        EmptySecurityGroupId: '{{CreateEmptySecurityGroup.EmptySecurityGroupId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+
+  - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
     timeoutSeconds: 900
@@ -149,7 +289,7 @@ mainSteps:
       AlarmNames:
         - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: [ "OK" ]
+      DesiredValues: ["OK"]
     isEnd: true
 
   - name: TriggerRollback
@@ -160,7 +300,7 @@ mainSteps:
         Selector: $.Payload.RollbackExecutionId
         Type: String
     inputs:
-      Runtime: python3.6
+      Runtime: python3.7
       Handler: start_rollback_execution
       InputPayload:
         ExecutionId: '{{automation:EXECUTION_ID}}'
