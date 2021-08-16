@@ -92,6 +92,11 @@ destroy_all_cfn_resources:
 	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL && \
 	deactivate
 
+list_all_cfn_resources:
+	source venv/bin/activate && \
+	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c LIST && \
+	deactivate
+
 # Find validation errors in SSM Documents
 style_validator:
 	source venv/bin/activate && \
