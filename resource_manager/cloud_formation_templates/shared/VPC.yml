@@ -24,7 +24,7 @@ Outputs:
     Description: Private subnet 2 CIDR
     Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
   PublicSubnet2Cidr:
-    Description: Public subnet 1 CIDR
+    Description: Public subnet 2 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
   PrivateSubnetWithoutInternetOne:
     Description: Private subnet w\o internet access
@@ -188,6 +188,12 @@ Resources:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
+
+  PrivateRouteTableForNatGateway:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+
   PrivateSubnetWithoutInternetOneRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -203,16 +209,17 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnetWithoutInternetThree
       RouteTableId: !Ref PrivateRouteTable
+
   PrivateSubnetWithNATGatewayRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PrivateSubnetWithNATGateway
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTableForNatGateway
 
   DefaultPrivateRouteForNATGateway:
     Type: AWS::EC2::Route
     DependsOn: GatewayAttachement
     Properties:
-      RouteTableId: !Ref PrivateRouteTable
+      RouteTableId: !Ref PrivateRouteTableForNatGateway
       DestinationCidrBlock: !FindInMap ['SubnetConfig', 'PublicDestinationAll', 'CIDR']
       NatGatewayId: !Ref NatGateway
