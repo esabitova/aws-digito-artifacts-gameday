@@ -11,9 +11,6 @@ Outputs:
   PublicSubnetOne:
     Description: Public subnet one
     Value: !Ref 'PublicSubnetOne'
-  PublicSubnetTwo:
-    Description: Public subnet two
-    Value: !Ref 'PublicSubnetTwo'
   PublicSubnet1Cidr:
     Description: Public subnet 1 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
@@ -23,6 +20,9 @@ Outputs:
   PrivateSubnet2Cidr:
     Description: Private subnet 2 CIDR
     Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
+  PublicSubnetTwo:
+    Description: Public subnet two
+    Value: !Ref 'PublicSubnetTwo'
   PublicSubnet2Cidr:
     Description: Public subnet 2 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
@@ -198,6 +198,18 @@ Resources:
       RouteTableId: !Ref PrivateSubnetWithInternetRouteTable
       SubnetId: !Ref PrivateSubnetWithInternet03
 
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachement
+    Properties:
+      Domain: vpc
+
+  NatGatewayPrivateSubnetWithInternet:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnetOne
+
   # Setup networking resources for the public subnets. Containers
   # in the public subnets have public IP addresses and the routing table
   # sends network traffic via the internet gateway.
@@ -247,24 +259,10 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable
-
-  NatGatewayEIP:
-    Type: AWS::EC2::EIP
-    DependsOn: GatewayAttachement
-    Properties:
-      Domain: vpc
-
-  NatGatewayPrivateSubnetWithInternet:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGatewayEIP.AllocationId
-      SubnetId: !Ref PublicSubnetOne
-
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref VPC
-
   PrivateSubnetWithoutInternetOneRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
