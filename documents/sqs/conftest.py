@@ -1,8 +1,8 @@
 import logging
+import time
 from datetime import datetime
 
 import pytest
-import time
 from pytest_bdd import (
     given,
     parsers, when, then
@@ -16,11 +16,8 @@ from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 @given(parsers.parse('purge the queue\n{input_parameters}'))
 @when(parsers.parse('purge the queue\n{input_parameters}'))
 def purge_the_queue(boto3_session, resource_pool, ssm_test_cache, input_parameters):
-    sqs_client = boto3_session.client('sqs')
     queue_url: str = extract_param_value(input_parameters, "QueueUrl", resource_pool, ssm_test_cache)
-    logging.info(f'Purging the queue with url = {queue_url}')
-    sqs_client.purge_queue(QueueUrl=queue_url)
-    logging.info(f'The queue was purged with url = {queue_url}')
+    sqs_utils.purge_queue(boto3_session, queue_url)
 
 
 @given(parsers.parse('send "{number_of_messages}" messages to queue\n{input_parameters}'))

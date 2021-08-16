@@ -14,6 +14,12 @@ Outputs:
   PublicSubnet1Cidr:
     Description: Public subnet 1 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
+  PrivateSubnet1Cidr:
+    Description: Private subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet1', 'CIDR']
+  PrivateSubnet2Cidr:
+    Description: Private subnet 1 CIDR
+    Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
   PublicSubnetTwo:
     Description: Public subnet two
     Value: !Ref 'PublicSubnetTwo'
@@ -101,10 +107,6 @@ Resources:
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'Public1', 'CIDR']
       MapPublicIpOnLaunch: true
-      Tags:
-        - Key: "Name"
-          Value: "SharedPublic1"
-
   PublicSubnetTwo:
     Type: AWS::EC2::Subnet
     Properties:
@@ -115,9 +117,6 @@ Resources:
       VpcId: !Ref 'VPC'
       CidrBlock: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
       MapPublicIpOnLaunch: true
-      Tags:
-        - Key: "Name"
-          Value: "SharedPublic2"
 
   PrivateSubnetWithoutInternetOne:
     Type: AWS::EC2::Subnet
@@ -128,9 +127,6 @@ Resources:
         Fn::Select:
           - 0
           - Fn::GetAZs: {Ref: 'AWS::Region'}
-      Tags:
-        - Key: "Name"
-          Value: "SharedPrivateNoInternet1"
 
   PrivateSubnetWithoutInternetTwo:
     Type: AWS::EC2::Subnet
@@ -141,9 +137,6 @@ Resources:
         Fn::Select:
           - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
-      Tags:
-        - Key: "Name"
-          Value: "SharedPrivateNoInternet2"
 
   PrivateSubnetWithoutInternetThree:
     Type: AWS::EC2::Subnet
@@ -152,11 +145,8 @@ Resources:
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet3', 'CIDR']
       AvailabilityZone:
         Fn::Select:
-          - 2
+          - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
-      Tags:
-        - Key: "Name"
-          Value: "SharedPrivateNoInternet3"
 
   PrivateSubnetWithInternet01:
     Type: AWS::EC2::Subnet
@@ -180,9 +170,6 @@ Resources:
         Fn::Select:
           - 1
           - Fn::GetAZs: {Ref: 'AWS::Region'}
-      Tags:
-        - Key: "Name"
-          Value: "SharedPrivateWithInternet2"
 
   PrivateSubnetWithInternet03:
     Type: AWS::EC2::Subnet
@@ -193,9 +180,6 @@ Resources:
         Fn::Select:
           - 2
           - Fn::GetAZs: { Ref: 'AWS::Region' }
-      Tags:
-        - Key: "Name"
-          Value: "SharedPrivateWithInternet3"
 
   PrivateSubnetWithInternet01RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -275,3 +259,22 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetTwo
       RouteTableId: !Ref PublicRouteTable
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PrivateSubnetWithoutInternetOneRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetOne
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithoutInternetTwoRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetTwo
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetWithoutInternetThreeRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetWithoutInternetThree
+      RouteTableId: !Ref PrivateRouteTable

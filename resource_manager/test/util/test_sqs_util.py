@@ -199,3 +199,14 @@ class TestSQSUtil(unittest.TestCase):
             QueueUrl=SQS_QUEUE_URL, AttributeNames=['Policy']
         )
         self.assertEqual({}, policy)
+
+    def test_purge_queue_raise_error(self):
+        self.mock_sqs_service.purge_queue.side_effect = \
+            ClientError({'Error': {'Code': 'SomeDifferentCode'}}, "")
+        self.assertRaises(Exception, sqs_utils.purge_queue, self.session_mock, SQS_QUEUE_URL)
+
+    def test_purge_queue_continue_loop(self):
+        self.mock_sqs_service.purge_queue.side_effect = [
+            ClientError({'Error': {'Code': 'AWS.SimpleQueueService.PurgeQueueInProgress'}}, ""),
+            {}]
+        sqs_utils.purge_queue(self.session_mock, SQS_QUEUE_URL, purge_queue_duration=1)

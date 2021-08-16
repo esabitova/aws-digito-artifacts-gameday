@@ -18,7 +18,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for ApplicationELB and related resources. Contains all alarms
 Outputs:
-  ApplicationELB:
+  ApplicationELBArn:
     Description: The Application Elastic Load Balancer
     Value: !Ref ApplicationELB
   ApplicationELBUrl:
@@ -36,6 +36,9 @@ Outputs:
   UnhealthyTargetFullName:
     Description: Unhealthy target group full name
     Value: !GetAtt UnhealthyTargetGroupLambda.TargetGroupFullName
+  HealthyTargetFullName:
+    Description: Healthy target group full name
+    Value: !GetAtt ProxyLambdaTargetGroupForHealthCheck.TargetGroupFullName
 Parameters:
   VPC:
     Type: String
@@ -43,17 +46,20 @@ Parameters:
   Subnet1:
     Type: String
     Description: Subnet ID
-  Subnet1Cidr:
+  VPCCidr:
     Type: String
     Description: Subnet CIDR
   Subnet2:
     Type: String
     Description: Subnet ID
+  Subnet3:
+    Type: String
+    Description: Subnet ID
 Resources:
-  ALBSecurityGroup:
+  LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "security group for ALB"
+      GroupDescription: "ALB security group"
       GroupName: !Join
         - "-"
         - - "ALB-SG"
@@ -68,23 +74,23 @@ Resources:
                   - !Ref "AWS::StackId"
       VpcId: !Ref VPC
       SecurityGroupEgress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !Ref VPCCidr
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
       SecurityGroupIngress:
-        - CidrIp: "0.0.0.0/0"
+        - CidrIp: !Ref VPCCidr
           FromPort: 80
           ToPort: 80
           IpProtocol: "tcp"
 
-  LambdaSecurityGroup:
+  ProxyLambdaSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Lambda security group"
+      GroupDescription: "Proxy Lambda security group"
       GroupName: !Join
         - "-"
-        - - "Lambda-SG"
+        - - "ProxyLambdaSG"
           - !Select
             - 0
             - !Split
@@ -99,12 +105,40 @@ Resources:
         - IpProtocol: tcp
           FromPort: 0
           ToPort: 65535
-          CidrIp: !Ref Subnet1Cidr
+          CidrIp: !Ref VPCCidr
       SecurityGroupEgress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
-          CidrIp: !Ref Subnet1Cidr
+          CidrIp: !Ref VPCCidr
+
+  TargetLambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Target Lambda security group"
+      GroupName: !Join
+        - "-"
+        - - "TargetLambdaSG"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: !Ref VPCCidr
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref VPCCidr
 
   ApplicationELB:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
@@ -113,11 +147,13 @@ Resources:
       Scheme: 'internal'
       Type: 'application'
       Subnets:
-        - !Ref Subnet1
         - !Ref Subnet2
+        - !Ref Subnet3
       SecurityGroups:
-        - !Ref ALBSecurityGroup
-
+        - !Ref LoadBalancerSG
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "3"
   HTTPListener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
@@ -182,6 +218,23 @@ Resources:
       ListenerArn: !Ref HTTPListener
       Priority: 3
 
+  ListenerProxyLambda:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref ProxyLambdaTargetGroupForHealthCheck
+                Weight: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/invoke_proxy_lambda*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 4
+
   AlwaysOKAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -196,7 +249,6 @@ Resources:
       Threshold: 100
       TreatMissingData: notBreaching
 
-  # Lambda resources
   LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -207,13 +259,9 @@ Resources:
       ReservedConcurrentExecutions: 2
       VpcConfig:
         SubnetIds:
-          - !Ref Subnet1
+          - !Ref Subnet2
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
-      Environment:
-        Variables:
-          Host: 'test'
-          Path: 'test_path'
+          - !Ref TargetLambdaSG
       Code:
         ZipFile: >
           import logging
@@ -228,6 +276,9 @@ Resources:
               log.debug(f'Path: {path}')
               if path == '/unhealthy_ping_invoke_lambda':
                   return { "statusCode": 500 }
+              elif path == '/invoke_lambda/healthy_ping':
+                  return { "statusCode": 200, "body": "healthy response 200",
+                           "headers": {"Content-Type": "text/plain"} }
               elif path == '/invoke_lambda/trigger_error':
                   raise ValueError('Internal error trigger exception.')
               elif path == '/invoke_lambda/response503':
@@ -245,14 +296,6 @@ Resources:
       FunctionName: !Ref LambdaFunction
       Description: v1
 
-  LambdaActualAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref LambdaFunction
-      FunctionVersion: !GetAtt LambdaVersion.Version
-      Name: actual
-
-  # Lambda resources
   ProxyLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -265,11 +308,10 @@ Resources:
         SubnetIds:
           - !Ref Subnet1
         SecurityGroupIds:
-          - !Ref LambdaSecurityGroup
+          - !Ref ProxyLambdaSG
       Environment:
         Variables:
-          Host: 'test'
-          Path: 'test_path'
+          Host: !GetAtt ApplicationELB.DNSName
       Code:
         ZipFile: >
           import http.client
@@ -291,13 +333,16 @@ Resources:
           log.setLevel(logging.DEBUG)
 
           def lambda_handler(event, context):
-            host = event['host'] if 'host' in event else getenv('Host')
+            host = event['host'] if 'host' in event else getenv('Host', 'localhost')
             path = event['path'] if 'path' in event else getenv('Path', '/')
-            request_interval = event['request_interval'] if 'interval' in event else getenv('RequestInterval', 10)
+            request_interval = event['request_interval'] if 'request_interval' in event else getenv('RequestInterval', 5)
             request_count = event['request_count'] if 'request_count' in event else getenv('RequestCount', 1)
             request_count = int(request_count)
             request_interval = int(request_interval)
             method = 'GET'
+
+            latest_status = ''
+            latest_body = ''
 
             log.debug(f'Ip: {gethostbyname(host)}, Host: {host}, Path: {path}, Method: {method}')
             log.debug(f'Count: {request_count}, Interval: {request_interval}')
@@ -308,25 +353,27 @@ Resources:
                     connection.request(method, path)
                     response = connection.getresponse()
                     log.info(f'Status: {response.status}, Reason: {response.reason}, Body: {response.read()}')
+                    latest_status = response.status
+                    latest_body = response.read()
                     sleep(request_interval)
                 except Exception as e:
                     log.warning(f'Exception: {e}')
                 finally:
                     connection.close()
                     request_count -= 1
+            return {
+                "statusCode": latest_status,
+                "headers": {
+                    "Content-Type": "text/plain"
+                },
+                "body": latest_body
+            }
 
   ProxyLambdaVersion:
     Type: AWS::Lambda::Version
     Properties:
       FunctionName: !Ref ProxyLambdaFunction
       Description: v1
-
-  ProxyLambdaActualAlias:
-    Type: AWS::Lambda::Alias
-    Properties:
-      FunctionName: !Ref ProxyLambdaFunction
-      FunctionVersion: !GetAtt ProxyLambdaVersion.Version
-      Name: proxy_actual
 
   LambdaRole:
     Type: AWS::IAM::Role
@@ -381,8 +428,19 @@ Resources:
       Action: 'lambda:InvokeFunction'
       Principal: elasticloadbalancing.amazonaws.com
 
+  TargetLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt
+        - ProxyLambdaFunction
+        - Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: elasticloadbalancing.amazonaws.com
+
   TargetGroupLambda:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn:
+      - LambdaInvokePermission
     Properties:
       HealthCheckEnabled: false
       Name: LambdaTargets
@@ -392,6 +450,8 @@ Resources:
 
   UnhealthyTargetGroupLambda:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn:
+      - LambdaInvokePermission
     Properties:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 11
@@ -404,3 +464,20 @@ Resources:
       TargetType: lambda
       Targets:
         - Id: !GetAtt "LambdaFunction.Arn"
+
+  ProxyLambdaTargetGroupForHealthCheck:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn:
+      - TargetLambdaInvokePermission
+    Properties:
+      HealthCheckEnabled: true
+      HealthCheckIntervalSeconds: 11
+      HealthCheckPath: "/invoke_lambda/healthy_ping"
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      Matcher:
+        HttpCode: "200"
+      Name: HealthCheckProxyTargetGroup
+      TargetType: lambda
+      Targets:
+        - Id: !GetAtt "ProxyLambdaFunction.Arn"

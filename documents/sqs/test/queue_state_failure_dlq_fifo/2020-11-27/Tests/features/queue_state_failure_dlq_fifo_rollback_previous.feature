@@ -13,8 +13,6 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And cache redrive policy as "RedrivePolicy" "before" SSM automation execution
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
@@ -64,8 +62,6 @@ Feature: SSM automation document to test behavior of FIFO queue after receiving 
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution
       | QueueUrl                                         |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |
-    # only one PurgeQueue is allowed during 60 seconds
-    And sleep for "60" seconds
     And purge the queue
       | QueueUrl                                             |
       | {{cfn-output:SqsTemplate>SqsFifoQueueEnabledDlqUrl}} |

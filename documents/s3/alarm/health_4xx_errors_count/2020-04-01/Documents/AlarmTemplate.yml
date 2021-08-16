@@ -23,5 +23,5 @@ Resources:
       ExtendedStatistic: p80
       Threshold: ${Threshold}
       ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
+      TreatMissingData: notBreaching
       Unit: Count

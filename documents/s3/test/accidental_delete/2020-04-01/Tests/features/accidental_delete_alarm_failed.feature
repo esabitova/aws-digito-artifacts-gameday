@@ -37,7 +37,8 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
     And get the "0.txt" object from bucket "20" times
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
-    And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "AssertAlarmToBeGreen" in status "InProgress"
+    # The alarm will be back in OK state after successful retrievals of the S3 object
+    And Wait for the SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution is on step "AssertAlarmToBeGreen" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And SSM automation document "Digito-AccidentalDeleteS3Objects_2020-04-01" execution in status "TimedOut"
