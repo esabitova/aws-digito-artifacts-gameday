@@ -40,7 +40,6 @@ class TestRdsUtil(unittest.TestCase):
 
     def test_get_instance(self):
         instance_id = 'db-instance-1'
-        # boto3_session = boto3.Session()
         self.mock_rds_service.describe_db_instances.return_value = {
             'DBInstances': [{
                 'DBInstanceIdentifier': 'db-instance-1',
@@ -50,8 +49,17 @@ class TestRdsUtil(unittest.TestCase):
                                                         592000)
             }]
         }
-        instance = rds_util.get_db_instance_by_id(instance_id,
-                                                  self.session_mock)
-        self.assertEqual(datetime.datetime(2021, 7, 28, 7, 57, 12,
-                                           592000),
-                         instance['InstanceCreateTime'])
+        instance = rds_util.get_db_instance_by_id(instance_id, self.session_mock)
+        self.assertEqual(datetime.datetime(2021, 7, 28, 7, 57, 12, 592000), instance['InstanceCreateTime'])
+
+    def test_delete_db_instance_async_success(self):
+        instance_id = 'db-instance-1'
+        rds_util.delete_db_instance(self.session_mock, instance_id, async_mode=True)
+        self.mock_rds_service.delete_db_instance.assert_called_once()
+        self.mock_rds_service.get_waiter.assert_not_called()
+
+    def test_delete_db_instance_success(self):
+        instance_id = 'db-instance-1'
+        rds_util.delete_db_instance(self.session_mock, instance_id, async_mode=False)
+        self.mock_rds_service.delete_db_instance.assert_called_once()
+        self.mock_rds_service.get_waiter.assert_called_once()

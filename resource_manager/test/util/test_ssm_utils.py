@@ -112,3 +112,28 @@ class TestSSMUtils(unittest.TestCase):
         ssm_utils.send_step_approval(self.session_mock, execution_id, is_approved=False)
         self.mock_ssm_service.send_automation_signal.assert_called_once_with(AutomationExecutionId=execution_id,
                                                                              SignalType='Reject')
+
+    def test_get_ssm_step_inputs_success(self):
+        execution_id = '853c30b0-6079-4c2a-837f-f006ef593297'
+        test_db_instance = 'test_db_instance'
+        step_name = 'RenamePreviousDatabaseToOld'
+        self.mock_ssm_service.get_automation_execution.return_value = {'AutomationExecution': {
+            'StepExecutions': [{
+                'StepName': step_name,
+                'Inputs': {'NewDBInstanceIdentifier': test_db_instance}
+            }]
+        }}
+        step_inputs = ssm_utils.get_ssm_step_inputs(self.session_mock, execution_id, step_name)
+        self.assertEqual(test_db_instance, step_inputs['NewDBInstanceIdentifier'])
+
+    def test_get_ssm_step_inputs_step_not_found_fail(self):
+        execution_id = 'test_execution_id'
+        test_db_instance = 'test_db_instance'
+        step_name = 'NotExistingStepName'
+        self.mock_ssm_service.get_automation_execution.return_value = {'AutomationExecution': {
+            'StepExecutions': [{
+                'StepName': 'RenamePreviousDatabaseToOld',
+                'Inputs': {'NewDBInstanceIdentifier': test_db_instance}
+            }]
+        }}
+        self.assertRaises(Exception, ssm_utils.get_ssm_step_inputs, self.session_mock, execution_id, step_name)
