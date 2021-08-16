@@ -5,7 +5,7 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet                                             | EC2Subnet                                      | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                  | SHARED       |                          |                                                    |                                                |                            |
-      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>VPCCidr}} |
+      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>VPCCidr}} |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml         | SHARED       |                          |                                                    |                                                |                            |
     When alarm "elb:alarm:gateway_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | TargetGroup                                            | Threshold | EvaluationPeriods | DatapointsToAlarm |
@@ -18,7 +18,7 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                            | ResourceType | VPC                      | Subnet                                             | EC2Subnet                                      | VPCCidr                    |
       | resource_manager/cloud_formation_templates/shared/VPC.yml                  | SHARED       |                          |                                                    |                                                |                            |
-      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>PrivateSubnetWithNATGateway}} | {{cfn-output:VPC>VPCCidr}} |
+      | resource_manager/cloud_formation_templates/GatewayLoadBalancerTemplate.yml | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PrivateSubnetWithoutInternetOne}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>VPCCidr}} |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml         | SHARED       |                          |                                                    |                                                |                            |
     When alarm "elb:alarm:gateway_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | GatewayLoadBalancerName                                       | TargetGroup                                            | Threshold | EvaluationPeriods | DatapointsToAlarm |
