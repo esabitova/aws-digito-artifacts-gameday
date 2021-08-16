@@ -197,6 +197,7 @@ def get_usage_plan(
     usage_plan = apigw_client.get_usage_plan(usagePlanId=usage_plan_id)
 
     if stage_name:
+        stage_found = False
         for stage in usage_plan['apiStages']:
             if stage['apiId'] == gateway_id and stage['stage'] == stage_name:
                 stage_found = True

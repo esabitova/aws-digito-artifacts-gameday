@@ -272,6 +272,47 @@ class TestApiGwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(test_apigw_utils.USAGE_PLAN_STAGE_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(test_apigw_utils.USAGE_PLAN_STAGE_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_LIMIT, output['QuotaLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_PERIOD, output['QuotaPeriod'])
+
+    def test_get_usage_plan_with_provided_wrong_stage_name(self):
+        with pytest.raises(KeyError) as exception_info:
+            apigw_utils.get_usage_plan(
+                self.session_mock,
+                test_apigw_utils.USAGE_PLAN_ID,
+                test_apigw_utils.REST_API_GW_ID,
+                'WrongStageName'
+            )
+
+        self.assertTrue(exception_info.match('.*'))
+
+    def test_get_usage_plan_with_provided_stage_name_and_unknown_resource_path(self):
+        output = apigw_utils.get_usage_plan(
+            self.session_mock,
+            test_apigw_utils.USAGE_PLAN_ID,
+            test_apigw_utils.REST_API_GW_ID,
+            test_apigw_utils.REST_API_GW_STAGE_NAME,
+            resource_path='UnknownResourcePath'
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_LIMIT, output['QuotaLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_PERIOD, output['QuotaPeriod'])
+
+    def test_get_usage_plan_with_provided_stage_name_and_unknown_method(self):
+        output = apigw_utils.get_usage_plan(
+            self.session_mock,
+            test_apigw_utils.USAGE_PLAN_ID,
+            test_apigw_utils.REST_API_GW_ID,
+            test_apigw_utils.REST_API_GW_STAGE_NAME,
+            http_method='UnknownMethod'
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_LIMIT, output['QuotaLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_PERIOD, output['QuotaPeriod'])
 
     def test_get_usage_plan_without_provided_stage_name(self):
         output = apigw_utils.get_usage_plan(
@@ -282,3 +323,59 @@ class TestApiGwUtil(unittest.TestCase):
         self.assertIsNotNone(output)
         self.assertEqual(test_apigw_utils.USAGE_PLAN_THROTTLE_RATE_LIMIT, output['RateLimit'])
         self.assertEqual(test_apigw_utils.USAGE_PLAN_THROTTLE_BURST_LIMIT, output['BurstLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_LIMIT, output['QuotaLimit'])
+        self.assertEqual(test_apigw_utils.USAGE_PLAN_QUOTA_PERIOD, output['QuotaPeriod'])
+
+    @patch('time.sleep')
+    def test_set_quota_settings(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        self.mock_apigw.get_usage_plan.side_effect = [
+            test_apigw_utils.get_sample_get_usage_plan_response(
+                quota_limit=test_apigw_utils.USAGE_PLAN_QUOTA_LIMIT,
+                quota_period=test_apigw_utils.USAGE_PLAN_QUOTA_PERIOD
+            ),
+            test_apigw_utils.get_sample_get_usage_plan_response(
+                quota_limit=test_apigw_utils.NEW_USAGE_PLAN_QUOTA_LIMIT,
+                quota_period=test_apigw_utils.NEW_USAGE_PLAN_QUOTA_PERIOD
+            ),
+        ]
+        output = apigw_utils.set_quota_settings(
+            session=self.session_mock,
+            usage_plan_id=test_apigw_utils.USAGE_PLAN_ID,
+            quota_limit=test_apigw_utils.NEW_USAGE_PLAN_QUOTA_LIMIT,
+            quota_period=test_apigw_utils.NEW_USAGE_PLAN_QUOTA_PERIOD
+        )
+        self.mock_apigw.update_usage_plan.assert_called_with(
+            usagePlanId=USAGE_PLAN_ID,
+            patchOperations=[
+                {
+                    'op': 'replace',
+                    'path': '/quota/limit',
+                    'value': str(test_apigw_utils.NEW_USAGE_PLAN_QUOTA_LIMIT)
+                },
+                {
+                    'op': 'replace',
+                    'path': '/quota/period',
+                    'value': test_apigw_utils.NEW_USAGE_PLAN_QUOTA_PERIOD
+                }
+            ]
+        )
+        self.assertIsNotNone(output)
+        self.assertEqual(test_apigw_utils.NEW_USAGE_PLAN_QUOTA_LIMIT, output['QuotaLimit'])
+        self.assertEqual(test_apigw_utils.NEW_USAGE_PLAN_QUOTA_PERIOD, output['QuotaPeriod'])
+
+    @patch('time.sleep')
+    def test_wait_quota_settings_updated_timeout(self, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        with pytest.raises(TimeoutError) as exception_info:
+            apigw_utils.wait_quota_settings_updated(
+                session=self.session_mock,
+                usage_plan_id=test_apigw_utils.USAGE_PLAN_ID,
+                expected_quota_limit=test_apigw_utils.NEW_USAGE_PLAN_QUOTA_LIMIT,
+                expected_quota_period=test_apigw_utils.NEW_USAGE_PLAN_QUOTA_PERIOD,
+                max_retries=3
+            )
+
+        self.assertTrue(exception_info.match('.*'))
