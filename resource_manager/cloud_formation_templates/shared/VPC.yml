@@ -145,7 +145,7 @@ Resources:
       CidrBlock: !FindInMap ['SubnetConfig', 'PrivateNoInternet3', 'CIDR']
       AvailabilityZone:
         Fn::Select:
-          - 1
+          - 2
           - Fn::GetAZs: {Ref: 'AWS::Region'}
 
   PrivateSubnetWithInternet01:
