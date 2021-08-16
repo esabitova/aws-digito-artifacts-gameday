@@ -195,6 +195,27 @@ Resources:
       RedrivePolicy:
         deadLetterTargetArn: !GetAtt SqsDlqForStandardQueue.Arn
         maxReceiveCount: !Ref SqsQueueRedrivePolicyMaxReceiveCount
+  SqsStandardQueuePolicy:
+    Type: "AWS::SQS::QueuePolicy"
+    Properties:
+      Queues:
+        - !Ref SqsStandardQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: !GetAtt SqsStandardQueue.QueueName
+        Statement:
+          - Sid: Allow-Send-Recieve-Delete
+            Effect: Allow
+            Action:
+              - SQS:SendMessage
+              - SQS:ReceiveMessage
+              - SQS:DeleteMessage
+            Principal:
+              Service:
+                - ssm.amazonaws.com
+              AWS:
+                - !Ref "AWS::AccountId"
+            Resource: !GetAtt SqsStandardQueue.Arn
   SqsDlqForStandardQueue:
     Type: "AWS::SQS::Queue"
     Properties:

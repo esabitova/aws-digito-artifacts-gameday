@@ -16,7 +16,7 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for DocumentDb
+Description: Test stack for DocumentDb with Canary
 Outputs:
   DBClusterIdentifier:
     Value: !Ref DBCluster
@@ -33,59 +33,35 @@ Outputs:
   EngineVersion:
     Value: "4.0.0"
   DatabaseConnectionAttemptAlarmName:
-    Condition: CreateCanary
     Value: !Ref DatabaseConnectionAttemptAlarm
   VPCSecurityGroupId:
     Value: !Ref VPCSecurityGroup
   DocumentDbConnectionAttemptCanaryName:
-    Condition: CreateCanary
     Value: !Ref DocumentDbConnectionAttemptCanary
 Parameters:
   DBInstanceClass:
     Description: "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
     Type: "String"
     Default: "db.t3.medium"
-    AllowedValues:
-      - db.t3.medium
-      - db.r5.large
-      - db.r5.xlarge
-      - db.r5.2xlarge
-      - db.r5.4xlarge
-      - db.r5.12xlarge
-      - db.r5.24xlarge
-    ConstraintDescription: "Instance type must be of the ones supported for the region. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
+  VPC:
+    Type: String
+    Description: VPC ID
   VPCCIDR:
     Type: String
     Description: IP Address range for the VPC
     MinLength: '9'
     MaxLength: '18'
-    Default: 10.12.0.0/16
     AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
     ConstraintDescription: Valid IP CIDR range of the form x.x.x.x/x.
-  PrivateSubnet01CIDR:
+  PrivateSubnet01:
     Type: String
-    Description: IP Address range for private subnet 1
-    MinLength: '9'
-    MaxLength: '18'
-    Default: 10.12.0.0/24
-    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
-    ConstraintDescription: Valid IP CIDR range of the form x.x.x.x/x.
-  PrivateSubnet02CIDR:
+    Description: PrivateSubnet ID
+  PrivateSubnet02:
     Type: String
-    Description: IP Address range for private subnet 2
-    MinLength: '9'
-    MaxLength: '18'
-    Default: 10.12.1.0/24
-    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
-    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
-  PublicSubnet01CIDR:
+    Description: PrivateSubnet ID
+  PrivateSubnet03:
     Type: String
-    Description: IP Address range for public subnet 1
-    MinLength: '9'
-    MaxLength: '18'
-    Default: 10.12.2.0/24
-    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
-    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+    Description: PrivateSubnet ID
   DbClusterPort:
     Type: Number
     Description: DocDb cluster port
@@ -93,24 +69,24 @@ Parameters:
   DocumentDbConnectionAttemptCanaryS3Bucket:
     Type: String
     Description: S3 bucket for distribution package
-    Default: ""
   DocumentDbConnectionAttemptCanaryS3Key:
     Type: String
     Description: S3 key for distribution package
-    Default: ""
   DocumentDbConnectionAttemptCanaryS3ObjectVersion:
     Type: String
     Description: S3 object version for distribution packasdagesdfsasmnbasdnbasdasdasd
     Default: ""
+  CleanupS3BucketLambdaArn:
+    Description: ARN of Cleanup S3 Bucket Lambda Function
+    Type: String
+  CleanupCanaryLambdaArn:
+    Description: ARN of Cleanup Canary Lambda Function
+    Type: String
   KmsKey:
     Type: String
     Description: The ARN for KMS key for encryption
     AllowedPattern: 'arn:aws:kms:\S+:\d+:key\/\S+'
 Conditions:
-  CreateCanary: !Not
-    - !Equals
-      - !Ref DocumentDbConnectionAttemptCanaryS3Key
-      - ""
   CanaryS3ObjectHasVersion: !Not
     - !Equals
       - !Ref DocumentDbConnectionAttemptCanaryS3ObjectVersion
@@ -125,48 +101,12 @@ Resources:
         GenerateStringKey: "password"
         PasswordLength: 16
         ExcludeCharacters: "\"@/\\"
-  VPC:
-    Type: 'AWS::EC2::VPC'
-    Properties:
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      CidrBlock:
-        Ref: VPCCIDR
-  PrivateSubnet01:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: PrivateSubnet01CIDR
-      AvailabilityZone: !Select
-        - "0"
-        - !GetAZs ""
-  PrivateSubnet02:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: PrivateSubnet02CIDR
-      AvailabilityZone: !Select
-        - "1"
-        - !GetAZs ""
-  PublicSubnet01:
-    Type: 'AWS::EC2::Subnet'
-    Properties:
-      VpcId:
-        Ref: VPC
-      CidrBlock:
-        Ref: PublicSubnet01CIDR
-      AvailabilityZone: !Select
-        - "0"
-        - !GetAZs ""
+
   VPCSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: VPC Security Group of DocumentDB cluster for Digito scenarios
-      SecurityGroupEgress: [ ]
+      SecurityGroupEgress: []
       SecurityGroupIngress:
         - CidrIp:
             Ref: VPCCIDR
@@ -184,11 +124,12 @@ Resources:
             Ref: DbClusterPort
       VpcId:
         Ref: VPC
+
   DBCluster:
     Type: "AWS::DocDB::DBCluster"
     DeletionPolicy: Delete
     Properties:
-      DBClusterIdentifier: !Join # Make it shorter since the limit is 63 symbols
+      DBClusterIdentifier: !Join
         - "-"
         - - "dbcluster"
           - !Select
@@ -216,6 +157,8 @@ Resources:
       SubnetIds:
         - !Ref PrivateSubnet01
         - !Ref PrivateSubnet02
+        - !Ref PrivateSubnet03
+
   DBInstancePrimary:
     Type: "AWS::DocDB::DBInstance"
     Properties:
@@ -235,6 +178,7 @@ Resources:
                   - "/"
                   - !Ref "AWS::StackId"
       DBInstanceClass: !Ref DBInstanceClass
+
   DBInstanceReplica:
     Type: "AWS::DocDB::DBInstance"
     Properties:
@@ -255,406 +199,9 @@ Resources:
                   - !Ref "AWS::StackId"
       DBInstanceClass: !Ref DBInstanceClass
     DependsOn: DBInstancePrimary
-  HighVolumeReadIOPSAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
-      ActionsEnabled: false
-      Metrics:
-        - Expression: "ANOMALY_DETECTION_BAND(m1, 2)"
-          Id: ad1
-        - MetricStat:
-            Metric:
-              MetricName: VolumeReadIOPs
-              Namespace: AWS/DocDB
-              Dimensions:
-                - Name: DBClusterIdentifier
-                  Value: !Ref DBCluster
-            Period: 300
-            Stat: Average
-          Id: m1
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      ThresholdMetricId: ad1
-      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
-      TreatMissingData: missing
-  HighVolumeWriteIOPSAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:usage-high_volume_read_iops:2020-04-01"
-      ActionsEnabled: false
-      Metrics:
-        - Expression: "ANOMALY_DETECTION_BAND(m1, 2)"
-          Id: ad1
-        - MetricStat:
-            Metric:
-              MetricName: VolumeWriteIOPs
-              Namespace: AWS/DocDB
-              Dimensions:
-                - Name: DBClusterIdentifier
-                  Value: !Ref DBCluster
-            Period: 300
-            Stat: Average
-          Id: m1
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      ThresholdMetricId: ad1
-      ComparisonOperator: LessThanLowerOrGreaterThanUpperThreshold
-      TreatMissingData: missing
-  HighVolumeSizeAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:usage-volume_bytes_used:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBClusterIdentifier
-          Value: !Ref DBCluster
-      MetricName: VolumeBytesUsed
-      Namespace: AWS/DocDB
-      Period: 300
-      Statistic: Maximum
-      Threshold: 1099511627776
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  LowMemoryDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: FreeableMemory
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 157286400
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: LessThanOrEqualToThreshold
-      TreatMissingData: missing
-  LowMemoryDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-freeable_memory:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: FreeableMemory
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 157286400
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: LessThanOrEqualToThreshold
-      TreatMissingData: missing
-  LowStorageAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-storage:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBClusterIdentifier
-          Value: !Ref DBCluster
-      MetricName: FreeLocalStorage
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 10
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: LessThanOrEqualToThreshold
-      TreatMissingData: missing
-  OverUtilizedCPUDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: CPUUtilization
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 90
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
-  OverUtilizedCPUDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-cpu:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: CPUUtilization
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 90
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: missing
-  ConnectionSpikeDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
-      ActionsEnabled: false
-      Metrics:
-        - Expression: "ANOMALY_DETECTION_BAND(m1, 1)"
-          Id: ad1
-        - MetricStat:
-            Metric:
-              MetricName: DatabaseConnections
-              Namespace: AWS/DocDB
-              Dimensions:
-                - Name: DBInstanceIdentifier
-                  Value: !Ref DBInstancePrimary
-            Period: 60
-            Stat: Maximum
-          Id: m1
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ThresholdMetricId: ad1
-      ComparisonOperator: GreaterThanUpperThreshold
-      TreatMissingData: missing
-  ConnectionSpikeDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-connections:2020-04-01"
-      ActionsEnabled: false
-      Metrics:
-        - Expression: "ANOMALY_DETECTION_BAND(m1, 1)"
-          Id: ad1
-        - MetricStat:
-            Metric:
-              MetricName: DatabaseConnections
-              Namespace: AWS/DocDB
-              Dimensions:
-                - Name: DBInstanceIdentifier
-                  Value: !Ref DBInstancePrimary
-            Period: 60
-            Stat: Maximum
-          Id: m1
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ThresholdMetricId: ad1
-      ComparisonOperator: GreaterThanUpperThreshold
-      TreatMissingData: missing
-  SwapUsedDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: SwapUsage
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 10485760
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  SwapUsedDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-swap_usage:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: SwapUsage
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 10485760
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighReadLatencyDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: ReadLatency
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 1
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighReadLatencyDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-read_latency:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: ReadLatency
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 1
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighWriteLatencyDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: WriteLatency
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 1
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighWriteLatencyDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-write_latency:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: WriteLatency
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 1
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighDiskQueueDepthDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: DiskQueueDepth
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 3
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighDiskQueueDepthDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-disk_queue_depth:2020-04-01"
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: DiskQueueDepth
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 3
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  LowCPUCreditBalanceDBInstancePrimaryAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstancePrimary
-      MetricName: CPUCreditBalance
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 10
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      ComparisonOperator: LessThanOrEqualToThreshold
-      TreatMissingData: missing
-  LowCPUCreditBalanceDBInstanceReplicaAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:health-cpu_credit_balance:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: CPUCreditBalance
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Minimum
-      Threshold: 10
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      ComparisonOperator: LessThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighReplicaLagAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:recovery-replica_lag:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBInstanceIdentifier
-          Value: !Ref DBInstanceReplica
-      MetricName: DBInstanceReplicaLag
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 10000
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
-  HighReplicaLagMaximumAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "docdb:alarm:recovery-cluster_replica_lag:2020-04-01"
-      ActionsEnabled: false
-      Dimensions:
-        - Name: DBClusterIdentifier
-          Value: !Ref DBCluster
-      MetricName: DBClusterReplicaLagMaximum
-      Namespace: AWS/DocDB
-      Period: 60
-      Statistic: Maximum
-      Threshold: 10000
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 3
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      TreatMissingData: missing
+
   DocumentDbConnectionAttemptCanary:
     Type: "AWS::Synthetics::Canary"
-    Condition: CreateCanary
     Properties:
       Name: !Join
         - "-"
@@ -695,11 +242,11 @@ Resources:
       FailureRetentionPeriod: 5
       ArtifactS3Location:
         !Join [
-            "",
+        "",
           [
-              "s3://",
-              !Ref S3BucketForCanaryLogs,
-              "/"
+            "s3://",
+            !Ref S3BucketForCanaryLogs,
+            "/"
           ],
         ]
       RuntimeVersion: syn-python-selenium-1.0
@@ -710,9 +257,9 @@ Resources:
         SubnetIds:
           - Ref: PrivateSubnet01
         VpcId: !Ref VPC
+
   DatabaseConnectionAttemptAlarm:
     Type: "AWS::CloudWatch::Alarm"
-    Condition: CreateCanary
     Properties:
       ActionsEnabled: false
       MetricName: "Failed"
@@ -727,9 +274,9 @@ Resources:
       Threshold: 0
       ComparisonOperator: "GreaterThanThreshold"
       TreatMissingData: "notBreaching"
+
   RoleDocumentDbConnectionAttempt:
     Type: AWS::IAM::Role
-    Condition: CreateCanary
     Properties:
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -739,9 +286,9 @@ Resources:
               Service: lambda.amazonaws.com
             Action:
               - sts:AssumeRole
+
   PolicyDocumentDbConnectionAttempt:
     Type: AWS::IAM::Policy
-    Condition: CreateCanary
     Properties:
       PolicyName: PolicyDocumentDbConnectionAttempt
       PolicyDocument:
@@ -759,10 +306,14 @@ Resources:
               - ec2:CreateNetworkInterface
       Roles:
         - Ref: RoleDocumentDbConnectionAttempt
+
   S3BucketForCanaryLogs:
     Type: AWS::S3::Bucket
-    Condition: CreateCanary
     Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
         - - "canary-logs-digito"
@@ -782,73 +333,19 @@ Resources:
         BlockPublicPolicy: true
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: aws:kms
-              KMSMasterKeyID:
-                !Ref KmsKey
 
-  PrivateSubnet01RouteTable:
-    Type: AWS::EC2::RouteTable
+  # To clean S3 buckets before deleting stack.
+  CleanupS3BucketsOnDelete:
+    Type: Custom::CleanupS3BucketsOnDelete
     Properties:
-      VpcId:
-        Ref: VPC
-      Tags:
-        - Key: Name
-          Value: private-subnet-01-route-table
-  PrivateSubnet01RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateSubnet01RouteTable
-      SubnetId: !Ref PrivateSubnet01
+      ServiceToken: !Ref CleanupS3BucketLambdaArn
+      BucketNames:
+        - !Ref S3BucketForCanaryLogs
 
-  PublicSubnet01RouteTable:
-    Type: AWS::EC2::RouteTable
+  # To clean canary before deleting stack.
+  CleanupCanaryOnDelete:
+    Type: Custom::CleanupCanaryOnDelete
     Properties:
-      VpcId:
-        Ref: VPC
-      Tags:
-        - Key: Name
-          Value: public-subnet-01-route-table
-  PublicSubnet01RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicSubnet01RouteTable
-      SubnetId: !Ref PublicSubnet01
-
-  NatGatewayEIP:
-    Type: 'AWS::EC2::EIP'
-    Properties:
-      Domain: vpc
-  NatGateway:
-    Type: 'AWS::EC2::NatGateway'
-    Properties:
-      AllocationId: !GetAtt NatGatewayEIP.AllocationId
-      SubnetId: !Ref PublicSubnet01
-      Tags:
-        - Key: Name
-          Value: canary-nat-gw
-  PrivateSubnet01RouteToNatGateway:
-    Type: 'AWS::EC2::Route'
-    Properties:
-      RouteTableId: !Ref PrivateSubnet01RouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
-      NatGatewayId: !Ref NatGateway
-  PublicSubnet01RouteTableToInernetGateway:
-    Type: 'AWS::EC2::Route'
-    Properties:
-      RouteTableId: !Ref PublicSubnet01RouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
-      GatewayId: !Ref InternetGateway
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: canary-igw
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref VPC
+      ServiceToken: !Ref CleanupCanaryLambdaArn
+      CanaryNames:
+        - !Ref DocumentDbConnectionAttemptCanary
