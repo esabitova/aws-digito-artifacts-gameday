@@ -77,9 +77,9 @@ Mappings:
     PrivateNoInternet2:
       CIDR: '10.0.3.0/24'
     PrivateNoInternet3:
-      CIDR: '10.0.4.0/24'
-    PrivateWithInternet01:
       CIDR: '10.0.5.0/24'
+    PrivateWithInternet01:
+      CIDR: '10.0.4.0/24'
     PrivateWithInternet02:
       CIDR: '10.0.6.0/24'
     PrivateWithInternet03:
