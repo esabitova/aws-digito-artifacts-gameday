@@ -1,5 +1,6 @@
 @s3 @integration @alarm
 Feature: Alarm Setup - S3 Bucket 4xx Errors
+
   Scenario: Create the alarm based on the 4xxErrors metric
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                             | ResourceType | CleanupS3BucketLambdaArn                                      |
