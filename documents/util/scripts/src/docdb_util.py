@@ -124,7 +124,7 @@ def restore_to_point_in_time(events, context):
         db_cluster = docdb.describe_db_clusters(
             DBClusterIdentifier=events['DBClusterIdentifier']
         )
-        if db_cluster['DBClusters']:
+        if 'DBClusters' in db_cluster:
             db_subnet_group = db_cluster['DBClusters'][0]['DBSubnetGroup']
         else:
             raise AssertionError(f'No db cluster found with id: {events["DBClusterIdentifier"]}')
@@ -274,7 +274,7 @@ def restore_db_cluster(events, context):
         db_cluster = docdb.describe_db_clusters(
             DBClusterIdentifier=events['DBClusterIdentifier']
         )
-        if db_cluster['DBClusters']:
+        if 'DBClusters' in db_cluster:
             db_subnet_group = db_cluster['DBClusters'][0]['DBSubnetGroup']
             db_sgs = [x['VpcSecurityGroupId'] for x in db_cluster['DBClusters'][0]['VpcSecurityGroups']]
         else:
