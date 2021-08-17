@@ -423,23 +423,6 @@ Resources:
       ListenerArn: !Ref HTTPListener
       Priority: 3
 
-  TargetTLSErrorRule:
-    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
-    Properties:
-      Actions:
-        - Type: forward
-          ForwardConfig:
-            TargetGroups:
-              - TargetGroupArn: !Ref EC2TargetGroup
-                Weight: 1
-      Conditions:
-        - Field: path-pattern
-          PathPatternConfig:
-            Values:
-              - "/target_tls_negotiation_error"
-      ListenerArn: !Ref HTTPListener
-      Priority: 4
-
   ListenerProxyLambda:
     Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
     Properties:
@@ -454,6 +437,23 @@ Resources:
           PathPatternConfig:
             Values:
               - "/invoke_proxy_lambda*"
+      ListenerArn: !Ref HTTPListener
+      Priority: 4
+
+  TargetTLSErrorRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+        - Type: forward
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref EC2TargetGroup
+                Weight: 1
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - "/target_tls_negotiation_error"
       ListenerArn: !Ref HTTPListener
       Priority: 5
 
