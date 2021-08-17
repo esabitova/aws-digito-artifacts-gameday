@@ -691,8 +691,10 @@ def verify_alarm_metrics_exist_with_inputs(input_parameters_table, alarm_manager
 
 @then(parse('assert metrics for all alarms are populated'))
 def verify_alarm_metrics_exist_defaults(alarm_manager):
-    # Set 900 secs by default because most alarms need more time to be triggered
-    verify_alarm_metrics_impl(900, 15, alarm_manager, {})
+    # Set 1200 secs by default because most alarms need more time to be triggered
+    # If the timeout is overreached 1200 secs then all asserts will be deleted from Cucumber feature file for an
+    # alarm based on agreement because it makes enourmously longer builds on CI`
+    verify_alarm_metrics_impl(1200, 15, alarm_manager, {})
 
 
 @then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '

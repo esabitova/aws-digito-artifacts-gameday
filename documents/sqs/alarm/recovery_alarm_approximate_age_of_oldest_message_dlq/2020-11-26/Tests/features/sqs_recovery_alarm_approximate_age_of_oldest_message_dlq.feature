@@ -15,7 +15,7 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
     And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 900 seconds, check every 15 seconds
 
   Scenario: Check age of the oldest message in DLQ - red
@@ -33,5 +33,5 @@ Feature: Alarm Setup - sqs ApproximateAgeOfOldestMessageDLQ
     And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsDlqForStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 900 seconds, check every 15 seconds

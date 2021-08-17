@@ -17,7 +17,7 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleFifo
     And receive "50" messages from queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    Then assert metrics for all alarms are populated within 600 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
 
   Scenario: Check Alarm by Digito that checks that amount of inflight messages is not reaching the quota for Fifo queue - red
@@ -37,5 +37,5 @@ Feature: Alarm Setup - sqs ThresholdApproximateNumberOfMessagesNotVisibleFifo
     And receive "5" messages from queue
       | QueueUrl                                   | VisibilityTimeout |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | 1800              |
-    Then assert metrics for all alarms are populated within 600 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 300 seconds, check every 15 seconds

@@ -11,7 +11,7 @@ Feature: Alarm Setup - redshift Cluster_Schema_PercentageQuotaUsed
     When alarm "redshift:alarm:percent_quota_used:2020-04-01" is installed
       | alarmId    | ClusterName                                 | DatabaseName                                 | SchemaName                                 | Threshold | EvaluationPeriods | DatapointsToAlarm | SNSTopicARN                       |
       | under_test | {{cfn-output:RedshiftTemplate>ClusterName}} | {{cfn-output:RedshiftTemplate>DatabaseName}} | {{cfn-output:RedshiftTemplate>SchemaName}} | 80        | 1                 | 1                 | {{cfn-output:SnsForAlarms>Topic}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
 
 
