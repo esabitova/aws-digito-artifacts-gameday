@@ -27,9 +27,6 @@ Outputs:
   TargetGroup:
     Description: TargetGroup name
     Value: !GetAtt GLBTargetGroup.TargetGroupFullName
-  TargetGroupArn:
-    Description: TargetGroup Arn
-    Value: !Ref GLBTargetGroup
 Parameters:
   VPC:
     Type: String
@@ -40,9 +37,6 @@ Parameters:
   Subnet:
     Type: String
     Description: Subnet ID
-  EC2Subnet:
-    Type: String
-    Description: Subnet ID for ec2
   InstanceType:
     Type: String
     Default: t3.small
@@ -124,7 +118,7 @@ Resources:
           GroupSet:
             - !Ref EC2SecurityGroup
           SubnetId:
-            Ref: EC2Subnet
+            Ref: Subnet
       Tenancy: default
       UserData:
         Fn::Base64: !Sub |
