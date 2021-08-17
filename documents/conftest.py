@@ -129,7 +129,7 @@ def canary_for_teardown(boto3_session, ssm_test_cache):
 @given(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
 @when(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
 @then(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
-def invoke_lambda_function_with_parameters(
+def invoke_lambda_function_async_with_parameters(
         boto3_session, resource_pool, cfn_output_params, ssm_test_cache, lambda_arn, input_parameters_table
 ):
     parameters = parse_str_table(input_parameters_table, False).rows

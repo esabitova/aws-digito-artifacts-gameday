@@ -39,6 +39,9 @@ Outputs:
   HealthyTargetFullName:
     Description: Healthy target group full name
     Value: !GetAtt ProxyLambdaTargetGroupForHealthCheck.TargetGroupFullName
+  LoadBalancerSecurityGroup:
+    Description: Security group id attached to load balancer
+    Value: !Ref LoadBalancerSG01
 Parameters:
   VPC:
     Type: String
@@ -125,13 +128,13 @@ Conditions:
   UseCustomSubnet: !Equals [!Ref EC2Subnet, ""]
 
 Resources:
-  LoadBalancerSG:
+  LoadBalancerSG01:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "ALB security group"
+      GroupDescription: "ALB security group 01"
       GroupName: !Join
         - "-"
-        - - "ALB-SG"
+        - - "ALB-SG-01"
           - !Select
             - 0
             - !Split
@@ -159,6 +162,62 @@ Resources:
         - CidrIp: !Ref VPCCidr
           FromPort: 443
           ToPort: 443
+          IpProtocol: "tcp"
+
+  LoadBalancerSG02:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ALB security group 02"
+      GroupName: !Join
+        - "-"
+        - - "ALB-SG-02"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - CidrIp: !Ref VPCCidr
+          FromPort: 82
+          ToPort: 82
+          IpProtocol: "tcp"
+      SecurityGroupIngress:
+        - CidrIp: !Ref VPCCidr
+          FromPort: 82
+          ToPort: 82
+          IpProtocol: "tcp"
+
+  LoadBalancerSG03:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ALB security group 03"
+      GroupName: !Join
+        - "-"
+        - - "ALB-SG-03"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - CidrIp: !Ref VPCCidr
+          FromPort: 83
+          ToPort: 83
+          IpProtocol: "tcp"
+      SecurityGroupIngress:
+        - CidrIp: !Ref VPCCidr
+          FromPort: 83
+          ToPort: 83
           IpProtocol: "tcp"
 
   ProxyLambdaSG:
@@ -256,7 +315,9 @@ Resources:
         - !Ref Subnet2
         - !Ref Subnet3
       SecurityGroups:
-        - !Ref LoadBalancerSG
+        - !Ref LoadBalancerSG01
+        - !Ref LoadBalancerSG02
+        - !Ref LoadBalancerSG03
       LoadBalancerAttributes:
         - Key: idle_timeout.timeout_seconds
           Value: "3"
