@@ -1,3 +1,4 @@
+import logging
 import random
 import re
 import string
@@ -6,7 +7,6 @@ import unittest
 import uuid
 from datetime import datetime
 from typing import List
-import logging
 
 import boto3
 import pytest
