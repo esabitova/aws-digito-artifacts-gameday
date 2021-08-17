@@ -24,6 +24,6 @@ Feature: Alarm Setup - load-balancer UnHealthyHostCount
       | alarmId    | SNSTopicARN                       | NetworkLoadBalancerName                                       | TargetGroup                                            | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:NetworkLoadBalancerTemplate>NetworkELBFullName}} | {{cfn-output:NetworkLoadBalancerTemplate>TargetGroup}} | 1         | 1                 | 1                 |
     And set target group "{{cfn-output:NetworkLoadBalancerTemplate>TargetGroupArn}}" healthcheck port "65534"
-    And sleep for "50" seconds
+    And sleep for "60" seconds
     Then assert metrics for all alarms are populated
     And wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 240 seconds, check every 15 seconds
