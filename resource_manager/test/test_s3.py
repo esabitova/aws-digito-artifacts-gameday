@@ -14,7 +14,7 @@ class TestS3(unittest.TestCase):
         self.s3_existing_test_key = 's3_existing_test_key'
         self.mock_region_name = 'test_aws_region'
         self.mock_aws_account = 'test_aws_account_id'
-        self.mock_s3_bucket_name = s3_bucket_name_pattern.replace('<account_id>', self.mock_aws_account)\
+        self.mock_s3_bucket_name = s3_bucket_name_pattern.replace('<account_id>', self.mock_aws_account) \
             .replace('<region_name>', self.mock_region_name)
 
         self.mock_file_name = 'test-file-name'
@@ -194,6 +194,26 @@ class TestS3(unittest.TestCase):
         url, bucket_name, object_key, version_id = \
             self.s3_helper.upload_local_file(self.mock_file_name,
                                              'resource_manager/test/local_file_to_upload.txt')
+
+        self.assertEqual(url, "pre_signed_url")
+        self.mock_s3_service.create_bucket.assert_not_called()
+        self.mock_s3_service.put_object.assert_called_once()
+        self.mock_s3_service.generate_presigned_url.assert_called_once()
+
+    def test_upload_local_file_if_bucket_passed(self):
+        # Result - bucket exist and passed to helper method and will NOT be created
+        mock_existing_bucket = MagicMock()
+        mock_existing_bucket.configure_mock(name=self.mock_s3_bucket_name)
+        self.mock_s3_resource.buckets.all.return_value = [mock_existing_bucket]
+        mock_s3_object = MagicMock()
+        mock_s3_object.configure_mock(name='test_s3_object')
+        self.mock_s3_resource.Object.return_value = mock_s3_object
+
+        self.mock_s3_service.generate_presigned_url.return_value = "pre_signed_url"
+        url, bucket_name, object_key, version_id = \
+            self.s3_helper.upload_local_file(self.mock_file_name,
+                                             'resource_manager/test/local_file_to_upload.txt',
+                                             self.mock_s3_bucket_name)
 
         self.assertEqual(url, "pre_signed_url")
         self.mock_s3_service.create_bucket.assert_not_called()
