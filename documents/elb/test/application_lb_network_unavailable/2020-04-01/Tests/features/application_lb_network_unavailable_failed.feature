@@ -27,7 +27,9 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
     And SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-
+    And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, GetVpcId, NumberOfSecurityGroupsIdsToDelete, CheckSecurityGroupIdsToDeleteParamIsNotEmpty, CreateEmptySecurityGroup, SetEmptySecurityGroupForLoadBalancer, RollbackCurrentExecution, DeleteEmptySecurityGroupIfCreated, DeleteEmptySecurityGroup, AssertAlarmToBeGreen" steps are successfully executed in order
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
     And cache load balancer security groups as "SecurityGroupsAfter" "after" SSM automation execution
       | LoadBalancerArn                                                  |
       | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
