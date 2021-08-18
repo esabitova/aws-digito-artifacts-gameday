@@ -23,7 +23,7 @@ parameters:
     type: String
     description: (Required) The Id of the usage plan to be modified.
   RestApiGwQuotaLimit:
-    type: String
+    type: Integer
     description: (Required) New limit in requests/period
   RestApiGwQuotaPeriod:
     type: String
@@ -82,7 +82,7 @@ mainSteps:
         Type: "String"
       - Name: RestApiGwQuotaLimit
         Selector: "$.Payload.NewLimit"
-        Type: "String"
+        Type: "Integer"
       - Name: RestApiGwQuotaPeriod
         Selector: "$.Payload.NewPeriod"
         Type: "String"
