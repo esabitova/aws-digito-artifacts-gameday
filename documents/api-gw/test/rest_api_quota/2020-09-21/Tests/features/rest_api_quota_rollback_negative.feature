@@ -28,12 +28,22 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
+    Then cache rollback execution id
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>1}} |
+    And Wait for the SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution is on step "RollbackPreviousExecution" in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
+    And SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution in status "Success"
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
+
     Then SSM automation document "Digito-RestApiGwQuota_2020-09-21" executed
       | RestApiGwUsagePlanId | IsRollback | PreviousExecutionId        | AutomationAssumeRole                                                       | ApiGw4xxAlarmName                                  |
       | WrongUsagePlanID     | True       | {{cache:SsmExecutionId>1}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwQuotaAssumeRole}} | {{cfn-output:RestApiGwTemplate>4XXErrorAlarmName}} |
     And SSM automation document "Digito-RestApiGwQuota_2020-09-21" execution in status "Success"
       | ExecutionId                |
-      | {{cache:SsmExecutionId>2}} |
+      | {{cache:SsmExecutionId>3}} |
     And sleep for "15" seconds
     And cache API GW property "$.quota.limit" as "QuotaLimit" "after" SSM automation execution
       | RestApiGwUsagePlanId                                  |
@@ -44,7 +54,7 @@ Feature: SSM automation document Digito-RestApiGwQuota_2020-09-21
 
     Then assert "CheckIsRollback,GetInputsFromPreviousExecution,AssertRestApiGwUsagePlanId" steps are successfully executed in order
       | ExecutionId                |
-      | {{cache:SsmExecutionId>2}} |
+      | {{cache:SsmExecutionId>3}} |
     And assert "QuotaLimit" at "before" became equal to "QuotaLimit" at "after"
     And assert "QuotaPeriod" at "before" became equal to "QuotaPeriod" at "after"
 

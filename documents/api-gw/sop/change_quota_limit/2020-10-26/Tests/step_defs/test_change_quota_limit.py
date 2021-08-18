@@ -6,18 +6,18 @@ from pytest_bdd import (
 
 
 @scenario('../features/change_quota_limit.feature',
-          'Change REST API GW usage plan limits with ForceExecution=False and new quota is not more than 50%')
-def test_change_quota_limits_without_overwrite_and_new_quota_is_no_more_than_50():
+          'Execute Digito-RestApiGwChangeQuotaLimit_2020-10-26 to change quota limit with new quota less than 50%')
+def test_change_quota_limit_with_new_quota_less_than_50_percent():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
 @scenario('../features/change_quota_limit.feature',
-          'Change REST API GW usage plan limits with ForceExecution=False and new quota is more than 50%')
-def test_change_quota_limits_without_overwrite_and_new_quota_is_more_than_50():
+          'Execute Digito-RestApiGwChangeQuotaLimit_2020-10-26 to change quota limit with new quota more than 50%')
+def test_change_quota_limit_with_new_quota_more_than_50_percent():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
 
 
 @scenario('../features/change_quota_limit.feature',
-          'Change REST API GW usage plan limits with ForceExecution=True')
-def test_change_quota_limits_with_overwrite():
+          'Execute Digito-RestApiGwChangeQuotaLimit_2020-10-26 to change quota limit with ForceExecution=True')
+def test_change_quota_limit_with_force_execution_true():
     """Create AWS resources using CloudFormation template and execute SSM automation document."""
