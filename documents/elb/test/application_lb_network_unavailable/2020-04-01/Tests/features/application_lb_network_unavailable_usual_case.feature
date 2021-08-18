@@ -13,6 +13,9 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
     And alarm "elb:alarm:application_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | ApplicationELBFullName                                                | LambdaTargetFullName                                                 | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>HealthyTargetFullName}} | 1         | 1                 | 1                 |
+    And cache load balancer security groups as "SecurityGroupsBefore" "before" SSM automation execution
+      | LoadBalancerArn                                                  |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
 
     When SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" executed
       | LoadBalancerArn                                                  | AutomationAssumeRole                                                                                    | SyntheticAlarmName             |
@@ -24,6 +27,10 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
     And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, GetVpcId, NumberOfSecurityGroupsIdsToDelete, CheckSecurityGroupIdsToDeleteParamIsNotEmpty, CreateEmptySecurityGroup, SetEmptySecurityGroupForLoadBalancer, AssertAlarmToBeRed, RollbackCurrentExecution, DeleteEmptySecurityGroupIfCreated, DeleteEmptySecurityGroup, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache load balancer security groups as "SecurityGroupsAfter" "after" SSM automation execution
+      | LoadBalancerArn                                                  |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
+    And assert "SecurityGroupsBefore" at "before" became equal to "SecurityGroupsAfter" at "after"
 
   Scenario: Execute SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-01 with SecurityGroupIdsToDelete param specified
     Given the cloud formation templates as integration test resources
@@ -37,6 +44,9 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
     And alarm "elb:alarm:application_unhealthy_host_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       | ApplicationELBFullName                                                | LambdaTargetFullName                                                 | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>HealthyTargetFullName}} | 1         | 1                 | 1                 |
+    And cache load balancer security groups as "SecurityGroupsBefore" "before" SSM automation execution
+      | LoadBalancerArn                                                  |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
 
     When SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" executed
       | LoadBalancerArn                                                  | AutomationAssumeRole                                                                                    | SyntheticAlarmName             | SecurityGroupIdsToDelete                                                 |
@@ -48,3 +58,7 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
     And assert "CheckIsRollback, AssertAlarmToBeGreenBeforeTest, BackupCurrentExecution, GetVpcId, NumberOfSecurityGroupsIdsToDelete, CheckSecurityGroupIdsToDeleteParamIsNotEmpty, RemoveSecurityGroupsFromList, SetNewSecurityGroups, AssertAlarmToBeRed, RollbackCurrentExecution, DeleteEmptySecurityGroupIfCreated, AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
+    And cache load balancer security groups as "SecurityGroupsAfter" "after" SSM automation execution
+      | LoadBalancerArn                                                  |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
+    And assert "SecurityGroupsBefore" at "before" became equal to "SecurityGroupsAfter" at "after"

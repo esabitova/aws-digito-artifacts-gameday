@@ -10,6 +10,9 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
       | documents/elb/test/application_lb_network_unavailable/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                                    |                                                    |                                                      |                                                |                            |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                                          | SHARED       |                          |                                                    |                                                    |                                                      |                                                |                            |
     And published "Digito-ApplicationLbNetworkUnavailable_2020-04-01" SSM document
+    And cache load balancer security groups as "SecurityGroupsBefore" "before" SSM automation execution
+      | LoadBalancerArn                                                  |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
 
     When SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" executed
       | LoadBalancerArn                                                  | AutomationAssumeRole                                                                                    | SyntheticAlarmName                            | SecurityGroupIdsToDelete                                                 |
@@ -33,3 +36,10 @@ Feature: SSM automation document Digito-ApplicationLbNetworkUnavailable_2020-04-
     And SSM automation document "Digito-ApplicationLbNetworkUnavailable_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
+    And assert "CheckIsRollback, GetInputsFromPreviousExecution, GetBackedUpSecurityGroupsFromPreviousExecution, AssertLoadBalancerArn, RollbackPreviousExecution" steps are successfully executed in order
+      | ExecutionId                |
+      | {{cache:SsmExecutionId>2}} |
+    And cache load balancer security groups as "SecurityGroupsAfter" "after" SSM automation execution
+      | LoadBalancerArn                                                  |
+      | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBArn}} |
+    And assert "SecurityGroupsBefore" at "before" became equal to "SecurityGroupsAfter" at "after"
