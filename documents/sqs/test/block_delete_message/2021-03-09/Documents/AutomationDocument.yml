@@ -43,10 +43,35 @@ mainSteps:
     action: aws:branch
     inputs:
       Choices:
-        - NextStep: PrepareRollbackOfPreviousExecution
+        - NextStep: GetInputsFromPreviousExecution
           Variable: "{{IsRollback}}"
           StringEquals: 'true'
       Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: QueueUrl
+        Selector: '$.Payload.QueueUrl[0]'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertInputsFromPreviousExecution
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: PrepareRollbackOfPreviousExecution
+          Variable: '{{ GetInputsFromPreviousExecution.QueueUrl }}'
+          StringEquals: '{{ QueueUrl }}'
+    isEnd: true
 
   - name: PrepareRollbackOfPreviousExecution
     action: aws:executeScript
@@ -65,6 +90,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
   - name: RollbackPreviousExecution
     action: aws:executeScript
     inputs:

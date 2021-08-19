@@ -691,8 +691,10 @@ def verify_alarm_metrics_exist_with_inputs(input_parameters_table, alarm_manager
 
 @then(parse('assert metrics for all alarms are populated'))
 def verify_alarm_metrics_exist_defaults(alarm_manager):
-    # Set 900 secs by default because most alarms need more time to be triggered
-    verify_alarm_metrics_impl(900, 15, alarm_manager, {})
+    # Set 1200 secs by default because most alarms need more time to be triggered
+    # If the timeout is overreached 1200 secs then all asserts will be deleted from Cucumber feature file for an
+    # alarm based on agreement because it makes enourmously longer builds on CI`
+    verify_alarm_metrics_impl(1200, 15, alarm_manager, {})
 
 
 @then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '
@@ -772,15 +774,22 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
                                                                                  'EndTime': exec_end}}}
 
 
-@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to ssm-test-resources S3 bucket '
+@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name}" S3 bucket '
              'and save locations to "{cache_property}" cache property'))
-def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref,
+def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref, s3_bucket_name,
                       cache_property):
+    """
+    Upload file from the disk to S3 and save its locations
+    :param file_relative_path_ref: relational path to the file
+    :param s3_key_ref: future s3 key where the file will be saved
+    :param s3_bucket_name: s3 bucket name where the file will be saved
+    :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
+    """
     file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
     s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
     aws_account_id = request.session.config.option.aws_account_id
     s3_helper = S3(boto3_session, aws_account_id)
-    uri, bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path)
+    uri, bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path, s3_bucket_name)
     ssm_test_cache[cache_property] = {'URI': uri, 'S3Key': s3_key,
                                       'S3Bucket': bucket_name, 'S3ObjectVersion': version_id}
     logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '

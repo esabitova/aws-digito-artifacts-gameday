@@ -15,7 +15,7 @@ Feature: Alarm Setup - sqs SentMessageSize
     And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And Wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
 
@@ -34,7 +34,7 @@ Feature: Alarm Setup - sqs SentMessageSize
     And send "10" messages to queue
       | QueueUrl                                       |
       | {{cfn-output:SqsTemplate>SqsStandardQueueUrl}} |
-    Then assert metrics for all alarms are populated within 1200 seconds, check every 15 seconds
+    Then assert metrics for all alarms are populated
     And Wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 180 seconds, check every 15 seconds
 
 

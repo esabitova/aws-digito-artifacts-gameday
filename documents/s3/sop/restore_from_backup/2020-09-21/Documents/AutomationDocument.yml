@@ -45,10 +45,24 @@ parameters:
       Otherwise, give a user a chance to decide. It is false by default.
     default: false
 outputs:
+  - "OutputRecoveryTime.RecoveryTime"
   - "CleanRestoreBucket.NumberOfDeletedObjects"
   - "RestoreFromBackup.RecoveryTimeSeconds"
   - "RestoreFromBackup.RestoredFilesNumber"
 mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
   - name: CheckExistenceOfObjectsInRestoreBucket
     action: aws:executeScript
     outputs:
@@ -124,3 +138,18 @@ mainSteps:
         SCRIPT_PLACEHOLDER::s3_util.imports
 
         SCRIPT_PLACEHOLDER::s3_util.restore_from_backup
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

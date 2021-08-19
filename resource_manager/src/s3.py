@@ -37,14 +37,17 @@ class S3:
                               bucket_name, e.response)
             raise e
 
-    def upload_local_file(self, object_key: str, file_relative_path: str):
+    def upload_local_file(self, object_key: str, file_relative_path: str, bucket_name: str = None):
         """
         Uploads file to S3 from the local disk
+        :param bucket_name: the bucket name where the file will be uploaded. If it's empty then deftault s3 bucket
+        is used
         :param object_key: the name of future S3 object
         :param file_relative_path: relative path to the file from the project's absolute path
         :return: Url, bucket name, object key, version id
         """
-        bucket_name = self.get_bucket_name()
+        if not bucket_name:
+            bucket_name = self.get_bucket_name()
         try:
             self._create_bucket_if_not_exist(bucket_name)
             # In case if template already exist it is possible that we want to update it.
