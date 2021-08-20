@@ -1,3 +1,4 @@
+import hashlib
 import logging
 import random
 import re
@@ -340,7 +341,7 @@ def publish_ssm_document(boto3_session, ssm_document_name, function_logger):
 
 
 @given(parse('the cloud formation templates as integration test resources\n{cfn_templates}'))
-def set_up_cfn_template_resources(resource_pool, cfn_templates):
+def set_up_cfn_template_resources(resource_pool, cfn_templates, ssm_test_cache):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
@@ -349,6 +350,7 @@ def set_up_cfn_template_resources(resource_pool, cfn_templates):
     and providing resources for tests
     :param cfn_templates: The table of parameters as input for cloud formation template
     """
+    print(ssm_test_cache)
     resource_pool.add_cfn_templates(cfn_templates)
 
 
@@ -774,12 +776,57 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
                                                                                  'EndTime': exec_end}}}
 
 
+@given(parse('upload unique file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name_ref}" '
+             'S3 bucket and save locations to "{cache_property}" cache property'))
+def upload_unique_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref,
+                             s3_bucket_name_ref, cache_property):
+    """
+    Upload file from the disk to S3 and save its locations.
+    Does it only if the same file is not present in S3
+    :param request: The pytest request object
+    :param boto3_session: boto3 session
+    :param ssm_test_cache: The test cache
+    :param file_relative_path_ref: relational path to the file
+    :param s3_key_ref: future s3 key where the file will be saved
+    :param s3_bucket_name_ref: s3 bucket name where the file will be saved
+    :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
+    :return:
+    """
+    file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
+    s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
+    s3_bucket_name = parse_param_value(s3_bucket_name_ref, {'cache': ssm_test_cache})
+    with open(file_rel_path, "rb") as file_to_check:
+        # read contents of the file
+        data = file_to_check.read()
+        # pipe contents of the file through
+        md5_hash = hashlib.md5(data).hexdigest()
+    aws_account_id = request.session.config.option.aws_account_id
+    s3_helper = S3(boto3_session, aws_account_id)
+    response = s3_helper.retrieve_object_metadata(s3_bucket_name, s3_key)
+    if response and "md5hash" in response['Object']['Metadata'] \
+            and response['Object']['Metadata']['md5hash'] == md5_hash:
+        logging.info(f'File {s3_key} already exists in bucket {s3_bucket_name} and has exactly the same hash')
+        uri = response['Uri']
+        version_id = response['Object']['VersionId']
+    else:
+        uri, s3_bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path, s3_bucket_name,
+                                                                              metadata={'md5hash': md5_hash})
+    ssm_test_cache[cache_property] = {'URI': uri, 'S3Key': s3_key,
+                                      'S3Bucket': s3_bucket_name, 'S3ObjectVersion': version_id}
+    logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '
+                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {s3_bucket_name}, S3ObjectVersion: {version_id}. '
+                  f'ssm_test_cache now is {ssm_test_cache}')
+
+
 @given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name}" S3 bucket '
              'and save locations to "{cache_property}" cache property'))
 def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref, s3_bucket_name,
                       cache_property):
     """
     Upload file from the disk to S3 and save its locations
+    :param request: The pytest request object
+    :param boto3_session: boto3 session
+    :param ssm_test_cache: The test cache
     :param file_relative_path_ref: relational path to the file
     :param s3_key_ref: future s3 key where the file will be saved
     :param s3_bucket_name: s3 bucket name where the file will be saved
