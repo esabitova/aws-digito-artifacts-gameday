@@ -37,7 +37,7 @@ class S3:
                               bucket_name, e.response)
             raise e
 
-    def upload_local_file(self, object_key: str, file_relative_path: str, bucket_name: str = None, metadata: dict = {}):
+    def upload_local_file(self, object_key: str, file_relative_path: str, bucket_name: str = None, metadata=None):
         """
         Uploads file to S3 from the local disk
         :param bucket_name: the bucket name where the file will be uploaded. If it's empty then default s3 bucket
@@ -47,6 +47,8 @@ class S3:
         :param metadata: dict of metadata to set for file
         :return: Url, bucket name, object key, version id
         """
+        if metadata is None:
+            metadata = {}
         if not bucket_name:
             bucket_name = self.get_bucket_name()
         try:
@@ -184,7 +186,7 @@ class S3:
         s3_object = self.resource.Object(bucket_name, file_name)
         s3_object.put(ExpectedBucketOwner=self.aws_account_id, Body=(bytes(dump_yaml(content).encode('UTF-8'))))
 
-    def _upload_local_file(self, bucket_name: str, object_key: str, file_abs_path: str, metadata: dict = {}) -> dict:
+    def _upload_local_file(self, bucket_name: str, object_key: str, file_abs_path: str, metadata=None) -> dict:
         """
         Upload the file from local disk
         :param bucket_name: S3 bucket where the file will be uploaded
@@ -192,6 +194,8 @@ class S3:
         :param file_abs_path: Absolute path to the file
         :return Response from put_object method
         """
+        if metadata is None:
+            metadata = {}
         with open(file_abs_path, 'rb') as file:
             return self.client.put_object(
                 Bucket=bucket_name,
