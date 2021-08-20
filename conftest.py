@@ -775,10 +775,10 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
                                                                                  'EndTime': exec_end}}}
 
 
-@given(parse('upload unique file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name_ref}" '
-             'S3 bucket and save locations to "{cache_property}" cache property'))
-def upload_unique_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref,
-                             s3_bucket_name_ref, cache_property):
+@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name_ref}" S3 bucket '
+             'and save locations to "{cache_property}" cache property'))
+def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref, s3_bucket_name_ref,
+                      cache_property):
     """
     Upload file from the disk to S3 and save its locations.
     Does it only if the same file is not present in S3
@@ -814,32 +814,6 @@ def upload_unique_file_to_s3(request, boto3_session, ssm_test_cache, file_relati
                                       'S3Bucket': s3_bucket_name, 'S3ObjectVersion': version_id}
     logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '
                   f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {s3_bucket_name}, S3ObjectVersion: {version_id}. '
-                  f'ssm_test_cache now is {ssm_test_cache}')
-
-
-@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name}" S3 bucket '
-             'and save locations to "{cache_property}" cache property'))
-def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref, s3_bucket_name,
-                      cache_property):
-    """
-    Upload file from the disk to S3 and save its locations
-    :param request: The pytest request object
-    :param boto3_session: boto3 session
-    :param ssm_test_cache: The test cache
-    :param file_relative_path_ref: relational path to the file
-    :param s3_key_ref: future s3 key where the file will be saved
-    :param s3_bucket_name: s3 bucket name where the file will be saved
-    :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
-    """
-    file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
-    s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
-    aws_account_id = request.session.config.option.aws_account_id
-    s3_helper = S3(boto3_session, aws_account_id)
-    uri, bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path, s3_bucket_name)
-    ssm_test_cache[cache_property] = {'URI': uri, 'S3Key': s3_key,
-                                      'S3Bucket': bucket_name, 'S3ObjectVersion': version_id}
-    logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '
-                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {bucket_name}, S3ObjectVersion: {version_id}. '
                   f'ssm_test_cache now is {ssm_test_cache}')
 
 
