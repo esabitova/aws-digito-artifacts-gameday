@@ -341,7 +341,7 @@ def publish_ssm_document(boto3_session, ssm_document_name, function_logger):
 
 
 @given(parse('the cloud formation templates as integration test resources\n{cfn_templates}'))
-def set_up_cfn_template_resources(resource_pool, cfn_templates, ssm_test_cache):
+def set_up_cfn_template_resources(resource_pool, cfn_templates):
     """
     Common step to specify cloud formation template with parameters for specific test. It can be reused with no
     need to define this step implementation for every test. However it should be mentioned in your feature file.
@@ -350,7 +350,6 @@ def set_up_cfn_template_resources(resource_pool, cfn_templates, ssm_test_cache):
     and providing resources for tests
     :param cfn_templates: The table of parameters as input for cloud formation template
     """
-    print(ssm_test_cache)
     resource_pool.add_cfn_templates(cfn_templates)
 
 
