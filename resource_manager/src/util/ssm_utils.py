@@ -11,7 +11,7 @@ def get_ssm_execution_output_value(session: Session, execution_id, key):
     :param execution_id The SSM automation execution id
     :param key Key in Output dict for target value
     """
-    ssm = session.client('ssm')
+    ssm = client('ssm', session)
     ssm_response = ssm.get_automation_execution(AutomationExecutionId=execution_id)
     if ssm_response['AutomationExecution']['Outputs'][key]:
         return ssm_response['AutomationExecution']['Outputs'][key][0]
@@ -73,3 +73,18 @@ def send_step_approval(session: Session, execution_id, is_approved=True):
         AutomationExecutionId=execution_id,
         SignalType=signal_type
     )
+
+
+def get_ssm_step_inputs(session: Session, execution_id: str, step_name: str) -> {}:
+    """
+    Returns SSM automation step inputs.
+    :param session The AWS session
+    :param execution_id The SSM automation execution id
+    :param step_name The SSM automation step name
+    """
+    ssm = client('ssm', session)
+    ssm_response = ssm.get_automation_execution(AutomationExecutionId=execution_id)
+    for step in ssm_response['AutomationExecution']['StepExecutions']:
+        if step['StepName'] == step_name:
+            return step.get('Inputs')
+    raise Exception(f'Step with name [{execution_id}:{step_name}] was not found.')

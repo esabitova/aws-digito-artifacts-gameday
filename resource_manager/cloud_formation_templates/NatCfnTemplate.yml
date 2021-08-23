@@ -232,7 +232,7 @@ Resources:
         ManagedPolicyArns:
           - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       
-  BytesOutToSourceAlarm:
+  BytesOutToSourceAlarmName:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmDescription: "nat-gw:alarm:bytes_out_to_source:2020-09-21"
@@ -282,6 +282,6 @@ Outputs:
     Description: A reference to the Lambda created to generate traffic through given NAT GW
     Value: !GetAtt LambdaFunction.Arn
 
-  BytesOutToSourceAlarm:
+  BytesOutToSourceAlarmName:
     Description: Alarm
-    Value: !Ref  BytesOutToSourceAlarm
+    Value: !Ref  BytesOutToSourceAlarmName
