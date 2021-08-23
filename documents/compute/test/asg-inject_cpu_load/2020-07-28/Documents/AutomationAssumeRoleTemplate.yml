@@ -56,6 +56,7 @@ Resources:
               - 'ssm:StartAutomationExecution'
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
+              - 'cloudwatch:DescribeAlarmHistory'
               - 'autoscaling:DescribeAutoScalingGroups'
           - Effect: Allow
             Resource:

@@ -4,7 +4,7 @@
   "documentName": "Digito-SimulateHighMemoryLoadInEc2_2020-07-28",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
-  "dependsOn": "Digito-KillStressCommand_2020-07-28",
+  "dependsOn": "Digito-KillStressCommand_2020-07-28,Digito-RunMemoryStress_2020-07-28",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "tag": "compute:test:ec2-inject_memory_load:2020-07-28",

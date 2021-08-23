@@ -28,18 +28,21 @@ parameters:
   CpuUtilizationAlarmName:
     type: String
     description: (Required) EC2 CPUUtilization alarm which should be triggerred
-  Duration:
+  DurationSeconds:
     type: String
-    description: (Optional) The duration of the attack in seconds (default/recommended 300)
+    description: (Optional) The duration - in seconds - of the CPU stress.
+    allowedPattern: "^[0-9]+$"
     default: '300'
-  NumCpuCores:
+  CPU:
     type: String
-    description: (Optional) Number of CPU cores to be impacted (default 0 - all)
-    default: '0'
-  CpuLoadPercentage:
+    description: (Optional) Specify the number of CPU stressors to use (default - 0 which means "all CPUs")
+    default: "0"
+    allowedPattern: "^[0-9]+$"
+  LoadPercent:
     type: String
-    description: (Optional) The EC2 instance CPU load percentage (default 1%)
-    default: '1'
+    description: (Optional) Specify the target CPU load percentage. Valid values are between 0 (no load) and 100 (full load) (default - 100)
+    default: "100"
+    allowedPattern: "^(100|[1-9]?[0-9])$"
   IsRollback:
     type: String
     description: (Optional) Provide true to terminate stress testing
@@ -71,29 +74,28 @@ mainSteps:
   - name: RunCpuStress
     action: aws:runCommand
     maxAttempts: 3
-    onFailure: 'step:KillStressCommand'
+    onFailure: 'step:TriggerRollback'
     onCancel: 'step:TriggerRollback'
     inputs:
       DocumentName: Digito-RunCpuStress_2020-07-28
       InstanceIds:
         - '{{InstanceId}}'
       Parameters:
-        CpuLoadPercentage: '{{ CpuLoadPercentage }}'
-        NumCpuCores: '{{NumCpuCores}}'
-        Duration: '{{Duration}}'
-  - name: AssertAlarmToBeRed
-    action: aws:waitForAwsResourceProperty
-    maxAttempts: 10
-    timeoutSeconds: 600
-    onFailure: 'step:KillStressCommand'
-    onCancel: 'step:TriggerRollback'
+        LoadPercent: '{{LoadPercent}}'
+        CPU: '{{CPU}}'
+        DurationSeconds: '{{DurationSeconds}}'
+  - name: AssertAlarmTriggered
+    action: 'aws:executeScript'
     inputs:
-      Service: cloudwatch
-      Api: DescribeAlarms
-      AlarmNames:
-        - "{{CpuUtilizationAlarmName}}"
-      PropertySelector: "$.MetricAlarms[0].StateValue"
-      DesiredValues: ["ALARM"]
+      Runtime: python3.6
+      Handler: verify_alarm_triggered
+      InputPayload:
+        AlarmName: '{{CpuUtilizationAlarmName}}'
+        DurationInSeconds: '{{DurationSeconds}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
+
+        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
     inputs:
@@ -154,15 +156,6 @@ mainSteps:
       DocumentName: Digito-KillStressCommand_2020-07-28
       InstanceIds:
           - '{{GetPreviousExecutionInstanceId.InstanceId}}'
-    isEnd: true
-  - name: KillStressCommand
-    action: aws:runCommand
-    maxAttempts: 3
-    onFailure: Abort
-    inputs:
-      DocumentName: Digito-KillStressCommand_2020-07-28
-      InstanceIds:
-        - '{{InstanceId}}'
     isEnd: true
   - name: TriggerRollback
     action: 'aws:executeScript'

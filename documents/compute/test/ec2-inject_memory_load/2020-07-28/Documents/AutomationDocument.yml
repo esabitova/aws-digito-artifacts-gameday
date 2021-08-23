@@ -71,7 +71,7 @@ mainSteps:
     onFailure: step:TriggerRollback
     onCancel: step:TriggerRollback
     inputs:
-      DocumentName: AWSFIS-Run-Memory-Stress
+      DocumentName: Digito-RunMemoryStress_2020-07-28
       InstanceIds:
         - '{{InstanceId}}'
       Parameters:
