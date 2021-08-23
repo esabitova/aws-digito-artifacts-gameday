@@ -25,7 +25,7 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  BytesOutToSourceAlarm:
+  BytesOutToSourceAlarmName:
     type: String
     description: (Required)  Alarm which should be green after test.
   PrivateSubnetId:
@@ -42,9 +42,6 @@ parameters:
     description: >-
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ""
-  SyntheticAlarmName:
-    type: String
-    description: (Required) Alarm which should be green after test.
 mainSteps:
   - name: CheckIsRollback
     action: aws:branch
@@ -180,7 +177,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{BytesOutToSourceAlarm}}"
+        - "{{BytesOutToSourceAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
 
@@ -217,7 +214,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{BytesOutToSourceAlarm}}"
+        - "{{BytesOutToSourceAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["ALARM"]
 
@@ -253,7 +250,7 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{BytesOutToSourceAlarm}}"
+        - "{{BytesOutToSourceAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
     isEnd: true

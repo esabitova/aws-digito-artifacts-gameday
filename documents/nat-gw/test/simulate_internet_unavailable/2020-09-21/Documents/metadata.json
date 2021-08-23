@@ -11,7 +11,7 @@
   "risk": "HIGH",
   "tag": "nat-gw:test:simulate_internet_unavailable:2020-09-21",
   "recommendedAlarms": {
-    "BytesOutToSourceAlarm": "nat-gw:alarm:bytes_out_to_source:2020-09-21"
+    "BytesOutToSourceAlarmName": "nat-gw:alarm:bytes_out_to_source:2020-09-21"
   },
   "minorVersion": "001"
 }

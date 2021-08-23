@@ -32,7 +32,7 @@ Feature: SSM automation document to restore the database from point in time.
       | GlobalTableSecondaryRegion |
       | ap-southeast-1             |
     And register cleanup steps for table {{cache:TargetTableToRestoreName}} with global table secondary region {{cache:GlobalTableSecondaryRegion}}
-    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 1200 seconds with delay 20 seconds
+    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:GlobalTableSecondaryRegion}} and wait for 1800 seconds with delay 20 seconds
     And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
     When SSM automation document "Digito-RestoreToPointInTime_2020-04-01" executed
       | DynamoDBTableSourceName                       | DynamoDBTableTargetName            | AutomationAssumeRole                                                               |

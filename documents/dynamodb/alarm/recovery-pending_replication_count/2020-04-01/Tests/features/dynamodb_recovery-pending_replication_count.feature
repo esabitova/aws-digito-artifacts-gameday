@@ -6,7 +6,7 @@ Feature: Alarm Setup - dynamodb PendingReplicationCount
       |resource_manager/cloud_formation_templates/dedicated/DynamoDBTemplateWithAutoScaling.yml | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                       | SHARED
     And cache different region name as "GlobalTableSecondaryRegion" "before" SSM automation execution
-    And enabled global dynamodb table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} in the region {{cache:before>GlobalTableSecondaryRegion}} and wait for 1200 seconds with delay 20 seconds
+    And enabled global dynamodb table {{cfn-output:DynamoDBTemplateWithAutoScaling>DynamoDBTable}} in the region {{cache:before>GlobalTableSecondaryRegion}} and wait for 1800 seconds with delay 20 seconds
 
     When alarm "dynamodb:alarm:recovery-pending_replication_count:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       |DynamoDbTable                                                | Region                                      | Threshold |
