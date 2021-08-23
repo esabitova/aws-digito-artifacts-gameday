@@ -1,0 +1,14 @@
+{
+  "displayName": "Amazon ECS Service CPU Utilization",
+  "description": "Alarm by Digito that triggers when CPU utilization of ECS tasks of Service exceeds the threshold",
+  "alarmName": "Digito-ServiceHighCPUUtilization_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "ecs:alarm:health-service_cpu_utilization:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+      "ecs:sop:scale_service:2020-04-01"
+  ]
+}
