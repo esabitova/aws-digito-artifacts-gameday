@@ -11,6 +11,7 @@ from typing import List
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 from pytest import ExitCode
 from pytest_bdd import (
     when,
@@ -801,7 +802,14 @@ def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path
         md5_hash = hashlib.md5(data).hexdigest()
     aws_account_id = request.session.config.option.aws_account_id
     s3_helper = S3(boto3_session, aws_account_id)
-    response = s3_helper.retrieve_object_metadata(s3_bucket_name, s3_key)
+    try:
+        response = s3_helper.retrieve_object_metadata(s3_bucket_name, s3_key)
+    except ClientError as err:
+        if err.response['Error']['Code'] == "403" or err.response['Error']['Code'] == '404':
+            response = None
+        else:
+            raise err
+
     if response and "md5hash" in response['Object']['Metadata'] \
             and response['Object']['Metadata']['md5hash'] == md5_hash:
         logging.info(f'File {s3_key} already exists in bucket {s3_bucket_name} and has exactly the same hash')
