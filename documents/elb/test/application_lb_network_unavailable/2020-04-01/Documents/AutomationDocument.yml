@@ -57,7 +57,7 @@ mainSteps:
     action: aws:executeScript
     outputs:
       - Name: LoadBalancerArn
-        Selector: $.Payload.LoadBalancerArn
+        Selector: $.Payload.LoadBalancerArn[0]
         Type: String
     inputs:
       Runtime: python3.7
@@ -68,6 +68,24 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: GetBackedUpSecurityGroupsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: SecurityGroups
+        Selector: $.Payload.SecurityGroups
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupCurrentExecution'
+        ResponseField: 'SecurityGroups'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
   - name: AssertLoadBalancerArn
     action: aws:branch
@@ -84,7 +102,7 @@ mainSteps:
       Service: elbv2
       Api: SetSecurityGroups
       LoadBalancerArn: '{{ LoadBalancerArn }}'
-      SecurityGroups: '{{ BackupCurrentExecution.SecurityGroups }}'
+      SecurityGroups: '{{ GetBackedUpSecurityGroupsFromPreviousExecution.SecurityGroups }}'
     outputs:
       - Name: LoadBalancerSecurityGroups
         Selector: $.SecurityGroupIds
@@ -260,7 +278,7 @@ mainSteps:
       Choices:
         - NextStep: DeleteEmptySecurityGroup
           Variable: "{{ NumberOfSecurityGroupsIdsToDelete.Length }}"
-          NumericGreater: 0
+          NumericEquals: 0
       Default:
         AssertAlarmToBeGreen
 

@@ -45,6 +45,7 @@ Resources:
             Resource: "*"
             Action:
                 - ssm:StartAutomationExecution
+                - ssm:GetAutomationExecution
                 - cloudwatch:DescribeAlarms
                 - elbv2:SetSecurityGroups
                 - elbv2:CreateSecurityGroup

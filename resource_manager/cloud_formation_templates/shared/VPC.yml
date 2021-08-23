@@ -18,13 +18,13 @@ Outputs:
     Description: Private subnet 1 CIDR
     Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet1', 'CIDR']
   PrivateSubnet2Cidr:
-    Description: Private subnet 1 CIDR
+    Description: Private subnet 2 CIDR
     Value: !FindInMap ['SubnetConfig', 'PrivateNoInternet2', 'CIDR']
   PublicSubnetTwo:
     Description: Public subnet two
     Value: !Ref 'PublicSubnetTwo'
   PublicSubnet2Cidr:
-    Description: Public subnet 1 CIDR
+    Description: Public subnet 2 CIDR
     Value: !FindInMap ['SubnetConfig', 'Public2', 'CIDR']
   PrivateSubnetWithoutInternetOne:
     Description: Private subnet w\o internet access
@@ -84,6 +84,8 @@ Mappings:
       CIDR: '10.0.6.0/24'
     PrivateWithInternet03:
       CIDR: '10.0.7.0/24'
+    PublicDestinationAll:
+      CIDR: '0.0.0.0/0'
 Resources:
   # VPC in which containers will be networked.
   # It has two public subnets
@@ -197,12 +199,13 @@ Resources:
       SubnetId: !Ref PrivateSubnetWithInternet03
 
   NatGatewayEIP:
-    Type: 'AWS::EC2::EIP'
+    Type: AWS::EC2::EIP
+    DependsOn: GatewayAttachement
     Properties:
       Domain: vpc
 
   NatGatewayPrivateSubnetWithInternet:
-    Type: 'AWS::EC2::NatGateway'
+    Type: AWS::EC2::NatGateway
     Properties:
       AllocationId: !GetAtt NatGatewayEIP.AllocationId
       SubnetId: !Ref PublicSubnetOne
@@ -234,7 +237,7 @@ Resources:
     Type: 'AWS::EC2::Route'
     Properties:
       RouteTableId: !Ref PrivateSubnetWithInternetRouteTable
-      DestinationCidrBlock: '0.0.0.0/0'
+      DestinationCidrBlock: !FindInMap ['SubnetConfig', 'PublicDestinationAll', 'CIDR']
       NatGatewayId: !Ref NatGatewayPrivateSubnetWithInternet
 
   PublicRoute:
