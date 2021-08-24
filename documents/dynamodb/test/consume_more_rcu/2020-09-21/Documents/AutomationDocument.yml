@@ -122,7 +122,6 @@ mainSteps:
 
   - name: RollbackPreviousExecution
     action: aws:executeAwsApi
-    isEnd: true
     inputs:
       Service: dynamodb
       Api: UpdateTable
@@ -130,6 +129,16 @@ mainSteps:
       ProvisionedThroughput:
         ReadCapacityUnits: '{{ ConvertParamTypes.BackupReadCapacityUnits }}'
         WriteCapacityUnits: '{{ ConvertParamTypes.BackupWriteCapacityUnits }}'
+  
+  - name: WaitForActiveStatusAfterRollbackPrevious
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: '{{ DynamoDBTableName }}'
+      PropertySelector: '$.Table.TableStatus'
+      DesiredValues: [ 'ACTIVE' ]
+    isEnd: true
 
   - name: ValidateReadCapacityUnitsLimit
     action: aws:branch
