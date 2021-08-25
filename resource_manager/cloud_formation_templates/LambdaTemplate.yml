@@ -85,7 +85,52 @@ Parameters:
     Default: >
       def handler(event, context):
         print('my happy lambda rino')
-
+Mappings:
+  AWSRegionLambdaInsightsLayerArn:
+    us-east-1:
+      LayerARN: arn:aws:lambda:us-east-1:580247275435:layer:LambdaInsightsExtension:14
+    us-east-2:
+      LayerARN: arn:aws:lambda:us-east-2:580247275435:layer:LambdaInsightsExtension:14
+    us-west-2:
+      LayerARN: arn:aws:lambda:us-west-2:580247275435:layer:LambdaInsightsExtension:14
+    us-west-1:
+      LayerARN: arn:aws:lambda:us-west-1:580247275435:layer:LambdaInsightsExtension:14 
+    eu-west-1:
+      LayerARN: arn:aws:lambda:eu-west-1:580247275435:layer:LambdaInsightsExtension:14    
+    eu-west-2:
+      LayerARN: arn:aws:lambda:eu-west-2:580247275435:layer:LambdaInsightsExtension:14
+    eu-west-3:
+      LayerARN: arn:aws:lambda:eu-west-3:580247275435:layer:LambdaInsightsExtension:14
+    eu-south-1:
+      LayerARN: arn:aws:lambda:eu-south-1:339249233099:layer:LambdaInsightsExtension:8
+    eu-central-1:
+      LayerARN: arn:aws:lambda:eu-central-1:580247275435:layer:LambdaInsightsExtension:14
+    eu-north-1:
+      LayerARN: arn:aws:lambda:eu-north-1:580247275435:layer:LambdaInsightsExtension:14
+    ap-east-1:
+      LayerARN: arn:aws:lambda:ap-east-1:519774774795:layer:LambdaInsightsExtension:8
+    ap-northeast-1:
+      LayerARN: arn:aws:lambda:ap-northeast-1:580247275435:layer:LambdaInsightsExtension:14
+    ap-northeast-2:
+      LayerARN: arn:aws:lambda:ap-northeast-2:580247275435:layer:LambdaInsightsExtension:14
+    me-south-1:
+      LayerARN: arn:aws:lambda:me-south-1:285320876703:layer:LambdaInsightsExtension:8
+    ap-southeast-1:
+      LayerARN: arn:aws:lambda:ap-southeast-1:580247275435:layer:LambdaInsightsExtension:14
+    ap-southeast-2:
+      LayerARN: arn:aws:lambda:ap-southeast-2:580247275435:layer:LambdaInsightsExtension:14
+    ap-south-1:
+      LayerARN: arn:aws:lambda:ap-south-1:580247275435:layer:LambdaInsightsExtension:14
+    af-south-1:
+      LayerARN: arn:aws:lambda:af-south-1:012438385374:layer:LambdaInsightsExtension:8
+    ca-central-1:
+      LayerARN: arn:aws:lambda:ca-central-1:580247275435:layer:LambdaInsightsExtension:14
+    sa-east-1:
+      LayerARN: arn:aws:lambda:sa-east-1:580247275435:layer:LambdaInsightsExtension:14
+    cn-north-1:
+      LayerARN: arn:aws-cn:lambda:cn-north-1:488211338238:layer:LambdaInsightsExtension:8
+    cn-northwest-1:
+      LayerARN: arn:aws-cn:lambda:cn-northwest-1:488211338238:layer:LambdaInsightsExtension:8
 Resources:
   LambdaVPC:
     Type: AWS::EC2::VPC
@@ -259,7 +304,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:580247275435:layer:LambdaInsightsExtension:14"
+        - !FindInMap ['AWSRegionLambdaInsightsLayerArn', !Ref 'AWS::Region', 'LayerARN']
       Code:
         ZipFile: !Ref LambdaCode
       Handler: index.handler
