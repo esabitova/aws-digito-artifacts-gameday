@@ -1,0 +1,198 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Restore Data Analytics Application state data from snapshot"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime  
+parameters:
+  KinesisAnalyticsFlinkApplication:
+    type: String
+    description: (Required) KinesisAnalyticsFlinkApplication
+  AutomationAssumeRole:
+    type: String
+    description: >-
+      (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+      If no role is specified, Systems Manager Automation uses your IAM permissions to run this document.
+  KinesisAnalyticsSnapshotName:
+    type: String
+    description: (Optional) The name of Kinesis Data Analytics snapshot to restore from. If not provided, 
+                  restore application from the latest snapshot available.
+    default: "LATEST"
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: CheckIfKinesisDataAnalyticsApplicationIsRunning
+    action: 'aws:assertAwsResourceProperty'
+    description: Check, if Kinesis Data Analytics application is in "RUNNING" status, otherwise abort
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplication }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+  
+  - name: VerifyIfKinesisDataSnalyticsSnapshotExists
+    action: 'aws:executeScript'
+    description: >-
+                Check, if Kinesis Data Analytics recover snapshot exists. 
+                Recover snapshot is either latest if parameter "KinesisAnalyticsSnapshotName" is "LATEST",
+                or snapshot with provided name for another "KinesisAnalyticsSnapshotName" parameter value.
+                If recover snapshot does not exist, abort.
+    inputs:
+      Runtime: python3.7
+      Handler: verify_snapshot_exists
+      InputPayload:
+        ApplicationName: '{{KinesisAnalyticsFlinkApplication}}'
+        SnapshotName: '{{ KinesisAnalyticsSnapshotName }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.verify_snapshot_exists
+
+  - name: ObtainKinesisDataAnalyticsApplicationS3bucketObjectVersionId
+    action: 'aws:executeScript'
+    description: >-
+                get s3 bucket object version id for Kinesis Data Analytics application file
+                use input parameter to retrieve information about s3 object.
+                Object version id must be an input to recover from snapshot api.
+    inputs:
+      Runtime: python3.7
+      Handler: obtain_s3_object_version_id
+      InputPayload:
+        ApplicationName: '{{KinesisAnalyticsFlinkApplication}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.obtain_s3_object_version_id
+    outputs:
+      - Name: KinesisDataAnalyticsS3bucketObjectVersionId
+        Selector: "$.Payload.VersionId"
+        Type: String
+
+  - name: ObtainKinesisDataAnalyticsApplicationConditionalToken
+    action: 'aws:executeScript'
+    description: >-
+                get conditional token of Kinesis Data Analytics application
+                Conditional token must be an input to recover from snapshot api.
+    inputs:
+      Runtime: python3.7
+      Handler: obtain_conditional_token
+      InputPayload:
+        ApplicationName: '{{KinesisAnalyticsFlinkApplication}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.obtain_conditional_token
+    outputs:  
+    - Name: KinesisDataAnalyticsApplicationConditionalToken
+      Selector: "$.Payload"
+      Type: String
+  
+  - name: ChooseToRestoreFromLatestOrFromProvidedSnapshot
+    action: 'aws:branch'
+    description: >-
+                Choose next step to recover from latest or provided snapshot, dependent on 
+                parameter "KinesisAnalyticsSnapshotName"
+    inputs:
+      Choices:
+        - NextStep: RecoveKinesisDataAnalyticsApplicationFromLatestSnapshot
+          Variable: "{{KinesisAnalyticsSnapshotName}}"
+          StringEquals: 'LATEST'
+      Default:  RecoveKinesisDataAnalyticsApplicationFromProvidedSnapshot 
+  
+  - name: RecoveKinesisDataAnalyticsApplicationFromLatestSnapshot
+    action: 'aws:executeScript'
+    description: >-
+                Recover application from latest snaphot. 
+                If timedout, await update status in the step "WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes"
+    timeoutSeconds: 90
+    onFailure: 'step:WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes'
+    inputs:
+      Runtime: python3.7
+      Handler: restore_from_latest_snapshot
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplication }}'
+        ConditionalToken: '{{ ObtainKinesisDataAnalyticsApplicationConditionalToken.KinesisDataAnalyticsApplicationConditionalToken }}'
+        ObjectVersionId: '{{ ObtainKinesisDataAnalyticsApplicationS3bucketObjectVersionId.KinesisDataAnalyticsS3bucketObjectVersionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.restore_from_latest_snapshot
+    nextStep: WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes 
+
+  - name: RecoveKinesisDataAnalyticsApplicationFromProvidedSnapshot
+    action: 'aws:executeScript'
+    description: >-
+                Recover Kinesis Data Analytics application from provided snapshot,
+                i.e. parameter "KinesisAnalyticsSnapshotName" is NOT "LATEST".
+                If timedout, await update status in the step "WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes"
+    timeoutSeconds: 90
+    onFailure: 'step:WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes'
+    inputs:
+      Runtime: python3.7
+      Handler: restore_from_custom_snapshot
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplication }}'
+        SnapshotName: '{{ KinesisAnalyticsSnapshotName }}'
+        ConditionalToken: '{{ ObtainKinesisDataAnalyticsApplicationConditionalToken.KinesisDataAnalyticsApplicationConditionalToken }}'
+        ObjectVersionId: '{{ ObtainKinesisDataAnalyticsApplicationS3bucketObjectVersionId.KinesisDataAnalyticsS3bucketObjectVersionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.restore_from_custom_snapshot
+    nextStep: WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes 
+  
+  
+  - name: WaitForKinesisDataAnalyticsSnapshotRecoveryCompletes
+    action: aws:waitForAwsResourceProperty
+    description: >-
+                Wait for the provided timeout, that Kinesis Data Application status
+                changes to "RUNNING" (status is "UPDATING" when KDA application 
+                is updating from snapshot)
+    maxAttempts: 1
+    timeoutSeconds: 1200   
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplication }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
