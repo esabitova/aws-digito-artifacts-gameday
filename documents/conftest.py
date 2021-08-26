@@ -65,6 +65,12 @@ def assert_less_than(ssm_test_cache, expected_property, step_key_for_expected, a
            < ssm_test_cache[step_key_for_actual][actual_property]
 
 
+@then(parsers.parse('assert security group "{expected_property}" at "{step_key_for_expected}" was removed'))
+def assert_security_group_removed(ssm_test_cache, boto3_session, expected_property, step_key_for_expected):
+    security_group_id = ssm_test_cache[step_key_for_expected][expected_property]
+    assert check_security_group_exists(boto3_session, security_group_id) is False
+
+
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'in "{actual_property}" at "{step_key_for_actual}"'))
 def assert_value_isin(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
@@ -72,12 +78,8 @@ def assert_value_isin(ssm_test_cache, expected_property, step_key_for_expected, 
     if isinstance(temp_var, (list, tuple, dict)):
         assert ssm_test_cache[step_key_for_expected][expected_property] in \
             ssm_test_cache[step_key_for_actual][actual_property]
-
-
-@then(parsers.parse('assert security group "{expected_property}" at "{step_key_for_expected}" was removed'))
-def assert_security_group_removed(ssm_test_cache, boto3_session, expected_property, step_key_for_expected):
-    security_group_id = ssm_test_cache[step_key_for_expected][expected_property]
-    assert check_security_group_exists(boto3_session, security_group_id) is False
+    else:
+        raise AssertionError(f'{actual_property} needs to be one of list, tuple, dict')
 
 
 @given(parsers.parse('generate different value of "{target_property}" than "{old_property}" from "{from_range}" to'

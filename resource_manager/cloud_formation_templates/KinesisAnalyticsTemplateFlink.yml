@@ -76,7 +76,7 @@ Resources:
                 aws.region: !Sub "${AWS::Region}"
                 flink.stream.initpos: "LATEST"
         ApplicationSnapshotConfiguration:
-          SnapshotsEnabled: false
+          SnapshotsEnabled: true
         FlinkApplicationConfiguration:
           CheckpointConfiguration:
             ConfigurationType: CUSTOM
