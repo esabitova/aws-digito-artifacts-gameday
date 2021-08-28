@@ -708,6 +708,7 @@ def verify_alarm_metrics_exist(wait_sec, delay_sec, alarm_manager):
 def verify_alarm_metrics_impl(wait_sec, delay_sec, alarm_manager, input_params):
     elapsed = 0
     iteration = 1
+    alarms_missing_data = {}
     while elapsed < wait_sec:
         start = time.time()
         alarms_missing_data = alarm_manager.collect_alarms_without_data(wait_sec, input_params)
@@ -776,10 +777,10 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
                                                                                  'EndTime': exec_end}}}
 
 
-@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name_ref}" S3 bucket '
-             'and save locations to "{cache_property}" cache property'))
-def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref, s3_bucket_name_ref,
-                      cache_property):
+@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to S3 bucket with prefix '
+             '"{s3_bucket_name_prefix_ref}" and save locations to "{cache_property}" cache property'))
+def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref,
+                      s3_bucket_name_prefix_ref, cache_property):
     """
     Upload file from the disk to S3 and save its locations.
     Does it only if the same file is not present in S3
@@ -788,22 +789,20 @@ def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path
     :param ssm_test_cache: The test cache
     :param file_relative_path_ref: relational path to the file
     :param s3_key_ref: future s3 key where the file will be saved
-    :param s3_bucket_name_ref: s3 bucket name where the file will be saved
+    :param s3_bucket_name_prefix_ref: s3 bucket name where the file will be saved
     :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
     :return:
     """
     file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
     s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
-    s3_bucket_name = parse_param_value(s3_bucket_name_ref, {'cache': ssm_test_cache})
+    s3_bucket_name_prefix = parse_param_value(s3_bucket_name_prefix_ref, {'cache': ssm_test_cache})
     with open(file_rel_path, "rb") as file_to_check:
-        # read contents of the file
         data = file_to_check.read()
-        # pipe contents of the file through
         md5_hash = hashlib.md5(data).hexdigest()
     aws_account_id = request.session.config.option.aws_account_id
     s3_helper = S3(boto3_session, aws_account_id)
     try:
-        response = s3_helper.retrieve_object_metadata(s3_bucket_name, s3_key)
+        response = s3_helper.retrieve_object_metadata(s3_bucket_name_prefix, s3_key)
     except ClientError as err:
         if err.response['Error']['Code'] == "403" or err.response['Error']['Code'] == '404':
             response = None
@@ -812,16 +811,18 @@ def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path
 
     if response and "md5hash" in response['Object']['Metadata'] \
             and response['Object']['Metadata']['md5hash'] == md5_hash:
-        logging.info(f'File {s3_key} already exists in bucket {s3_bucket_name} and has exactly the same hash')
+        logging.info(f'File {s3_key} already exists in bucket {s3_bucket_name_prefix} and has exactly the same hash')
         uri = response['Uri']
         version_id = response['Object']['VersionId']
     else:
-        uri, s3_bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path, s3_bucket_name,
-                                                                              metadata={'md5hash': md5_hash})
+        uri, s3_bucket_name_prefix, s3_key, version_id = s3_helper.upload_local_file_to_account_unique_bucket(
+            s3_key, file_rel_path, s3_bucket_name_prefix,
+            metadata={'md5hash': md5_hash}
+        )
     ssm_test_cache[cache_property] = {'URI': uri, 'S3Key': s3_key,
-                                      'S3Bucket': s3_bucket_name, 'S3ObjectVersion': version_id}
+                                      'S3Bucket': s3_bucket_name_prefix, 'S3ObjectVersion': version_id}
     logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '
-                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {s3_bucket_name}, S3ObjectVersion: {version_id}. '
+                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {s3_bucket_name_prefix}, S3ObjectVersion: {version_id}. '
                   f'ssm_test_cache now is {ssm_test_cache}')
 
 
