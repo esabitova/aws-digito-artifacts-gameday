@@ -97,6 +97,16 @@ list_all_cfn_resources:
 	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c LIST && \
 	deactivate
 
+generate_artifact_sop:
+	source venv/bin/activate && \
+	PYTHONPATH=. python artifact_generator/src/generate_artifacts.py -i artifact_generator/input/input-overrides-sop.json && \
+	deactivate
+
+generate_artifact_test:
+	source venv/bin/activate && \
+	PYTHONPATH=. python artifact_generator/src/generate_artifacts.py -i artifact_generator/input/input-overrides-test.json && \
+	deactivate
+
 # Find validation errors in SSM Documents
 style_validator:
 	source venv/bin/activate && \

@@ -1,0 +1,109 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Update the number of shards by increasing or decreasing them"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+  - GetShardCount.ShardCount
+
+parameters:
+  StreamName:
+    type: String
+    description: (Required) Kinesis Data Stream name
+  TargetShardCount:
+    type: Integer
+    description: |
+      (Required) The new number of shards. This value has the following default limits. By default, you cannot do the following:
+
+      * Set this value to more than double your current shard count for a stream.
+      * Set this value below half your current shard count for a stream.
+      * Set this value to more than 500 shards in a stream (the default limit for shard count per stream is 500 per account per region), unless you request a limit increase.
+      * Scale a stream with more than 500 shards down unless you set this value to less than 500 shards.
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    description: Output the first timestamp used for the further calculation of overall duration of the current SSM Automation execution.
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+  - name: AssertStreamInActiveState
+    action: aws:assertAwsResourceProperty
+    description: Ensure that the target resource has the ACTIVE status before performing changes. If not, stop the execution immediately.
+    onFailure: Abort
+    inputs:
+      Service: kinesis
+      Api: DescribeStream
+      StreamName: '{{StreamName}}'
+      PropertySelector: "$.StreamDescription.StreamStatus"
+      DesiredValues:
+        - "ACTIVE"
+  - name: UpdateShardCount
+    action: aws:executeAwsApi
+    description: Updates the shard count of the specified stream to the specified number of shards.
+    inputs:
+      Service: docdb
+      Api: UpdateShardCount
+      ScalingType: UNIFORM_SCALING # The only default ScalingType
+      StreamName: '{{ StreamName }}'
+      TargetShardCount: '{{ TargetShardCount }}'
+  - name: WaitStreamForAnActiveState
+    action: aws:waitForAwsResourceProperty
+    description: Wait for the ACTIVE status after performing changes on the target resource
+    onFailure: Abort
+    inputs:
+      Service: kinesis
+      Api: DescribeStream
+      StreamName: '{{StreamName}}'
+      PropertySelector: "$.StreamDescription.StreamStatus"
+      DesiredValues:
+        - "ACTIVE"
+  - name: GetShardCount
+    action: aws:executeAwsApi
+    description: Get the number of shards from the specified stream
+    outputs:
+      - Name: ShardCount
+        Selector: $.StreamDescriptionSummary.OpenShardCount
+        Type: Integer
+    inputs:
+      Service: docdb
+      StreamName: '{{ StreamName }}'
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

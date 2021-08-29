@@ -1,5 +1,8 @@
 import logging
 import json
+
+import jsonpath_ng
+
 from resource_manager.src.util.lambda_utils import trigger_lambda
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 
@@ -13,7 +16,7 @@ from pytest_bdd import (
 
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name, \
-    extract_param_value
+    extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
 from resource_manager.src.util.common_test_utils import generate_random_string_with_prefix
 from resource_manager.src.util.common_test_utils import check_security_group_exists
@@ -77,7 +80,7 @@ def assert_value_isin(ssm_test_cache, expected_property, step_key_for_expected, 
     temp_var = ssm_test_cache[step_key_for_actual][actual_property]
     if isinstance(temp_var, (list, tuple, dict)):
         assert ssm_test_cache[step_key_for_expected][expected_property] in \
-            ssm_test_cache[step_key_for_actual][actual_property]
+               ssm_test_cache[step_key_for_actual][actual_property]
     else:
         raise AssertionError(f'{actual_property} needs to be one of list, tuple, dict')
 
@@ -161,3 +164,57 @@ def invoke_lambda_function_async_with_parameters(
                             session=boto3_session)
     logging.info(f'Lambda StatusCode: {result["StatusCode"]}')
     logging.info(f'Lambda Request ID: {result["ResponseMetadata"]["RequestId"]}')
+
+
+@given(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
+                    '\n{input_parameters}'))
+@then(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
+                    '\n{input_parameters}'))
+def cache_by_method_of_service(boto3_session, resource_pool, ssm_document,
+                               cfn_output_params, ssm_test_cache,
+                               method_name, service_name, cache_key, input_parameters, cfn_installed_alarms):
+    """
+    Dynamically cache properties from the boto3 method response by specifying boto3 method_name, arguments for boto3
+    method_name, JSONPaths to extract properties from a response in input_parameters.
+    For boto3 method arguments, the parameter name should start with "Input-" prefix and as the value have either the
+    reference to the ssm_test_cache container, or to the cfn_output_container, or to the alarm container,
+    or to be just the simple string.
+    For output properties the, parameter name should start with "Output-" prefix and the value should be the valid
+    JSONPath which will be applied to the response of the boto3 method_name of specified service_name
+    :param method_name: boto3 method name
+    :param service_name: AWS service name
+    :param input_parameters: List of JSONPaths for outputs and other values for inputs (references and simple values)
+    :return: Dict with extracted properties by specified JSONPaths
+    """
+    service_client = client(service_name, boto3_session)
+
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                                                     input_parameters)
+
+    output_prefix = "Output-"
+    input_prefix = "Input-"
+    arguments = {}
+    json_paths = {}
+    for parameter, value in parameters.items():
+        if isinstance(value, list):
+            for v in value:
+                if parameter.startswith(output_prefix):
+                    json_paths[parameter.replace(output_prefix, "")] = v
+                else:
+                    arguments[parameter.replace(input_prefix, "")] = v
+        else:
+            if parameter.startswith(output_prefix):
+                json_paths[parameter.replace(output_prefix, "")] = value
+            else:
+                arguments[parameter.replace(input_prefix, "")] = value
+
+    response = getattr(service_client, method_name)(**arguments)
+
+    for cache_property, json_path in json_paths.items():
+        found = jsonpath_ng.parse(json_path).find(response)
+        if found:
+            # Always output as an array even len(found)==1 for the easiest processing
+            target_value = [f.value for f in found]
+            put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)
