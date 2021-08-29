@@ -67,7 +67,7 @@ mainSteps:
     action: aws:executeAwsApi
     description: Updates the shard count of the specified stream to the specified number of shards.
     inputs:
-      Service: docdb
+      Service: kinesis
       Api: UpdateKinesisDataStreamsShardCount
       ScalingType: UNIFORM_SCALING # The only default ScalingType
       StreamName: '{{ StreamName }}'
@@ -91,7 +91,7 @@ mainSteps:
         Selector: $.StreamDescriptionSummary.OpenShardCount
         Type: Integer
     inputs:
-      Service: docdb
+      Service: kinesis
       Api: DescribeStreamSummary
       StreamName: '{{ StreamName }}'
   - name: OutputRecoveryTime
