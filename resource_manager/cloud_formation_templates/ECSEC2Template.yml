@@ -25,14 +25,29 @@ Outputs:
     Description: The name of the ECS cluster
     Value: !Ref 'ECSCluster'
   ECSService:
+    Condition: NotGPU
     Description: The arn of ecs service
     Value: !Ref 'ECSService'
   ServiceName:
+    Condition: NotGPU
     Description: The name of ecs service
     Value: !GetAtt 'ECSService.Name'
+  ECSGPUService:
+    Condition: GPU
+    Description: The arn of ecs service
+    Value: !Ref 'ECSGPUService'
+  GPUServiceName:
+    Condition: GPU
+    Description: The name of ecs service
+    Value: !GetAtt 'ECSGPUService.Name'
   ECSTaskDefinition:
+    Condition: NotGPU
     Description: A task definition ARN
     Value: !Ref 'ECSTaskDefinition'
+  ECSGPUTaskDefifnition:
+    Condition: GPU
+    Description: A task definition ARN
+    Value: !Ref 'ECSGPUTaskDefinition'
   EcsHostSecurityGroup:
     Description: A security group used to allow containers to receive traffic
     Value: !Ref 'EcsHostSecurityGroup'
@@ -57,8 +72,12 @@ Parameters:
                     m3.xlarge, m3.2xlarge, m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
                     c4.large, c4.xlarge, c4.2xlarge, c4.4xlarge, c4.8xlarge, c3.large, c3.xlarge,
                     c3.2xlarge, c3.4xlarge, c3.8xlarge, r3.large, r3.xlarge, r3.2xlarge, r3.4xlarge,
-                    r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge]
+                    r3.8xlarge, i2.xlarge, i2.2xlarge, i2.4xlarge, i2.8xlarge, g3s.xlarge]
     ConstraintDescription: Please choose a valid instance type.
+  IsGPUTask:
+    Description: Set to true when need to create task with GPU
+    Type: String
+    Default: false
   VPC:
     Description: VPC id
     Type: String
@@ -68,6 +87,14 @@ Parameters:
   PublicSubnetTwo:
     Description: second PublicSubnet id
     Type: String
+Conditions:
+  GPU: !Equals
+    - !Ref IsGPUTask
+    - true
+  NotGPU: !Not
+    - !Equals
+      - !Ref IsGPUTask
+      - true
 Resources:
   # ECS Resources
   ECSCluster:
@@ -149,7 +176,10 @@ Resources:
                 Action:
                   - 'ecs:DescribeServices'
                   - 'ecs:UpdateService'
-                Resource: !Ref ECSService
+                Resource: !Join
+                  - '/'
+                  - - !GetAtt ECSCluster.Arn
+                    - '*'
 
   EC2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -172,6 +202,7 @@ Resources:
 
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
+    Condition: NotGPU
     Properties:
       ContainerDefinitions:
         - Name: !Join
@@ -197,9 +228,49 @@ Resources:
 
   ECSService:
     Type: AWS::ECS::Service
+    Condition: NotGPU
     Properties:
       Cluster:
         Ref: "ECSCluster"
       DesiredCount: 1
       TaskDefinition:
         Ref: "ECSTaskDefinition"
+
+  ECSGPUTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Condition: GPU
+    Properties:
+      ContainerDefinitions:
+        - Name: !Join
+            - "-"
+            - - "TaskDef"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+          Image: "amazon/amazon-ecs-sample"
+          Cpu: 256
+          ResourceRequirements:
+            - Type: "GPU"
+              Value: "1"
+          EntryPoint:
+            - "/usr/sbin/apache2"
+            - "-D"
+            - "FOREGROUND"
+          Memory: 512
+          Essential: true
+
+  ECSGPUService:
+    Type: AWS::ECS::Service
+    Condition: GPU
+    Properties:
+      Cluster:
+        Ref: "ECSCluster"
+      DesiredCount: 1
+      TaskDefinition:
+        Ref: "ECSGPUTaskDefinition"
