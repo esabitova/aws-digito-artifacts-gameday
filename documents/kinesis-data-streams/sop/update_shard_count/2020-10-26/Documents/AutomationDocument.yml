@@ -92,6 +92,7 @@ mainSteps:
         Type: Integer
     inputs:
       Service: docdb
+      Api: DescribeStreamSummary
       StreamName: '{{ StreamName }}'
   - name: OutputRecoveryTime
     action: 'aws:executeScript'

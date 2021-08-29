@@ -44,6 +44,8 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              # add permissions required by automation document here
+              - kinesis:DescribeStream
+              - kinesis:UpdateShardCount
+              - kinesis:DescribeStreamSummary
       Roles:
         - Ref: DigitoKinesisDataStreamsUpdateShardCountAssumeRole
