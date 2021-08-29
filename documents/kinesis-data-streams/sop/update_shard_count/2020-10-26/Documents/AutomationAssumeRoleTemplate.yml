@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-UpdateShardCount_2020-10-26
+Description: Role for Digito-UpdateKinesisDataStreamsShardCount_2020-10-26
 Outputs:
-  DigitoKinesisDataStreamsUpdateShardCountAssumeRole:
-    Description: Digito-UpdateShardCount_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoKinesisDataStreamsUpdateShardCountAssumeRole.Arn
+  DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumeRole:
+    Description: Digito-UpdateKinesisDataStreamsShardCount_2020-10-26 Automation Assume Role ARN
+    Value: !GetAtt DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumeRole.Arn
 Resources:
-  DigitoKinesisDataStreamsUpdateShardCountAssumeRole:
+  DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoKinesisDataStreamsUpdateShardCountAssumePolicy:
+  DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoKinesisDataStreamsUpdateShardCountAssumePolicy
+      PolicyName: DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -45,7 +45,7 @@ Resources:
             Resource: "*"
             Action:
               - kinesis:DescribeStream
-              - kinesis:UpdateShardCount
+              - kinesis:UpdateKinesisDataStreamsShardCount
               - kinesis:DescribeStreamSummary
       Roles:
-        - Ref: DigitoKinesisDataStreamsUpdateShardCountAssumeRole
+        - Ref: DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumeRole

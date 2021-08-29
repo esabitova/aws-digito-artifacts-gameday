@@ -63,12 +63,12 @@ mainSteps:
       PropertySelector: "$.StreamDescription.StreamStatus"
       DesiredValues:
         - "ACTIVE"
-  - name: UpdateShardCount
+  - name: UpdateKinesisDataStreamsShardCount
     action: aws:executeAwsApi
     description: Updates the shard count of the specified stream to the specified number of shards.
     inputs:
       Service: docdb
-      Api: UpdateShardCount
+      Api: UpdateKinesisDataStreamsShardCount
       ScalingType: UNIFORM_SCALING # The only default ScalingType
       StreamName: '{{ StreamName }}'
       TargetShardCount: '{{ TargetShardCount }}'
