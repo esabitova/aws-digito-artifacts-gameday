@@ -9,7 +9,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
       | documents/kinesis-data-streams/sop/update_shard_count/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" SSM document
     # Firstly, increase the number of shards in the stream
-    And cache by "describe-stream-summary" method of "kinesis" to "before_increasing"
+    And cache by "describe_stream_summary" method of "kinesis" to "before_increasing"
       | Input-StreamName                                       | Output-OldShardCount                      |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
     And calculate "{{cache:before_increasing>OldShardCount}}" "+" "1" and cache result as "ExpectedShardCount" "before_increasing" SSM automation execution
@@ -24,7 +24,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
     And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetShardCount, OutputRecoveryTime" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache by "describe-stream-summary" method of "kinesis" to "after_increasing"
+    And cache by "describe_stream_summary" method of "kinesis" to "after_increasing"
       | Input-StreamName                                       | Output-ActualShardCount                   |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
     And assert "OldShardCount" at "before_increasing" became not equal to "ActualShardCount" at "after_increasing"
@@ -43,7 +43,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
     And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetShardCount, OutputRecoveryTime" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And cache by "describe-stream-summary" method of "kinesis" to "after_decreasing"
+    And cache by "describe_stream_summary" method of "kinesis" to "after_decreasing"
       | Input-StreamName                                       | Output-ActualShardCount                   |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
     And assert "ActualShardCount" at "after_increasing" became not equal to "ActualShardCount" at "after_decreasing"
@@ -57,7 +57,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
       | resource_manager/cloud_formation_templates/KinesisDataStream.yml                                            | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
       | documents/kinesis-data-streams/sop/update_shard_count/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" SSM document
-    And cache by "describe-stream-summary" method of "kinesis" to "before"
+    And cache by "describe_stream_summary" method of "kinesis" to "before"
       | Input-StreamName                                       | Output-OldShardCount                      |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
 
@@ -71,7 +71,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
     And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetShardCount, OutputRecoveryTime" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache by "describe-stream-summary" method of "kinesis" to "after"
+    And cache by "describe_stream_summary" method of "kinesis" to "after"
       | Input-StreamName                                       | Output-ActualShardCount                   |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
     And assert "OldShardCount" at "before" became equal to "ActualShardCount" at "after"

@@ -45,7 +45,7 @@ Resources:
             Resource: "*"
             Action:
               - kinesis:DescribeStream
-              - kinesis:UpdateKinesisDataStreamsShardCount
+              - kinesis:UpdateShardCount
               - kinesis:DescribeStreamSummary
       Roles:
         - Ref: DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumeRole

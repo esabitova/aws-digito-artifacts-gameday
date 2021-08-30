@@ -839,6 +839,8 @@ def assert_steps_are_successfully_executed_in_order(ssm_document, ssm_test_cache
 
 @given(parse('calculate "{first_value}" "{operator}" "{second_value}" '
              'and cache result as "{cache_property}" "{step_key}" SSM automation execution'))
+@then(parse('calculate "{first_value}" "{operator}" "{second_value}" '
+            'and cache result as "{cache_property}" "{step_key}" SSM automation execution'))
 def calculate_math(ssm_test_cache, first_value, operator, second_value, cache_property, step_key):
     first_value_parsed = parse_param_value(first_value, {'cache': ssm_test_cache})
     second_value_parsed = parse_param_value(second_value, {'cache': ssm_test_cache})

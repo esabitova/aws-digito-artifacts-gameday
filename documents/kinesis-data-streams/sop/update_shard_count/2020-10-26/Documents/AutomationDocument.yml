@@ -68,7 +68,7 @@ mainSteps:
     description: Updates the shard count of the specified stream to the specified number of shards.
     inputs:
       Service: kinesis
-      Api: UpdateKinesisDataStreamsShardCount
+      Api: UpdateShardCount
       ScalingType: UNIFORM_SCALING # The only default ScalingType
       StreamName: '{{ StreamName }}'
       TargetShardCount: '{{ TargetShardCount }}'

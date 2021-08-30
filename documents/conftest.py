@@ -1,11 +1,7 @@
-import logging
 import json
+import logging
 
 import jsonpath_ng
-
-from resource_manager.src.util.lambda_utils import trigger_lambda
-from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
-
 import pytest
 from pytest_bdd import (
     then,
@@ -13,15 +9,17 @@ from pytest_bdd import (
     given,
     parsers
 )
+from sttable import parse_str_table
 
 from resource_manager.src.util.boto3_client_factory import client
+from resource_manager.src.util.common_test_utils import check_security_group_exists
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name, \
     extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
 from resource_manager.src.util.common_test_utils import generate_random_string_with_prefix
-from resource_manager.src.util.common_test_utils import check_security_group_exists
+from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
+from resource_manager.src.util.lambda_utils import trigger_lambda
 from resource_manager.src.util.param_utils import parse_param_value
-from sttable import parse_str_table
 
 logger = logging.getLogger(__name__)
 
@@ -216,5 +214,8 @@ def cache_by_method_of_service(boto3_session, resource_pool, ssm_document,
         found = jsonpath_ng.parse(json_path).find(response)
         if found:
             # Always output as an array even len(found)==1 for the easiest processing
-            target_value = [f.value for f in found]
+            if len(found) > 1:
+                target_value = [f.value for f in found]
+            elif len(found) == 1:
+                target_value = found[0].value
             put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)
