@@ -1,0 +1,11 @@
+{
+  "displayName": "AWS Backup backup job has expired",
+  "description": "The number of backup jobs that AWS Backup attempted to delete based on backup retention lifecycle, but could not delete under the specified backup vault",
+  "alarmName": "Digito-BackupJobExpired_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "backup:alarm:backup-jobs-expired:2020-12-06",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}
