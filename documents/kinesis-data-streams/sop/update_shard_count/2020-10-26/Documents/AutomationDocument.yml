@@ -20,7 +20,7 @@ schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 outputs:
   - OutputRecoveryTime.RecoveryTime
-  - GetShardCount.ShardCount
+  - GetActualShardCount.ActualShardCount
 
 parameters:
   StreamName:
@@ -40,7 +40,7 @@ parameters:
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
   - name: RecordStartTime
-    action: 'aws:executeScript'
+    action: aws:executeScript
     description: Output the first timestamp used for the further calculation of overall duration of the current SSM Automation execution.
     outputs:
       - Name: StartTime
@@ -83,19 +83,41 @@ mainSteps:
       PropertySelector: "$.StreamDescription.StreamStatus"
       DesiredValues:
         - "ACTIVE"
-  - name: GetShardCount
+  - name: GetActualShardCount
     action: aws:executeAwsApi
     description: Get the number of shards from the specified stream
     outputs:
-      - Name: ShardCount
+      - Name: ActualShardCount
         Selector: $.StreamDescriptionSummary.OpenShardCount
         Type: Integer
     inputs:
       Service: kinesis
       Api: DescribeStreamSummary
       StreamName: '{{ StreamName }}'
+  - name: CheckIfTargetCountEqualsToActualShardCount
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: OutputRecoveryTime
+          Variable: "{{TargetShardCount}}"
+          NumericEquals: "{{GetActualShardCount.ActualShardCount}}"
+      Default:
+        FailIfTargetShardCountIsNotAchieved
+  - name: FailIfTargetShardCountIsNotAchieved
+    action: aws:executeScript
+    description: |
+      Fail if the actual shard count of the Amazon Kinesis Data Streams after the update is not equal to the actual shard
+    inputs:
+      Runtime: python3.7
+      Handler: raise_exception
+      InputPayload:
+        ErrorMessage: "The actual shard count of the Amazon Kinesis Data Streams after the update is not equal to the requested target shard count."
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.raise_exception
+    isEnd: true
   - name: OutputRecoveryTime
-    action: 'aws:executeScript'
+    action: aws:executeScript
     outputs:
       - Name: RecoveryTime
         Selector: $.Payload

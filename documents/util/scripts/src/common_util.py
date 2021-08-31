@@ -1,8 +1,8 @@
-import boto3
 import logging
-from datetime import datetime, timezone
 import time
+from datetime import datetime, timezone
 
+import boto3
 from botocore.exceptions import ClientError
 from dateutil import parser
 
@@ -118,3 +118,35 @@ def remove_empty_security_group(events, context):
     if datetime.timestamp(datetime.now()) > timeout_timestamp:
         raise TimeoutError(f'Security group {events["EmptySecurityGroupId"]} couldn\'t '
                            f'be deleted in {time_to_wait} seconds')
+
+
+def raise_exception(events, context):
+    """
+    Raises AssertionError exception with defined error message
+    You can pass additional arguments to run python format() on the message.
+    Example:
+
+    ErrorMessage: "test {test1} {test2}"
+    test1: "replaced1"
+    test2: "replaced2"
+
+    will render in
+    `test replaced1 replaced2`
+
+
+    :param events: dict with the following keys:
+        * ErrorMessage: error message to return, you can add placeholders in {} and replace them with other parameters
+        * any_key: will replace placeholder {any_key} in ErrorMessage
+    :param context:
+    :return: None
+    """
+    required_params = [
+        'ErrorMessage'
+    ]
+
+    for key in required_params:
+        if key not in events:
+            raise KeyError(f'Requires {key} in events')
+
+    format_dict = {k: v for k, v in events.items() if k != 'ErrorMessage'}
+    raise AssertionError(events['ErrorMessage'].format(**format_dict))

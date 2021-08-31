@@ -21,7 +21,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
     Then SSM automation document "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetShardCount, OutputRecoveryTime" steps are successfully executed in order
+    And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetActualShardCount, CheckIfTargetCountEqualsToActualShardCount, OutputRecoveryTime" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache by "describe_stream_summary" method of "kinesis" to "after_increasing"
@@ -40,7 +40,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
     Then SSM automation document "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetShardCount, OutputRecoveryTime" steps are successfully executed in order
+    And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetActualShardCount, CheckIfTargetCountEqualsToActualShardCount, OutputRecoveryTime" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And cache by "describe_stream_summary" method of "kinesis" to "after_decreasing"
@@ -68,7 +68,7 @@ Feature: SSM automation document Digito-UpdateKinesisDataStreamsShardCount_2020-
     Then SSM automation document "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetShardCount, OutputRecoveryTime" steps are successfully executed in order
+    And assert "RecordStartTime, AssertStreamInActiveState, UpdateKinesisDataStreamsShardCount, WaitStreamForAnActiveState, GetActualShardCount, CheckIfTargetCountEqualsToActualShardCount, OutputRecoveryTime" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache by "describe_stream_summary" method of "kinesis" to "after"

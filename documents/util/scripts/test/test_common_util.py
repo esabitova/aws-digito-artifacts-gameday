@@ -1,13 +1,13 @@
 import datetime
 import unittest
-import pytest
 from unittest.mock import patch, MagicMock
 
+import pytest
 from botocore.exceptions import ClientError
 
-from documents.util.scripts.test.mock_sleep import MockSleep
-import documents.util.scripts.test.test_data_provider as test_data_provider
 import documents.util.scripts.src.common_util as common_util
+import documents.util.scripts.test.test_data_provider as test_data_provider
+from documents.util.scripts.test.mock_sleep import MockSleep
 
 
 @pytest.mark.unit_test
@@ -322,6 +322,23 @@ class TestCommonUtil(unittest.TestCase):
             common_util.remove_empty_security_group(events, None)
 
         assert 'Requires EmptySecurityGroupId in events' in str(error.value)
+
+    def test_raise_exception_empty_event(self):
+        events = {}
+
+        with pytest.raises(KeyError) as error:
+            common_util.raise_exception(events, None)
+
+        assert 'Requires ErrorMessage in events' in str(error.value)
+
+    def test_raise_exception(self):
+        events = {'first': '1',
+                  'second': '2',
+                  'ErrorMessage': "First is {first}, second is {second}"}
+
+        with pytest.raises(AssertionError) as error:
+            common_util.raise_exception(events, None)
+        assert 'First is 1, second is 2' in str(error.value)
 
     @patch('time.sleep')
     @patch('time.time')
