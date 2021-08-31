@@ -151,3 +151,30 @@ def delete_backup_vault(session: boto3.Session, backup_vault_name: str, region: 
     )
 
     return response
+
+
+def issue_a_backup_job_and_immediately_abort_it(
+    session: boto3.Session,
+    backed_resource_arn: str,
+    iam_role_arn: str,
+    backup_vault_name: str,
+):
+    """
+    Issues a backup job for specified resource and immediately cancels it
+    :param session boto3 client session
+    :param backed_resource_arn ARN of resource to be backed up
+    :param iam_role_arn ARN of IAM role used to create the target recovery point
+    :param backup_vault_name Backup Vault Name
+    """
+    backup_client = session.client('backup')
+    logger.info(f'Issuing a backup job for [{backed_resource_arn}] in [{backup_vault_name}]')
+    response = backup_client.start_backup_job(
+        BackupVaultName=backup_vault_name,
+        IamRoleArn=iam_role_arn,
+        ResourceArn=backed_resource_arn
+    )
+    backup_job_id = response["BackupJobId"]
+    logger.info(f'Issuing a cancel to a backup job [{backup_job_id}]')
+    backup_client.stop_backup_job(
+        BackupJobId=backup_job_id
+    )
