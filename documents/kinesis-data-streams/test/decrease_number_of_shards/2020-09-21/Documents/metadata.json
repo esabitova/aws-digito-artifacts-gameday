@@ -1,0 +1,17 @@
+{
+  "displayName": "Test system behavior if Kinesis Data Streams shards has been decreased",
+  "description": "Test system behavior if Kinesis Data Streams shards has been decreased and the alarm based on GetRecords.Latency has been moved to ALARM state",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-DecreaseNumberOfShards_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "enabled": "true",
+  "tag": "kinesis-data-streams:test:decrease_number_of_shards:2020-09-21",
+  "recommendedAlarms": {
+    "KinesisDataStreamsUserErrorAlarmName": "kinesis-data-streams:alarm:get_records_latency:2020-04-01"
+  }
+}

@@ -22,6 +22,29 @@ def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cac
     return param_value
 
 
+def extract_all_from_input_parameters(cf_output, cache, input_parameters, alarms):
+    """
+    Function to parse given input parameters based. Parameters could be of 3 types:
+    * cached - in case if given parameter value is pointing to cache (Example: {{cache:valueKeyA>valueKeyB}})
+    * cloud formation output - in case if given parameter value is pointing to cloud
+    formation output (Example: {{output:paramNameA}})
+    * simple value - in case if given parameter value is simple value
+    * alarms - installed alarms
+    :param cf_output - The CFN outputs
+    :param cache - The cache, used to get cached values by given keys.
+    :param input_parameters - The SSM input parameters as described in scenario feature file.
+    """
+    input_params = parse_str_table(input_parameters).rows[0]
+    parameters = {}
+    for param, param_val_ref in input_params.items():
+        value = param_utils.parse_param_value(param_val_ref, {'cache': cache,
+                                                              'cfn-output': cf_output,
+                                                              'alarm': alarms})
+
+        parameters[param] = value
+    return parameters
+
+
 def extract_and_cache_param_values(input_parameters, param_list, resource_manager, ssm_test_cache, step_key):
     """
     Extract values of CloudFormation output parameters provided in table and put them into SSM cache

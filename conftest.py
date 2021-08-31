@@ -28,6 +28,7 @@ from resource_manager.src.constants import BgColors
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
+from resource_manager.src.util import common_test_utils
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
 from resource_manager.src.util.cw_util import get_metric_alarm_state
@@ -848,6 +849,10 @@ def calculate_math(ssm_test_cache, first_value, operator, second_value, cache_pr
         calc_result = int(first_value_parsed) + int(second_value_parsed)
     elif operator == '-':
         calc_result = int(first_value_parsed) - int(second_value_parsed)
+    elif operator == '*':
+        calc_result = int(first_value_parsed) * int(second_value_parsed)
+    elif operator == '/':
+        calc_result = int(first_value_parsed) / int(second_value_parsed)
     else:
         raise AssertionError(f"Only '+' and '-' are allowed for operations, got: {operator}")
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, calc_result)
@@ -869,3 +874,16 @@ def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
 
     logging.info(f'Sending Resume signal to execution {execution_id} for step {ssm_step_name}')
     ssm_document.send_resume_signal(execution_id, ssm_step_name)
+
+
+@given(parse('cache values to "{cache_key}"\n{input_parameters}'))
+@when(parse('cache values to "{cache_key}"\n{input_parameters}'))
+def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
+                 cfn_installed_alarms):
+    """
+    Cache values from cfn output, alarms, input parameter table, ssm test cache
+    """
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
+    for param_name, value in params.items():
+        put_to_ssm_test_cache(ssm_test_cache, cache_key, param_name, value)

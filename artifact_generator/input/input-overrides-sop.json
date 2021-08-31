@@ -1,0 +1,14 @@
+{
+  "type": "sop",
+  "service": "kinesis-data-streams",
+  "name": "update_shard_count",
+  "displayName": "Increase or decrease the number of shards",
+  "description": "Update the number of shards by increasing or decreasing them",
+  "primaryResourceId": "StreamName",
+  "failureType": "SOFTWARE",
+  "risk": "HIGH",
+  "cfnTemplateName": "KinesisDataStream",
+  "cfnPrimaryResourceOutput": "KinesisDataStreamName",
+  "supportsRecoveryPoint": "no",
+  "date": "2020-10-26"
+}

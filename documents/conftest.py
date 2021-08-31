@@ -32,6 +32,8 @@ def generate_and_cache_random_string_with_prefix(ssm_test_cache, prefix, field_n
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became equal to "{actual_property}" at "{step_key_for_actual}"'))
+@given(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
+                     'became equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
            == ssm_test_cache[step_key_for_actual][actual_property]

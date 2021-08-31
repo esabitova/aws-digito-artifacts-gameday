@@ -1,0 +1,17 @@
+{
+  "service": "kinesis-data-streams",
+  "type": "test",
+  "name": "decrease_number_of_shards",
+  "displayName": "Test system behavior if Kinesis Data Streams shards has been decreased",
+  "description": "Test system behavior if Kinesis Data Streams shards has been decreased and the alarm based on GetRecords.Latency has been moved to ALARM state",
+  "primaryResourceId": "StreamName",
+  "failureType": "SOFTWARE",
+  "risk": "HIGH",
+  "cfnTemplateName": "KinesisDataStream",
+  "cfnPrimaryResourceOutput": "KinesisDataStreamName",
+  "supportsRollback": "yes",
+  "alarmPrefix": "KinesisDataStreamsUserError",
+  "cfnAlarmOutput": "KinesisDataStreamsAlarmId",
+  "alarmId": "kinesis-data-streams:alarm:get_records_latency:2020-04-01",
+  "date": "2020-09-21"
+}
