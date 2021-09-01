@@ -1,0 +1,14 @@
+{
+  "displayName": "Increase or decrease the number of shards",
+  "description": "Update the number of shards by increasing or decreasing them",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "enabled": "false",
+  "tag": "kinesis-data-streams:sop:update_shard_count:2020-10-26"
+}

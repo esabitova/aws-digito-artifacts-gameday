@@ -334,6 +334,23 @@ class TestCommonUtil(unittest.TestCase):
 
         assert 'Requires EmptySecurityGroupId in events' in str(error.value)
 
+    def test_raise_exception_empty_event(self):
+        events = {}
+
+        with pytest.raises(KeyError) as error:
+            common_util.raise_exception(events, None)
+
+        assert 'Requires ErrorMessage in events' in str(error.value)
+
+    def test_raise_exception(self):
+        events = {'first': '1',
+                  'second': '2',
+                  'ErrorMessage': "First is {first}, second is {second}"}
+
+        with pytest.raises(AssertionError) as error:
+            common_util.raise_exception(events, None)
+        assert 'First is 1, second is 2' in str(error.value)
+
     @patch('time.sleep')
     @patch('time.time')
     def test_remove_empty_security_group_timeout(self, patched_time, patched_sleep):
