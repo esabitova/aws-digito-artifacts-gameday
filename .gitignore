@@ -1,4 +1,5 @@
 AutomationDocumentFinal.yml
+!documents/kinesis-analytics/flinkapp/*
 *.zip
 *.iml
 AwsDigitoSsmDocumentSamples.iml

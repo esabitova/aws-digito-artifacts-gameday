@@ -393,17 +393,12 @@ def prove_snapshot_exist_or_confect(app_name: str, snapshot_name: str, session: 
                      f'New snapshot with provided name {confect_snapshot_name} '
                      f'will be confected and used for recover.')
         kinesis_analytics_client = client('kinesisanalyticsv2', session)
-        confect_snapshot_result = kinesis_analytics_client.create_application_snapshot(
+        kinesis_analytics_client.create_application_snapshot(
             ApplicationName=app_name,
             SnapshotName=confect_snapshot_name)['ResponseMetadata']['HTTPStatusCode']
-    if confect_snapshot_result == 200:
         logging.info(f'New snapshot with name {confect_snapshot_name} for application '
                      f'{app_name} successfully confected.')
-        return True, confect_snapshot_name
-    else:
-        logging.error(f'New snapshot with name {confect_snapshot_name} for application '
-                      f'{app_name} confection failed, error code: {confect_snapshot_result}')
-        raise
+    return True, confect_snapshot_name
 
 
 def add_kda_application_to_vpc(app_name, vpc_id, subnet_id, security_groups_id_list, session):
@@ -432,21 +427,20 @@ def add_kda_application_to_vpc(app_name, vpc_id, subnet_id, security_groups_id_l
             raise
     except Exception:
         logging.info(f'Now start add Kinesis Data Analytics application {app_name} to VPC {vpc_id}.')
-    add_to_vpc_status_code = kinesis_analytics_client.add_application_vpc_configuration(
+    kinesis_analytics_client.add_application_vpc_configuration(
         ApplicationName=app_name,
         ConditionalToken=conditional_token,
         VpcConfiguration={
             'SubnetIds': [subnet_id],
             'SecurityGroupIds': security_groups_ids_list})['ResponseMetadata']['HTTPStatusCode']
-    if add_to_vpc_status_code == 200:
-        logging.info(f'Kinesis Data Analytics application {app_name} included to VPC {vpc_id} '
-                     f'with Subnet ID {subnet_id} and Security group ID [{security_groups_id_list}]')
-    else:
-        logging.error(f'Kinesis Data Analytics application {app_name} '
-                      f'FAILED to be added to VPC {vpc_id} ')
-        raise
+    logging.info(f'Kinesis Data Analytics application {app_name} included to VPC {vpc_id} '
+                 f'with Subnet ID {subnet_id} and Security group ID [{security_groups_id_list}]')
     _wait_for_status(
         kinesis_analytics_client, app_name, "RUNNING")
+    subnet_status = kinesis_analytics_client.describe_application(
+        ApplicationName=app_name,
+        IncludeAdditionalDetails=True)['ApplicationDetail']['ApplicationConfigurationDescription']
+    vpc_configuration_id = subnet_status['VpcConfigurationDescriptions'][0]['VpcConfigurationId']
     return 'Yes', vpc_configuration_id
 
 

@@ -223,7 +223,7 @@ def cache_existing_snapshots_kinesis_analytics_app(resource_pool, ssm_test_cache
     put_to_ssm_test_cache(ssm_test_cache, step_key, snapshots_list_name, kinesis_analytics_snapshots_list)
 
 
-# prove snapshot exist or confect it otherwise:
+# prove snapshot exist or create it otherwise:
 prove_kinesis_data_analytics_snapshot_exist_expression = 'prove recovery snapshot exists and confect it otherwise'\
                                                          '\n{input_parameters}'
 
@@ -231,9 +231,9 @@ prove_kinesis_data_analytics_snapshot_exist_expression = 'prove recovery snapsho
 @given(parsers.parse(prove_kinesis_data_analytics_snapshot_exist_expression))
 @when(parsers.parse(prove_kinesis_data_analytics_snapshot_exist_expression))
 @then(parsers.parse(prove_kinesis_data_analytics_snapshot_exist_expression))
-def prove_kda_snapshot_exist_or_confect(resource_pool, ssm_test_cache,
-                                        boto3_session, eliminate_test_snapshot,
-                                        input_parameters):
+def prove_kda_snapshot_exist_or_create(resource_pool, ssm_test_cache,
+                                       boto3_session, eliminate_test_snapshot,
+                                       input_parameters):
     kinesis_analytics_application_name = extract_param_value(input_parameters,
                                                              'KinesisAnalyticsAppName', resource_pool,
                                                              ssm_test_cache)
@@ -242,10 +242,10 @@ def prove_kda_snapshot_exist_or_confect(resource_pool, ssm_test_cache,
                                                  ssm_test_cache)
     # "teardown_snapshot_name" will be different from initial "snapshot_name_to_prove",
     # if "snapshot_name_to_prove" was "Latest"
-    confect_snapshot, teardown_snapshot_name = kinan_utils.prove_snapshot_exist_or_confect(
+    create_snapshot, teardown_snapshot_name = kinan_utils.prove_snapshot_exist_or_confect(
         kinesis_analytics_application_name, snapshot_name_to_prove, boto3_session)
-    # if snapshot did not exist, and we confected a new one, must teardown it:
-    if confect_snapshot:
+    # if snapshot did not exist, and we createed a new one, must teardown it:
+    if create_snapshot:
         eliminate_test_snapshot['KinesisAnalyticsAppName'] = kinesis_analytics_application_name
         eliminate_test_snapshot['NewSnapshotName'] = teardown_snapshot_name
         eliminate_test_snapshot['Teardown'] = 'Yes'

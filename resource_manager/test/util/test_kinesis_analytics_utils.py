@@ -395,16 +395,3 @@ class KinesisAnalyticsTestUtils(unittest.TestCase):
         self.assertEqual(kinan_utils.prove_snapshot_exist_or_confect(
             TEST_APPLICATION_NAME, 'NoSuchSnapshot', self.session_mock),
             (True, 'NoSuchSnapshot'))
-
-    def test_prove_snapshot_exist_or_confect_new_one_error(self):
-        """
-        test prove_snapshot_exist_or_confect if snapshot exists
-        """
-        self.mock_kinesis_analytics.list_application_snapshots = lambda ApplicationName,\
-            Limit=kinan_utils.SNAPSHOTS_QUOTA, status_code=200: mock_list_application_snapshots(
-                ApplicationName, Limit, status_code)
-        self.mock_kinesis_analytics.create_application_snapshot.side_effect = lambda \
-            ApplicationName, SnapshotName: {'ResponseMetadata': {'HTTPStatusCode': 400}}
-        with self.assertRaises(Exception):
-            kinan_utils.prove_snapshot_exist_or_confect(
-                TEST_APPLICATION_NAME, 'NoSuchSnapshot', self.session_mock)

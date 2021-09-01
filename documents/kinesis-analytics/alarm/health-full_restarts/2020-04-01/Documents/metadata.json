@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for fullRestarts metric for Apache Flink jobs",
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink job that indicates the total number of times job has fully restarted since it was submitted, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-full_restarts:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-full_restarts:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for LambdaDelivery.Duration metric for SQL applications", 
+  "description": "Digito alarm for Kinesis Data Analytics for SQL applications that reports deviations with regards to time taken for each Lambda function invocation, which is exceeding specified threshold range",
+  "alarmName": "Digito-kinesis-analytics:alarm:recovery-lambda_delivery_duration:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:recovery-lambda_delivery_duration:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
