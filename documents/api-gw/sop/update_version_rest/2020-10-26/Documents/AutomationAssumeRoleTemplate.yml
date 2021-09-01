@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestApiGwUpdateVersionRest
+Description: Role for SSM Digito-UpdateRestApiGwVersionSOP_2020-10-26
 Outputs:
-  DigitoRestApiGwUpdateVersionRestAssumeRoleArn:
-    Description: DigitoRestApiGwUpdateVersionRest Automation Assume Role ARN
+  DigitoUpdateRestApiGwVersionSOPAssumeRoleArn:
+    Description: Digito-UpdateRestApiGwVersionSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      !GetAtt DigitoRestApiGwUpdateVersionRestAssumeRole.Arn
+      !GetAtt DigitoUpdateRestApiGwUpdateVersionSOPAssumeRole.Arn
 Resources:
-  DigitoRestApiGwUpdateVersionRestAssumeRole:
+  DigitoUpdateRestApiGwUpdateVersionSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestApiGwUpdateVersionRestAssumePolicy:
+  DigitoUpdateRestApiGwVersionSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoRestApiGwUpdateVersionRestAssumePolicy
+      PolicyName: DigitoUpdateRestApiGwVersionSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -48,4 +48,4 @@ Resources:
               - apigateway:GET
               - apigateway:PATCH
       Roles:
-        - Ref: DigitoRestApiGwUpdateVersionRestAssumeRole
+        - Ref: DigitoUpdateRestApiGwUpdateVersionSOPAssumeRole

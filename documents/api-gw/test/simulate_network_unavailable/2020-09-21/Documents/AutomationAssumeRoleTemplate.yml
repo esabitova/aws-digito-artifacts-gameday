@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ApiGwSimulateNetworkUnavailable_2020-09-21
+Description: Role for Digito-SimulateRestApiGwNetworkUnavailableTest_2020-09-21
 Outputs:
-  DigitoApiGwSimulateNetworkUnavailableAssumeRole:
-    Description: Digito-ApiGwSimulateNetworkUnavailable_2020-09-21 Automation Assume Role ARN
-    Value: !GetAtt DigitoApiGwSimulateNetworkUnavailableAssumeRole.Arn
+  DigitoSimulateRestApiGwNetworkUnavailableTestAssumeRole:
+    Description: Digito-SimulateRestApiGwNetworkUnavailableTest_2020-09-21 Automation Assume Role ARN
+    Value: !GetAtt DigitoSimulateRestApiGwNetworkUnavailableTestAssumeRole.Arn
 Resources:
-  DigitoApiGwSimulateNetworkUnavailableAssumeRole:
+  DigitoSimulateRestApiGwNetworkUnavailableTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoApiGwSimulateNetworkUnavailableAssumePolicy:
+  DigitoSimulateRestApiGwNetworkUnavailableTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoApiGwSimulateNetworkUnavailableAssumePolicy
+      PolicyName: DigitoSimulateRestApiGwNetworkUnavailableTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -58,7 +58,7 @@ Resources:
               - logs:DescribeLogStreams
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoApiGwSimulateNetworkUnavailableAssumeRole.Arn
+              - !GetAtt DigitoSimulateRestApiGwNetworkUnavailableTestAssumeRole.Arn
             Action:
               - iam:PassRole
           - Effect: Allow
@@ -72,4 +72,4 @@ Resources:
             Condition:
               StringEquals: { "ec2:ResourceTag/Digito": "api-gw:test:simulate_network_unavailable" }
       Roles:
-        - Ref: DigitoApiGwSimulateNetworkUnavailableAssumeRole
+        - Ref: DigitoSimulateRestApiGwNetworkUnavailableTestAssumeRole

@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ChangeThrottlingSettingsHttpWs_2020-10-26
+Description: Role for Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26
 Outputs:
-  DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole:
-    Description: Digito-ChangeThrottlingSettingsHttpWs_2020-10-26 Automation Assume Role ARN
+  DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole:
+    Description: Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      !GetAtt DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole.Arn
+      !GetAtt DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole.Arn
 Resources:
-  DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole:
+  DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoApiGwChangeThrottlingSettingsHttpWsAssumePolicy:
+  DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoApiGwChangeThrottlingSettingsHttpWsAssumePolicy
+      PolicyName: DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - apigateway:PATCH
               - servicequotas:GetServiceQuota
       Roles:
-        - Ref: DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole
+        - Ref: DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole

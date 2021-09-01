@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-ThrottlingHttpWs_2020-09-21",
+  "documentName": "Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "minorVersion": "001",

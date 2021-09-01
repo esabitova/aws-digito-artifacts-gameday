@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-RestApiGwQuota_2020-09-21
+Description: Role for Digito-ExceedRestApiGwQuotaTest_2020-09-21
 Outputs:
-  DigitoRestApiGwQuotaAssumeRole:
-    Description: Digito-RestApiGwQuota_2020-09-21 Automation Assume Role ARN
+  DigitoExceedRestApiGwQuotaTestAssumeRole:
+    Description: Digito-ExceedRestApiGwQuotaTest_2020-09-21 Automation Assume Role ARN
     Value:
-      !GetAtt DigitoRestApiGwQuotaAssumeRole.Arn
+      !GetAtt DigitoExceedRestApiGwQuotaTestAssumeRole.Arn
 Resources:
-  DigitoRestApiGwQuotaAssumeRole:
+  DigitoExceedRestApiGwQuotaTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestApiGwQuotaAssumePolicy:
+  DigitoExceedRestApiGwQuotaTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoRestApiGwQuotaAssumePolicy
+      PolicyName: DigitoExceedRestApiGwQuotaTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -56,8 +56,8 @@ Resources:
               - logs:DescribeLogStreams
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoRestApiGwQuotaAssumeRole.Arn
+              - !GetAtt DigitoExceedRestApiGwQuotaTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoRestApiGwQuotaAssumeRole
+        - Ref: DigitoExceedRestApiGwQuotaTestAssumeRole
