@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis host level CPU Utilization",
+  "description": "Digito alarm for Elasticache Redis that triggers if the percentage of CPU utilization for the entire host exceeds than the specified threshold limit",
+  "alarmName": "Digito-Elasticache-RedisCPUUtilization_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-redis_host_level_cpu_utilization:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon Elasticache for Redis alarm for Command Authorization Failures",
+  "description": "Digito alarm for Amazon Elasticache for Redis that triggers if the total number of failed attempts by users to run commands they don’t have permission to call is exceeding specified threshold limit",
+  "alarmName": "Digito-Elasticache-CommandAuthorizationFailures_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-command_authorization_failures:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

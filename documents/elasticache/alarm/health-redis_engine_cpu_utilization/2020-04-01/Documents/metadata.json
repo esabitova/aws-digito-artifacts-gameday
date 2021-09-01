@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis Engine CPU Utilization",
+  "description": "Digito alarm for Elasticache Redis at engine level for hosts having 4 or more VCPUs that triggers if the percentage of CPU utilization has exceeded the specified limit",
+  "alarmName": "Digito-Elasticache-EngineCPUUtilization_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-redis_engine_cpu_utilization:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

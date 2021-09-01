@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Memcached Client Connections",
+  "description": "Digito alarm for Elasticache that triggers if total number of client connections registered by the Memcached engine, exceeds specified threshold limit",
+  "alarmName": "Digito-Elasticache-MemcachedCurrConnections_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-memcached_curr_connections:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
