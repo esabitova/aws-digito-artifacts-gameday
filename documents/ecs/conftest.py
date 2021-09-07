@@ -60,9 +60,9 @@ def cache_number_of_tasks(resource_pool, ssm_test_cache, boto3_session, cache_pr
     ecs_servise_name = common_test_utils.extract_param_value(input_parameters, 'ECSService',
                                                              resource_pool, ssm_test_cache)
 
-    amount_of_task = str(ecs_utils.list_tasks(ecs_cluster_name,
-                                              ecs_servise_name,
-                                              boto3_session))
+    amount_of_task = str(ecs_utils.get_amount_of_tasks(ecs_cluster_name,
+                                                       ecs_servise_name,
+                                                       boto3_session))
     common_test_utils.put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, amount_of_task)
 
 
@@ -72,7 +72,7 @@ def cache_container_definitions(resource_pool, ssm_test_cache, boto3_session, ca
                                 input_parameters):
     ecs_task_definition = common_test_utils.extract_param_value(input_parameters, 'TaskDefinitionArn',
                                                                 resource_pool, ssm_test_cache)
-    container_definitions = ecs_utils.list_tasks(ecs_task_definition, boto3_session)
+    container_definitions = ecs_utils.get_container_definitions(ecs_task_definition, boto3_session)
     common_test_utils.put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, container_definitions)
 
 

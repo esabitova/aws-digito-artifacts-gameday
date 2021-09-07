@@ -17,7 +17,7 @@ Feature: SSM automation document Digito-ScaleService_2020-04-01
     Then SSM automation document "Digito-ScaleService_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And wait ServicesStable
+    And waits until the ECSService is stable (tasks started or stopped)
       | ECSService                                | ECSCluster                                |
       | {{cfn-output:ECSEC2Template>ECSService}}  | {{cfn-output:ECSEC2Template>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
@@ -45,7 +45,7 @@ Feature: SSM automation document Digito-ScaleService_2020-04-01
     Then SSM automation document "Digito-ScaleService_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And wait ServicesStable
+    And waits until the ECSService is stable (tasks started or stopped)
       | ECSService                                | ECSCluster                                |
       | {{cfn-output:ECSEC2Template>ECSService}}  | {{cfn-output:ECSEC2Template>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
@@ -70,7 +70,7 @@ Feature: SSM automation document Digito-ScaleService_2020-04-01
     Then SSM automation document "Digito-ScaleService_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And wait ServicesStable
+    And waits until the ECSService is stable (tasks started or stopped)
       | ECSService                                | ECSCluster                                |
       | {{cfn-output:ECSEC2Template>ECSService}}  | {{cfn-output:ECSEC2Template>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
@@ -95,7 +95,7 @@ Feature: SSM automation document Digito-ScaleService_2020-04-01
     Then SSM automation document "Digito-ScaleService_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And wait ServicesStable
+    And waits until the ECSService is stable (tasks started or stopped)
       | ECSService                                | ECSCluster                                |
       | {{cfn-output:ECSEC2Template>ECSService}}  | {{cfn-output:ECSEC2Template>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
@@ -117,7 +117,7 @@ Feature: SSM automation document Digito-ScaleService_2020-04-01
     Then SSM automation document "Digito-ScaleService_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And wait ServicesStable
+    And waits until the ECSService is stable (tasks started or stopped)
       | ECSService                                | ECSCluster                                |
       | {{cfn-output:ECSEC2Template>ECSService}}  | {{cfn-output:ECSEC2Template>ClusterName}} |
     And cache memory and cpu as "ContainerDefinitions" "after" SSM execution
