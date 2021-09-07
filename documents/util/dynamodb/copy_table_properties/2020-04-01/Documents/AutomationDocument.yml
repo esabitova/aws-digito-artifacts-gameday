@@ -217,7 +217,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::dynamo_db_util.copy_global_table_settings
   - name: WaitTableToBeActiveAfterGlobalTable
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
+    maxAttempts: 5
     timeoutSeconds: 600
     inputs:
       Service: dynamodb
@@ -228,6 +228,7 @@ mainSteps:
         - "ACTIVE"
   - name: WaitActiveStatusOfReplication
     action: aws:executeScript
+    maxAttempts: 5
     outputs:
       - Name: GlobalTableRegionsAdded
         Selector: $.Payload.GlobalTableRegionsAdded
