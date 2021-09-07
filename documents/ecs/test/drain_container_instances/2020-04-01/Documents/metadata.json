@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-DrainContainerInstances_2020-04-01",
+  "documentName": "Digito-DrainECSContainerInstancesTest_2020-04-01",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "minorVersion": "001",

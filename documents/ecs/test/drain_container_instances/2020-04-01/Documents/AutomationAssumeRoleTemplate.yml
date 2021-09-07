@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-DrainContainerInstances_2020-04-01
+Description: Role for Digito-DrainECSContainerInstancesTest_2020-04-01
 Outputs:
-  DigitoEcsDrainContainerInstancesAssumeRole:
-    Description: Digito-DrainContainerInstances_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoEcsDrainContainerInstancesAssumeRole.Arn
+  DigitoDrainECSContainerInstancesTestAssumeRole:
+    Description: Digito-DrainECSContainerInstancesTest_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoDrainECSContainerInstancesTestAssumeRole.Arn
 Resources:
-  DigitoEcsDrainContainerInstancesAssumeRole:
+  DigitoDrainECSContainerInstancesTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEcsDrainContainerInstancesAssumePolicy:
+  DigitoDrainECSContainerInstancesTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoEcsDrainContainerInstancesAssumePolicy
+      PolicyName: DigitoDrainECSContainerInstancesTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -50,4 +50,4 @@ Resources:
               - ecs:ListContainerInstances
               # add permissions required by automation document here
       Roles:
-        - Ref: DigitoEcsDrainContainerInstancesAssumeRole
+        - Ref: DigitoDrainECSContainerInstancesTestAssumeRole
