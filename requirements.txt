@@ -32,4 +32,5 @@ cfn-lint==0.53.1
 aws-requests-auth==0.4.3
 pytz==2021.1
 typing_extensions==3.10.0.2
-pytest-html==3.1.1
+pytest-html==3.1.1 # Generate one single html page with test results useful to have them between runs
+diff_cover==6.3.5 # To find lines which are not in master branch and not covered by unit tests

@@ -76,6 +76,14 @@ unit_test_multiple_times: clean_test_artifacts
 	python3 -m pytest -m unit_test --reruns 5 --count=100 -x --timeout=50 --disable-socket && \
 	deactivate
 
+# Find lines which are not in master branch and not covered by unit tests. Firstly, coverage tests need to be executed
+find_uncovered_new_lines: unit_test
+	# If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
+	cd "$(CWD)/" && \
+	source venv/bin/activate && \
+	python3 -m diff_cover.diff_cover_tool documentation/coverage/coverage.xml --compare-branch=origin/master --fail-under=100 && \
+	deactivate
+
 find_unused_fixtures:
 	source venv/bin/activate && \
 	python3 -m pytest --dead-fixtures&& \
