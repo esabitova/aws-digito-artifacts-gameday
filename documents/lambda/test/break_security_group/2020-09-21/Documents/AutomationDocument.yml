@@ -201,6 +201,7 @@ mainSteps:
       Handler: create_empty_security_group
       InputPayload:
         VpcId: '{{AssertLambdaInVPCAndBackupLambdaSecurityGroups.VpcId}}'
+        Tag: "lambda:test:break_security_group"
         ExecutionId: '{{automation:EXECUTION_ID}}'
       Script: |-
         SCRIPT_PLACEHOLDER::common_util.imports

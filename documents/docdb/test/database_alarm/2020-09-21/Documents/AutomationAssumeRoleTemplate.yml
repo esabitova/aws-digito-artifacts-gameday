@@ -47,10 +47,8 @@ Resources:
             Action:
               - cloudwatch:DescribeAlarms
               - ec2:CreateSecurityGroup
-              - ec2:DeleteSecurityGroup
               - ec2:DescribeSecurityGroups
               - ec2:DescribeSubnets
-              - ec2:RevokeSecurityGroupEgress
               - rds:DescribeDBClusters
               - rds:DescribeDBInstances
               - rds:DescribeDBSubnetGroups
@@ -63,5 +61,19 @@ Resources:
               - Fn::GetAtt: DigitoDocDbDatabaseAlarmAssumeRole.Arn
             Action:
               - iam:PassRole
+          - Effect: Allow
+            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:*/*"
+            Action: ec2:CreateTags
+            Condition:
+              StringEquals: {"ec2:CreateAction": "CreateSecurityGroup"}
+          - Effect: Allow
+            Action:
+              - ec2:DeleteSecurityGroup
+              - ec2:RevokeSecurityGroupEgress
+              - ec2:RevokeSecurityGroupIngress
+              - ec2:UpdateSecurityGroupRuleDescriptionsIngress
+            Resource: !Sub "arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*"
+            Condition:
+              StringEquals: {"ec2:ResourceTag/Digito": "docdb:test:database_alarm"}
       Roles:
         - Ref: DigitoDocDbDatabaseAlarmAssumeRole

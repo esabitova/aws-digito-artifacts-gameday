@@ -240,6 +240,7 @@ mainSteps:
       - Name: VpcId
         Selector: $.Subnets[0].VpcId
         Type: String
+
   - name: CreateEmptySecurityGroup
     action: aws:executeScript
     onFailure: step:AssertClusterIsAvailable
@@ -253,6 +254,7 @@ mainSteps:
       Handler: create_empty_security_group
       InputPayload:
         VpcId: '{{GetVpc.VpcId}}'
+        Tag: "docdb:test:database_alarm"
         ExecutionId: '{{automation:EXECUTION_ID}}'
       Script: |-
         SCRIPT_PLACEHOLDER::common_util.imports
@@ -260,6 +262,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
 
         SCRIPT_PLACEHOLDER::common_util.create_empty_security_group
+
   - name: ModifyVpcSecurityGroups
     action: aws:executeAwsApi
     onFailure: step:AssertClusterIsAvailable

@@ -220,6 +220,7 @@ mainSteps:
       Handler: create_empty_security_group
       InputPayload:
         VpcId: '{{GetVpcId.VpcId}}'
+        Tag: "elb:test:application_lb_network_unavailable"
         ExecutionId: '{{automation:EXECUTION_ID}}'
       Script: |-
         SCRIPT_PLACEHOLDER::common_util.imports
