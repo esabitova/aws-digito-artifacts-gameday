@@ -1,0 +1,122 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Force the cluster failover"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  ReplicationGroupId:
+    type: String
+    description: (Required) ReplicationGroupId
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  SyntheticAlarmName:
+    type: String
+    description: (Required) Alarm which should be green after test.
+mainSteps:
+# add some step to assert and wait active status of the resource. See https://up-team.atlassian.net/wiki/spaces/DIG/pages/1033961542/General+code+requirements+for+SSM+documents#Assert-and-wait-for-the-resource-state-before-and-after-PerformRecovery
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 300
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: InjectFailure
+    # Describe replication group
+    #   Call [boto3.describe_replication_groups]
+    #     Parameters:
+    #       ReplicationGroupId=params.ReplicationGroupId
+    #     Take '.ReplicationGroups[].NodeGroups[]'
+    #     Example:  aws elasticache describe-replication-groups --replication-group-id vladimirs-cluster | jq '.ReplicationGroups[].NodeGroups[]'
+    # Execute test failover
+    #   Call [boto3.test_failover]
+    #     Parameters:
+    #       ReplicationGroupId=params.ReplicationGroupId
+    #       NodeGroupId=(Take a random one from the previous step)
+    #     Example: aws elasticache test-failover --replication-group-id vladimirs-cluster --node-group-id 0001
+    # Wait certain log messages to identify if failover has been completed
+    #   Call [boto3.describe_events]
+    #     Parameters:
+    #       SourceType="replication-group"
+    #       SourceIdentifier=params.ReplicationGroupId
+    #       StartTime=now
+    #   Wait certain messages as describe below for 600 seconds.
+    #   Example: aws elasticache describe-events --source-type replication-group --source-identifier "vladimirs-cluster"
+    #   Example response:
+    # {
+    #     "Events": [
+    #         {
+    #             "SourceIdentifier": "vladimirs-cluster",
+    #             "SourceType": "replication-group",
+    # 2. Then wait this-> "Message": "Failover to replica node vladimirs-cluster-0001-002 completed",
+    #             "Date": "2021-08-11T15:53:43.829000+00:00"
+    #         },
+    #         {
+    #             "SourceIdentifier": "vladimirs-cluster",
+    #             "SourceType": "replication-group",
+    # 1. Wait this-> "Message": "Test Failover API called for node group 0001",
+    #             "Date": "2021-08-11T15:53:14.437000+00:00"
+    #         },
+    #         {
+    #             "SourceIdentifier": "vladimirs-cluster",
+    #             "SourceType": "replication-group",
+    #             "Message": "Failover to replica node vladimirs-cluster-0002-003 completed",
+    #             "Date": "2021-08-11T15:43:17.390000+00:00"
+    #         },
+    #         {
+    #             "SourceIdentifier": "vladimirs-cluster",
+    #             "SourceType": "replication-group",
+    #             "Message": "Test Failover API called for node group 0002",
+    #             "Date": "2021-08-11T15:42:44.392000+00:00"
+    #         },
+    #         {
+    #             "SourceIdentifier": "vladimirs-cluster",
+    #             "SourceType": "replication-group",
+    #             "Message": "Replication group vladimirs-cluster created",
+    #             "Date": "2021-08-11T15:42:07.347000+00:00"
+    #         }
+    #     ]
+    # }
+
+
+    # NOTE (from the documentation):
+    # To determine whether the node replacement is complete you can check Events using the Amazon ElastiCache console, the AWS CLI, or the ElastiCache API. Look for the following automatic failover related events, listed here in order of occurrance:
+    # Replication group message: Test Failover API called for node group <node-group-id>
+    # Cache cluster message: Failover from primary node <primary-node-id> to replica node <node-id> completed
+    # Replication group message: Failover from primary node <primary-node-id> to replica node <node-id> completed
+    # Cache cluster message: Recovering cache nodes <node-id>
+    # Cache cluster message: Finished recovery for cache nodes <node-id>
+    # Source: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/elasticache.html#ElastiCache.Client.test_failover
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{SyntheticAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]

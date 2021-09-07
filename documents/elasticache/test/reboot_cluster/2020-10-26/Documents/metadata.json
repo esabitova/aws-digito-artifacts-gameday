@@ -1,0 +1,14 @@
+{
+  "displayName": "Reboots the cluster",
+  "description": "Reboots the cluster",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RebootElasticacheClusterTest_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "REGION",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "enabled": "false",
+  "tag": "elasticache:test:reboot_cluster:2020-10-26"
+}
