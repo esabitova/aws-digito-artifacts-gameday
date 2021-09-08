@@ -18,11 +18,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for Digito-DrainECSContainerInstancesTest_2020-04-01
 Outputs:
-  DigitoDrainECSContainerInstancesTestAssumeRole:
+  DigitoEcsDrainContainerInstancesAssumeRole:
     Description: Digito-DrainECSContainerInstancesTest_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoDrainECSContainerInstancesTestAssumeRole.Arn
+    Value: !GetAtt DigitoEcsDrainContainerInstancesAssumeRole.Arn
 Resources:
-  DigitoDrainECSContainerInstancesTestAssumeRole:
+  DigitoEcsDrainContainerInstancesAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -32,22 +32,50 @@ Resources:
             Principal:
               Service:
                 - ssm.amazonaws.com
+                - fis.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDrainECSContainerInstancesTestAssumePolicy:
+  DigitoEcsDrainContainerInstancesAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoDrainECSContainerInstancesTestAssumePolicy
+      PolicyName: DigitoEcsDrainContainerInstancesAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: "*"
             Action:
-              # required for FIS aws:ecs:drain-container-instances
               - ecs:DescribeClusterInstances
               - ecs:UpdateContainerInstancesState
               - ecs:ListContainerInstances
-              # add permissions required by automation document here
+              - cloudwatch:DescribeAlarms
+              - fis:CreateExperimentTemplate
+              - fis:StartExperiment
+              - fis:TagResource
+              - fis:GetExperiment
+              - ssm:GetAutomationExecution
+              - ssm:StartAutomationExecution
+          - Effect: Allow
+            Action:
+              - fis:DeleteExperimentTemplate
+            Resource: !Sub "arn:aws:fis:${AWS::Region}:${AWS::AccountId}:experiment-template/*"
+            Condition:
+              StringEquals: { "aws:ResourceTag/Digito": "ecs:test:drain_container_instances" }
+          - Effect: Allow
+            Action:
+              - fis:StopExperiment
+            Resource: !Sub "arn:aws:fis:${AWS::Region}:${AWS::AccountId}:experiment/*"
+            Condition:
+              StringEquals: { "aws:ResourceTag/Digito": "ecs:test:drain_container_instances" }
+          - Effect: Allow
+            Resource:
+              - !GetAtt DigitoEcsDrainContainerInstancesAssumeRole.Arn
+            Action:
+              - iam:PassRole
+          - Effect: Allow
+            Resource:
+              - !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/fis.amazonaws.com/AWSServiceRoleForFIS"
+            Action:
+              - iam:CreateServiceLinkedRole
       Roles:
-        - Ref: DigitoDrainECSContainerInstancesTestAssumeRole
+        - Ref: DigitoEcsDrainContainerInstancesAssumeRole

@@ -589,7 +589,8 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
 @given(parse('cache constant value {value} as "{cache_property}" '
              '"{step_key}" SSM automation execution'))
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
-    param_value = parse_param_value(value, {'cache': ssm_test_cache})
+    param_value = parse_param_value(value, {'cache': ssm_test_cache,
+                                            'cfn-output': cfn_output_params})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
 
 
