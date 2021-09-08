@@ -46,7 +46,7 @@ Feature: SSM automation document to restore the database from a backup.
       | resource_manager/cloud_formation_templates/DynamoDBTemplateWithKinesis.yml                       | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
       | documents/dynamodb/sop/restore_from_backup/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
-    And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
+    And published "Digito-CopyDynamoDBTablePropertiesUtil_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
     And wait table {{cfn-output:DynamoDBTemplateWithKinesis>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
@@ -132,7 +132,7 @@ Feature: SSM automation document to restore the database from a backup.
       | resource_manager/cloud_formation_templates/DynamoDBTemplateWithTtl.yml                           | ON_DEMAND    |
       | documents/dynamodb/sop/restore_from_backup/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
-    And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
+    And published "Digito-CopyDynamoDBTablePropertiesUtil_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
     And wait table {{cfn-output:DynamoDBTemplateWithTtl>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds
@@ -153,7 +153,7 @@ Feature: SSM automation document to restore the database from a backup.
       | resource_manager/cloud_formation_templates/DynamoDBTemplate.yml                                  | ON_DEMAND    |
       | documents/dynamodb/sop/restore_from_backup/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
     And published "Digito-RestoreFromBackup_2020-04-01" SSM document
-    And published "Digito-CopyDynamoDBTableProperties_2020-04-01" SSM document
+    And published "Digito-CopyDynamoDBTablePropertiesUtil_2020-04-01" SSM document
     And generate and cache random string with prefix digito_target_table as TargetTableToRestoreName
     And generate and cache random string with prefix digito_test_backup as BackupName
     And wait table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} to be active for 300 seconds with interval 20 seconds

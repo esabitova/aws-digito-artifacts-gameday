@@ -134,12 +134,12 @@ back changes from the previous run
 1. `CleanS3BucketWhereObjectsWillBeDeletedFrom`
     * Type: aws:executeAutomation
     * Inputs:
-        * `DocumentName`: `Digito-CleanS3Bucket_2021-03-03`
+        * `DocumentName`: `Digito-CleanS3BucketUtil_2021-03-03`
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `S3BucketNameToClean`: {{S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:
-        * Clean the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by calling shared SSM document  `Digito-CleanS3Bucket_2021-03-03`
+        * Clean the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by calling shared SSM document  `Digito-CleanS3BucketUtil_2021-03-03`
     * OnFailure: step: RollbackCurrentExecution
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty

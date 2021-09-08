@@ -1,5 +1,5 @@
 {
-  "documentName": "Digito-CopyDynamoDBTableProperties_2020-04-01",
+  "documentName": "Digito-CopyDynamoDBTablePropertiesUtil_2020-04-01",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
