@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-ApplicationLbNetworkUnavailable_2020-04-01",
+  "documentName": "Digito-ForceApplicationLbNetworkUnavailableTest_2020-04-01",
   "documentType": "Automation",
   "failureType": "AZ,SOFTWARE",
   "minorVersion": "001",

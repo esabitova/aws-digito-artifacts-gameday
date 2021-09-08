@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-NetworkGwLbTargetUnavailable_2020-04-01
+Description: Role for Digito-ForceNetworkGwLbTargetUnavailableTest_2020-04-01
 Outputs:
-  DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole:
-    Description: Digito-NetworkGwLbTargetUnavailable_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole.Arn
+  DigitoForceNetworkGwLbTargetUnavailableTestAssumeRole:
+    Description: Digito-ForceNetworkGwLbTargetUnavailableTest_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoForceNetworkGwLbTargetUnavailableTestAssumeRole.Arn
 Resources:
-  DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole:
+  DigitoForceNetworkGwLbTargetUnavailableTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumePolicy:
+  DigitoForceNetworkGwLbTargetUnavailableTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumePolicy
+      PolicyName: DigitoForceNetworkGwLbTargetUnavailableTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -51,8 +51,8 @@ Resources:
               - ssm:GetAutomationExecution
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole.Arn
+              - !GetAtt DigitoForceNetworkGwLbTargetUnavailableTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoLoadBalancerNetworkGWLbTargetUnavailableAssumeRole
+        - Ref: DigitoForceNetworkGwLbTargetUnavailableTestAssumeRole

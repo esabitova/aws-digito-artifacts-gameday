@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-NetworkGwLbTargetUnavailable_2020-04-01",
+  "documentName": "Digito-ForceNetworkGwLbTargetUnavailableTest_2020-04-01",
   "documentType": "Automation",
   "failureType": "AZ,SOFTWARE,HARDWARE",
   "minorVersion": "001",

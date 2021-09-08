@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ApplicationLbNetworkUnavailable_2020-04-01
+Description: Role for Digito-ForceApplicationLbNetworkUnavailableTest_2020-04-01
 Outputs:
-  DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole:
-    Description: Digito-ApplicationLbNetworkUnavailable_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole.Arn
+  DigitoForceApplicationLbNetworkUnavailableTestAssumeRole:
+    Description: Digito-ForceApplicationLbNetworkUnavailableTest_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoForceApplicationLbNetworkUnavailableTestAssumeRole.Arn
 Resources:
-  DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole:
+  DigitoForceApplicationLbNetworkUnavailableTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLoadBalancerApplicationLbNetworkUnavailableAssumePolicy:
+  DigitoForceApplicationLbNetworkUnavailableTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLoadBalancerApplicationLbNetworkUnavailableAssumePolicy
+      PolicyName: DigitoForceApplicationLbNetworkUnavailableTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -56,7 +56,7 @@ Resources:
                 - elasticloadbalancing:DescribeLoadBalancers
           - Effect: Allow
             Resource:
-              - !GetAtt DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole.Arn
+              - !GetAtt DigitoForceApplicationLbNetworkUnavailableTestAssumeRole.Arn
             Action:
                 - iam:PassRole
           - Effect: Allow
@@ -74,4 +74,4 @@ Resources:
             Condition:
               StringEquals: {"ec2:ResourceTag/Digito": "elb:test:application_lb_network_unavailable"}
       Roles:
-        - Ref: DigitoLoadBalancerApplicationLbNetworkUnavailableAssumeRole
+        - Ref: DigitoForceApplicationLbNetworkUnavailableTestAssumeRole
