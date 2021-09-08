@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ChangeExecutionTimeLimit_2021-05-20
+Description: Role for Digito-ChangeLambdaExecutionTimeLimitSOP_2020-10-26
 Outputs:
-  DigitoLambdaChangeExecutionTimeLimitAssumeRole:
-    Description: Digito-ChangeExecutionTimeLimit_2021-05-20 Automation Assume Role ARN
+  DigitoChangeLambdaExecutionTimeLimitSOPAssumeRole:
+    Description: Digito-ChangeLambdaExecutionTimeLimitSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoLambdaChangeExecutionTimeLimitAssumeRole.Arn
+      Fn::GetAtt: DigitoChangeLambdaExecutionTimeLimitSOPAssumeRole.Arn
 Resources:
-  DigitoLambdaChangeExecutionTimeLimitAssumeRole:
+  DigitoChangeLambdaExecutionTimeLimitSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLambdaChangeExecutionTimeLimitAssumePolicy:
+  DigitoChangeLambdaExecutionTimeLimitSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLambdaChangeExecutionTimeLimitAssumePolicy
+      PolicyName: DigitoChangeLambdaExecutionTimeLimitSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -47,4 +47,4 @@ Resources:
             Action:
               - lambda:UpdateFunctionConfiguration
       Roles:
-        - Ref: DigitoLambdaChangeExecutionTimeLimitAssumeRole
+        - Ref: DigitoChangeLambdaExecutionTimeLimitSOPAssumeRole

@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-Throttling_2020-10-26
+Description: Role for Digito-ForceLambdaThrottlingTest_2020-10-26
 Outputs:
-  DigitoLambdaThrottlingAssumeRole:
-    Description: Digito-Throttling_2020-10-26 Automation Assume Role ARN
+  DigitoForceLambdaThrottlingTestAssumeRole:
+    Description: Digito-ForceLambdaThrottlingTest_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoLambdaThrottlingAssumeRole.Arn
+      Fn::GetAtt: DigitoForceLambdaThrottlingTestAssumeRole.Arn
 Resources:
-  DigitoLambdaThrottlingAssumeRole:
+  DigitoForceLambdaThrottlingTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLambdaThrottlingAssumePolicy:
+  DigitoForceLambdaThrottlingTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLambdaThrottlingAssumePolicy
+      PolicyName: DigitoForceLambdaThrottlingTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -50,4 +50,4 @@ Resources:
               - lambda:DeleteFunctionConcurrency
               - cloudwatch:DescribeAlarms
       Roles:
-        - Ref: DigitoLambdaThrottlingAssumeRole
+        - Ref: DigitoForceLambdaThrottlingTestAssumeRole

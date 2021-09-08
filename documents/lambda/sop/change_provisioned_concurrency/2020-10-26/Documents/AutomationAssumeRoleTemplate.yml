@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM LambdaChangeProvisionedConcurrency
+Description: Role for SSM Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26
 Outputs:
-  DigitoLambdaChangeProvisionedConcurrencyAssumeRoleArn:
-    Description: DigitoLambdaChangeProvisionedConcurrency Automation Assume Role ARN
+  DigitoChangeLambdaProvisionedConcurrencySOPAssumeRole:
+    Description: Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoLambdaChangeProvisionedConcurrencyAssumeRole.Arn
+      Fn::GetAtt: DigitoChangeLambdaProvisionedConcurrencySOPAssumeRole.Arn
 Resources:
-  DigitoLambdaChangeProvisionedConcurrencyAssumeRole:
+  DigitoChangeLambdaProvisionedConcurrencySOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLambdaChangeProvisionedConcurrencyAssumePolicy:
+  DigitoChangeLambdaProvisionedConcurrencySOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLambdaChangeProvisionedConcurrencyAssumePolicy
+      PolicyName: DigitoChangeLambdaProvisionedConcurrencySOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -48,4 +48,4 @@ Resources:
               - lambda:PutProvisionedConcurrencyConfig
               - lambda:GetProvisionedConcurrencyConfig
       Roles:
-        - Ref: DigitoLambdaChangeProvisionedConcurrencyAssumeRole
+        - Ref: DigitoChangeLambdaProvisionedConcurrencySOPAssumeRole

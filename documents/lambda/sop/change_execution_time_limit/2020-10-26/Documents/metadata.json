@@ -1,7 +1,7 @@
 {
   "displayName": "Change Execution Time Limit",
   "description": "Change execution time limit",
-  "documentName": "Digito-ChangeExecutionTimeLimit_2020-10-26",
+  "documentName": "Digito-ChangeLambdaExecutionTimeLimitSOP_2020-10-26",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",

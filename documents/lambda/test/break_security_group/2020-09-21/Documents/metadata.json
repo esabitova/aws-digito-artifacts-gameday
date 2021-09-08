@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-LambdaBreakSecurityGroup_2020-09-21",
+  "documentName": "Digito-BreakLambdaSecurityGroupTest_2020-09-21",
   "documentType": "Automation",
   "failureType": "AZ",
   "minorVersion": "001",

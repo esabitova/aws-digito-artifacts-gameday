@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-ChangeMemorySize_2020-10-26",
+  "documentName": "Digito-ChangeLambdaMemorySizeSOP_2020-10-26",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "Change Memory size",
