@@ -5,8 +5,8 @@ Feature: SSM automation document to test dynamodb read throttling
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                 | ResourceType |
       | resource_manager/cloud_formation_templates/dedicated/DynamoDBTemplateWithProvisionedBilling.yml | DEDICATED    |
-      | documents/dynamodb/test/consume_more_rcu/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml  | ASSUME_ROLE  |
-    And published "Digito-ConsumeMoreRCU_2020-09-21" SSM document
+      | documents/dynamodb/test/read_throttling/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml   | ASSUME_ROLE  |
+    And published "Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21" SSM document
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ReadCapacityUnits" "before" SSM automation execution
       | TableName                                                           |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
@@ -14,10 +14,10 @@ Feature: SSM automation document to test dynamodb read throttling
       | DynamoDBTableName                                                   |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
 
-    When SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" executed
-      | DynamoDBTableName                                                   | AutomationAssumeRole                                                               | ReadThrottleAlarmName                                                             | ReadCapacityUnitsLimit |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>ReadThrottleEventsAlarmName}} | 1                      |
-    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1400" seconds
+    When SSM automation document "Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21" executed
+      | DynamoDBTableName                                                   | AutomationAssumeRole                                                                             | ReadThrottleAlarmName                                                             | ReadCapacityUnitsLimit |
+      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoForceDynamoDBTableReadThrottlingTestAssumeRole}} | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>ReadThrottleEventsAlarmName}} | 1                      |
+    And Wait for the SSM automation document "Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And sleep for "30" seconds
@@ -33,7 +33,7 @@ Feature: SSM automation document to test dynamodb read throttling
       | DynamoDBTableName                                                   |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
 
-    And Wait for the SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "1400" seconds
+    And Wait for the SSM automation document "Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress" for "1400" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And sleep for "60" seconds
@@ -49,7 +49,7 @@ Feature: SSM automation document to test dynamodb read throttling
       | DynamoDBTableName                                                   |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
 
-    Then SSM automation document "Digito-ConsumeMoreRCU_2020-09-21" execution in status "Success"
+    Then SSM automation document "Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ReadCapacityUnits" "after" SSM automation execution

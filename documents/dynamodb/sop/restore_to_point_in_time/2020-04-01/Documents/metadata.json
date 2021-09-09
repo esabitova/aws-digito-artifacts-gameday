@@ -1,7 +1,7 @@
 {
   "displayName": "Restore To Point In Time",
   "description": "Used to restore Dynamodb to a specific point in time.",
-  "documentName": "Digito-RestoreToPointInTime_2020-04-01",
+  "documentName": "Digito-RestoreDynamoDBTableToPointInTimeSOP_2020-04-01",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",

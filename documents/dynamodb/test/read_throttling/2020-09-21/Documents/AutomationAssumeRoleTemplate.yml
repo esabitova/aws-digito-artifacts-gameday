@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM ConsumeMoreRCU
+Description: Role for SSM Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21
 Outputs:
-  DigitoRestoreFromPointInTimeAssumeRole:
-    Description: DigitoConsumeMoreRCU Automation Assume Role ARN
+  DigitoForceDynamoDBTableReadThrottlingTestAssumeRole:
+    Description: Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoConsumeMoreRCUAssumeRole.Arn
+      Fn::GetAtt: DigitoForceDynamoDBTableReadThrottlingTestAssumeRole.Arn
 Resources:
-  DigitoConsumeMoreRCUAssumeRole:
+  DigitoForceDynamoDBTableReadThrottlingTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoConsumeMoreRCUAssumePolicy:
+  DigitoForceDynamoDBTableReadThrottlingTestAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoConsumeMoreRCUAssumePolicy"
+      PolicyName: "DigitoForceDynamoDBTableReadThrottlingTestAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -53,8 +53,8 @@ Resources:
               - ssm:GetParameters
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoConsumeMoreRCUAssumeRole.Arn
+              - Fn::GetAtt: DigitoForceDynamoDBTableReadThrottlingTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoConsumeMoreRCUAssumeRole
+        - Ref: DigitoForceDynamoDBTableReadThrottlingTestAssumeRole

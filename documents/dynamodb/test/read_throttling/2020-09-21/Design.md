@@ -1,5 +1,5 @@
 # Id
-dynamodb:test:consume_more_rcu:2020-09-21
+dynamodb:test:read_throttling:2020-09-21
 
 ## Intent
 Test that the ReadThrottleEvents metric alarm setup detects and alerts when table becomes unavailable
