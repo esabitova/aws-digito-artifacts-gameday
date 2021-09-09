@@ -126,7 +126,7 @@ mainSteps:
   - name: RollbackPreviousExecution
     action: aws:executeAutomation
     inputs:
-      DocumentName: Digito-RestoreFromBackup_2020-09-21
+      DocumentName: Digito-RestoreS3BucketFromBackupSOP_2020-09-21
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
@@ -147,7 +147,7 @@ mainSteps:
   - name: BackupS3BucketWhereObjectsWillBeDeletedFrom
     action: aws:executeAutomation
     inputs:
-      DocumentName: Digito-RestoreFromBackup_2020-09-21
+      DocumentName: Digito-RestoreS3BucketFromBackupSOP_2020-09-21
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'
@@ -180,7 +180,7 @@ mainSteps:
     action: aws:executeAutomation
     onCancel: 'step:TriggerRollback'
     inputs:
-      DocumentName: Digito-RestoreFromBackup_2020-09-21
+      DocumentName: Digito-RestoreS3BucketFromBackupSOP_2020-09-21
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         SNSTopicARNForManualApproval: '{{SNSTopicARNForManualApproval}}'

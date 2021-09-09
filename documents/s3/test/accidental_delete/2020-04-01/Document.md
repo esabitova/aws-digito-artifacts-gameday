@@ -31,7 +31,7 @@ SMALL
     * cloudwatch:DescribeAlarms
 
 ## Depends On
-    * Digito-RestoreFromBackup_2020-09-21
+    * Digito-RestoreS3BucketFromBackupSOP_2020-09-21
     * Digito-CleanS3BucketUtil_2021-03-03
 
 ## Supports Rollback

@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoringToPreviousVersion
+Description: Role for SSM Digito-RestoreS3ObjectToPreviousVersionSOP_2020-09-21
 Outputs:
-  DigitoRestoringToPreviousVersionAssumeRole:
-    Description: DigitoRestoringToPreviousVersion Automation Assume Role ARN
+  DigitoRestoreS3ObjectToPreviousVersionSOPAssumeRole:
+    Description: Digito-RestoreS3ObjectToPreviousVersionSOP_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRestoringToPreviousVersionAssumeRole.Arn
+      Fn::GetAtt: DigitoRestoreS3ObjectToPreviousVersionSOPAssumeRole.Arn
 Resources:
-  DigitoRestoringToPreviousVersionAssumeRole:
+  DigitoRestoreS3ObjectToPreviousVersionSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoringToPreviousVersionAssumePolicy:
+  DigitoRestoreS3ObjectToPreviousVersionSOPAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoRestoringToPreviousVersionAssumePolicy"
+      PolicyName: "DigitoRestoreS3ObjectToPreviousVersionSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -51,4 +51,4 @@ Resources:
               - s3:ListBucket
               - s3:ListBucketVersions
       Roles:
-        - Ref: DigitoRestoringToPreviousVersionAssumeRole
+        - Ref: DigitoRestoreS3ObjectToPreviousVersionSOPAssumeRole

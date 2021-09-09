@@ -3,11 +3,11 @@ Feature: SSM automation document to restore an S3 object into previous version
 
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation document to restore an S3 object into previous version
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                                     | ResourceType |CleanupS3BucketLambdaArn                                     |
-      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml                         | SHARED       |                                                             |
-      | resource_manager/cloud_formation_templates/S3Template.yml                                           | ON_DEMAND    |{{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}}|
-      | documents/s3/sop/restore_to_previous_versions/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                             |
-    And published "Digito-RestoringToPreviousVersion_2020-09-21" SSM document
+      | CfnTemplatePath                                                                                     | ResourceType | CleanupS3BucketLambdaArn                                      |
+      | resource_manager/cloud_formation_templates/shared/CleanupS3BucketLambda.yml                         | SHARED       |                                                               |
+      | resource_manager/cloud_formation_templates/S3Template.yml                                           | ON_DEMAND    | {{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}} |
+      | documents/s3/sop/restore_to_previous_versions/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                                               |
+    And published "Digito-RestoreS3ObjectToPreviousVersionSOP_2020-09-21" SSM document
     And put "object-to-restore-version.txt" object "2" times with different content into "S3Bucket" bucket
       | S3Bucket                                        |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
@@ -20,11 +20,11 @@ Feature: SSM automation document to restore an S3 object into previous version
     And cache value of "latest" version of the "object-to-restore-version.txt" file as "OldLastVersion" at "S3Bucket" bucket "before" SSM automation execution
       | S3Bucket                                        |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
-    And SSM automation document "Digito-RestoringToPreviousVersion_2020-09-21" executed
-      | S3BucketName                                    | S3BucketObjectKey             | AutomationAssumeRole                                                                   |
-      | {{cfn-output:S3Template>S3BucketToRestoreName}} | object-to-restore-version.txt | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoringToPreviousVersionAssumeRole}} |
+    And SSM automation document "Digito-RestoreS3ObjectToPreviousVersionSOP_2020-09-21" executed
+      | S3BucketName                                    | S3BucketObjectKey             | AutomationAssumeRole                                                                            |
+      | {{cfn-output:S3Template>S3BucketToRestoreName}} | object-to-restore-version.txt | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreS3ObjectToPreviousVersionSOPAssumeRole}} |
 
-    When SSM automation document "Digito-RestoringToPreviousVersion_2020-09-21" execution in status "Success"
+    When SSM automation document "Digito-RestoreS3ObjectToPreviousVersionSOP_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache value of "latest" version of the "object-to-restore-version.txt" file as "ActualLastVersion" at "S3Bucket" bucket "after" SSM automation execution
