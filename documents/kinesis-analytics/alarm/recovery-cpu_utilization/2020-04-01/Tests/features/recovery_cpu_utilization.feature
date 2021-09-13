@@ -2,8 +2,8 @@
 Feature: Alarm Setup - Kinesis Analytics Errors
   Scenario: Create kinesis:alarm:data_analytics_cpu_utilization:2020-04-01 based on cpuUtilization metric and check OK status
     Given the cached input parameters
-      | FlinkAppRelativePath                                      | FlinkAppS3Key                               | S3KinesisAnalyticsApplicationBucketNamePrefix |
-      | documents/kinesis-analytics/flinkapp/python-test-sink.zip | kinesis-analytics-app/python-test-sink.zip  | kda-apache-flink-application-s3               |
+      | FlinkAppRelativePath                                       | FlinkAppS3Key                               | S3KinesisAnalyticsApplicationBucketNamePrefix |
+      | resource_manager/executables/flinkapp/python-test-sink.zip | kinesis-analytics-app/python-test-sink.zip  | kda-apache-flink-application-s3               |
     And create S3 bucket and save the bucket name as "S3KinesisAnalyticsApplicationBucketName" to "KinesisAnalytics" cache property
       | S3BucketNamePrefix                                      | S3BucketTeardown |
       | {{cache:S3KinesisAnalyticsApplicationBucketNamePrefix}} | Yes              |

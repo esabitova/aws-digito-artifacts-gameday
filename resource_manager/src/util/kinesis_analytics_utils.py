@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 log = logging.getLogger()
 
 # we wait for this timeperiod for kinesis application get into "RUNNING" status:
-RETRY_START_APP_PARAMETER = 240
+RETRY_START_APP_PARAMETER = 360
 
 # time.sleep constant in case of activity failure:
 ORDINARY_SLEEP_INTERVAL = 10
@@ -43,10 +43,11 @@ def _wait_for_status(kinesis_analytics_client, app_name, status,
     app_status = ''
     while app_status != status:
         if datetime.utcnow() > end_stress:
-            raise ClientError(f'Kinesis Data Analytics application {app_name} '
-                              f'did not achieve status {status} '
-                              f'for {str(wait_period)} seconds.'
-                              f'Current application status is {app_status}.')
+            logging.error(f'Kinesis Data Analytics application {app_name} '
+                          f'did not achieve status {status} '
+                          f'for {str(wait_period)} seconds.'
+                          f'Current application status is {app_status}.')
+            raise RuntimeError()
         time.sleep(interval_to_sleep)
         app_status = kinesis_analytics_client.describe_application(
             ApplicationName=app_name)['ApplicationDetail']['ApplicationStatus']
@@ -452,3 +453,19 @@ def get_kda_vpc_security_groups_id_list(app_name: str, session: Session) -> list
     security_groups_id_list = get_kda_vpc_security_group(
         {'ApplicationName': app_name}, {}, kinesis_analytics_client)
     return security_groups_id_list["KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue"]
+
+
+def trigger_input_stream_lambda_loader_several_times(lambda_loader_name: str,
+                                                     invoke_attempts: int,
+                                                     session: Session):
+    """
+    triggers input stream lambda loader several times, to put dummy ticker data to input stream
+    """
+    lambda_client = client('lambda', session)
+    i = 0
+    while i < invoke_attempts:
+        lambda_client.invoke(
+            FunctionName=lambda_loader_name
+        )
+        i += 1
+    return

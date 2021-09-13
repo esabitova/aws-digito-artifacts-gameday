@@ -395,3 +395,34 @@ class KinesisAnalyticsTestUtils(unittest.TestCase):
         self.assertEqual(kinan_utils.prove_snapshot_exist_or_confect(
             TEST_APPLICATION_NAME, 'NoSuchSnapshot', self.session_mock),
             (True, 'NoSuchSnapshot'))
+
+    def test__wait_for_status_fail(self):
+        """
+        test _wait_for_status()
+        """
+        self.mock_kinesis_analytics.describe_application.side_effect = lambda ApplicationName,\
+            IncludeAdditionalDetails=True: mock_describe_flink_application(ApplicationName, 'RUNNING')
+        with self.assertRaises(RuntimeError):
+            kinan_utils._wait_for_status(
+                kinesis_analytics_client=self.client_side_effect_map.get('kinesisanalyticsv2'),
+                app_name=TEST_APPLICATION_NAME,
+                status='RUNNING',
+                wait_period=0,
+                interval_to_sleep=-0.001)
+
+    @patch('resource_manager.src.util.kinesis_analytics_utils.choices')
+    def test__snapshot_postfix(self, mock_choices):
+        """
+        test _snapshot_postfix()
+        """
+        mock_choices.side_effect = lambda t, k: "gorx12"
+        self.assertEqual(kinan_utils._snapshot_postfix(postfix_digits=6), "gorx12")
+
+    @patch('resource_manager.src.util.kinesis_analytics_utils.choices')
+    def test__new_test_standard_snapshot_name(self, mock_choices):
+        """
+        test _new_test_standard_snapshot_name()
+        """
+        mock_choices.side_effect = lambda t, k=6: "gorx12"
+        self.assertEqual(kinan_utils._new_test_standard_snapshot_name(TEST_APPLICATION_NAME),
+                         "TEST-KinesisAnalyticsFl_Ve6KhqPQMAxk-gorx12")

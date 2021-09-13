@@ -1,0 +1,361 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test Kinesis Data Analytics for Apache Flink behavior when VPC configuration is broken"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  KinesisAnalyticsFlinkApplicationId:
+    type: String
+    description: (Required) KinesisAnalyticsFlinkApplicationId
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf
+  DowntimeAlarmName:
+    type: String
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: KinesisAnalyticsFlinkApplicationId
+        Selector: $.Payload.KinesisAnalyticsFlinkApplicationId[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertInputsFromPreviousExecution
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: AwaitKinesisDataAnalyticsRunningStatusBeforeRollbackOfPreviousExecution
+          Variable: "{{ GetInputsFromPreviousExecution.KinesisAnalyticsFlinkApplicationId }}"
+          StringEquals: '{{ KinesisAnalyticsFlinkApplicationId }}'
+    isEnd: true
+
+  - name: AwaitKinesisDataAnalyticsRunningStatusBeforeRollbackOfPreviousExecution
+    action: aws:waitForAwsResourceProperty
+    description: >-
+                Wait for the provided timeout, that Kinesis Data Application status
+                changes to "RUNNING" (status may be "UPDATING" when KDA application 
+                fails on "RollbackCurrentExecution" step)
+                If status does not attain "RUNNING" - abort
+    maxAttempts: 1
+    timeoutSeconds: 600    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+  
+  - name: PrepareRollbackOfPreviousExecutionGetOriginalSecurityGroup
+    action: aws:executeScript
+    outputs:
+      - Name: KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue
+        Selector: $.Payload.KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupCurrentExecution'
+        ResponseField: 'KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+  
+  - name: PrepareRollbackOfPreviousExecutionGetDummySecurityGroup
+    action: aws:executeScript
+    outputs:
+      - Name: KinesisDataAnalyticsApplicationVPCDummySecurityGroupId
+        Selector: $.Payload.KinesisDataAnalyticsApplicationVPCDummySecurityGroupId[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'CreateDummySecurityGroup'
+        ResponseField: 'KinesisDataAnalyticsApplicationVPCDummySecurityGroupId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: RollbackPreviousExecution
+    action: aws:executeScript
+    description: Rollback VPC security groups for Kinesis Data Analytics application
+    inputs:
+      Runtime: python3.7
+      Handler: update_kda_vpc_security_group
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+        KDAVPCSecurityGroupMappingValue: '{{ PrepareRollbackOfPreviousExecutionGetOriginalSecurityGroup.KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.update_kda_vpc_security_group
+  
+  - name: AwaitApplicationIsRunningAfterRollbackPreviousExecution
+    action: aws:waitForAwsResourceProperty
+    description: >-
+                Wait for the provided timeout, that Kinesis Data Application status is "RUNNING"
+                after RollbackPreviousExecution.
+    maxAttempts: 1
+    timeoutSeconds: 600    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+
+  - name: RemoveDummySecurityGroupAfterRollbackPreviousExecution
+    action: aws:executeScript
+    description: Delete dummy test security group
+    inputs:
+      Runtime: python3.7
+      Handler: remove_empty_security_group
+      InputPayload:
+        EmptySecurityGroupId: '{{ PrepareRollbackOfPreviousExecutionGetDummySecurityGroup.KinesisDataAnalyticsApplicationVPCDummySecurityGroupId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{DowntimeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]  
+
+  - name: CheckKinesisDataAnalyticsApplicationVPCStatus
+    action: aws:executeAwsApi
+    description: >-
+                 try to output Kinesis Data Analytics application VPC Id
+                 If Kinesis Data Analytics application is not in VPC, step fails
+                 with KeyError
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      IncludeAdditionalDetails: True
+    outputs:
+    - Name: KinesisDataAnalyticsVPCId
+      Selector: "$.ApplicationDetail.ApplicationConfigurationDescription.VpcConfigurationDescriptions[0].VpcId"
+      Type: String
+
+  - name: AwaitKinesisDataAnalyticsRunningStatusBeforeBackupCurrentExecution
+    action: aws:waitForAwsResourceProperty
+    description: >-
+                Wait for the provided timeout, that Kinesis Data Application status
+                changes to "RUNNING" 
+                If status on timeout does not attain "RUNNING" - abort
+    maxAttempts: 1
+    timeoutSeconds: 600    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+  
+  - name: BackupCurrentExecution
+    action: aws:executeScript
+    description: Backup security group for Kinesis Data Analytics application VPC configuration
+    outputs:
+      - Name: KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue
+        Selector: '$.Payload.KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_kda_vpc_security_group
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.get_kda_vpc_security_group
+
+  - name: CreateDummySecurityGroup
+    action: aws:executeScript
+    onFailure: step:RemoveDummySecurityGroupAfterRollbackCurrentExecution
+    onCancel: step:RemoveDummySecurityGroupAfterRollbackCurrentExecution
+    description: Create dummy test security group with empty ingress and bounded egress
+    outputs:
+      - Name: KinesisDataAnalyticsApplicationVPCDummySecurityGroupId
+        Selector: '$.Payload.EmptySecurityGroupId'
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: create_empty_security_group
+      InputPayload:
+        VpcId: '{{ CheckKinesisDataAnalyticsApplicationVPCStatus.KinesisDataAnalyticsVPCId }}'
+        Tag: 'kinesisdataanalytics:test:break_vpc_configuration'
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+        SCRIPT_PLACEHOLDER::common_util.create_empty_security_group
+
+  - name: InjectFailure
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    description: Change Kinesis Data Analytics application VPC security group to group, which disallows interaction with VPC resources.
+    inputs:
+      Runtime: python3.7
+      Handler: update_kda_vpc_security_group
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+        KDAVPCSecurityGroupMappingValue: '{{ CreateDummySecurityGroup.KinesisDataAnalyticsApplicationVPCDummySecurityGroupId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.update_kda_vpc_security_group
+
+  - name: AwaitApplicationUpdateCompleteAfterInjectFailure
+    action: aws:waitForAwsResourceProperty
+    description: Wait for the provided timeout, that Kinesis Data Application status is "RUNNING".
+    maxAttempts: 1
+    timeoutSeconds: 600    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    maxAttempts: 1
+    timeoutSeconds: 600    
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{DowntimeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    maxAttempts: 1
+    onCancel: step:TriggerRollback
+    action: aws:executeScript
+    description: Change Kinesis Data Analytics application VPC security group back to group "in good standing".
+    inputs:
+      Runtime: python3.7
+      Handler: update_kda_vpc_security_group
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+        KDAVPCSecurityGroupMappingValue: '{{ BackupCurrentExecution.KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.imports
+        SCRIPT_PLACEHOLDER::kinesis_analytics_util.update_kda_vpc_security_group
+
+  - name: AwaitApplicationIsRunningAfterRollbackCurrentExecution
+    action: aws:waitForAwsResourceProperty
+    description: >-
+                Wait for the provided timeout, that Kinesis Data Application status is "RUNNING"
+                after RollbackCurrentExecution.
+    maxAttempts: 1
+    timeoutSeconds: 900    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+
+  - name: RemoveDummySecurityGroupAfterRollbackCurrentExecution
+    action: aws:executeScript
+    description: Delete dummy test security group
+    inputs:
+      Runtime: python3.7
+      Handler: remove_empty_security_group
+      InputPayload:
+        ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+        EmptySecurityGroupId: '{{ CreateDummySecurityGroup.KinesisDataAnalyticsApplicationVPCDummySecurityGroupId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.remove_empty_security_group
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{DowntimeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+  
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

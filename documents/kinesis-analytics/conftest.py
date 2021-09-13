@@ -161,6 +161,24 @@ def populate_stream_with_dummy_ticker_data(resource_pool, ssm_test_cache, boto3_
     kinan_utils.generate_dummy_ticker_stream(input_stream_name, sec_interval, boto3_session)
 
 
+# invoke lambda loader to populate input stream:
+populate_input_stream_by_dummy_ticker_lambda_loader_expression = 'populate input stream by lambda ' \
+                                                                 'loader "{invoke_attempts:d}" times' \
+                                                                 '\n{input_parameters}'
+
+
+@given(parsers.parse(populate_input_stream_by_dummy_ticker_lambda_loader_expression))
+@when(parsers.parse(populate_input_stream_by_dummy_ticker_lambda_loader_expression))
+@then(parsers.parse(populate_input_stream_by_dummy_ticker_lambda_loader_expression))
+def populate_input_stream_by_dummy_ticker_lambda_loader(resource_pool, ssm_test_cache,
+                                                        boto3_session, invoke_attempts,
+                                                        input_parameters):
+    input_stream_lambda_loader_name = extract_param_value(
+        input_parameters, 'InputStreamLambdaLoaderName', resource_pool, ssm_test_cache)
+    kinan_utils.trigger_input_stream_lambda_loader_several_times(
+        input_stream_lambda_loader_name, invoke_attempts, boto3_session)
+
+
 # start kinesis analytics expression:
 start_kinesis_analytics_application_expression = 'start Kinesis Data Analytics for "{app_type}" application' \
                                                  '\n{input_parameters}'

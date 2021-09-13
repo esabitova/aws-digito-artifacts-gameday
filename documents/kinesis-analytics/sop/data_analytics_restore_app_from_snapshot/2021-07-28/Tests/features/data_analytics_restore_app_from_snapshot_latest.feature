@@ -3,8 +3,8 @@ Feature: SSM automation document Digito-RestoreKinesisDataAnalyticsApplicationFr
 
   Scenario: Execute Digito-RestoreKinesisDataAnalyticsApplicationFromSnapshotSOP_2021-07-28 to restore kinesis data analytics flink application from latest snapshot
      Given the cached input parameters
-      | FlinkAppRelativePath                                      | FlinkAppS3Key                               | S3KinesisAnalyticsApplicationBucketNamePrefix | KinesisAnalyticsSnapshotName |
-      | documents/kinesis-analytics/flinkapp/python-test-sink.zip | kinesis-analytics-app/python-test-sink.zip  | kda-apache-flink-application-s3               | Latest                       |
+      | FlinkAppRelativePath                                       | FlinkAppS3Key                               | S3KinesisAnalyticsApplicationBucketNamePrefix | KinesisAnalyticsSnapshotName |
+      | resource_manager/executables/flinkapp/python-test-sink.zip | kinesis-analytics-app/python-test-sink.zip  | kda-apache-flink-application-s3               | Latest                       |
     And create S3 bucket and save the bucket name as "S3KinesisAnalyticsApplicationBucketName" to "KinesisAnalytics" cache property
       | S3BucketNamePrefix                                      | S3BucketTeardown |
       | {{cache:S3KinesisAnalyticsApplicationBucketNamePrefix}} | Yes              |

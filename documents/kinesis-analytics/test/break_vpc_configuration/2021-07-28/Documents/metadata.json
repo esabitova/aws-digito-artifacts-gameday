@@ -1,0 +1,15 @@
+{
+  "displayName": "Test - Break VPC Configuration",
+  "description": "Test Kinesis Data Analytics for Apache Flink behavior when VPC configuration is broken",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-BreakKinesisDataAnalyticsVpcConfigurationTest_2021-07-28",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "enabled": "false",
+  "tag": "kinesis-analytics:test:break_vpc_configuration:2021-07-28",
+  "recommendedAlarms": { "downTimeAlarmName": "kinesis-analytics:alarm:health-downtime:2021-07-28" }
+}
