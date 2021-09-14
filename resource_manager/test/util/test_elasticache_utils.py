@@ -19,7 +19,7 @@ class TestElasticacheUtil(unittest.TestCase):
             'elasticache': self.mock_elasticache
         }
         self.client.side_effect = lambda service_name, config=None: self.side_effect_map.get(service_name)
-        self.session_mock.client.side_effect = lambda service_name, config=None:\
+        self.session_mock.client.side_effect = lambda service_name, config=None: \
             self.side_effect_map.get(service_name)
 
     def tearDown(self):

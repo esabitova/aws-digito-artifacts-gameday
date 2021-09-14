@@ -1,3 +1,4 @@
+import json
 import logging
 import random
 
@@ -6,14 +7,13 @@ from pytest_bdd import (
     given, parsers, when, then
 )
 
-from resource_manager.src.util import elasticache_utils
+from resource_manager.src.util import elasticache_utils, common_test_utils, param_utils
 from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import (
     extract_param_value, put_to_ssm_test_cache
 )
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 cache_primary_and_replica_cluster_ids_expression = 'cache PrimaryClusterId and ReplicaClusterId "{step_key}" ' \
                                                    'SSM automation execution' \
@@ -119,6 +119,75 @@ def cache_replica_count(resource_pool, ssm_test_cache, boto3_session, cache_prop
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, amount_of_replicas)
 
 
+@given(parsers.parse('extract ReshardingConfiguration from "{node_groups_ref}" '
+                     'NodeGroups as "{cache_property}" to "{step_key}"'))
+@then(parsers.parse('extract ReshardingConfiguration from "{node_groups_ref}" '
+                    'NodeGroups as "{cache_property}" to "{step_key}"'))
+def extract_resharding_configuration(resource_pool, ssm_test_cache, boto3_session, node_groups_ref, cache_property,
+                                     step_key):
+    node_groups = param_utils.parse_param_value(node_groups_ref, {'cache': ssm_test_cache})
+    resharding_configuration = [{"NodeGroupId": node_group['NodeGroupId'],
+                                 "PreferredAvailabilityZones": [member['PreferredAvailabilityZone']
+                                                                for member in node_group['NodeGroupMembers']]
+                                 } for node_group in node_groups]
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, resharding_configuration)
+
+
+@given(parsers.parse('destring "{resharding_configuration_ref}" ReshardingConfiguration '
+                     'as "{cache_property}" to "{step_key}"'))
+@then(parsers.parse('destring "{resharding_configuration_ref}" ReshardingConfiguration '
+                    'as "{cache_property}" to "{step_key}"'))
+def destring_resharding_configuration(resource_pool, ssm_test_cache, boto3_session, resharding_configuration_ref,
+                                      cache_property,
+                                      step_key):
+    resharding_configuration = param_utils.parse_param_value(resharding_configuration_ref, {'cache': ssm_test_cache})
+    resharding_configuration_destringed = [json.loads(config) for config in resharding_configuration]
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, resharding_configuration_destringed)
+
+
+@when(parsers.parse('generate new ReshardingConfiguration '
+                    'as "{cache_property}" "{step_key}"\n{input_parameters}'))
+@given(parsers.parse('generate new ReshardingConfiguration '
+                     'as "{cache_property}" "{step_key}"\n{input_parameters}'))
+def generate_resharding_configuration(resource_pool, ssm_test_cache, boto3_session, cache_property, step_key,
+                                      input_parameters):
+    """
+    Generate ReshardingConfiguration based on PreferredAvailabilityZones with new additional item in the end
+    """
+    current_resharding_configuration = common_test_utils.extract_param_value(input_parameters,
+                                                                             'CurrentReshardingConfiguration',
+                                                                             resource_pool, ssm_test_cache)
+    new_shard_count = common_test_utils.extract_param_value(input_parameters, 'NewShardCount',
+                                                            resource_pool, ssm_test_cache)
+
+    # Copy existing PreferredAvailabilityZones to the new configuration
+    resharding_configuration = [json.dumps(configuration) for configuration in current_resharding_configuration]
+
+    # Create PreferredAvailabilityZones for new shards by picking random availability zones
+    diff_shard_count = new_shard_count - len(current_resharding_configuration)
+    azs = []
+    node_group_members_number = 0
+    for configuration in current_resharding_configuration:
+        preferred_availability_zones = configuration['PreferredAvailabilityZones']
+        node_group_members_number = len(preferred_availability_zones)
+        azs.extend(preferred_availability_zones)
+    unique_azs = set(azs)
+
+    for i in range(diff_shard_count):
+        remained_unique_azs = list(unique_azs)
+        new_preferred_availability_zones = []
+        for _ in range(node_group_members_number):
+            az = random.choice(remained_unique_azs)
+            new_preferred_availability_zones.append(az)
+        resharding_configuration_item = json.dumps({"NodeGroupId": str(len(resharding_configuration) + 1).zfill(4),
+                                                    "PreferredAvailabilityZones": new_preferred_availability_zones})
+        resharding_configuration.append(resharding_configuration_item)
+
+    common_test_utils.put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, resharding_configuration)
+
+
 @pytest.fixture(scope='function')
 def revert_replica_count(boto3_session):
     replication_group_dict = {}
@@ -168,3 +237,18 @@ def revert_failover_settings(boto3_session):
                      f'MultiAZ:  {response["MultiAZ"]}')
     else:
         logging.info('Skip failover settings teardown')
+
+
+@then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
+                    'became equal to "{actual_property}" at "{step_key_for_actual}" '
+                    'without order of PreferredAvailabilityZones'))
+def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
+    expected_resharding_configuration = ssm_test_cache[step_key_for_expected][expected_property]
+    actual_resharding_configuration = ssm_test_cache[step_key_for_actual][actual_property]
+
+    for config in expected_resharding_configuration:
+        config['PreferredAvailabilityZones'] = sorted(config['PreferredAvailabilityZones'])
+    for config in actual_resharding_configuration:
+        config['PreferredAvailabilityZones'] = sorted(config['PreferredAvailabilityZones'])
+
+    assert expected_resharding_configuration == actual_resharding_configuration

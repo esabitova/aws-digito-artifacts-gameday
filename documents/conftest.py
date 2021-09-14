@@ -1,7 +1,6 @@
 import json
 import logging
 
-import jsonpath_ng
 import pytest
 from pytest_bdd import (
     then,
@@ -11,8 +10,9 @@ from pytest_bdd import (
 )
 from sttable import parse_str_table
 
+from resource_manager.src.util import param_utils
 from resource_manager.src.util.boto3_client_factory import client
-from resource_manager.src.util.common_test_utils import check_security_group_exists
+from resource_manager.src.util.common_test_utils import check_security_group_exists, do_cache_by_method_of_service
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_list_value_by_property_name, \
     extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.common_test_utils import generate_and_cache_different_value_by_property_name
@@ -110,6 +110,51 @@ def generate_and_cache_different_list_value_by_property_name_from_expression(res
                                                              cache_property, step_key, input_parameters)
 
 
+@given(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+@when(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+@then(parsers.parse('cache the size of "{reference}" list as "{cache_property}" "{cache_key}"'))
+def cache_the_size_of_list(resource_pool, ssm_document, cfn_installed_alarms,
+                           cfn_output_params, ssm_test_cache,
+                           reference, cache_property, cache_key):
+    reference_value = param_utils.parse_param_value(reference, {'cache': ssm_test_cache,
+                                                                'cfn-output': cfn_output_params,
+                                                                'alarm': cfn_installed_alarms})
+    if isinstance(reference_value, (list, dict, tuple)):  # if it is a sequence or dict
+        put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, len(reference_value))
+    else:  # if it is a scalar
+        put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, 1)
+
+
+@given(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
+                     '\n{input_parameters}'))
+@when(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
+                    '\n{input_parameters}'))
+@then(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
+                    '\n{input_parameters}'))
+def cache_by_method_of_service(boto3_session, resource_pool, ssm_document,
+                               cfn_output_params, ssm_test_cache,
+                               method_name, service_name, cache_key, input_parameters, cfn_installed_alarms):
+    """
+    Dynamically cache properties from the boto3 method response by specifying boto3 method_name, arguments for boto3
+    method_name, JSONPaths to extract properties from a response in input_parameters.
+    For boto3 method arguments, the parameter name should start with "Input-" prefix and as the value have either the
+    reference to the ssm_test_cache container, or to the cfn_output_container, or to the alarm container,
+    or to be just the simple string.
+    For output properties the, parameter name should start with "Output-" prefix and the value should be the valid
+    JSONPath which will be applied to the response of the boto3 method_name of specified service_name
+    :param method_name: boto3 method name
+    :param service_name: AWS service name
+    :param input_parameters: List of JSONPaths for outputs and other values for inputs (references and simple values)
+    :return: Dict with extracted properties by specified JSONPaths
+    """
+    service_client = client(service_name, boto3_session)
+
+    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
+                                                     input_parameters)
+
+    do_cache_by_method_of_service(cache_key, method_name, parameters, service_client, ssm_test_cache)
+
+
 @when(parsers.parse('start canary\n{input_parameters}'))
 def start_canary(boto3_session, input_parameters, resource_pool, ssm_test_cache, canary_for_teardown):
     """
@@ -162,60 +207,3 @@ def invoke_lambda_function_async_with_parameters(
                             session=boto3_session)
     logging.info(f'Lambda StatusCode: {result["StatusCode"]}')
     logging.info(f'Lambda Request ID: {result["ResponseMetadata"]["RequestId"]}')
-
-
-@given(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
-                     '\n{input_parameters}'))
-@when(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
-                    '\n{input_parameters}'))
-@then(parsers.parse('cache by "{method_name}" method of "{service_name}" to "{cache_key}"'
-                    '\n{input_parameters}'))
-def cache_by_method_of_service(boto3_session, resource_pool, ssm_document,
-                               cfn_output_params, ssm_test_cache,
-                               method_name, service_name, cache_key, input_parameters, cfn_installed_alarms):
-    """
-    Dynamically cache properties from the boto3 method response by specifying boto3 method_name, arguments for boto3
-    method_name, JSONPaths to extract properties from a response in input_parameters.
-    For boto3 method arguments, the parameter name should start with "Input-" prefix and as the value have either the
-    reference to the ssm_test_cache container, or to the cfn_output_container, or to the alarm container,
-    or to be just the simple string.
-    For output properties the, parameter name should start with "Output-" prefix and the value should be the valid
-    JSONPath which will be applied to the response of the boto3 method_name of specified service_name
-    :param method_name: boto3 method name
-    :param service_name: AWS service name
-    :param input_parameters: List of JSONPaths for outputs and other values for inputs (references and simple values)
-    :return: Dict with extracted properties by specified JSONPaths
-    """
-    service_client = client(service_name, boto3_session)
-
-    parameters = ssm_document.parse_input_parameters(cfn_output_params, cfn_installed_alarms, ssm_test_cache,
-                                                     input_parameters)
-
-    output_prefix = "Output-"
-    input_prefix = "Input-"
-    arguments = {}
-    json_paths = {}
-    for parameter, value in parameters.items():
-        if isinstance(value, list):
-            for v in value:
-                if parameter.startswith(output_prefix):
-                    json_paths[parameter.replace(output_prefix, "")] = v
-                else:
-                    arguments[parameter.replace(input_prefix, "")] = v
-        else:
-            if parameter.startswith(output_prefix):
-                json_paths[parameter.replace(output_prefix, "")] = value
-            else:
-                arguments[parameter.replace(input_prefix, "")] = value
-
-    response = getattr(service_client, method_name)(**arguments)
-
-    for cache_property, json_path in json_paths.items():
-        found = jsonpath_ng.parse(json_path).find(response)
-        if found:
-            # Always output as an array even len(found)==1 for the easiest processing
-            if len(found) > 1:
-                target_value = [f.value for f in found]
-            elif len(found) == 1:
-                target_value = found[0].value
-            put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)

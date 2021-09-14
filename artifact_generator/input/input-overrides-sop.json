@@ -1,0 +1,14 @@
+{
+  "type": "sop",
+  "service": "elasticache",
+  "name": "redis_increase_shards",
+  "displayName": "Increase shards in the cluster",
+  "description": "Increase shards in the ElastiCache Redis replication group (cluster mode enabled)",
+  "primaryResourceId": "ReplicationGroupId",
+  "failureType": "SOFTWARE",
+  "risk": "MEDIUM",
+  "cfnTemplateName": "ElasticacheReplicationGroupClusterEnabled",
+  "cfnPrimaryResourceOutput": "ReplicationGroupId",
+  "supportsRecoveryPoint": "no",
+  "date": "2020-10-26"
+}

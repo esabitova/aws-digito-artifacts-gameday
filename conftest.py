@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import List
 
 import boto3
+import jsonpath_ng
 import pytest
 from botocore.exceptions import ClientError
 from pytest import ExitCode
@@ -28,7 +29,7 @@ from resource_manager.src.constants import BgColors
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache, extract_all_from_input_parameters
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
@@ -870,3 +871,33 @@ def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
 
     logging.info(f'Sending Resume signal to execution {execution_id} for step {ssm_step_name}')
     ssm_document.send_resume_signal(execution_id, ssm_step_name)
+
+
+@given(parse('cache values to "{cache_key}"\n{input_parameters}'))
+@when(parse('cache values to "{cache_key}"\n{input_parameters}'))
+def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
+                 cfn_installed_alarms):
+    """
+    Cache values from cfn output, alarms, input parameter table, ssm test cache
+    """
+    params = extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                               cfn_installed_alarms)
+    for param_name, value in params.items():
+        ssm_test_cache[cache_key][param_name] = value
+
+
+@given(parse('apply "{json_path}" JSONPath '
+             'and cache value as "{cache_property}" to "{cache_key}"\n{input_parameters}'))
+@when(parse('apply "{json_path}" JSONPath '
+            'and cache value as "{cache_property}" to "{cache_key}"\n{input_parameters}'))
+def apply_json_path_and_cache_value(cfn_output_params, ssm_test_cache, cfn_installed_alarms, json_path,
+                                    cache_property, cache_key, input_parameters):
+    """
+    Apply json_path to the Input parameter as the reference to cfn output, alarms, input parameter table,
+    ssm test cache and cache value
+    """
+    params = extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                               cfn_installed_alarms)
+    input_value = params['Input']
+    result = jsonpath_ng.parse(json_path).find(input_value)[0].value
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, result)

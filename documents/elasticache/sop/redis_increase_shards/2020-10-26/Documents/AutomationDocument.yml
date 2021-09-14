@@ -1,0 +1,104 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Increase shards in the ElastiCache Redis replication group (cluster mode enabled)"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+parameters:
+  ReplicationGroupId:
+    type: String
+    description: (Required) The ElastiCache Replication Group ID.
+  NewShardCount:
+    description: (Required) The number of node groups (shards).
+    type: Integer
+  NewReshardingConfiguration:
+    description: >-
+      (Optional) The preferred availability zones for each node group in the cluster by order,
+      e.g. ["PreferredAvailabilityZones":["eu-west-3a"]}].
+      If it is [] then ElastiCache will select availability zones for you.
+    type: MapList
+    default: []
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: VerifyReplicationGroupAvailableStatusBeforeModification
+    action: aws:assertAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      PropertySelector: "$.ReplicationGroups[0].Status"
+      DesiredValues:
+        - "available"
+
+  - name: ModifyReplicationGroupShardConfiguration
+    action: aws:executeAwsApi
+    outputs:
+      - Name: ReplicationGroupStatus
+        Selector: $.ReplicationGroups[0].Status
+        Type: String
+    inputs:
+      Service: elasticache
+      Api: ModifyReplicationGroupShardConfiguration
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      NodeGroupCount: '{{NewShardCount}}'
+      ApplyImmediately: True
+      ReshardingConfiguration: '{{NewReshardingConfiguration}}'
+
+  - name: VerifyReplicationGroupAvailableStatusAfterModification
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 2400
+    onFailure: Abort
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ ReplicationGroupId }}'
+      PropertySelector: "$.ReplicationGroups[0].Status"
+      DesiredValues:
+        - "available"
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'
