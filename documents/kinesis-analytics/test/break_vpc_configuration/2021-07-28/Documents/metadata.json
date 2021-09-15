@@ -11,5 +11,5 @@
   "risk": "HIGH",
   "enabled": "true",
   "tag": "kinesis-analytics:test:break_vpc_configuration:2021-07-28",
-  "recommendedAlarms": { "downTimeAlarmName": "kinesis-analytics:alarm:health-downtime:2021-07-28" }
+  "recommendedAlarms": { "DowntimeAlarmName": "kinesis-analytics:alarm:health-downtime:2020-04-01" }
 }
