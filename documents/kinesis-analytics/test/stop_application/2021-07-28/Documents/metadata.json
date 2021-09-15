@@ -9,7 +9,7 @@
   "failureType": "HARDWARE",
   "minorVersion": "001",
   "risk": "HIGH",
-  "enabled": "false",
+  "enabled": "true",
   "tag": "kinesis-analytics:test:stop_application:2021-07-28",
   "recommendedAlarms": { "DowntimeAlarmName": "kinesis-analytics:alarm:health-downtime:2020-04-01" }
 }

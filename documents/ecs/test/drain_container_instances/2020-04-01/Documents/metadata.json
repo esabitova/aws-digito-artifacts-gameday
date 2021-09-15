@@ -9,6 +9,6 @@
   "failureType": "SOFTWARE",
   "minorVersion": "001",
   "risk": "HIGH",
-  "enabled": "false",
+  "enabled": "true",
   "tag": "ecs:test:drain_container_instances:2020-04-01"
 }
