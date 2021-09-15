@@ -44,6 +44,11 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
-              - sts:AssumeRole
+                - 'ecs:DescribeClusters'
+                - 'ecs:DescribeServices'
+                - 'ecs:ListTasks'
+                - 'ecs:StopTask'
+                - 'cloudwatch:DescribeAlarms'
+                - 'cloudwatch:DescribeAlarmHistory'
       Roles:
         - Ref: DigitoForceECSServiceTaskFailureTestAssumeRole

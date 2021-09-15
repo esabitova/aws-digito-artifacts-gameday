@@ -3,20 +3,14 @@ Feature: SSM automation document Digito-ForceECSServiceTaskFailureTest_2020-04-0
 
   Scenario: Execute SSM automation document Digito-ForceECSServiceTaskFailureTest_2020-04-01
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath                                                                               | ResourceType |
-      | resource_manager/cloud_formation_templates/ECSEC2Template.yml                                 | ON_DEMAND    |
-      | documents/ecs/test/service_task_failure/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
+      | CfnTemplatePath                                                                               | ResourceType | VPC                      |  PublicSubnetOne                    | PublicSubnetTwo                    |ServiceDesiredCount |
+      | resource_manager/cloud_formation_templates/shared/VPC.yml                                     | SHARED       |                          |                                     |                                    |                    |
+      | resource_manager/cloud_formation_templates/ECSEC2Template.yml                                 | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PublicSubnetOne}}  | {{cfn-output:VPC>PublicSubnetTwo}} | 7                  |
+      | documents/ecs/test/service_task_failure/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                     |                                    |                    |
     And published "Digito-ForceECSServiceTaskFailureTest_2020-04-01" SSM document
-    # Add any pre-execution caching and setup steps here
-
     When SSM automation document "Digito-ForceECSServiceTaskFailureTest_2020-04-01" executed
-      # Add other parameter names below
-      | ClusterName                               | AutomationAssumeRole                                                                       | SyntheticAlarmName                               |
-      # Replace parameter values to point to the corresponding outputs in cloudformation template
-      | {{cfn-output:ECSEC2Template>ClusterName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoForceECSServiceTaskFailureTestAssumeRole}} | {{cfn-output:ECSEC2Template>SyntheticAlarmName}} |
-    # Add other steps that should run parallel to the document here
-
+      | ClusterName                               | ServiceName                                   | PercentageOfTasksToStop  | SyntheticAlarmName                               | AutomationAssumeRole                                                              |
+      | {{cfn-output:ECSEC2Template>ClusterName}} | {{cfn-output:ECSEC2Template>ECSService}}      | 50                       | {{cfn-output:ECSEC2Template>ECSTaskAmountAlarm}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoForceECSServiceTaskFailureTestAssumeRole}} |
     Then SSM automation document "Digito-ForceECSServiceTaskFailureTest_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-# Add any post-execution caching and validation here

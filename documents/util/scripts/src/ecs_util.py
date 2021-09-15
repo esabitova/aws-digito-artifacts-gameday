@@ -108,3 +108,70 @@ def update_service(events, context):
         })
 
     ecs_client.update_service(**service_definition)
+
+
+def stop_selected_tasks(events, context):
+    """
+    Stop NumberOfTasksToStop or total number of tasks running
+    if NumberOfTasksToStop is greater than the total number.
+    :param events: The object which contains passed parameters from SSM document
+     * `ServiceName` - Required. Name of ECS Service
+     * `ClusterName` - Required. Name of ECS Cluster
+     * `NumberOfTasksToStop` - Required. Number of tasks to stop
+    :param context: context
+    :return: True or error
+    """
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ecs_client = boto3.client('ecs', config=config)
+
+    paginator = ecs_client.get_paginator('list_tasks')
+    pages = paginator.paginate(serviceName=events['ServiceName'],
+                               cluster=events['ClusterName'],
+                               desiredStatus='RUNNING')
+
+    desired_count = ecs_client.describe_services(services=[events['ServiceName']],
+                                                 cluster=events['ClusterName'])["services"][0]["desiredCount"]
+
+    percentage_of_task_to_stop = events['PercentageOfTasksToStop']
+    number_of_task_to_stop = 0
+
+    if desired_count:
+        number_of_task_to_stop = round(desired_count * percentage_of_task_to_stop / 100)
+
+    tasks_stopped = 0
+    for page in pages:
+        task_arns = page.get('taskArns')
+        for task_arn in task_arns:
+            if tasks_stopped >= number_of_task_to_stop:
+                break
+            ecs_client.stop_task(
+                cluster=events['ClusterName'],
+                task=task_arn
+            )
+            tasks_stopped += 1
+
+    return True
+
+
+def wait_services_stable(events, context):
+    """
+    Wait while service will be stable.
+    :param events: The object which contains passed parameters from SSM document
+     * `ServiceName` - Required. Name of ECS Service
+     * `ClusterName` - Required. Name of ECS Cluster
+    :param context: context
+    :return: True or error
+    """
+    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
+    ecs_client = boto3.client('ecs', config=config)
+
+    waiter = ecs_client.get_waiter('services_stable')
+    waiter.wait(
+        cluster=events['ClusterName'],
+        services=[events['ServiceName']],
+        WaiterConfig={
+            'Delay': 15,
+            'MaxAttempts': 20
+        }
+    )
+    return True
