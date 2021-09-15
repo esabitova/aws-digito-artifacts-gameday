@@ -21,74 +21,83 @@ Outputs:
   AthenaWorkGroup:
     Description: Athena WorkGroup name
     Value: !Ref  AthenaWorkGroup
-  #  AthenaDataCatalog:
-  #    Description: Athena DataCatalog name
-  #    Value: !Ref  AthenaDataCatalog
-  TotalExecutionTimeAlarm:
-    Description: Alarm
-    Value: !Ref  TotalExecutionTimeAlarm
-  TotalExecutionTimeQueryStateFailedAlarm:
-    Description: Alarm
-    Value: !Ref  TotalExecutionTimeQueryStateFailedAlarm
-  S3Bucket:
-    Description: S3 Bucket Name
-    Value: !Ref S3Bucket
-  GlueDataBase:
-    Description: Glue DataBase Name
-    Value: !Ref GlueDataBase
+#  RoleApproveCleanBucketArn:
+#    Description: ARN of RoleApproveCleanBucket
+#    Value: !GetAtt RoleApproveCleanBucket.Arn
+##  S3OutputBucket:
+#    Description: S3 Bucket Name
+#    Value: !Ref S3OutputBucket
+#  S3CrawlerBucket:
+#    Description: S3 Bucket Name
+#    Value: !Ref S3CrawlerBucket
+#  GlueDataBase:
+#    Description: Glue DataBase Name
+#    Value: !Ref GlueDataBase
 
 Parameters:
-  # what kind of parameters could be? Names for resources?
-
-  #  TableName:
-  #    Type: String
-  #    Default: cfn-manual-table-flights-1
-
-  DatabaseName:
+  CleanupS3BucketLambdaArn:
+    Description: ARN of Cleanup S3 Bucket Lambda Function
     Type: String
-    Description: Database name
-    Default: athena-test-database
-
 
 Resources:
   AthenaWorkGroup:
     Type: 'AWS::Athena::WorkGroup'
-#    DependsOn: S3Bucket
     Properties:
       Description: Test WorkGroup for Athena
-      Name: "athena-digito-workgroup"
+      Name: !Join
+        - "-"
+        - - "digito-workgroup"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       RecursiveDeleteOption: true
       WorkGroupConfiguration:
         PublishCloudWatchMetricsEnabled: true
         ResultConfiguration:
-          OutputLocation: !Join [ "", [ "s3://" , Ref: S3Bucket, "/" ] ]
-
-  #  AthenaDataCatalog:
-  #    Type: 'AWS::Athena::DataCatalog'
-  #    Properties:
-  #      Description: Test DataCatalog for Athena
-  #      Name: "athena-digito-datacatalog"
-  #      Parameters:
-  #        catalog-id: !Ref AWS::AccountId
-  #      Type: GLUE
+          OutputLocation: !Join [ "", [ "s3://" , Ref: S3OutputBucket, "/" ] ]
 
   GlueDataBase:
     Type: 'AWS::Glue::Database'
-    #    DependsOn: AthenaDataCatalog
     Properties:
       CatalogId: !Ref 'AWS::AccountId'
       DatabaseInput:
         Description: Test database for Athena service
-        Name: !Ref 'DatabaseName'
-
+        Name: !Join
+          - "-"
+          - - "athena-test-database"
+            - !Select
+              - 0
+              - !Split
+                - "-"
+                - !Select
+                  - 2
+                  - !Split
+                    - "/"
+                    - !Ref "AWS::StackId"
 
   GlueCrawler:
     Type: AWS::Glue::Crawler
     Properties:
-      Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
-      DatabaseName: "athena-test-database"
+      Name: !Join
+        - "-"
+        - - "cfn-crawler"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       Description: AWS Glue crawler to crawl flights data
-      Name: 'cfn-crawler'
+      DatabaseName: !Ref GlueDataBase
       Role: !GetAtt GlueRole.Arn
       SchemaChangePolicy:
         UpdateBehavior: "UPDATE_IN_DATABASE"
@@ -96,9 +105,9 @@ Resources:
       TablePrefix: 'cfn_table_1_'
       Targets:
         S3Targets:
-          # Public S3 bucket with the flights data
-          # Make S3 bucket for csv file. Then upload this file with code?
+#          - Path: !Join [ "", [ "s3://" , Ref: S3CrawlerBucket, "/" ] ]
           - Path: "s3://crawler-public-us-east-1/flight/2016/csv"
+  #      Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
 
   GlueRole:
     Type: AWS::IAM::Role
@@ -122,47 +131,7 @@ Resources:
                 Action: "*"
                 Resource: "*"
 
-  #  AthenaPolicy:
-  #    Type: AWS::IAM::Policy
-  #    Properties:
-  #      PolicyName: AmazonAthenaAccess
-  #      PolicyDocument:
-  #        Version: 2012-10-17
-  #        Statement:
-  ##          - Effect: Allow
-  ##            Resource: "*"
-  ##            Action:
-  ##              athena:*
-  ##          - Effect: Allow
-  ##            Resource: "*"
-  ##            Action:
-  ##              - glue:CreateDatabase
-  ##              - glue:DeleteDatabase
-  ##              - glue:GetDatabase
-  ##              - glue:CreateTable
-  ##              - glue:DeleteTable
-  ##              - glue:UpdateTable
-  ##          - Effect: Allow
-  ##            Resource: "arn:aws:s3:*"
-  ##            Action:
-  ##              - s3:GetBucketLocation
-  ##              - s3:CreateBucket
-  ##              - s3:PutObject
-  ##              - s3:GetObject
-  ##          - Effect: Allow
-  ##            Resource: "*"
-  ##            Action:
-  ##              - cloudwatch:PutMetricAlarm
-  ##              - cloudwatch:DescribeAlarms
-  ##              - cloudwatch:DeleteAlarms
-  #          - Effect: Allow
-  #            Resource: "arn:aws:athena:eu-south-1:435978235099:workgroup/primary"
-  #            Action:
-  #              - athena:UpdateWorkGroup
-  #              - athena:GetWorkGroup
-
-
-  S3Bucket:
+  S3OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketEncryption:
@@ -171,7 +140,7 @@ Resources:
               SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
-        - - "s3-athena-tests-bucket"
+        - - "s3-athena-output-bucket"
           - !Select
             - 0
             - !Split
@@ -183,53 +152,61 @@ Resources:
                   - !Ref "AWS::StackId"
       AccessControl: Private
 
-  TotalExecutionTimeAlarm:
-    Type: AWS::CloudWatch::Alarm
+  S3CrawlerBucket:
+    Type: AWS::S3::Bucket
     Properties:
-      AlarmDescription: "athena:alarm:total_execution_time:2020-04-01"
-#      AlarmName: TotalExecutionTimeAlarm
-      ActionsEnabled: false
-      MetricName: "TotalExecutionTime"
-      Namespace: "AWS/Athena"
-      Statistic: "Maximum"
-      Dimensions:
-        - Name: WorkGroup
-          Value: !Ref "AthenaWorkGroup"
-        #        - Name: WorkGroup
-        #          Value: !Ref "AthenaUpdateWorkGroup"
-        - Name: QueryState
-          Value: SUCCEEDED
-        - Name: QueryType
-          Value: DML
-      Period: 60
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 1
-      Threshold: 29
-      ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "breaching"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !Join
+        - "-"
+        - - "s3-athena-crawler-bucket"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      AccessControl: Private
 
 
-  TotalExecutionTimeQueryStateFailedAlarm:
-    Type: AWS::CloudWatch::Alarm
+  # To clean S3 buckets before deleting stack.
+  CleanupS3BucketsOnDelete:
+    Type: Custom::CleanupS3BucketsOnDelete
     Properties:
-      AlarmDescription: "athena:alarm:total_execution_time_failed:2020-04-01"
-#      AlarmName: TotalExecutionTime_QueryState_Failed
-      ActionsEnabled: false
-      MetricName: "TotalExecutionTime"
-      Namespace: "AWS/Athena"
-      Statistic: "SampleCount"
-      Dimensions:
-        - Name: WorkGroup
-          Value: !Ref "AthenaWorkGroup"
-        #        - Name: WorkGroup
-        #          Value: !Ref "AthenaUpdateWorkGroup"
-        - Name: QueryState
-          Value: FAILED
-        - Name: QueryType
-          Value: DML
-      Period: 60
-      EvaluationPeriods: 5
-      DatapointsToAlarm: 1
-      Threshold: 0
-      ComparisonOperator: "GreaterThanThreshold"
-      TreatMissingData: "breaching"
+      ServiceToken: !Ref CleanupS3BucketLambdaArn
+      BucketNames:
+        - !Ref S3OutputBucket
+        - !Ref S3CrawlerBucket
+
+#  RoleApproveCleanBucket:
+#    Type: AWS::IAM::Role
+#    Properties:
+#      AssumeRolePolicyDocument:
+#        Version: 2012-10-17
+#        Statement:
+#          - Effect: Allow
+#            Principal:
+#              AWS: !Ref "AWS::AccountId"
+#            Action:
+#              - sts:AssumeRole
+#
+#  PolicyApproveCleanBucket:
+#    Type: AWS::IAM::Policy
+#    Properties:
+#      PolicyName: DigitoRestoreFromBackupAssumePolicy
+#      PolicyDocument:
+#        Version: 2012-10-17
+#        Statement:
+#          - Effect: Allow
+#            Resource: "*"
+#            Action:
+#              - ssm:SendAutomationSignal
+#      Roles:
+#        - Ref: RoleApproveCleanBucket
+
+
