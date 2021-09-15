@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM BlockSQSDeleteMessage
+Description: Role for SSM Digito-BlockSQSDeleteMessageTest_2021-03-09
 Outputs:
-  DigitoBlockSQSDeleteMessageAssumeRole:
-    Description: DigitoBlockSQSDeleteMessage Automation Assume Role ARN
+  DigitoBlockSQSDeleteMessageTestAssumeRole:
+    Description: Digito-BlockSQSDeleteMessageTest_2021-03-09 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoBlockSQSDeleteMessageAssumeRole.Arn
+      Fn::GetAtt: DigitoBlockSQSDeleteMessageTestAssumeRole.Arn
 Resources:
-  DigitoBlockSQSDeleteMessageAssumeRole:
+  DigitoBlockSQSDeleteMessageTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoBlockSQSDeleteMessageAssumePolicy:
+  DigitoBlockSQSDeleteMessageTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoBlockSQSDeleteMessageAssumePolicy
+      PolicyName: DigitoBlockSQSDeleteMessageTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -53,8 +53,8 @@ Resources:
               - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoBlockSQSDeleteMessageAssumeRole.Arn
+              - Fn::GetAtt: DigitoBlockSQSDeleteMessageTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoBlockSQSDeleteMessageAssumeRole
+        - Ref: DigitoBlockSQSDeleteMessageTestAssumeRole

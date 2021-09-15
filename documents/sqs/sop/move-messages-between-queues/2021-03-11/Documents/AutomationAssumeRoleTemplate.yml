@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM MoveMessagesBetweenQueues
+Description: Role for SSM Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11
 Outputs:
-  DigitoMoveMessagesBetweenQueuesAssumeRole:
-    Description: DigitoMoveMessagesBetweenQueues Automation Assume Role ARN
+  DigitoMoveSQSMessagesBetweenQueuesSOPAssumeRole:
+    Description: Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoMoveMessagesBetweenQueuesAssumeRole.Arn
+      Fn::GetAtt: DigitoMoveSQSMessagesBetweenQueuesSOPAssumeRole.Arn
 Resources:
-  DigitoMoveMessagesBetweenQueuesAssumeRole:
+  DigitoMoveSQSMessagesBetweenQueuesSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoMoveMessagesBetweenQueuesAssumePolicy:
+  DigitoMoveSQSMessagesBetweenQueuesSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoMoveMessagesBetweenQueuesAssumePolicy
+      PolicyName: DigitoMoveSQSMessagesBetweenQueuesSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -63,4 +63,4 @@ Resources:
               StringLike:
                 kms:ViaService: sqs.*.amazonaws.com
       Roles:
-        - Ref: DigitoMoveMessagesBetweenQueuesAssumeRole
+        - Ref: DigitoMoveSQSMessagesBetweenQueuesSOPAssumeRole

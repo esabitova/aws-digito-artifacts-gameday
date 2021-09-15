@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ForceSQSCapacityFailureTest_2021-03-13
+Description: Role for SSM Digito-BreakSQSQueuePolicyTest_2020-11-27
 Outputs:
-  DigitoForceSQSCapacityFailureTestAssumeRole:
-    Description: Digito-ForceSQSCapacityFailureTest_2021-03-13 Automation Assume Role ARN
+  DigitoBreakSQSQueuePolicyTestAssumeRole:
+    Description: Digito-BreakSQSQueuePolicyTest_2020-11-27 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoForceSQSCapacityFailureTestAssumeRole.Arn
+      Fn::GetAtt: DigitoBreakSQSQueuePolicyTestAssumeRole.Arn
 Resources:
-  DigitoForceSQSCapacityFailureTestAssumeRole:
+  DigitoBreakSQSQueuePolicyTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,36 +35,29 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoForceSQSCapacityFailureTestAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoBreakSQSQueuePolicyTestAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoForceSQSCapacityFailureTestAssumePolicy"
+      PolicyName: DigitoBreakSQSQueuePolicyTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
               - cloudwatch:DescribeAlarms
+              - sqs:GetQueueAttributes
+              - sqs:SetQueueAttributes
+              - sqs:AddPermission
+              - sqs:RemovePermission
               - sqs:SendMessage
-              - sqs:ReceiveMessage
-              - sqs:DeleteMessage
               - ssm:GetAutomationExecution
               - ssm:GetParameters
               - ssm:StartAutomationExecution
           - Effect: Allow
-            Resource: "*"
-            Action:
-              - kms:GenerateDataKey
-              - kms:Decrypt
-              - kms:Encrypt
-            Condition:
-              StringLike:
-                kms:ViaService: sqs.*.amazonaws.com
-          - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoForceSQSCapacityFailureTestAssumeRole.Arn
+              - Fn::GetAtt: DigitoBreakSQSQueuePolicyTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoForceSQSCapacityFailureTestAssumeRole
+        - Ref: DigitoBreakSQSQueuePolicyTestAssumeRole

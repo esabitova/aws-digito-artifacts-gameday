@@ -6,28 +6,28 @@ Feature: SSM automation document to test SQS message size get close to threshold
       | CfnTemplatePath                                                                           | ResourceType |
       | resource_manager/cloud_formation_templates/SqsTemplate.yml                                | ON_DEMAND    |
       | documents/sqs/test/capacity_failure/2021-03-13/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-SQSCapacityFailure_2021-03-13" SSM document
+    And published "Digito-ForceSQSCapacityFailureTest_2021-03-13" SSM document
     And purge the queue
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" executed
-      | QueueUrl                                   | AutomationAssumeRole                                                           | SentMessageSizeAlarmName                                 |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSQSCapacityFailureAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
+    And SSM automation document "Digito-ForceSQSCapacityFailureTest_2021-03-13" executed
+      | QueueUrl                                   | AutomationAssumeRole                                                                    | SentMessageSizeAlarmName                                 |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoForceSQSCapacityFailureTestAssumeRole}} | {{cfn-output:SqsTemplate>SentMessageSizeFifoQueueAlarm}} |
 
     # Terminate execution before rollback
-    When Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress"
+    When Wait for the SSM automation document "Digito-ForceSQSCapacityFailureTest_2021-03-13" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    Then terminate "Digito-SQSCapacityFailure_2021-03-13" SSM automation document
+    Then terminate "Digito-ForceSQSCapacityFailureTest_2021-03-13" SSM automation document
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And Wait for the SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution is on step "TriggerRollback" in status "Success"
+    And Wait for the SSM automation document "Digito-ForceSQSCapacityFailureTest_2021-03-13" execution is on step "TriggerRollback" in status "Success"
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    And SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Cancelled"
+    And SSM automation document "Digito-ForceSQSCapacityFailureTest_2021-03-13" execution in status "Cancelled"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And sleep for "60" seconds
@@ -41,7 +41,7 @@ Feature: SSM automation document to test SQS message size get close to threshold
     Then cache rollback execution id
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    When SSM automation document "Digito-SQSCapacityFailure_2021-03-13" execution in status "Success"
+    When SSM automation document "Digito-ForceSQSCapacityFailureTest_2021-03-13" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And sleep for "60" seconds

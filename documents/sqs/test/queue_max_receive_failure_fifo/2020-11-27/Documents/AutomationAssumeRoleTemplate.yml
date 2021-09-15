@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ForceSQSCapacityFailureTest_2021-03-13
+Description: Role for SSM Digito-ForceSQSFifoQueueMaxReceiveFailureTest_2020-11-27
 Outputs:
-  DigitoForceSQSCapacityFailureTestAssumeRole:
-    Description: Digito-ForceSQSCapacityFailureTest_2021-03-13 Automation Assume Role ARN
+  DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumeRole:
+    Description: Digito-ForceSQSFifoQueueMaxReceiveFailureTest_2020-11-27 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoForceSQSCapacityFailureTestAssumeRole.Arn
+      Fn::GetAtt: DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumeRole.Arn
 Resources:
-  DigitoForceSQSCapacityFailureTestAssumeRole:
+  DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,23 +35,30 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoForceSQSCapacityFailureTestAssumePolicy:
-    Type: 'AWS::IAM::Policy'
+  DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumePolicy:
+    Type: AWS::IAM::Policy
     Properties:
-      PolicyName: "DigitoForceSQSCapacityFailureTestAssumePolicy"
+      PolicyName: DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: "*"
             Action:
               - cloudwatch:DescribeAlarms
-              - sqs:SendMessage
+              - sqs:GetQueueAttributes
+              - sqs:SetQueueAttributes
               - sqs:ReceiveMessage
+              - sqs:SendMessage
               - sqs:DeleteMessage
+              - sqs:GetQueueUrl
+              - ssm:StartAutomationExecution
               - ssm:GetAutomationExecution
               - ssm:GetParameters
-              - ssm:StartAutomationExecution
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - logs:DescribeLogGroups
+              - logs:DescribeLogStreams
           - Effect: Allow
             Resource: "*"
             Action:
@@ -63,8 +70,8 @@ Resources:
                 kms:ViaService: sqs.*.amazonaws.com
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoForceSQSCapacityFailureTestAssumeRole.Arn
+              - Fn::GetAtt: DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoForceSQSCapacityFailureTestAssumeRole
+        - Ref: DigitoForceSQSFifoQueueMaxReceiveFailureTestAssumeRole

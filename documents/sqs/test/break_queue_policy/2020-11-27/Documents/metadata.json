@@ -1,0 +1,18 @@
+{
+  "displayName": "Test - breaking the Policy for SQS",
+  "description": "Test behavior when messages cannot be sent to an SQS queue",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "attachments": "digito_gameday_primitives.zip",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-BreakSQSQueuePolicyTest_2020-11-27",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "intent": "Test behavior when messages cannot be sent to an SQS queue",
+  "risk": "HIGH",
+  "tag": "sqs:test:break_queue_policy:2020-11-27",
+  "recommendedAlarms": {
+    "SQSUserErrorAlarmName": "sqs:alarm:health_alarm_number_of_messages_sent:2020-11-26"
+  },
+  "minorVersion": "001"
+}

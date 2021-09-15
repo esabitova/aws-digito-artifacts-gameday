@@ -10,7 +10,7 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And alarm "sqs:alarm:health_alarm_approximate_age_of_oldest_message_maximum:2020-11-26" is installed
       | alarmId    | SNSTopicARN                       | QueueName                                   | Threshold
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:SqsTemplate>SqsFifoQueueName}} | 15
-    And published "Digito-BlockSQSDeleteMessage_2021-03-09" SSM document
+    And published "Digito-BlockSQSDeleteMessageTest_2021-03-09" SSM document
     And cache policy as "Policy" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
@@ -20,15 +20,15 @@ Feature: SSM automation document to block sqs:DeleteMessage
     And cache number of messages in queue as "NumberOfMessages" "before" SSM automation execution
       | QueueUrl                                   |
       | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} |
-    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" executed
-      | QueueUrl                                   | AutomationAssumeRole                                                              | SQSUserErrorAlarmName          |
-      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBlockSQSDeleteMessageAssumeRole}} | {{alarm:under_test>AlarmName}} |
+    And SSM automation document "Digito-BlockSQSDeleteMessageTest_2021-03-09" executed
+      | QueueUrl                                   | AutomationAssumeRole                                                                  | SQSUserErrorAlarmName          |
+      | {{cfn-output:SqsTemplate>SqsFifoQueueUrl}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBlockSQSDeleteMessageTestAssumeRole}} | {{alarm:under_test>AlarmName}} |
 
     # Don't send messages to keep alarm OK and fail
-    When Wait for the SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
+    When Wait for the SSM automation document "Digito-BlockSQSDeleteMessageTest_2021-03-09" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And SSM automation document "Digito-BlockSQSDeleteMessage_2021-03-09" execution in status "TimedOut"
+    And SSM automation document "Digito-BlockSQSDeleteMessageTest_2021-03-09" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache number of messages in queue as "NumberOfMessages" "after" SSM automation execution

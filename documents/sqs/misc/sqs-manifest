@@ -1,7 +1,7 @@
-Digito-MoveMessagesBetweenQueues_2021-03-11
-Digito-PurgeQueue_2021-03-11
-Digito-SQSCapacityFailure_2021-03-13
-Digito-BlockSQSDeleteMessage_2021-03-09
-Digito-BreakingThePolicyForSQS_2020-11-27
-Digito-QueueStateFailureDlqFifo_2020-11-27
-Digito-QueueStateFailureDlqStandard_2020-11-27
+Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11
+Digito-PurgeSQSQueueSOP_2021-03-11
+Digito-ForceSQSCapacityFailureTest_2021-03-13
+Digito-BlockSQSDeleteMessageTest_2021-03-09
+Digito-BreakSQSQueuePolicyTest_2020-11-27
+Digito-ForceSQSFifoQueueMaxReceiveFailureTest_2020-11-27
+Digito-ForceSQSStandardQueueMaxReceiveFailureTest_2020-11-27
