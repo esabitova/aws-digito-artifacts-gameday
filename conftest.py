@@ -29,7 +29,9 @@ from resource_manager.src.constants import BgColors
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
-from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache, extract_all_from_input_parameters
+from resource_manager.src.util import common_test_utils
+from resource_manager.src.util.boto3_client_factory import client
+from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.cw_util import wait_for_metric_data_point
@@ -109,11 +111,11 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_sessionstart(session):
-    '''
+    """
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     For this case we want to create test DDB tables before running any test.
     :param session: Tests session
-    '''
+    """
     # Execute when running integration tests
     if session.config.option.run_integration_tests:
         # Generating testing session id in order to tie test resources to specific session, so that when
@@ -145,12 +147,12 @@ def pytest_sessionstart(session):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    '''
+    """
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     :param session: The pytest session object.
-    :param exitstatus(int): The status which pytest will return to the system.
+    :param exitstatus: (int) The status which pytest will return to the system.
     :return:
-    '''
+    """
     # Execute only when running integration tests and disabled skip session level hooks
     # In case we do execute tests not in single session, for example in different machines, we don't want
     # to perform resource fix/destroy since one session can try to modify resource state which is used
@@ -185,11 +187,11 @@ def target_service(request):
 
 @pytest.fixture(scope='session')
 def boto3_session(request):
-    '''
+    """
     Creates session for given profile name. More about how to configure AWS profile:
     https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
     :param request The pytest request object
-    '''
+    """
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
         aws_role_arn = request.session.config.option.aws_role_arn
@@ -282,11 +284,11 @@ def ssm_document(request, boto3_session, ssm_test_cache, function_logger):
 
 @pytest.fixture(scope='function')
 def ssm_test_cache():
-    '''
+    """
     Cache for test. There may be cases when state between test steps can be changed,
     but we want to remember it to be able to verify how state was changed after.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    '''
+    """
     cache = dict()
     return cache
 
@@ -606,6 +608,8 @@ def cache_rollback_execution_id(ssm_document, ssm_test_cache, input_parameters):
 
 @when(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
             '\n{input_parameters}'))
+@then(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
+            '\n{input_parameters}'))
 def cache_execution_output_value(ssm_test_cache, boto3_session, target_property, cache_property, input_parameters):
     execution_id = parse_param_values_from_table(input_parameters, {
         'cache': ssm_test_cache,
@@ -873,6 +877,16 @@ def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
     ssm_document.send_resume_signal(execution_id, ssm_step_name)
 
 
+@when(parse('stop FIS experiment\n{input_parameters}'))
+def stop_fis_experiment(boto3_session, resource_pool, ssm_test_cache, input_parameters):
+    experiment_id = common_test_utils.extract_param_value(input_parameters, 'ExperimentId',
+                                                          resource_pool, ssm_test_cache)
+    fis_client = client('fis', boto3_session)
+    fis_client.stop_experiment(
+        id=experiment_id
+    )
+
+
 @given(parse('cache values to "{cache_key}"\n{input_parameters}'))
 @when(parse('cache values to "{cache_key}"\n{input_parameters}'))
 def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
@@ -880,8 +894,8 @@ def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cach
     """
     Cache values from cfn output, alarms, input parameter table, ssm test cache
     """
-    params = extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
-                                               cfn_installed_alarms)
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
     for param_name, value in params.items():
         ssm_test_cache[cache_key][param_name] = value
 
@@ -896,8 +910,8 @@ def apply_json_path_and_cache_value(cfn_output_params, ssm_test_cache, cfn_insta
     Apply json_path to the Input parameter as the reference to cfn output, alarms, input parameter table,
     ssm test cache and cache value
     """
-    params = extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
-                                               cfn_installed_alarms)
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
     input_value = params['Input']
     result = jsonpath_ng.parse(json_path).find(input_value)[0].value
     put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, result)

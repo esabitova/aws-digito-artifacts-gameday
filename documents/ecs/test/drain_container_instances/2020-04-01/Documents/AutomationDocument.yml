@@ -46,6 +46,8 @@ parameters:
     description: >-
       (Optional) Previous execution id for which resources need to be cleaned up.
     default: ''
+outputs:
+  - "CreateTemplate.FISExperimentTemplateId"
 mainSteps:
   - name: CheckIsRollback
     action: aws:branch

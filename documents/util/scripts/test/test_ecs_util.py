@@ -11,6 +11,41 @@ TD_ARN_2 = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:task-defin
 TD_ARN_NEW = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:task-definition/new-{TD_FAMILY}:1"
 SERVICE_NAME = "Test-service-name"
 CLUSTER_NAME = "Test-cluster-name"
+CLUSTER_ARN = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:cluster/{CLUSTER_NAME}"
+
+
+def get_cluster(failed=False):
+    if not failed:
+        res = {
+            "clusters": [
+                {
+                    "clusterArn": CLUSTER_ARN,
+                    "clusterName": CLUSTER_NAME,
+                    "status": "ACTIVE",
+                    "registeredContainerInstancesCount": 0,
+                    "runningTasksCount": 0,
+                    "pendingTasksCount": 0,
+                    "activeServicesCount": 0,
+                    "statistics": [],
+                    "tags": [],
+                    "settings": [],
+                    "capacityProviders": [],
+                    "defaultCapacityProviderStrategy": []
+                }
+            ],
+            "failures": []
+        }
+    else:
+        res = {
+            "clusters": [],
+            "failures": [
+                {
+                    "arn": CLUSTER_ARN,
+                    "reason": "MISSING"
+                }
+            ]
+        }
+    return res
 
 
 def get_task_definition():

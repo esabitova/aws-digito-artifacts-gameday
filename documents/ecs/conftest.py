@@ -1,9 +1,12 @@
 import logging
+
+from botocore.exceptions import ClientError
 from pytest_bdd import parsers, given, then
 import pytest
 import resource_manager.src.util.common_test_utils as common_test_utils
-
+from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util import ecs_utils
+from resource_manager.src.util.param_utils import parse_param_value
 
 
 @given(parsers.parse('create new task definition and cache it as "{cache_property}" '
@@ -98,8 +101,33 @@ def assert_equal_cpu_and_memory(ssm_test_cache,
 def wait_services_stable(resource_pool, ssm_test_cache, boto3_session, input_parameters):
     ecs_cluster_name = common_test_utils.extract_param_value(input_parameters, 'ECSCluster',
                                                              resource_pool, ssm_test_cache)
-    ecs_servise_name = common_test_utils.extract_param_value(input_parameters, 'ECSService',
+    ecs_service_name = common_test_utils.extract_param_value(input_parameters, 'ECSService',
                                                              resource_pool, ssm_test_cache)
     ecs_utils.wait_services_stable(ecs_cluster_name,
-                                   ecs_servise_name,
+                                   ecs_service_name,
                                    boto3_session)
+
+
+@given(parsers.parse('cache number of nodes in "{node_status}" status '
+                     'as "{cache_property}" "{step_key}" SSM execution\n{input_parameters}'))
+@then(parsers.parse('cache number of nodes in "{node_status}" status '
+                    'as "{cache_property}" "{step_key}" SSM execution\n{input_parameters}'))
+def cache_number_of_nodes(resource_pool, ssm_test_cache, boto3_session, node_status, cache_property, step_key,
+                          input_parameters):
+    ecs_cluster = common_test_utils.extract_param_value(input_parameters, 'ECSCluster',
+                                                        resource_pool, ssm_test_cache)
+    amount_of_nodes = ecs_utils.get_number_of_nodes_in_status(boto3_session, ecs_cluster, node_status)
+    common_test_utils.put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, amount_of_nodes)
+
+
+@then(parsers.parse('assert fis experiment template with id "{template_id_ref}" does not exist'))
+def assert_template_exists(ssm_test_cache, boto3_session, template_id_ref):
+    fis_client = client('fis', boto3_session)
+    template_id = parse_param_value(template_id_ref, {'cache': ssm_test_cache})
+    try:
+        fis_client.get_experiment_template(
+            id=template_id
+        )
+    except ClientError:
+        return True
+    return False
