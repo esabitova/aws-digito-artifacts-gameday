@@ -13,8 +13,8 @@ clean_test_artifacts:
 	rm -rf .pytest-incremental*
 
 clean_canary_artifacts:
-	rm -rf documents/docdb/test/database_alarm/2020-09-21/Test/canary/package  && \
-	rm -f documents/docdb/test/database_alarm/2020-09-21/Test/canary/*.zip
+	rm -rf documents/docdb/test/database_inaccessible_alarm/2020-09-21/Test/canary/package  && \
+	rm -f documents/docdb/test/database_inaccessible_alarm/2020-09-21/Test/canary/*.zip
 
 clean_all: clean clean_test_artifacts clean_canary_artifacts
 
@@ -124,7 +124,7 @@ style_validator:
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles
 linter_and_unit_test: test_linter unit_test
 
-#todo DIG-977 create CW Canary distribution package in database_alarm.feature
+#todo DIG-977 create CW Canary distribution package in database_inaccessible_alarm.feature
 build_canary_artifacts: clean_canary_artifacts test_linter
 	source venv/bin/activate && \
 	cd documents/docdb/canary/database-connection-canary && \

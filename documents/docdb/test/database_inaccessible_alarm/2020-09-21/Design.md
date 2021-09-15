@@ -1,5 +1,5 @@
 # Id
-docdb:test:database_alarm:2020-09-21
+docdb:test:database_inaccessible_alarm:2020-09-21
 
 ## Intent
 Test that the alarm setup detects and alerts when database becomes unavailable and Application can recover within expected recovery time

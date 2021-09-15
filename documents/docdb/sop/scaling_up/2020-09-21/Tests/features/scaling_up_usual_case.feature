@@ -13,7 +13,7 @@ Feature: SSM automation document Digito-ScaleUpDocumentDBClusterSOP_2020-09-21
     # Add other parameter names below
       | DBClusterIdentifier             | AutomationAssumeRole                                    |
     # Replace parameter values to point to the corresponding outputs in cloudformation template
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDocdbScalingUpAssumeRole}} |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoScaleUpDocumentDBClusterSOPAssumeRole}} |
     # Add other steps that should run parallel to the document here
 
     Then SSM automation document "Digito-ScaleUpDocumentDBClusterSOP_2020-09-21" execution in status "Success"

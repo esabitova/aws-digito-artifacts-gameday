@@ -18,11 +18,11 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for Digito-ScaleUpDocumentDBClusterSOP_2020-09-21
 Outputs:
-  DigitoDocdbScalingUpAssumeRole:
+  DigitoScaleUpDocumentDBClusterSOPAssumeRole:
     Description: Digito-ScaleUpDocumentDBClusterSOP_2020-09-21 Automation Assume Role ARN
-    Value: !GetAtt DigitoDocdbScalingUpAssumeRole.Arn
+    Value: !GetAtt DigitoScaleUpDocumentDBClusterSOPAssumeRole.Arn
 Resources:
-  DigitoDocdbScalingUpAssumeRole:
+  DigitoScaleUpDocumentDBClusterSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDocdbScalingUpAssumePolicy:
+  DigitoScaleUpDocumentDBClusterSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoDocdbScalingUpAssumePolicy
+      PolicyName: DigitoScaleUpDocumentDBClusterSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -46,4 +46,4 @@ Resources:
             Action:
               - rds:DescribeDBClusters
       Roles:
-        - Ref: DigitoDocdbScalingUpAssumeRole
+        - Ref: DigitoScaleUpDocumentDBClusterSOPAssumeRole

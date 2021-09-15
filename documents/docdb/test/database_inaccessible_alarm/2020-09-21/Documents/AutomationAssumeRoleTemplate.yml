@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM DocDbDatabaseAlarm
+Description: Role for SSM Digito-ForceDocumentDBDatabaseToBeInaccessibleTest_2020-09-21
 Outputs:
-  DigitoDocDbDatabaseAlarmAssumeRole:
-    Description: DigitoDocDbDatabaseAlarm Automation Assume Role ARN
+  DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumeRole:
+    Description: Digito-ForceDocumentDBDatabaseToBeInaccessibleTest_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoDocDbDatabaseAlarmAssumeRole.Arn
+      Fn::GetAtt: DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumeRole.Arn
 Resources:
-  DigitoDocDbDatabaseAlarmAssumeRole:
+  DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDocDbDatabaseAlarmAssumePolicy:
+  DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoDocDbDatabaseAlarmAssumePolicy
+      PolicyName: DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -58,7 +58,7 @@ Resources:
               - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoDocDbDatabaseAlarmAssumeRole.Arn
+              - Fn::GetAtt: DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumeRole.Arn
             Action:
               - iam:PassRole
           - Effect: Allow
@@ -76,4 +76,4 @@ Resources:
             Condition:
               StringEquals: {"ec2:ResourceTag/Digito": "docdb:test:database_alarm"}
       Roles:
-        - Ref: DigitoDocDbDatabaseAlarmAssumeRole
+        - Ref: DigitoForceDocumentDBDatabaseToBeInaccessibleTestAssumeRole

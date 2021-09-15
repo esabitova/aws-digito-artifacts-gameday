@@ -1,7 +1,7 @@
 @docdb
-Feature: SSM automation document Digito-RebootDbInstance_2020-09-21
+Feature: SSM automation document Digito-RebootDocumentDBInstanceTest_2020-09-21
 
-  Scenario: Execute SSM automation document Digito-RebootDbInstance_2020-09-21
+  Scenario: Execute SSM automation document Digito-RebootDocumentDBInstanceTest_2020-09-21
     Given the cached input parameters
       | DistributionPackageRelativePath                                                  | DistributionPackageS3Key         |
       | documents/docdb/canary/database-connection-canary/database-connection-canary.zip | canary/database-alarm-canary.zip |
@@ -15,10 +15,10 @@ Feature: SSM automation document Digito-RebootDbInstance_2020-09-21
       | resource_manager/cloud_formation_templates/shared/KMS.yml                                     | SHARED       |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                  | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>VPCCidr}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>PrivateSubnetWithInternet02}} | {{cache:CloudWatchCanary>S3Bucket}}       | {{cache:CloudWatchCanary>S3Key}}       | {{cache:CloudWatchCanary>S3ObjectVersion}}       | {{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}} | {{cfn-output:CleanupCanaryLambda>CleanupCanaryLambdaArn}} | {{cfn-output:KMS>EncryptAtRestKey}} |
       | documents/docdb/test/reboot_db_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
-    And published "Digito-RebootDbInstance_2020-09-21" SSM document
-    When SSM automation document "Digito-RebootDbInstance_2020-09-21" executed
-      | DBClusterIdentifier                              | DBInstanceIdentifier                                     | AutomationAssumeRole                                                              | SyntheticAlarmName                                              |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:DocDbTemplate>DBInstancePrimaryIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoDocdbRebootDbInstanceAssumeRole}} | {{cfn-output:DocDbTemplate>DatabaseConnectionAttemptAlarmName}} |
-    Then SSM automation document "Digito-RebootDbInstance_2020-09-21" execution in status "Success"
+    And published "Digito-RebootDocumentDBInstanceTest_2020-09-21" SSM document
+    When SSM automation document "Digito-RebootDocumentDBInstanceTest_2020-09-21" executed
+      | DBClusterIdentifier                              | DBInstanceIdentifier                                     | AutomationAssumeRole                                                                     | SyntheticAlarmName                                              |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:DocDbTemplate>DBInstancePrimaryIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRebootDocumentDBInstanceTestAssumeRole}} | {{cfn-output:DocDbTemplate>DatabaseConnectionAttemptAlarmName}} |
+    Then SSM automation document "Digito-RebootDocumentDBInstanceTest_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |

@@ -1,7 +1,7 @@
 {
   "displayName": "Create Document DB Instance",
   "description": "Used to create a new instance in a specified AZ/Region.",
-  "documentName": "Digito-CreateNewDocDbInstance_2020-09-21",
+  "documentName": "Digito-CreateNewDocumentDBInstanceSOP_2020-09-21",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",

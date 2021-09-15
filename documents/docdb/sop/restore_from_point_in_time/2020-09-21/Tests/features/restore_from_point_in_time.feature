@@ -15,7 +15,7 @@ Feature: SSM automation document to recover the database into a known good state
       | resource_manager/cloud_formation_templates/shared/KMS.yml                                            | SHARED       |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                         | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>VPCCidr}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>PrivateSubnetWithInternet02}} | {{cache:CloudWatchCanary>S3Bucket}}       | {{cache:CloudWatchCanary>S3Key}}       | {{cache:CloudWatchCanary>S3ObjectVersion}}       | {{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}} | {{cfn-output:CleanupCanaryLambda>CleanupCanaryLambdaArn}} | {{cfn-output:KMS>EncryptAtRestKey}} |
       | documents/docdb/sop/restore_from_point_in_time/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
-    And published "Digito-RestoreFromPointInTime_2020-09-21" SSM document
+    And published "Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21" SSM document
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
@@ -25,10 +25,10 @@ Feature: SSM automation document to recover the database into a known good state
     And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
-      | DBClusterIdentifier                              | AutomationAssumeRole                                                               |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
-    Then SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" execution in status "Success"
+    When SSM automation document "Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21" executed
+      | DBClusterIdentifier                              | AutomationAssumeRole                                                                                   |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumeRole}} |
+    Then SSM automation document "Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And wait for instances to be available for "120" seconds
@@ -58,7 +58,7 @@ Feature: SSM automation document to recover the database into a known good state
       | resource_manager/cloud_formation_templates/shared/KMS.yml                                            | SHARED       |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
       | resource_manager/cloud_formation_templates/DocDbTemplate.yml                                         | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>VPCCidr}} | {{cfn-output:VPC>PrivateSubnetWithInternet01}} | {{cfn-output:VPC>PrivateSubnetWithInternet02}} | {{cache:CloudWatchCanary>S3Bucket}}       | {{cache:CloudWatchCanary>S3Key}}       | {{cache:CloudWatchCanary>S3ObjectVersion}}       | {{cfn-output:CleanupS3BucketLambda>CleanupS3BucketLambdaArn}} | {{cfn-output:CleanupCanaryLambda>CleanupCanaryLambdaArn}} | {{cfn-output:KMS>EncryptAtRestKey}} |
       | documents/docdb/sop/restore_from_point_in_time/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
-    And published "Digito-RestoreFromPointInTime_2020-09-21" SSM document
+    And published "Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21" SSM document
     And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
@@ -71,10 +71,10 @@ Feature: SSM automation document to recover the database into a known good state
     And prepare replaced cluster for teardown
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    When SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" executed
-      | DBClusterIdentifier                              | RestoreToDate                           | AutomationAssumeRole                                                               |
-      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>EarliestRestorableTime}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreFromPointInTimeAssumeRole}} |
-    Then SSM automation document "Digito-RestoreFromPointInTime_2020-09-21" execution in status "Success"
+    When SSM automation document "Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21" executed
+      | DBClusterIdentifier                              | RestoreToDate                           | AutomationAssumeRole                                                                                   |
+      | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} | {{cache:before>EarliestRestorableTime}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumeRole}} |
+    Then SSM automation document "Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And wait for instances to be available for "120" seconds
