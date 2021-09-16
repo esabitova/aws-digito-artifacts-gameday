@@ -18,26 +18,21 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Test stack for Athena and related resources. Contains all alarms
 Outputs:
-  AthenaWorkGroup:
+  AthenaWorkGroupName:
     Description: Athena WorkGroup name
     Value: !Ref  AthenaWorkGroup
-#  RoleApproveCleanBucketArn:
-#    Description: ARN of RoleApproveCleanBucket
-#    Value: !GetAtt RoleApproveCleanBucket.Arn
-##  S3OutputBucket:
-#    Description: S3 Bucket Name
-#    Value: !Ref S3OutputBucket
-#  S3CrawlerBucket:
-#    Description: S3 Bucket Name
-#    Value: !Ref S3CrawlerBucket
-#  GlueDataBase:
-#    Description: Glue DataBase Name
-#    Value: !Ref GlueDataBase
+  S3CrawlerBucketName:
+    Description: S3 bucket name for uploading csv files for crawler
+    Value: !Ref  S3CrawlerBucket
 
 Parameters:
   CleanupS3BucketLambdaArn:
     Description: ARN of Cleanup S3 Bucket Lambda Function
     Type: String
+  KmsKey:
+    Type: String
+    Description: KMS encryption Key Arn
+    Default: ""
 
 Resources:
   AthenaWorkGroup:
@@ -60,6 +55,9 @@ Resources:
       WorkGroupConfiguration:
         PublishCloudWatchMetricsEnabled: true
         ResultConfiguration:
+          EncryptionConfiguration:
+            EncryptionOption: "SSE_KMS"
+            KmsKey: !Sub '${KmsKey}'
           OutputLocation: !Join [ "", [ "s3://" , Ref: S3OutputBucket, "/" ] ]
 
   GlueDataBase:
@@ -105,7 +103,7 @@ Resources:
       TablePrefix: 'cfn_table_1_'
       Targets:
         S3Targets:
-#          - Path: !Join [ "", [ "s3://" , Ref: S3CrawlerBucket, "/" ] ]
+          #          - Path: !Join [ "", [ "s3://" , Ref: S3CrawlerBucket, "/" ] ]
           - Path: "s3://crawler-public-us-east-1/flight/2016/csv"
   #      Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
 
@@ -173,7 +171,6 @@ Resources:
                   - !Ref "AWS::StackId"
       AccessControl: Private
 
-
   # To clean S3 buckets before deleting stack.
   CleanupS3BucketsOnDelete:
     Type: Custom::CleanupS3BucketsOnDelete
@@ -182,31 +179,3 @@ Resources:
       BucketNames:
         - !Ref S3OutputBucket
         - !Ref S3CrawlerBucket
-
-#  RoleApproveCleanBucket:
-#    Type: AWS::IAM::Role
-#    Properties:
-#      AssumeRolePolicyDocument:
-#        Version: 2012-10-17
-#        Statement:
-#          - Effect: Allow
-#            Principal:
-#              AWS: !Ref "AWS::AccountId"
-#            Action:
-#              - sts:AssumeRole
-#
-#  PolicyApproveCleanBucket:
-#    Type: AWS::IAM::Policy
-#    Properties:
-#      PolicyName: DigitoRestoreFromBackupAssumePolicy
-#      PolicyDocument:
-#        Version: 2012-10-17
-#        Statement:
-#          - Effect: Allow
-#            Resource: "*"
-#            Action:
-#              - ssm:SendAutomationSignal
-#      Roles:
-#        - Ref: RoleApproveCleanBucket
-
-
