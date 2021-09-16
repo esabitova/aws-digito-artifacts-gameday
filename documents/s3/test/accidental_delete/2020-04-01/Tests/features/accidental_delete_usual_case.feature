@@ -31,7 +31,7 @@ Feature: SSM automation document to accidentally delete files in S3 bucket
     And cache value of number of files as "ActualNumberOfFiles" at the bucket "after_delete" SSM automation execution
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
-    And get the "0.txt" object from bucket "20" times with error
+    And get the "0.txt" object from bucket "200" times with error
       | BucketName                                      |
       | {{cfn-output:S3Template>S3BucketToRestoreName}} |
     And Wait for the SSM automation document "Digito-SimulateS3ObjectsAccidentalDeleteTest_2020-04-01" execution is on step "RollbackCurrentExecution" in status "Success"
