@@ -22,7 +22,9 @@ def get_cluster_az(events, context):
         config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
         docdb = boto3.client('docdb', config=config)
         response = docdb.describe_db_clusters(DBClusterIdentifier=events['DBClusterIdentifier'])
-        cluster_azs = response['DBClusters'][0]['AvailabilityZones']
+        subnet_group_name = response['DBClusters'][0]['DBSubnetGroup']
+        db_clusters_resp = docdb.describe_db_subnet_groups(DBSubnetGroupName=subnet_group_name)
+        cluster_azs = [x['SubnetAvailabilityZone']['Name'] for x in db_clusters_resp['DBSubnetGroups'][0]['Subnets']]
         return {'cluster_azs': cluster_azs}
     except Exception as e:
         print(f'Error: {e}')

@@ -48,5 +48,6 @@ Resources:
               - 'rds:CreateDBInstance'
               - 'rds:DescribeDBClusters'
               - 'rds:DescribeDBInstances'
+              - 'rds:DescribeDBSubnetGroups'
       Roles:
         - Ref: DigitoCreateNewDocumentDBInstanceSOPAssumeRole

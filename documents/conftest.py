@@ -1,5 +1,6 @@
 import json
 import logging
+from resource_manager.src.util.synthetics_utils import stop_canary_if_its_running
 
 import pytest
 from pytest_bdd import (
@@ -34,7 +35,7 @@ def generate_and_cache_random_string_with_prefix(ssm_test_cache, prefix, field_n
                     'became equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-           == ssm_test_cache[step_key_for_actual][actual_property]
+        == ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.cfparse('assert the difference between "{expected_property}" at "{step_key_for_expected}" '
@@ -43,14 +44,14 @@ def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actua
 def assert_difference(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual,
                       expected_difference: int):
     assert int(ssm_test_cache[step_key_for_expected][expected_property]) \
-           - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
+        - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became not equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_not_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-           != ssm_test_cache[step_key_for_actual][actual_property]
+        != ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
@@ -63,7 +64,7 @@ def assert_equal_to_value(ssm_test_cache, expected_property, step_key_for_expect
                     'less than "{actual_property}" at "{step_key_for_actual}"'))
 def assert_less_than(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-           < ssm_test_cache[step_key_for_actual][actual_property]
+        < ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.parse('assert security group "{expected_property}" at "{step_key_for_expected}" was removed'))
@@ -78,7 +79,7 @@ def assert_value_isin(ssm_test_cache, expected_property, step_key_for_expected, 
     temp_var = ssm_test_cache[step_key_for_actual][actual_property]
     if isinstance(temp_var, (list, tuple, dict)):
         assert ssm_test_cache[step_key_for_expected][expected_property] in \
-               ssm_test_cache[step_key_for_actual][actual_property]
+            ssm_test_cache[step_key_for_actual][actual_property]
     else:
         raise AssertionError(f'{actual_property} needs to be one of list, tuple, dict')
 
@@ -168,6 +169,15 @@ def start_canary(boto3_session, input_parameters, resource_pool, ssm_test_cache,
     logger.info(f'Canary {canary_name} was started')
 
 
+@then(parsers.parse('stop canary\n{input_parameters}'))
+def stop_canary(boto3_session, input_parameters, resource_pool, ssm_test_cache):
+    """
+    Stops canary name with name passed as CanaryName
+    """
+    canary_name = extract_param_value(input_parameters, "CanaryName", resource_pool, ssm_test_cache)
+    stop_canary_if_its_running(canary_name, boto3_session)
+
+
 @pytest.fixture(scope='function')
 def canary_for_teardown(boto3_session, ssm_test_cache):
     """
@@ -177,10 +187,7 @@ def canary_for_teardown(boto3_session, ssm_test_cache):
     yield canary
     canary_name = canary.get('CanaryName')
     if canary_name:
-        synthetics_client = client("synthetics", boto3_session)
-        logger.info(f'Stopping canary {canary_name}')
-        synthetics_client.stop_canary(Name=canary_name)
-        logger.info(f'Canary {canary_name} was stopped')
+        stop_canary_if_its_running(canary_name, boto3_session)
 
 
 @given(parsers.parse('invoke lambda "{lambda_arn}" with parameters\n{input_parameters_table}'))
