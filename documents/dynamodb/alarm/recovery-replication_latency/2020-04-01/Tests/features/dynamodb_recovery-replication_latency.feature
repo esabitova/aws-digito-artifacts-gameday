@@ -6,7 +6,7 @@ Feature: Alarm Setup - dynamodb ReplicationLatency
       |resource_manager/cloud_formation_templates/DynamoDBTemplate.yml    | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
     And cache different region name as "GlobalTableSecondaryRegion" "before" SSM automation execution
-    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:before>GlobalTableSecondaryRegion}} and wait for 1800 seconds with delay 20 seconds
+    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:before>GlobalTableSecondaryRegion}} and wait for 3600 seconds with delay 20 seconds
 
     When alarm "dynamodb:alarm:recovery-replication_latency:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       |DynamoDbTable                                 | Region                                     | Threshold  |
@@ -21,7 +21,7 @@ Feature: Alarm Setup - dynamodb ReplicationLatency
       |resource_manager/cloud_formation_templates/DynamoDBTemplate.yml    | ON_DEMAND
       |resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED
     And cache different region name as "GlobalTableSecondaryRegion" "before" SSM automation execution
-    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:before>GlobalTableSecondaryRegion}} and wait for 1800 seconds with delay 20 seconds
+    And enabled global dynamodb table {{cfn-output:DynamoDBTemplate>DynamoDBTable}} in the region {{cache:before>GlobalTableSecondaryRegion}} and wait for 3600 seconds with delay 20 seconds
 
     When alarm "dynamodb:alarm:recovery-replication_latency:2020-04-01" is installed
       | alarmId    | SNSTopicARN                       |DynamoDbTable                                 | Region                                     | Threshold |
