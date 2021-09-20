@@ -16,7 +16,7 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for Athena and related resources. Contains all alarms
+Description: Test stack for Athena and related resources
 Outputs:
   AthenaWorkGroupName:
     Description: Athena WorkGroup name
@@ -24,6 +24,15 @@ Outputs:
   S3CrawlerBucketName:
     Description: S3 bucket name for uploading csv files for crawler
     Value: !Ref  S3CrawlerBucket
+  S3OutputBucketName:
+    Description: S3 bucket name where query results are stored
+    Value: !Ref  S3OutputBucket
+  GlueCrawlerName:
+    Description: Glue Crawler name for creating table for Athena
+    Value: !Ref  GlueCrawler
+  GlueDataBaseName:
+    Description: Glue Database name for query execution
+    Value: !Ref  GlueDataBase
 
 Parameters:
   CleanupS3BucketLambdaArn:
@@ -41,7 +50,7 @@ Resources:
       Description: Test WorkGroup for Athena
       Name: !Join
         - "-"
-        - - "digito-workgroup"
+        - - "digito-athena-workgroup"
           - !Select
             - 0
             - !Split
@@ -66,46 +75,22 @@ Resources:
       CatalogId: !Ref 'AWS::AccountId'
       DatabaseInput:
         Description: Test database for Athena service
-        Name: !Join
-          - "-"
-          - - "athena-test-database"
-            - !Select
-              - 0
-              - !Split
-                - "-"
-                - !Select
-                  - 2
-                  - !Split
-                    - "/"
-                    - !Ref "AWS::StackId"
+        Name: "athena-test-database"
 
   GlueCrawler:
     Type: AWS::Glue::Crawler
     Properties:
-      Name: !Join
-        - "-"
-        - - "cfn-crawler"
-          - !Select
-            - 0
-            - !Split
-              - "-"
-              - !Select
-                - 2
-                - !Split
-                  - "/"
-                  - !Ref "AWS::StackId"
+      Name: "digito-glue-crawler"
       Description: AWS Glue crawler to crawl flights data
       DatabaseName: !Ref GlueDataBase
       Role: !GetAtt GlueRole.Arn
       SchemaChangePolicy:
         UpdateBehavior: "UPDATE_IN_DATABASE"
         DeleteBehavior: "LOG"
-      TablePrefix: 'cfn_table_1_'
+      TablePrefix: 'athena_test_table_'
       Targets:
         S3Targets:
-          #          - Path: !Join [ "", [ "s3://" , Ref: S3CrawlerBucket, "/" ] ]
-          - Path: "s3://crawler-public-us-east-1/flight/2016/csv"
-  #      Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
+          - Path: !Sub "${S3CrawlerBucket}/"
 
   GlueRole:
     Type: AWS::IAM::Role
@@ -127,6 +112,24 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action: "*"
+#                  - glue:SearchTables
+#                  - glue:GetDatabase
+#                  - glue:DeleteDatabase
+#                  - glue:CreateTable
+#                  - glue:CreateDatabase
+#                  - glue:DeleteTable
+#                  - glue:GetTable
+#                Resource:
+#                  - arn:aws:glue:*:*:table/*/*
+#                  - arn:aws:glue:*:*:database/*
+#                  - arn:aws:glue:*:*:catalog
+#              - Effect: "Allow"
+#                Action:
+#                  - glue:GetCrawler
+#                  - glue:DeleteCrawler
+#                  - glue:StartCrawler
+#                  - glue:ListCrawlers
+#                  - glue:CreateCrawler
                 Resource: "*"
 
   S3OutputBucket:
@@ -148,7 +151,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      AccessControl: Private
 
   S3CrawlerBucket:
     Type: AWS::S3::Bucket
@@ -159,7 +161,7 @@ Resources:
               SSEAlgorithm: AES256
       BucketName: !Join
         - "-"
-        - - "s3-athena-crawler-bucket"
+        - - "s3-athena-input-bucket"
           - !Select
             - 0
             - !Split
@@ -169,7 +171,6 @@ Resources:
                 - !Split
                   - "/"
                   - !Ref "AWS::StackId"
-      AccessControl: Private
 
   # To clean S3 buckets before deleting stack.
   CleanupS3BucketsOnDelete:

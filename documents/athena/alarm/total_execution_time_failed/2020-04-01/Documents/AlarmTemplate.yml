@@ -17,8 +17,6 @@ Resources:
       Dimensions:
         - Name: WorkGroup
           Value: ${AthenaWorkGroupName}
-#        - Name: QueryState
-#          Value: FAILED
         - Name: QueryType
           Value: DML
       Namespace: AWS/Athena
@@ -27,4 +25,3 @@ Resources:
       Statistic: SampleCount
       Threshold: ${Threshold}
       TreatMissingData: missing
-#      "breaching"
