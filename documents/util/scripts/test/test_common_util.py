@@ -1,13 +1,15 @@
 import datetime
 import unittest
-import pytest
 from unittest.mock import patch, MagicMock
 
+import pytest
 from botocore.exceptions import ClientError
 
-from documents.util.scripts.test.mock_sleep import MockSleep
-import documents.util.scripts.test.test_data_provider as test_data_provider
 import documents.util.scripts.src.common_util as common_util
+import documents.util.scripts.test.test_data_provider as test_data_provider
+from documents.util.scripts.test.mock_sleep import MockSleep
+
+TEST_TAG = 'testservice:test:do_something_with_configuration'
 
 
 @pytest.mark.unit_test
@@ -46,7 +48,8 @@ class TestCommonUtil(unittest.TestCase):
     def test_create_empty_security_group(self):
         events = {
             'VpcId': test_data_provider.VPC_ID,
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'Tag': TEST_TAG
         }
         self.mock_ec2.create_security_group.return_value = {
             'GroupId': test_data_provider.SECURITY_GROUP
@@ -62,7 +65,10 @@ class TestCommonUtil(unittest.TestCase):
             Description=f'Empty SG for executionID {events["ExecutionId"]}',
             GroupName=f'EmptySG-{events["ExecutionId"]}',
             VpcId=events['VpcId'],
-        )
+            TagSpecifications=[
+                {'ResourceType': 'security-group',
+                 'Tags': [{'Key': 'Digito',
+                           'Value': events['Tag']}, ]}])
 
         self.mock_ec2.revoke_security_group_egress.assert_called_once_with(
             GroupId=test_data_provider.SECURITY_GROUP,
@@ -81,7 +87,8 @@ class TestCommonUtil(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(result, {'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP})
+        self.assertEqual(result, {'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+                                  'EmptySecurityGroupIdList': [test_data_provider.SECURITY_GROUP]})
 
     def test_create_empty_security_group_wrong_params(self):
         events = {
@@ -96,7 +103,8 @@ class TestCommonUtil(unittest.TestCase):
     def test_create_empty_security_group_could_not_revoke(self):
         events = {
             'VpcId': test_data_provider.VPC_ID,
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'Tag': TEST_TAG
         }
         self.mock_ec2.create_security_group.return_value = {
             'GroupId': test_data_provider.SECURITY_GROUP
@@ -120,7 +128,10 @@ class TestCommonUtil(unittest.TestCase):
             Description=f'Empty SG for executionID {events["ExecutionId"]}',
             GroupName=f'EmptySG-{events["ExecutionId"]}',
             VpcId=events['VpcId'],
-        )
+            TagSpecifications=[
+                {'ResourceType': 'security-group',
+                 'Tags': [{'Key': 'Digito',
+                           'Value': events['Tag']}, ]}])
 
         self.mock_ec2.revoke_security_group_egress.assert_called_once_with(
             GroupId=test_data_provider.SECURITY_GROUP,

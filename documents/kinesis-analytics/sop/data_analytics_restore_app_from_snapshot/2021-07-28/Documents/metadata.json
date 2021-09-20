@@ -1,0 +1,14 @@
+{
+  "displayName": "SOP - Kinesis Data Analytics: Restore Application from Snapshot",
+  "description": "Restore Data Analytics Application state data from snapshot",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-RestoreKinesisDataAnalyticsApplicationFromSnapshotSOP_2021-07-28",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "HIGH",
+  "enabled": "true",
+  "tag": "kinesis-analytics:sop:data_analytics_restore_app_from_snapshot:2021-07-28"
+}

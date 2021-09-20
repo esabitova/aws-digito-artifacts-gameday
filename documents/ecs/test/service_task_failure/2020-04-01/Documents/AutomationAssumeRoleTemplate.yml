@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ServiceTaskFailure_2020-04-01
+Description: Role for Digito-ForceECSServiceTaskFailureTest_2020-04-01
 Outputs:
-  DigitoEcsServiceTaskFailureAssumeRole:
-    Description: Digito-ServiceTaskFailure_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoEcsServiceTaskFailureAssumeRole.Arn
+  DigitoForceECSServiceTaskFailureTestAssumeRole:
+    Description: Digito-ForceECSServiceTaskFailureTest_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoForceECSServiceTaskFailureTestAssumeRole.Arn
 Resources:
-  DigitoEcsServiceTaskFailureAssumeRole:
+  DigitoForceECSServiceTaskFailureTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,16 +34,21 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEcsServiceTaskFailureAssumePolicy:
+  DigitoForceECSServiceTaskFailureTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoEcsServiceTaskFailureAssumePolicy
+      PolicyName: DigitoForceECSServiceTaskFailureTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Resource: "*"
             Action:
-              - sts:AssumeRole
+                - 'ecs:DescribeClusters'
+                - 'ecs:DescribeServices'
+                - 'ecs:ListTasks'
+                - 'ecs:StopTask'
+                - 'cloudwatch:DescribeAlarms'
+                - 'cloudwatch:DescribeAlarmHistory'
       Roles:
-        - Ref: DigitoEcsServiceTaskFailureAssumeRole
+        - Ref: DigitoForceECSServiceTaskFailureTestAssumeRole

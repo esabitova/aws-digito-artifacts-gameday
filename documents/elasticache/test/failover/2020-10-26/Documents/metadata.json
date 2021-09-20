@@ -1,0 +1,14 @@
+{
+  "displayName": "Tests failover for a node group in a replication group",
+  "description": "Tests failover for a node group in a replication group",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-FailoverElasticacheReplicationGroupTest_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "HARDWARE,AZ",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "enabled": "false",
+  "tag": "elasticache:test:failover:2020-10-26"
+}

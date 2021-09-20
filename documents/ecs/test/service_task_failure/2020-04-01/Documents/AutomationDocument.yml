@@ -31,14 +31,10 @@ parameters:
   SyntheticAlarmName:
     type: String
     description: (Required) The Synthetic Alarm which should be green within recovery time.
-  TaskRestoreWaitTimeout:
+  PercentageOfTasksToStop:
     type: Integer
-    description: (Optional) The number of minutes that test will wait task to be restored. Maximum 9 minutes
-    default: 9
-  NumberOfTasksToStop:
-    type: Integer
-    description: (Optional) The number of tasks to be stopped. if it's more than the number of tasks in the service, then all tasks will be stopped. Only positive integer values, greater than 1
-    default: 1
+    description: (Optional) Percentage of tasks to be stopped. Only positive integer values, greater than 0 and less than 100.
+    default: 30
 mainSteps:
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
@@ -48,35 +44,64 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{${alarmPrefix}AlarmName}}"
+        - "{{SyntheticAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
+
   - name: InjectFailure
-    # Check input.TaskRestoreWaitTimeout should be between 1 and 9 (inclusive). The maximum is stipulated in the current service limitations (executeScript action run time) https://docs.aws.amazon.com/general/latest/gr/ssm.html
-    # Check input.NumberOfTasksToStop should be greater than 1
-    # add one or more steps to inject failures
-    # 1. get list of tasks in the service
-    #   Call [boto3.describe_services]
-    #     Parameters:
-    #       cluster = params.ClusterName
-    #       services = [params.ServiceName]
-    #     Take params.NumberOfTasksToStop of '.services[].taskSets[].id'. if params.NumberOfTasksToStop is greater than the total number RUNNING tasks then take all.
-    #     Take total number of tasks running '.services[].taskSets[]'
-    # 2. stop the selected of the tasks
-    #   Call [boto3.stop_task]
-    #     Parameters:
-    #       cluster = params.ClusterName
-    #       task = task_id
-    #     
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - Or:
+          - Variable: "{{PercentageOfTasksToStop}}"
+            NumericLesser: 1
+          - Variable: "{{PercentageOfTasksToStop}}"
+            NumericGreater: 100
+          NextStep: FailWithIncorrectParams
+      Default:
+        StopSelectedTasks
+
+  - name: FailWithIncorrectParams
+    action: aws:executeScript
+    description: |
+      Fail if PercentageOfTasksToStop is less than 1 or greater than 100.
+    inputs:
+      Runtime: python3.7
+      Handler: raise_exception
+      InputPayload:
+        ErrorMessage: "PercentageOfTasksToStop should be greater than 0 and less than 100."
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.raise_exception
+    isEnd: true
+
+  - name: StopSelectedTasks
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: stop_selected_tasks
+      Script: |-
+        SCRIPT_PLACEHOLDER::ecs_util.imports
+        SCRIPT_PLACEHOLDER::ecs_util.check_required_params
+        SCRIPT_PLACEHOLDER::ecs_util.stop_selected_tasks
+      InputPayload:
+        ServiceName: '{{ServiceName}}'
+        ClusterName: '{{ClusterName}}'
+        PercentageOfTasksToStop: '{{PercentageOfTasksToStop}}'
+
   - name: WaitTasksToBeRestored
-    # add one or more steps to inject failures
-    # 3. wait while total number of RUNNING tasks be equal intended
-    #   Call [boto3.describe_services]
-    #     Parameters:
-    #       cluster = params.ClusterName
-    #       services = [params.ServiceName]
-    #     Take total number of tasks running '.services[].taskSets[]'
-    #     Wait [params.TaskRestoreWaitTimeout] minutes. Fail if timeout
+    action: aws:executeScript
+    inputs:
+      Runtime: python3.7
+      Handler: wait_services_stable
+      Script: |-
+        SCRIPT_PLACEHOLDER::ecs_util.imports
+        SCRIPT_PLACEHOLDER::ecs_util.check_required_params
+        SCRIPT_PLACEHOLDER::ecs_util.wait_services_stable
+      InputPayload:
+        ServiceName: '{{ServiceName}}'
+        ClusterName: '{{ClusterName}}'
+
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
     maxAttempts: 10

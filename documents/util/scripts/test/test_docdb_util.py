@@ -16,6 +16,7 @@ from documents.util.scripts.test.mock_sleep import MockSleep
 
 DOCDB_AZ = "eu-central-1b"
 DOCDB_CLUSTER_ID = 'docdb-cluster-id'
+DOCDB_SUBNET_GROUP_NAME = 'my_subnet_group'
 DOCDB_INSTANCE_ID = 'docdb-instance-id'
 DOCDB_INSTANCE_STATUS = 'available'
 DOCDB_ENGINE = 'docdb'
@@ -274,8 +275,41 @@ def get_docdb_instances_side_effect(az):
     return {'DBInstances': [{'AvailabilityZone': az}]}
 
 
-def get_cluster_azs_side_effect():
-    return {'DBClusters': [{'AvailabilityZones': ['us-east-1a', 'us-east-1b', 'us-east-1c']}]}
+def get_describe_db_cluster_side_effect():
+    return {'DBClusters': [{
+        'AvailabilityZones': ['us-east-1a', 'us-east-1b', 'us-east-1c'],
+        "DBSubnetGroup": DOCDB_SUBNET_GROUP_NAME
+    }]}
+
+
+def get_subnet_group_side_effect():
+    return {
+        "DBSubnetGroups": [
+            {
+                "DBSubnetGroupName": DOCDB_SUBNET_GROUP_NAME,
+                "DBSubnetGroupDescription": "DocumentDB cluster subnet group",
+                "VpcId": "vpc-091947ce4f16248b5",
+                "SubnetGroupStatus": "Complete",
+                "Subnets": [
+                    {
+                        "SubnetIdentifier": "subnet-0be28e5a030e46966",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1a"
+                        },
+                        "SubnetStatus": "Active"
+                    },
+                    {
+                        "SubnetIdentifier": "subnet-08e4a8215ce4dc164",
+                        "SubnetAvailabilityZone": {
+                            "Name": "us-east-1b"
+                        },
+                        "SubnetStatus": "Active"
+                    }
+                ],
+                "DBSubnetGroupArn": "arn:aws:rds:us-east-2:435978235099:subgrp:docdbclustersubnetgroup-bvhpczyfghso"
+            }
+        ]
+    }
 
 
 DOCDB_INSTANCES = {
@@ -418,9 +452,10 @@ class TestDocDBUtil(unittest.TestCase):
         events = {
             'DBClusterIdentifier': DOCDB_CLUSTER_ID
         }
-        self.mock_docdb.describe_db_clusters.return_value = get_docdb_clusters_side_effect(1)
+        self.mock_docdb.describe_db_clusters.return_value = get_describe_db_cluster_side_effect()
+        self.mock_docdb.describe_db_subnet_groups.return_value = get_subnet_group_side_effect()
         response = get_cluster_az(events, None)
-        self.assertEqual([DOCDB_AZ], response['cluster_azs'])
+        self.assertEqual(['us-east-1a', 'us-east-1b'], response['cluster_azs'])
 
     def test_get_cluster_az_not_existing_cluster(self):
         events = {

@@ -151,7 +151,7 @@ mainSteps:
     action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:
-      DocumentName: Digito-CopyDynamoDBTableProperties_2020-04-01
+      DocumentName: Digito-CopyDynamoDBTablePropertiesUtil_2020-04-01
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         DynamoDBTableSourceName: '{{DynamoDBTableSourceName}}'

@@ -5,7 +5,7 @@
   "attachments": "digito_gameday_primitives.zip",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-SQSCapacityFailure_2021-03-13",
+  "documentName": "Digito-ForceSQSCapacityFailureTest_2021-03-13",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "Test SQS behavior after sending a message of size larger than threshold",

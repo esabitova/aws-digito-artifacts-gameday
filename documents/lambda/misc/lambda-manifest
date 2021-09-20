@@ -1,4 +1,4 @@
-Digito-ChangeMemorySize_2020-10-26
-Digito-ChangeConcurrencyLimit_2020-10-26
-Digito-ChangeProvisionedConcurrency_2020-10-26
-Digito-LambdaSwitchLambdaVersionInAlias_2020-10-26
+Digito-ChangeLambdaMemorySizeSOP_2020-10-26
+Digito-ChangeLambdaConcurrencyLimitSOP_2020-10-26
+Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26
+Digito-SwitchLambdaVersionInAliasSOP_2020-10-26

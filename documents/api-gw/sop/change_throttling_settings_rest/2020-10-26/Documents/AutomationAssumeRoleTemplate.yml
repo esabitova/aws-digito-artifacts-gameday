@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM DigitoRestApiGwChangeThrottlingSettings
+Description: Role for SSM Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26
 Outputs:
-  DigitoRestApiGwChangeThrottlingSettingsAssumeRoleArn:
-    Description: DigitoRestApiGwChangeThrottlingSettings Automation Assume Role ARN
+  DigitoChangeRestApiGwThrottlingSettingsSOPAssumeRoleArn:
+    Description: Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      !GetAtt DigitoRestApiGwChangeThrottlingSettingsAssumeRole.Arn
+      !GetAtt DigitoChangeRestApiGwThrottlingSettingsSOPAssumeRole.Arn
 Resources:
-  DigitoRestApiGwChangeThrottlingSettingsAssumeRole:
+  DigitoChangeRestApiGwThrottlingSettingsSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestApiGwChangeThrottlingSettingsAssumePolicy:
+  DigitoChangeRestApiGwThrottlingSettingsSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoRestApiGwChangeThrottlingSettingsAssumePolicy
+      PolicyName: DigitoChangeRestApiGwThrottlingSettingsSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - apigateway:PATCH
               - servicequotas:GetServiceQuota
       Roles:
-        - Ref: DigitoRestApiGwChangeThrottlingSettingsAssumeRole
+        - Ref: DigitoChangeRestApiGwThrottlingSettingsSOPAssumeRole

@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-LambdaSwitchLambdaVersionInAlias_2020-10-26",
+  "documentName": "Digito-SwitchLambdaVersionInAliasSOP_2020-10-26",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "Switch Alias of Lambda functions to another version",

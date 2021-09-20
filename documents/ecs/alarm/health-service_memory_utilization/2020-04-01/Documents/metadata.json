@@ -1,0 +1,14 @@
+{
+  "displayName": "Amazon ECS Service Memory Utilization",
+  "description": "Alarm by Digito for Amazon ECS that indicates if the percentage of memory that is used in the service, is exceeding specified threshold limit",
+  "alarmName": "Digito-ServiceHighMemoryUtilization_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "ecs:alarm:health-service_memory_utilization:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "ecs:sop:scale_service:2020-04-01"
+  ]
+}

@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SQS capacity failure
+Description: Role for Digito-ForceSQSCapacityFailureTest_2021-03-13
 Outputs:
-  DigitoSQSCapacityFailureAssumeRole:
-    Description: DigitoSQSCapacityFailureAssumeRole Automation Assume Role ARN
+  DigitoForceSQSCapacityFailureTestAssumeRole:
+    Description: Digito-ForceSQSCapacityFailureTest_2021-03-13 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoSQSCapacityFailureAssumeRole.Arn
+      Fn::GetAtt: DigitoForceSQSCapacityFailureTestAssumeRole.Arn
 Resources:
-  DigitoSQSCapacityFailureAssumeRole:
+  DigitoForceSQSCapacityFailureTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoSQSCapacityFailureAssumePolicy:
+  DigitoForceSQSCapacityFailureTestAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoSQSCapacityFailureAssumePolicy"
+      PolicyName: "DigitoForceSQSCapacityFailureTestAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -63,8 +63,8 @@ Resources:
                 kms:ViaService: sqs.*.amazonaws.com
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoSQSCapacityFailureAssumeRole.Arn
+              - Fn::GetAtt: DigitoForceSQSCapacityFailureTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoSQSCapacityFailureAssumeRole
+        - Ref: DigitoForceSQSCapacityFailureTestAssumeRole

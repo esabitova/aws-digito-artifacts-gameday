@@ -1,4 +1,5 @@
 AutomationDocumentFinal.yml
+!resource_manager/executables/**/*.zip
 *.zip
 *.iml
 AwsDigitoSsmDocumentSamples.iml
@@ -28,3 +29,5 @@ deps.json
 exec-vars.env
 package/
 .gradle/
+aws_digito_artifacts_gameday/input/input-overrides-sop.json
+aws_digito_artifacts_gameday/input/input-overrides-test.json

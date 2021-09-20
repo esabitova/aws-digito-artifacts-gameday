@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Memcached Evictions",
+  "description": "Digito alarm for Amazon Elasticache for Memcached that triggers if the the number of non-expired items the cache evicted to allow space for new writes, exceeds specified threshold range",
+  "alarmName": "Digito-Elasticache-MemcachedEvictions_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-memcached_evictions:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

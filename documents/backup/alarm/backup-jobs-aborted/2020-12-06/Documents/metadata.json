@@ -1,0 +1,11 @@
+{
+  "displayName": "AWS Backup backup job was aborted",
+  "description": "Alarm by Digito for AWS Backup that indicates there has been an invocation by the user to cancel the scheduled backup job under the ${BackupVaultName} backup vault",
+  "alarmName": "Digito-BackupJobWasAborted_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "backup:alarm:backup-jobs-aborted:2020-12-06",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}

@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-ScaleService_2020-04-01
+Description: Role for Digito-ScaleECSServiceSOP_2020-04-01
 Outputs:
-  DigitoEcsScaleServiceAssumeRole:
-    Description: Digito-ScaleService_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoEcsScaleServiceAssumeRole.Arn
+  DigitoScaleECSServiceSOPAssumeRole:
+    Description: Digito-ScaleECSServiceSOP_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoScaleECSServiceSOPAssumeRole.Arn
 Resources:
-  DigitoEcsScaleServiceAssumeRole:
+  DigitoScaleECSServiceSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEcsScaleServiceAssumePolicy:
+  DigitoScaleECSServiceSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoEcsScaleServiceAssumePolicy
+      PolicyName: DigitoScaleECSServiceSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - ecs:UpdateService
               - ecs:RegisterTaskDefinition
       Roles:
-        - Ref: DigitoEcsScaleServiceAssumeRole
+        - Ref: DigitoScaleECSServiceSOPAssumeRole

@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM DynamodbRestoreFromBackup
+Description: Role for SSM Digito-RestoreDynamoDBTableFromBackupSOP_2020-04-01
 Outputs:
-  DigitoDynamodbRestoreFromBackupAssumeRole:
-    Description: DigitoDynamodbRestoreFromBackup Automation Assume Role ARN
-    Value: !GetAtt DigitoDynamodbRestoreFromBackupAssumeRole.Arn
+  DigitoRestoreDynamoDBTableFromBackupSOPAssumeRole:
+    Description: Digito-RestoreDynamoDBTableFromBackupSOP_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoRestoreDynamoDBTableFromBackupSOPAssumeRole.Arn
 Resources:
-  DigitoDynamodbRestoreFromBackupAssumeRole:
+  DigitoRestoreDynamoDBTableFromBackupSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDynamodbRestoreFromBackupAssumePolicy:
+  DigitoRestoreDynamoDBTableFromBackupSOPAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoDynamodbRestoreFromBackupAssumePolicy"
+      PolicyName: "DigitoRestoreDynamoDBTableFromBackupSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -85,8 +85,8 @@ Resources:
                 iam:PassedToService: application-autoscaling.amazonaws.com # needed to RegisterScalableTarget with RoleARN
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoDynamodbRestoreFromBackupAssumeRole.Arn
+              - Fn::GetAtt: DigitoRestoreDynamoDBTableFromBackupSOPAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoDynamodbRestoreFromBackupAssumeRole
+        - Ref: DigitoRestoreDynamoDBTableFromBackupSOPAssumeRole

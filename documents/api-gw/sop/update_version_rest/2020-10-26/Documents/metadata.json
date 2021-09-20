@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-RestApiGwUpdateVersionRest_2020-10-26",
+  "documentName": "Digito-UpdateRestApiGwVersionSOP_2020-10-26",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "The document accepts given deployment id and applies it on the given stage. If deployment id is not set,\nthe script tries to find previous deployment (by creation date) and applies it on the stage.",

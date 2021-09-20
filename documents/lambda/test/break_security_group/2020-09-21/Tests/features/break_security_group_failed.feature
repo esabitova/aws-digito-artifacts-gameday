@@ -1,26 +1,26 @@
 @lambda
-Feature: SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21
+Feature: SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21
 
-  Scenario: Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21 to test failure case
+  Scenario: Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21 to test failure case
     Given the cloud formation templates as integration test resources
-      | CfnTemplatePath     | ResourceType |
-      | resource_manager/cloud_formation_templates/LambdaTemplate.yml  | ON_DEMAND    |
+      | CfnTemplatePath                                                                                  | ResourceType |
+      | resource_manager/cloud_formation_templates/LambdaTemplate.yml                                    | ON_DEMAND    |
       | documents/lambda/test/break_security_group/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-LambdaBreakSecurityGroup_2020-09-21" SSM document
+    And published "Digito-BreakLambdaSecurityGroupTest_2020-09-21" SSM document
     And cache security group list for a lambda as "SecurityGroupList" "before" SSM automation execution
       | LambdaARN                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} |
-    When SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" executed
-      | LambdaARN                               |  LambdaErrorAlarmName                                     | AutomationAssumeRole                                                                  |
-      | {{cfn-output:LambdaTemplate>LambdaARN}} |  {{cfn-output:LambdaTemplate>ConcurrentExecutionsAlarm}}  | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaBreakSecurityGroupAssumeRole}}  |
-    And Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
+    When SSM automation document "Digito-BreakLambdaSecurityGroupTest_2020-09-21" executed
+      | LambdaARN                               |  LambdaErrorAlarmName                                     | AutomationAssumeRole                                                                      |
+      | {{cfn-output:LambdaTemplate>LambdaARN}} |  {{cfn-output:LambdaTemplate>ConcurrentExecutionsAlarm}}  | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakLambdaSecurityGroupTestAssumeRole}}  |
+    And Wait for the SSM automation document "Digito-BreakLambdaSecurityGroupTest_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
-    Then Wait for the SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "Success"
+    Then Wait for the SSM automation document "Digito-BreakLambdaSecurityGroupTest_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And SSM automation document "Digito-LambdaBreakSecurityGroup_2020-09-21" execution in status "TimedOut"
+    And SSM automation document "Digito-BreakLambdaSecurityGroupTest_2020-09-21" execution in status "TimedOut"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 

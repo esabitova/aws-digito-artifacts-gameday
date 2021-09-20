@@ -111,7 +111,7 @@ mainSteps:
   - name: CleanRestoreBucket
     action: aws:executeAutomation
     inputs:
-      DocumentName: Digito-CleanS3Bucket_2021-03-03
+      DocumentName: Digito-CleanS3BucketUtil_2021-03-03
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         S3BucketNameToClean: '{{S3BucketToRestoreName}}'

@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM LambdaChangeMemorySize
+Description: Role for SSM Digito-ChangeLambdaMemorySizeSOP_2020-10-26
 Outputs:
-  DigitoLambdaChangeMemorySizeAssumeRoleArn:
-    Description: DigitoLambdaChangeMemorySize Automation Assume Role ARN
+  DigitoChangeLambdaMemorySizeSOPAssumeRole:
+    Description: Digito-ChangeLambdaMemorySizeSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoLambdaChangeMemorySizeAssumeRole.Arn
+      Fn::GetAtt: DigitoChangeLambdaMemorySizeSOPAssumeRole.Arn
 Resources:
-  DigitoLambdaChangeMemorySizeAssumeRole:
+  DigitoChangeLambdaMemorySizeSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLambdaChangeMemorySizeAssumePolicy:
+  DigitoChangeLambdaMemorySizeSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLambdaChangeMemorySizeAssumePolicy
+      PolicyName: DigitoChangeLambdaMemorySizeSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - ssm:StartAutomationExecution
               - ssm:GetAutomationExecution
       Roles:
-        - Ref: DigitoLambdaChangeMemorySizeAssumeRole
+        - Ref: DigitoChangeLambdaMemorySizeSOPAssumeRole

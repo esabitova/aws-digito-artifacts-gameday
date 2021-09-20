@@ -92,11 +92,13 @@ class AlarmManager:
         self.logger.info(f"Destroying [{alarm_id}] alarm_stack {alarm_name}.")
         self.cfn_helper.delete_cf_stack(alarm_name)
 
-    def collect_alarms_without_data(self, data_period_seconds, input_params={}):
+    def collect_alarms_without_data(self, data_period_seconds, input_params=None):
         """
         Verifies that all alarm metrics have data on the requested dimension
         Returns list of alarms that do not report data
         """
+        if input_params is None:
+            input_params = {}
         alarms_without_data = {
             alarm: self._collect_alarms_without_data(alarm, data_period_seconds, input_params)
             for alarm in self.deployed_alarms.keys()

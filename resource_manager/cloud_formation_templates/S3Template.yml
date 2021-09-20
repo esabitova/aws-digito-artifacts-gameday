@@ -27,9 +27,6 @@ Outputs:
   S3BucketToRestoreName:
     Description: S3 bucket name to restore
     Value: !Ref S3BucketToRestore
-  Health4xxErrorsCountAlarmName:
-    Description: Alarm
-    Value: !Ref  S3Health4xxErrorsCountAlarm
   Health5xxErrorsCountAlarmName:
     Description: Alarm
     Value: !Ref  S3Health5xxErrorsCountAlarm
@@ -281,38 +278,6 @@ Resources:
               - ssm:SendAutomationSignal
       Roles:
         - Ref: RoleApproveCleanBucket
-  S3Health4xxErrorsCountAlarm:
-    Type: "AWS::CloudWatch::Alarm"
-    Properties:
-      AlarmDescription: "s3:alarm:health-4xxErrors_count:2020-04-01"
-      ActionsEnabled: false
-      MetricName: 4xxErrors
-      Namespace: AWS/S3
-      Statistic: Sum
-      Dimensions:
-        - Name: BucketName
-          Value: !Ref S3BucketToRestore
-        - Name: FilterId
-          Value: !Join
-            - "-"
-            - - "s3-restore-bucket-digito"
-              - !Select
-                - 0
-                - !Split
-                  - "-"
-                  - !Select
-                    - 2
-                    - !Split
-                      - "/"
-                      - !Ref "AWS::StackId"
-              - "metrics"
-      Period: 60
-      EvaluationPeriods: 1
-      DatapointsToAlarm: 1
-      Threshold: 0
-      ComparisonOperator: GreaterThanThreshold
-      TreatMissingData: notBreaching
-      Unit: Count
   S3Health5xxErrorsCountAlarm:
     Type: "AWS::CloudWatch::Alarm"
     Properties:

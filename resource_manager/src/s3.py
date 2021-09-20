@@ -23,6 +23,7 @@ class S3:
     def upload_file(self, file_name: str, content: dict):
         """
         Uploads Cloud Formation template file to S3 to be used for template stack deployment.
+        Create a bucket if it doesn't exist
         :return: True if uploaded, False otherwise
         """
         bucket_name = self.get_bucket_name()
@@ -37,11 +38,34 @@ class S3:
                               bucket_name, e.response)
             raise e
 
-    def upload_local_file(self, object_key: str, file_relative_path: str, bucket_name: str = None, metadata=None):
+    def upload_local_file_to_account_unique_bucket(self, object_key: str, file_relative_path: str,
+                                                   bucket_name_prefix: str, metadata=None):
         """
-        Uploads file to S3 from the local disk
-        :param bucket_name: the bucket name where the file will be uploaded. If it's empty then default s3 bucket
-        is used
+        Uploads file to S3 from the local disk.
+        Create a bucket if it doesn't exist.
+        :param bucket_name_prefix: the bucket name prefix where the file will be uploaded.
+          If it's empty then default s3 bucket is used
+          If it's not empty, the bucket with name {bucket_name_prefix}-{.aws_account_id}-{region_name} will be used
+        :param object_key: the name of future S3 object
+        :param file_relative_path: relative path to the file from the project's absolute path
+        :param metadata: dict of metadata to set for file
+        :return: Url, bucket name, object key, version id
+        """
+        bucket_name_postfix = f'-{self.aws_account_id}-{self.session.region_name}'
+        if not bucket_name_prefix.endswith(bucket_name_postfix):
+            bucket_name = f'{bucket_name_prefix}{bucket_name_postfix}'
+        else:
+            bucket_name = bucket_name_prefix
+
+        return self.upload_local_file(object_key, file_relative_path, bucket_name, metadata)
+
+    def upload_local_file(self, object_key: str, file_relative_path: str,
+                          bucket_name: str = None, metadata=None):
+        """
+        Uploads file to S3 from the local disk.
+        Create a bucket if it doesn't exist
+        :param bucket_name: the bucket name where the file will be uploaded.
+          If it's empty then default s3 bucket is used
         :param object_key: the name of future S3 object
         :param file_relative_path: relative path to the file from the project's absolute path
         :param metadata: dict of metadata to set for file
@@ -133,7 +157,7 @@ class S3:
                     bucket.objects.delete(ExpectedBucketOwner=self.aws_account_id)
                 self.client.delete_bucket(Bucket=bucket_name, ExpectedBucketOwner=self.aws_account_id)
         except ClientError as e:
-            self.logger.error('Failed to delete S3 bucket with name [%s]', bucket_name, e)
+            self.logger.error('Failed to delete S3 bucket with name [%s]', bucket_name)
             raise e
 
     def bucket_key_exist(self, bucket_name, key):

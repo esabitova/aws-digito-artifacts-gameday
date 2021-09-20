@@ -276,6 +276,7 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
 
     start = time.time()
     elapsed = 0
+    replicas: List[dict] = []
     while elapsed < wait_timeout_seconds:
         replicas = _get_global_table_all_regions(table_name=table_name)
         all_active = all([r['ReplicaStatus'] in GLOBAL_TABLE_ACTIVE_STATUSES
@@ -292,7 +293,8 @@ def wait_replication_status_in_all_regions(events: dict, context: dict) -> dict:
         elapsed = end - start
 
     raise TimeoutError(f'After {elapsed} not all replicas are Active. '
-                       'Regions to waits: {GLOBAL_TABLE_ACTIVE_STATUSES}')
+                       f'Regions to waits: {replicas_regions_to_wait}. '
+                       f'The latest response: {replicas}')
 
 
 def copy_contributor_insights_settings(events: dict, context: dict) -> dict:

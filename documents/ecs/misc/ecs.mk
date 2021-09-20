@@ -20,7 +20,7 @@ publish_ssm_docs:
 	deactivate
 
 # Execute Cucumber test(-s)
-test: test_linter
+test:
 	# Move to parent working directory
 	cd ../../../ && \
 	source venv/bin/activate && \

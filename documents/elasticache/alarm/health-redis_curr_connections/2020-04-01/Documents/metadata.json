@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis Client Connections",
+  "description": "Digito alarm for Elasticache that triggers if total number of client connections registered by the Redis engine, exceeds specified threshold limit",
+  "alarmName": "Digito-Elasticache-RedisCurrConnections_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-redis_curr_connections:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

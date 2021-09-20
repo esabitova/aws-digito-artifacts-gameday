@@ -1,0 +1,14 @@
+{
+  "displayName": "Amazon ECS Memory Reservation",
+  "description": "Alarm by Digito for Amazon ECS that indicates if the percentage of memory that is reserved by running tasks in the cluster, is exceeding specified threshold limit",
+  "alarmName": "Digito-HighMemoryReservation_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "ecs:alarm:recovery-memory_reservation:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+    "ecs:sop:scale_service:2020-04-01"
+  ]
+}

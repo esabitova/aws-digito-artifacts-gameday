@@ -1,0 +1,11 @@
+{
+  "displayName": "AWS Backup restore job has failed",
+  "description": "Alarm by Digito for AWS Backup that indicates a restore jobs that AWS Backup attempted to perform but could not complete under the specified backup vault",
+  "alarmName": "Digito-RestoreJobFailed_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "backup:alarm:restore-jobs-failed:2020-12-06",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}

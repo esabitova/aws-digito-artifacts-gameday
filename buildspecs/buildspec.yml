@@ -18,6 +18,7 @@ phases:
       - python -m cfnlint -a ${CODEBUILD_SRC_DIR}/cfn_lint/rules/alarm_templates -o ${CODEBUILD_SRC_DIR}/cfn_lint/specs/AlarmHasActionSpec.json -i E3006 E1029 E3012 E0000 E1019 -t documents/**/AlarmTemplate.yml
       - python -m cfnlint -a ${CODEBUILD_SRC_DIR}/cfn_lint/rules/resource_manager_templates -i W1020 -t resource_manager/cloud_formation_templates/*.yml resource_manager/cloud_formation_templates/**/*.yml
       - python -m pytest -m unit_test --junitxml=test-reports/junit_report.xml --timeout=50 --disable-socket --reruns 5
+      - python -m diff_cover.diff_cover_tool ${CODEBUILD_SRC_DIR}/documentation/coverage/coverage.xml --compare-branch=origin/master --fail-under=100
 reports:
   pytest_reports:
     files:

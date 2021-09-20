@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Swap Usage",
+  "description": "Digito alarm for Elasticache that triggers if the amount of swap usage on the host is exceeding the specified threshold limit",
+  "alarmName": "Digito-Elasticache-SwapUsage_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-swap_usage:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

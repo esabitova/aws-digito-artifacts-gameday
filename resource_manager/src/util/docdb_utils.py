@@ -60,8 +60,10 @@ def get_cluster_azs(session: Session, db_cluster_identifier: str):
     :return Availability Zones of cluster
     """
     docdb_client = client('docdb', session)
-    response = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
-    return response['DBClusters'][0]['AvailabilityZones']
+    db_clusters_resp = docdb_client.describe_db_clusters(DBClusterIdentifier=db_cluster_identifier)
+    subnet_group_name = db_clusters_resp['DBClusters'][0]['DBSubnetGroup']
+    db_clusters_resp = docdb_client.describe_db_subnet_groups(DBSubnetGroupName=subnet_group_name)
+    return [x['SubnetAvailabilityZone']['Name'] for x in db_clusters_resp['DBSubnetGroups'][0]['Subnets']]
 
 
 def delete_instance(session: Session, db_instance_identifier: str):

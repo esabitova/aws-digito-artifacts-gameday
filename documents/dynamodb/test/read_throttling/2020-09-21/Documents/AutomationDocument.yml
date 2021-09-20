@@ -1,0 +1,259 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test that the ReadThrottleEvents metric alarm setup detects and alerts when table becomes unavailable"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  DynamoDBTableName:
+    type: String
+    description: (Required) The DynamoDB Table Name with PROVISIONED billing mode.
+  ReadThrottleAlarmName:
+    type: String
+    description: (Required) Alarm which should be green after test.
+  ReadCapacityUnitsLimit:
+    type: Integer
+    description: (Required) ReadCapacityUnits value that should be lower than actual consumed value
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  IsRollback:
+    type: String
+    description: (Optional) Run rollback step of the given previous execution (parameter PreviousExecutionId). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetPreviousExecutionInputs
+          Variable: "{{ IsRollback }}"
+          StringEquals: 'true'
+      Default: ValidateReadCapacityUnitsLimit
+
+  - name: GetPreviousExecutionInputs
+    action: aws:executeScript
+    outputs:
+      - Name: ReadCapacityUnitsLimit
+        Selector: $.Payload.ReadCapacityUnitsLimit[0]
+        Type: String
+      - Name: DynamoDBTableName
+        Selector: $.Payload.DynamoDBTableName[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: PrepareRollbackOfPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: BackupReadCapacityUnits
+        Selector: $.Payload.BackupReadCapacityUnits[0]
+        Type: String
+      - Name: BackupWriteCapacityUnits
+        Selector: $.Payload.BackupWriteCapacityUnits[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'BackupProvisionedThroughput'
+        ResponseField: 'BackupReadCapacityUnits,BackupWriteCapacityUnits'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: ConvertParamTypes
+    action: aws:executeScript
+    outputs:
+      - Name: BackupReadCapacityUnits
+        Selector: $.Payload.BackupReadCapacityUnits
+        Type: Integer
+      - Name: BackupWriteCapacityUnits
+        Selector: $.Payload.BackupWriteCapacityUnits
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: convert_param_types
+      InputPayload:
+        Parameters:
+          - Name: BackupReadCapacityUnits
+            Value: '{{ PrepareRollbackOfPreviousExecution.BackupReadCapacityUnits }}'
+            OutputType: Integer
+          - Name: BackupWriteCapacityUnits
+            Value: '{{ PrepareRollbackOfPreviousExecution.BackupWriteCapacityUnits }}'
+            OutputType: Integer
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.convert_param_types
+
+  - name: AssertDynamoDBTableName
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: RollbackPreviousExecution
+          Variable: "{{ GetPreviousExecutionInputs.DynamoDBTableName }}"
+          StringEquals: '{{ DynamoDBTableName }}'
+    isEnd: true
+
+  - name: RollbackPreviousExecution
+    action: aws:executeAwsApi
+    inputs:
+      Service: dynamodb
+      Api: UpdateTable
+      TableName: '{{ DynamoDBTableName }}'
+      ProvisionedThroughput:
+        ReadCapacityUnits: '{{ ConvertParamTypes.BackupReadCapacityUnits }}'
+        WriteCapacityUnits: '{{ ConvertParamTypes.BackupWriteCapacityUnits }}'
+  
+  - name: WaitForActiveStatusAfterRollbackPrevious
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: '{{ DynamoDBTableName }}'
+      PropertySelector: '$.Table.TableStatus'
+      DesiredValues: [ 'ACTIVE' ]
+    isEnd: true
+
+  - name: ValidateReadCapacityUnitsLimit
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: AssertAlarmToBeGreenBeforeTest
+          Variable: '{{ ReadCapacityUnitsLimit }}'
+          NumericGreaterOrEquals: 1
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ReadThrottleAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+
+  - name: BackupProvisionedThroughput
+    action: aws:executeAwsApi
+    outputs:
+      - Name: BackupReadCapacityUnits
+        Selector: $.Table.ProvisionedThroughput.ReadCapacityUnits
+        Type: Integer
+      - Name: BackupWriteCapacityUnits
+        Selector: $.Table.ProvisionedThroughput.WriteCapacityUnits
+        Type: Integer
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: '{{ DynamoDBTableName }}'
+
+  - name: UpdateTableRCU
+    action: aws:executeAwsApi
+    inputs:
+      Service: dynamodb
+      Api: UpdateTable
+      TableName: '{{ DynamoDBTableName }}'
+      ProvisionedThroughput:
+        ReadCapacityUnits: '{{ ReadCapacityUnitsLimit }}'
+        WriteCapacityUnits: '{{ BackupProvisionedThroughput.BackupWriteCapacityUnits }}'
+
+  - name: WaitForActiveStatusAfterUpdateTableRCU
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: '{{ DynamoDBTableName }}'
+      PropertySelector: '$.Table.TableStatus'
+      DesiredValues: [ 'ACTIVE' ]
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    timeoutSeconds: 1200
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ReadThrottleAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    action: aws:executeAwsApi
+    maxAttempts: 5
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: dynamodb
+      Api: UpdateTable
+      TableName: '{{ DynamoDBTableName }}'
+      ProvisionedThroughput:
+        ReadCapacityUnits: '{{ BackupProvisionedThroughput.BackupReadCapacityUnits }}'
+        WriteCapacityUnits: '{{ BackupProvisionedThroughput.BackupWriteCapacityUnits }}'
+
+  - name: WaitForActiveStatusAfterRollbackToPreviousTableRCU
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: dynamodb
+      Api: DescribeTable
+      TableName: '{{ DynamoDBTableName }}'
+      PropertySelector: '$.Table.TableStatus'
+      DesiredValues: [ 'ACTIVE' ]
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    timeoutSeconds: 1200
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ReadThrottleAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.6
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

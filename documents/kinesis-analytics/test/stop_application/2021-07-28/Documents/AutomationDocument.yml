@@ -1,0 +1,248 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Test system if application will be suddenly stopped"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  KinesisAnalyticsFlinkApplicationId:
+    type: String
+    description: (Required) KinesisAnalyticsApplicationPhysicalResourceId
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  DowntimeAlarmName:
+    type: String
+    description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    timeoutSeconds: 120
+    outputs:
+      - Name: KinesisAnalyticsFlinkApplicationId
+        Selector: $.Payload.KinesisAnalyticsFlinkApplicationId[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertInputsFromPreviousExecution
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: ObtainKinesisDataAnalyticsApplicationStatus
+          Variable: "{{ GetInputsFromPreviousExecution.KinesisAnalyticsFlinkApplicationId }}"
+          StringEquals: '{{ KinesisAnalyticsFlinkApplicationId }}'
+    isEnd: true
+
+  - name: ObtainKinesisDataAnalyticsApplicationStatus
+    description: get Kinesis Data Analytics Application status
+    action: aws:executeAwsApi
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      IncludeAdditionalDetails: True
+    outputs:  
+    - Name: KinesisDataAnalyticsApplicationStatus
+      Selector: "$.ApplicationDetail.ApplicationStatus"
+      Type: String      
+
+  - name: VerifyKinesisDataAnalyticsStatus
+    action: aws:branch
+    description: >-
+                Implement logic depending upon Kinesis Data Analytics status:                
+                - "STARTING"  - await transit to "RUNNING". In such a case we do not restore from snapshot,
+                                and skip step "RollbackCurrentExecution", because "STARTING" could only 
+                                happen on the former ssm document execution step "RollbackCurrentExecution",  
+                                which already implies start from latest snapshot.
+                - "RUNNING"   - finish test execution - everything is OK. Test finishes after the status 
+                                is confirmed on the step "AwaitKinesisDataAnalyticsApplicationGetRunning".
+                - "READY "    - start and restore from latest snapshot (normal execution of step 
+                                "RollbackOfPreviousExecution")
+                - any other   - fail because this implies some coming out bug problem. For brevity we fail,
+                                trying to start application.  If trying to start application in any status, 
+                                but "READY", StartApplication api fails with "ResourceInUseException" error
+                                (i.e. abnormal execution of step "RollbackOfPreviousExecution").
+    inputs:
+      Choices:
+        - NextStep: AwaitKinesisDataAnalyticsApplicationGetRunning
+          Variable: "{{ObtainKinesisDataAnalyticsApplicationStatus.KinesisDataAnalyticsApplicationStatus}}"
+          StringEquals: 'STARTING'
+        - NextStep: AwaitKinesisDataAnalyticsApplicationGetRunning
+          Variable: "{{ObtainKinesisDataAnalyticsApplicationStatus.KinesisDataAnalyticsApplicationStatus}}"
+          StringEquals: 'RUNNING'
+      Default: RollbackOfPreviousExecution         
+    
+  - name: RollbackOfPreviousExecution
+    action: aws:executeAwsApi
+    description: >- 
+                Start Kinesis Data Analytics Application from latest snapshot. 
+                Fail, if application is not in "READY" status.
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: StartApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'      
+      RunConfiguration: {"FlinkRunConfiguration": 
+                          {"AllowNonRestoredState": True},
+                        "ApplicationRestoreConfiguration":
+                         {"ApplicationRestoreType":"RESTORE_FROM_LATEST_SNAPSHOT"}}
+
+  - name: AwaitKinesisDataAnalyticsApplicationGetRunning
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues: ["RUNNING"]
+    isEnd: true
+
+  - name: AssertAlarmToBeGreenBeforeTest
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 90
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - '{{DowntimeAlarmName}}'
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: ["OK"]
+
+  - name: InjectFailure
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    action: aws:executeAwsApi
+    description: Stop Kinesis Data Analytics application.
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: StopApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+
+  - name: AwaitApplicationHasStopped
+    action: aws:waitForAwsResourceProperty
+    description: >-
+                Wait for the provided timeout, that Kinesis Data Application 
+                status has changed to "READY" after stop.
+    maxAttempts: 1
+    timeoutSeconds: 1200    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "READY"
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    onFailure: step:RollbackCurrentExecution
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{DowntimeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
+  - name: RollbackCurrentExecution
+    maxAttempts: 1
+    onCancel: step:TriggerRollback
+    action: aws:executeAwsApi
+    description: >-
+                start Kinesis Data Analytics Application after stop 
+                from (automatically made on stop) latest snapshot
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: StartApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      RunConfiguration: {"ApplicationRestoreConfiguration":
+                         {"ApplicationRestoreType":"RESTORE_FROM_LATEST_SNAPSHOT"}}
+
+
+  - name: AwaitApplicationIsRunning
+    action: aws:waitForAwsResourceProperty
+    description: Wait for the provided timeout, that Kinesis Data Application status is "RUNNING".
+    maxAttempts: 1
+    timeoutSeconds: 1200    
+    inputs:
+      Service: kinesisanalyticsv2
+      Api: DescribeApplication
+      ApplicationName: '{{ KinesisAnalyticsFlinkApplicationId }}'
+      PropertySelector: "$.ApplicationDetail.ApplicationStatus"
+      DesiredValues:
+        - "RUNNING"
+
+  - name: AssertAlarmToBeGreen
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 600
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{DowntimeAlarmName}}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "OK" ]
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports  
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

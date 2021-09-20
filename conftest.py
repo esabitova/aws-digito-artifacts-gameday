@@ -10,7 +10,9 @@ from datetime import datetime
 from typing import List
 
 import boto3
+import jsonpath_ng
 import pytest
+from botocore.exceptions import ClientError
 from pytest import ExitCode
 from pytest_bdd import (
     when,
@@ -27,6 +29,8 @@ from resource_manager.src.constants import BgColors
 from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
+from resource_manager.src.util import common_test_utils
+from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
 from resource_manager.src.util.cw_util import get_metric_alarm_state
@@ -107,11 +111,11 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_sessionstart(session):
-    '''
+    """
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     For this case we want to create test DDB tables before running any test.
     :param session: Tests session
-    '''
+    """
     # Execute when running integration tests
     if session.config.option.run_integration_tests:
         # Generating testing session id in order to tie test resources to specific session, so that when
@@ -143,12 +147,12 @@ def pytest_sessionstart(session):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    '''
+    """
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     :param session: The pytest session object.
-    :param exitstatus(int): The status which pytest will return to the system.
+    :param exitstatus: (int) The status which pytest will return to the system.
     :return:
-    '''
+    """
     # Execute only when running integration tests and disabled skip session level hooks
     # In case we do execute tests not in single session, for example in different machines, we don't want
     # to perform resource fix/destroy since one session can try to modify resource state which is used
@@ -183,11 +187,11 @@ def target_service(request):
 
 @pytest.fixture(scope='session')
 def boto3_session(request):
-    '''
+    """
     Creates session for given profile name. More about how to configure AWS profile:
     https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
     :param request The pytest request object
-    '''
+    """
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
         aws_role_arn = request.session.config.option.aws_role_arn
@@ -280,11 +284,11 @@ def ssm_document(request, boto3_session, ssm_test_cache, function_logger):
 
 @pytest.fixture(scope='function')
 def ssm_test_cache():
-    '''
+    """
     Cache for test. There may be cases when state between test steps can be changed,
     but we want to remember it to be able to verify how state was changed after.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    '''
+    """
     cache = dict()
     return cache
 
@@ -588,7 +592,8 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
 @given(parse('cache constant value {value} as "{cache_property}" '
              '"{step_key}" SSM automation execution'))
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
-    param_value = parse_param_value(value, {'cache': ssm_test_cache})
+    param_value = parse_param_value(value, {'cache': ssm_test_cache,
+                                            'cfn-output': cfn_output_params})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
 
 
@@ -602,6 +607,8 @@ def cache_rollback_execution_id(ssm_document, ssm_test_cache, input_parameters):
 
 
 @when(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
+            '\n{input_parameters}'))
+@then(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
             '\n{input_parameters}'))
 def cache_execution_output_value(ssm_test_cache, boto3_session, target_property, cache_property, input_parameters):
     execution_id = parse_param_values_from_table(input_parameters, {
@@ -707,6 +714,7 @@ def verify_alarm_metrics_exist(wait_sec, delay_sec, alarm_manager):
 def verify_alarm_metrics_impl(wait_sec, delay_sec, alarm_manager, input_params):
     elapsed = 0
     iteration = 1
+    alarms_missing_data = {}
     while elapsed < wait_sec:
         start = time.time()
         alarms_missing_data = alarm_manager.collect_alarms_without_data(wait_sec, input_params)
@@ -775,10 +783,10 @@ def cache_ssm_step_interval(boto3_session, input_params, cfn_output_params, ssm_
                                                                                  'EndTime': exec_end}}}
 
 
-@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to "{s3_bucket_name_ref}" S3 bucket '
-             'and save locations to "{cache_property}" cache property'))
-def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref, s3_bucket_name_ref,
-                      cache_property):
+@given(parse('upload file "{file_relative_path_ref}" as "{s3_key_ref}" S3 key to S3 bucket with prefix '
+             '"{s3_bucket_name_prefix_ref}" and save locations to "{cache_property}" cache property'))
+def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path_ref, s3_key_ref,
+                      s3_bucket_name_prefix_ref, cache_property):
     """
     Upload file from the disk to S3 and save its locations.
     Does it only if the same file is not present in S3
@@ -787,33 +795,40 @@ def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path
     :param ssm_test_cache: The test cache
     :param file_relative_path_ref: relational path to the file
     :param s3_key_ref: future s3 key where the file will be saved
-    :param s3_bucket_name_ref: s3 bucket name where the file will be saved
+    :param s3_bucket_name_prefix_ref: s3 bucket name where the file will be saved
     :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
     :return:
     """
     file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
     s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
-    s3_bucket_name = parse_param_value(s3_bucket_name_ref, {'cache': ssm_test_cache})
+    s3_bucket_name_prefix = parse_param_value(s3_bucket_name_prefix_ref, {'cache': ssm_test_cache})
     with open(file_rel_path, "rb") as file_to_check:
-        # read contents of the file
         data = file_to_check.read()
-        # pipe contents of the file through
         md5_hash = hashlib.md5(data).hexdigest()
     aws_account_id = request.session.config.option.aws_account_id
     s3_helper = S3(boto3_session, aws_account_id)
-    response = s3_helper.retrieve_object_metadata(s3_bucket_name, s3_key)
+    try:
+        response = s3_helper.retrieve_object_metadata(s3_bucket_name_prefix, s3_key)
+    except ClientError as err:
+        if err.response['Error']['Code'] == "403" or err.response['Error']['Code'] == '404':
+            response = None
+        else:
+            raise err
+
     if response and "md5hash" in response['Object']['Metadata'] \
             and response['Object']['Metadata']['md5hash'] == md5_hash:
-        logging.info(f'File {s3_key} already exists in bucket {s3_bucket_name} and has exactly the same hash')
+        logging.info(f'File {s3_key} already exists in bucket {s3_bucket_name_prefix} and has exactly the same hash')
         uri = response['Uri']
         version_id = response['Object']['VersionId']
     else:
-        uri, s3_bucket_name, s3_key, version_id = s3_helper.upload_local_file(s3_key, file_rel_path, s3_bucket_name,
-                                                                              metadata={'md5hash': md5_hash})
+        uri, s3_bucket_name_prefix, s3_key, version_id = s3_helper.upload_local_file_to_account_unique_bucket(
+            s3_key, file_rel_path, s3_bucket_name_prefix,
+            metadata={'md5hash': md5_hash}
+        )
     ssm_test_cache[cache_property] = {'URI': uri, 'S3Key': s3_key,
-                                      'S3Bucket': s3_bucket_name, 'S3ObjectVersion': version_id}
+                                      'S3Bucket': s3_bucket_name_prefix, 'S3ObjectVersion': version_id}
     logging.debug(f'ssm_test_cache was updated by ssm_test_cache[{cache_property}] '
-                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {s3_bucket_name}, S3ObjectVersion: {version_id}. '
+                  f'= URI: {uri}, S3Key: {s3_key}, S3Bucket: {s3_bucket_name_prefix}, S3ObjectVersion: {version_id}. '
                   f'ssm_test_cache now is {ssm_test_cache}')
 
 
@@ -830,6 +845,8 @@ def assert_steps_are_successfully_executed_in_order(ssm_document, ssm_test_cache
 
 @given(parse('calculate "{first_value}" "{operator}" "{second_value}" '
              'and cache result as "{cache_property}" "{step_key}" SSM automation execution'))
+@then(parse('calculate "{first_value}" "{operator}" "{second_value}" '
+            'and cache result as "{cache_property}" "{step_key}" SSM automation execution'))
 def calculate_math(ssm_test_cache, first_value, operator, second_value, cache_property, step_key):
     first_value_parsed = parse_param_value(first_value, {'cache': ssm_test_cache})
     second_value_parsed = parse_param_value(second_value, {'cache': ssm_test_cache})
@@ -858,3 +875,43 @@ def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
 
     logging.info(f'Sending Resume signal to execution {execution_id} for step {ssm_step_name}')
     ssm_document.send_resume_signal(execution_id, ssm_step_name)
+
+
+@when(parse('stop FIS experiment\n{input_parameters}'))
+def stop_fis_experiment(boto3_session, resource_pool, ssm_test_cache, input_parameters):
+    experiment_id = common_test_utils.extract_param_value(input_parameters, 'ExperimentId',
+                                                          resource_pool, ssm_test_cache)
+    fis_client = client('fis', boto3_session)
+    fis_client.stop_experiment(
+        id=experiment_id
+    )
+
+
+@given(parse('cache values to "{cache_key}"\n{input_parameters}'))
+@when(parse('cache values to "{cache_key}"\n{input_parameters}'))
+def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
+                 cfn_installed_alarms):
+    """
+    Cache values from cfn output, alarms, input parameter table, ssm test cache
+    """
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
+    for param_name, value in params.items():
+        ssm_test_cache[cache_key][param_name] = value
+
+
+@given(parse('apply "{json_path}" JSONPath '
+             'and cache value as "{cache_property}" to "{cache_key}"\n{input_parameters}'))
+@when(parse('apply "{json_path}" JSONPath '
+            'and cache value as "{cache_property}" to "{cache_key}"\n{input_parameters}'))
+def apply_json_path_and_cache_value(cfn_output_params, ssm_test_cache, cfn_installed_alarms, json_path,
+                                    cache_property, cache_key, input_parameters):
+    """
+    Apply json_path to the Input parameter as the reference to cfn output, alarms, input parameter table,
+    ssm test cache and cache value
+    """
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
+    input_value = params['Input']
+    result = jsonpath_ng.parse(json_path).find(input_value)[0].value
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, result)

@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-RebootDbInstance_2020-09-21
+Description: Role for Digito-RebootDocumentDBInstanceTest_2020-09-21
 Outputs:
-  DigitoDocdbRebootDbInstanceAssumeRole:
-    Description: Digito-RebootDbInstance_2020-09-21 Automation Assume Role ARN
-    Value: !GetAtt DigitoDocdbRebootDbInstanceAssumeRole.Arn
+  DigitoRebootDocumentDBInstanceTestAssumeRole:
+    Description: Digito-RebootDocumentDBInstanceTest_2020-09-21 Automation Assume Role ARN
+    Value: !GetAtt DigitoRebootDocumentDBInstanceTestAssumeRole.Arn
 Resources:
-  DigitoDocdbRebootDbInstanceAssumeRole:
+  DigitoRebootDocumentDBInstanceTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDocdbRebootDbInstanceAssumePolicy:
+  DigitoRebootDocumentDBInstanceTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoDocdbRebootDbInstanceAssumePolicy
+      PolicyName: DigitoRebootDocumentDBInstanceTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - rds:DescribeDBInstances
               - kms:DescribeKey
       Roles:
-        - Ref: DigitoDocdbRebootDbInstanceAssumeRole
+        - Ref: DigitoRebootDocumentDBInstanceTestAssumeRole

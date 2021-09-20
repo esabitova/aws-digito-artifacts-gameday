@@ -18,12 +18,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for creating a new instance in a specified AZ/Region
 Outputs:
-  DigitoCreateNewInstanceAssumeRole:
-    Description: DigitoCreateNewInstance Automation Assume Role ARN
+  DigitoCreateNewDocumentDBInstanceSOPAssumeRole:
+    Description: Digito-CreateNewDocumentDBInstanceSOP_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoCreateNewInstanceAssumeRole.Arn
+      Fn::GetAtt: DigitoCreateNewDocumentDBInstanceSOPAssumeRole.Arn
 Resources:
-  DigitoCreateNewInstanceAssumeRole:
+  DigitoCreateNewDocumentDBInstanceSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoCreateNewInstanceAssumePolicy:
+  DigitoCreateNewDocumentDBInstanceSOPAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoCreateNewInstanceAssumePolicy"
+      PolicyName: "DigitoCreateNewDocumentDBInstanceSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -48,5 +48,6 @@ Resources:
               - 'rds:CreateDBInstance'
               - 'rds:DescribeDBClusters'
               - 'rds:DescribeDBInstances'
+              - 'rds:DescribeDBSubnetGroups'
       Roles:
-        - Ref: DigitoCreateNewInstanceAssumeRole
+        - Ref: DigitoCreateNewDocumentDBInstanceSOPAssumeRole

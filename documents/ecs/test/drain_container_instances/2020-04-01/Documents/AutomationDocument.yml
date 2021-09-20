@@ -25,18 +25,135 @@ parameters:
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
-  SyntheticAlarmName:
+  ServiceHealthAlarmName:
     type: String
     description: (Required) Alarm which should be green after test.
   DrainagePercentage:
-    type: Integer
+    type: String
     description: (Optional) The percentage of instances to be drained. Can be any value between 1 and 100
-    default: 100
+    default: "50"
   ExperimentDuration:
-    type: Duration
-    description: (Optional) The duration of experiment. 
+    type: String
+    description: (Optional) The duration of experiment.
     default: PT10M
+  IsRollback:
+    type: String
+    description: >-
+      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+    default: 'false'
+  PreviousExecutionId:
+    type: String
+    description: >-
+      (Optional) Previous execution id for which resources need to be cleaned up.
+    default: ''
+outputs:
+  - "CreateTemplate.FISExperimentTemplateId"
 mainSteps:
+  - name: CheckIsRollback
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetInputsFromPreviousExecution
+          Variable: "{{IsRollback}}"
+          StringEquals: 'true'
+      Default: AssertAlarmToBeGreenBeforeTest
+
+  - name: GetInputsFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: ClusterName
+        Selector: $.Payload.ClusterName[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_inputs_from_ssm_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
+
+  - name: AssertClusterName
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: GetExperimentTemplateIdFromPreviousExecution
+          Variable: "{{ GetInputsFromPreviousExecution.ClusterName }}"
+          StringEquals: '{{ ClusterName }}'
+    isEnd: true
+
+  - name: GetExperimentTemplateIdFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: FISExperimentTemplateId
+        Selector: $.Payload.FISExperimentTemplateId[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'CreateTemplate'
+        ResponseField: 'FISExperimentTemplateId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: GetExperimentIdFromPreviousExecution
+    action: aws:executeScript
+    outputs:
+      - Name: ExperimentId
+        Selector: $.Payload.ExperimentId[0]
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_output_from_ssm_step_execution
+      InputPayload:
+        ExecutionId: '{{ PreviousExecutionId }}'
+        StepName: 'StartExperiment'
+        ResponseField: 'ExperimentId'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
+
+  - name: AssertExperimentIdExists
+    action: aws:branch
+    inputs:
+      Choices:
+        - NextStep: DeleteTemplateOnRollback
+          Variable: "{{ GetExperimentIdFromPreviousExecution.ExperimentId }}"
+          StringEquals: ''
+      Default: StopExperimentForPreviousExecution
+
+  - name: StopExperimentForPreviousExecution
+    action: aws:executeAwsApi
+    inputs:
+      Service: fis
+      Api: StopExperiment
+      id: "{{GetExperimentIdFromPreviousExecution.ExperimentId}}"
+
+  - name: WaitExperimentOnRollback
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 1200
+    inputs:
+      Service: fis
+      Api: GetExperiment
+      id: "{{GetExperimentIdFromPreviousExecution.ExperimentId}}"
+      PropertySelector: "$.experiment.state.status"
+      DesiredValues: [ "completed", "stopped", "failed" ]
+
+  - name: DeleteTemplateOnRollback
+    action: aws:executeAwsApi
+    inputs:
+      Service: fis
+      Api: DeleteExperimentTemplate
+      id: "{{GetExperimentTemplateIdFromPreviousExecution.FISExperimentTemplateId}}"
+    isEnd: true
+
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
@@ -45,79 +162,139 @@ mainSteps:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ServiceHealthAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
 
   - name: CreateTemplate
-    # Create template
-    # generate clientToken  (e.g guid)
-    #   Call [boto3.create_experiment_template]
-    #     Parameters:
-            # clientToken=CreateTemplate.clientToken,
-            # description='Drain ECS containers experiment',
-            # stopConditions=[
-            #     {
-            #         'source': 'none'
-            #     },
-            # ],
-            # targets={
-            #     'ecs_clusters': {
-            #         'resourceType': 'aws:ecs:cluster',
-            #         'resourceArns': [
-            #             arn:aws:ecs:[globals.REGION]:[globals.ACCOUNT_ID]:cluster/[params.ClusterName],
-            #         ],
-            #         'selectionMode': 'ALL'
-            #     }
-            # },
-            # actions={
-            #     'string': {
-            #         'actionId': 'aws:ecs:drain-container-instances',
-            #         'parameters': {
-            #             'drainagePercentage': '[params.DrainagePercentage]',
-            #             'duration': '[params.ExperimentDuration]'
-            #         },
-            #         'targets': {
-            #             'Instances': 'ecs_clusters'
-            #         }
-            #     }
-            # },
-            # roleArn='string',
-            # tags={
-            #     'string': 'string'
-            # } 
-  # the following API calls should be done through executeScript since it's has limitation on duration 10 minutes. The experiment can last much longer.
-  - name: StartExperiment
     action: aws:executeAwsApi
     onFailure: Abort
     inputs:
       Service: fis
-      Api: StartExperiment
-      clientToken: "{{CreateTemplate.clientToken}}"
-      experimentTemplateId: "{{FISExperimentTemplateId}}"
+      Api: CreateExperimentTemplate
+      clientToken: "{{ global:DATE_TIME }}"
+      description: 'Drain ECS containers experiment'
+      tags:
+        Digito: "ecs:test:drain_container_instances"
+      roleArn: "{{AutomationAssumeRole}}"
+      stopConditions:
+        - source: 'none'
+      targets:
+        ecs_clusters:
+          resourceType: aws:ecs:cluster
+          resourceArns:
+            - "arn:aws:ecs:{{global:REGION}}:{{global:ACCOUNT_ID}}:cluster/{{ClusterName}}"
+          selectionMode: ALL
+      actions:
+        test:
+          actionId: aws:ecs:drain-container-instances
+          parameters:
+            drainagePercentage: "{{DrainagePercentage}}"
+            duration: "{{ExperimentDuration}}"
+          targets:
+            Clusters: "ecs_clusters"
     outputs:
-      - Name: BackupDbClusterInstancesCountValue
+      - Name: FISExperimentTemplateId
+        Selector: $.experimentTemplate.id
+        Type: String
+
+  - name: SleepForOneSecond
+    description: Sleep to allow "global:DATE_TIME" variable to have a new value to make clientToken's unique
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+    action: aws:sleep
+    inputs:
+      Duration: PT1S
+
+  - name: StartExperiment
+    action: aws:executeAwsApi
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: fis
+      Api: StartExperiment
+      clientToken: "{{ global:DATE_TIME }}"
+      experimentTemplateId: "{{CreateTemplate.FISExperimentTemplateId}}"
+      tags:
+        Digito: "ecs:test:drain_container_instances"
+    outputs:
+      - Name: ExperimentId
         Selector: $.experiment.id
         Type: String
+
+  - name: AssertAlarmToBeRed
+    action: aws:waitForAwsResourceProperty
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: cloudwatch
+      Api: DescribeAlarms
+      AlarmNames:
+        - "{{ ServiceHealthAlarmName }}"
+      PropertySelector: "$.MetricAlarms[0].StateValue"
+      DesiredValues: [ "ALARM" ]
+
   - name: WaitExperiment
     action: aws:waitForAwsResourceProperty
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
     maxAttempts: 1
-    timeoutSeconds: 600
+    timeoutSeconds: 1200
     inputs:
       Service: fis
       Api: GetExperiment
-      Id: "{{StartExperiment.ExperimentId}}"
+      id: "{{StartExperiment.ExperimentId}}"
       PropertySelector: "$.experiment.state.status"
       DesiredValues: [ "completed", "stopped", "failed" ]
 
+  - name: AssertExperimentCompleted
+    action: aws:assertAwsResourceProperty
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
+    inputs:
+      Service: fis
+      Api: GetExperiment
+      id: "{{StartExperiment.ExperimentId}}"
+      PropertySelector: "$.experiment.state.status"
+      DesiredValues: [ "completed" ]
+
   - name: AssertAlarmToBeGreen
     action: aws:waitForAwsResourceProperty
+    onFailure: step:TriggerRollback
+    onCancel: step:TriggerRollback
     maxAttempts: 1
     timeoutSeconds: 900
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
       AlarmNames:
-        - "{{SyntheticAlarmName}}"
+        - "{{ServiceHealthAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "OK" ]
+
+  - name: DeleteTemplate
+    action: aws:executeAwsApi
+    onFailure: Abort
+    inputs:
+      Service: fis
+      Api: DeleteExperimentTemplate
+      id: "{{CreateTemplate.FISExperimentTemplateId}}"
+    isEnd: true
+
+  - name: TriggerRollback
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: RollbackExecutionId
+        Selector: $.Payload.RollbackExecutionId
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_rollback_execution
+      InputPayload:
+        ExecutionId: '{{automation:EXECUTION_ID}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::ssm_execution_util.imports
+
+        SCRIPT_PLACEHOLDER::ssm_execution_util.start_rollback_execution
+    isEnd: true

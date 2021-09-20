@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM LambdaSwitchLambdaVersionInAlias
+Description: Role for SSM Digito-SwitchLambdaVersionInAliasSOP_2020-10-26
 Outputs:
-  DigitoLambdaSwitchLambdaVersionInAliasAssumeRoleArn:
-    Description: DigitoLambdaSwitchLambdaVersionInAlias Automation Assume Role ARN
+  DigitoSwitchLambdaVersionInAliasSOPAssumeRole:
+    Description: Digito-SwitchLambdaVersionInAliasSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoLambdaSwitchLambdaVersionInAliasAssumeRole.Arn
+      Fn::GetAtt: DigitoSwitchLambdaVersionInAliasSOPAssumeRole.Arn
 Resources:
-  DigitoLambdaSwitchLambdaVersionInAliasAssumeRole:
+  DigitoSwitchLambdaVersionInAliasSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLambdaSwitchLambdaVersionInAliasAssumePolicy:
+  DigitoSwitchLambdaVersionInAliasSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLambdaSwitchLambdaVersionInAliasAssumePolicy
+      PolicyName: DigitoSwitchLambdaVersionInAliasSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -47,4 +47,4 @@ Resources:
             Action:
               - lambda:UpdateAlias
       Roles:
-        - Ref: DigitoLambdaSwitchLambdaVersionInAliasAssumeRole
+        - Ref: DigitoSwitchLambdaVersionInAliasSOPAssumeRole

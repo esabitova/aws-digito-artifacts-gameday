@@ -125,7 +125,10 @@ class SsmDocument:
             value = param_utils.parse_param_value(param_val_ref, {'cache': cache,
                                                                   'cfn-output': cf_output,
                                                                   'alarm': cfn_installed_alarms})
-            parameters[param] = [str(value)]
+            if isinstance(value, list):
+                parameters[param] = value
+            else:
+                parameters[param] = [str(value)]
         return parameters
 
     def get_step_output(self, execution_id, step_name, output_key):

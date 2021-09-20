@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM AccidentalDelete
+Description: Role for SSM Digito-SimulateS3ObjectsAccidentalDeleteTest_2020-04-01
 Outputs:
-  DigitoAccidentalDeleteAssumeRole:
-    Description: DigitoAccidentalDelete Automation Assume Role ARN
+  DigitoSimulateS3ObjectsAccidentalDeleteTestAssumeRole:
+    Description: Digito-SimulateS3ObjectsAccidentalDeleteTest_2020-04-01 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoAccidentalDeleteAssumeRole.Arn
+      Fn::GetAtt: DigitoSimulateS3ObjectsAccidentalDeleteTestAssumeRole.Arn
 Resources:
-  DigitoAccidentalDeleteAssumeRole:
+  DigitoSimulateS3ObjectsAccidentalDeleteTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoAccidentalDeleteAssumePolicy:
+  DigitoSimulateS3ObjectsAccidentalDeleteTestAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoAccidentalDeleteAssumePolicy
+      PolicyName: DigitoSimulateS3ObjectsAccidentalDeleteTestAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -70,8 +70,8 @@ Resources:
                 kms:ViaService: sns.*.amazonaws.com
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoAccidentalDeleteAssumeRole.Arn
+              - Fn::GetAtt: DigitoSimulateS3ObjectsAccidentalDeleteTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoAccidentalDeleteAssumeRole
+        - Ref: DigitoSimulateS3ObjectsAccidentalDeleteTestAssumeRole

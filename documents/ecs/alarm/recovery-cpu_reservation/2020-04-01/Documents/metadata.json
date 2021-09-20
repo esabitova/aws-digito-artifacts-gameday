@@ -1,0 +1,14 @@
+{
+  "displayName": "Amazon ECS CPU Reservation",
+  "description": "Alarm by Digito for Amazon ECS that triggers if the percentage of CPU units that are reserved by running tasks in the cluster, is exceeding specified threshold limit",
+  "alarmName": "Digito-HighCPUReservation_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "ecs:alarm:recovery-cpu_reservation:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "relatedSOPs": [
+      "ecs:sop:scale_service:2020-04-01"
+  ]
+}

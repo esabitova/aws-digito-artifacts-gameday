@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis Evictions",
+  "description": "Digito alarm for Amazon Elasticache for Redis that triggers if the number keys evicted due to Redis maxmemory policy, exceeds specified threshold range",
+  "alarmName": "Digito-Elasticache-RedisEvictions_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-redis_evictions:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

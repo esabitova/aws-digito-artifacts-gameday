@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Digito-RestoreToPointInTime_2020-04-01
+Description: Role for SSM Digito-RestoreDynamoDBTableToPointInTimeSOP_2020-04-01
 Outputs:
-  DigitoDynamodbRestoreFromPointInTimeAssumeRole:
-    Description: Digito-RestoreToPointInTime_2020-04-01 Automation Assume Role ARN
-    Value: !GetAtt DigitoDynamodbRestoreFromPointInTimeAssumeRole.Arn
+  DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumeRole:
+    Description: Digito-RestoreDynamoDBTableToPointInTimeSOP_2020-04-01 Automation Assume Role ARN
+    Value: !GetAtt DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumeRole.Arn
 Resources:
-  DigitoDynamodbRestoreFromPointInTimeAssumeRole:
+  DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDynamodbRestoreFromPointInTimeAssumePolicy:
+  DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoDynamodbRestoreFromPointInTimeAssumePolicy"
+      PolicyName: "DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -85,8 +85,8 @@ Resources:
                 iam:PassedToService: application-autoscaling.amazonaws.com # needed to RegisterScalableTarget with RoleARN
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoDynamodbRestoreFromPointInTimeAssumeRole.Arn
+              - Fn::GetAtt: DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoDynamodbRestoreFromPointInTimeAssumeRole
+        - Ref: DigitoRestoreDynamoDBTableFromPointInTimeSOPAssumeRole

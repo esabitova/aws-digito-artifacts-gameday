@@ -3,7 +3,7 @@
   "description": "Used to restore an S3 object into previous version",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-RestoringToPreviousVersion_2020-09-21",
+  "documentName": "Digito-RestoreS3ObjectToPreviousVersionSOP_2020-09-21",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "Used to restore an S3 object into previous version",

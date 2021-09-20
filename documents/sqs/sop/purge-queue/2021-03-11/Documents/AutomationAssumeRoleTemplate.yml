@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM PurgeQueue
+Description: Role for SSM Digito-PurgeSQSQueueSOP_2021-03-11
 Outputs:
-  DigitoPurgeQueueAssumeRole:
-    Description: DigitoPurgeQueue Automation Assume Role ARN
+  DigitoPurgeSQSQueueSOPAssumeRole:
+    Description: Digito-PurgeSQSQueueSOP_2021-03-11 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoPurgeQueueAssumeRole.Arn
+      Fn::GetAtt: DigitoPurgeSQSQueueSOPAssumeRole.Arn
 Resources:
-  DigitoPurgeQueueAssumeRole:
+  DigitoPurgeSQSQueueSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoPurgeQueueAssumePolicy:
+  DigitoPurgeSQSQueueSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoPurgeQueueAssumePolicy
+      PolicyName: DigitoPurgeSQSQueueSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -47,4 +47,4 @@ Resources:
             Action:
               - sqs:PurgeQueue
       Roles:
-        - Ref: DigitoPurgeQueueAssumeRole
+        - Ref: DigitoPurgeSQSQueueSOPAssumeRole

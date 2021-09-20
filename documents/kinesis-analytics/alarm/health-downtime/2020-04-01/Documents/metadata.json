@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for downtime metric for Apache Flink jobs",
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink job that measures the time elapsed while a job is failing or running, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-downtime:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-downtime:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

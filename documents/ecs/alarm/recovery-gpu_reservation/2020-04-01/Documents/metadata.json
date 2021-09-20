@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon ECS GPU Reservation",
+  "description": "Alarm by Digito for Amazon ECS that indicates if the percentage of total available GPUs that are reserved by running tasks in the cluster, is exceeding specified threshold limit",
+  "alarmName": "Digito-HighGPUReservation_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "ecs:alarm:recovery-gpu_reservation:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -17,27 +17,27 @@ cache_lambda_security_group_text = 'cache security group list for a lambda as "{
 
 
 @scenario('../features/break_security_group_usual_case.feature',
-          'Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21')
+          'Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21')
 def test_break_security_group_usual_case():
-    """Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21"""
+    """Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21"""
 
 
 @scenario('../features/break_security_group_usual_case_specify_sg.feature',
-          'Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21')
+          'Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21')
 def test_break_security_group_usual_case_specify_sg():
-    """Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21"""
+    """Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21"""
 
 
 @scenario('../features/break_security_group_rollback_previous.feature',
-          'Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21 in rollback')
+          'Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21 in rollback')
 def test_break_security_group_rollback_previous():
-    """Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21 in rollback"""
+    """Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21 in rollback"""
 
 
 @scenario('../features/break_security_group_failed.feature',
-          'Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21 to test failure case')
+          'Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21 to test failure case')
 def test_break_security_group_failed():
-    """Execute SSM automation document Digito-LambdaBreakSecurityGroup_2020-09-21 to test failure case"""
+    """Execute SSM automation document Digito-BreakLambdaSecurityGroupTest_2020-09-21 to test failure case"""
 
 
 @given(parsers.parse('cache lambda code for accessing s3 bucket as "{cache_property}" "{step_key}" '

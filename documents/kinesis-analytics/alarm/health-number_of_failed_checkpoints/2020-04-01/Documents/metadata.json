@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for numberOfFailedCheckpoints metric for Apache Flink applications",
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink applications that indicates if the number of times checkpointing has failed, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-number_of_failed_checkpoints:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-number_of_failed_checkpoints:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

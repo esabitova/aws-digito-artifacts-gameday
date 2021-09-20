@@ -279,3 +279,28 @@ class TestBackupUtil(unittest.TestCase):
             f'Recovery point \'{BACKUP_COMPLETED_RECOVERY_ARN.split(":")[-1]}\' wasn\'t removed during timeout',
             str(timeout_error.value)
         )
+
+    def test_issue_a_backup_job_and_immediately_abort_it(self):
+        backup_vault_name = BACKUP_VAULT_NAME
+        backup_iam_role_arn = f"arn:aws:iam::{ACCOUNT_ID}:role/service-role/AWSBackupDefaultServiceRole"
+        backup_vault_name = BACKUP_VAULT_NAME
+        backed_resource_arn = f"arn:aws:elasticfilesystem:eu-south-1:{ACCOUNT_ID}:file-system/fs-a40ebd61"
+
+        self.mock_backup_service.start_backup_job.return_value = \
+            {
+                'BackupJobId': 'TestID',
+                'RecoveryPointArn': f"arn:aws:backup:eu-south-1:{ACCOUNT_ID}:recovery-point:RecoveryID",
+                'CreationDate': "2021-01-01T00:00:00.000000+03:00"
+            }
+
+        backup_utils.issue_a_backup_job_and_immediately_abort_it(self.session_mock,
+                                                                 backed_resource_arn,
+                                                                 backup_iam_role_arn,
+                                                                 backup_vault_name
+                                                                 )
+        self.mock_backup_service.start_backup_job.assert_called_once_with(BackupVaultName=backup_vault_name,
+                                                                          IamRoleArn=backup_iam_role_arn,
+                                                                          ResourceArn=backed_resource_arn
+                                                                          )
+
+        self.mock_backup_service.stop_backup_job.assert_called_once_with(BackupJobId='TestID')

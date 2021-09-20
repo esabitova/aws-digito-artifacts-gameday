@@ -15,7 +15,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-AWSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: "2010-09-09"
 Description: Test stack for Canary lambda removal
 Outputs:
   CleanupCanaryLambdaArn:
@@ -26,7 +26,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
-        Version: 2012-10-17
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -40,7 +40,7 @@ Resources:
     Properties:
       PolicyName: CleanupCanaryLambdaPolicy
       PolicyDocument:
-        Version: 2012-10-17
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Resource: "*"
@@ -69,7 +69,7 @@ Resources:
     Properties:
       PolicyName: LoggingCanaryLambdaPolicy
       PolicyDocument:
-        Version: 2012-10-17
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Resource:

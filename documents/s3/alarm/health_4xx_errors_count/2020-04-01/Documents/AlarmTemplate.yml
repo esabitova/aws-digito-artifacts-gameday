@@ -18,8 +18,8 @@ Resources:
         - Name: FilterId
           Value: "${S3BucketName}-metrics"
       Period: 60
-      EvaluationPeriods: 3
-      DatapointsToAlarm: 2
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
       ExtendedStatistic: p80
       Threshold: ${Threshold}
       ComparisonOperator: GreaterThanThreshold

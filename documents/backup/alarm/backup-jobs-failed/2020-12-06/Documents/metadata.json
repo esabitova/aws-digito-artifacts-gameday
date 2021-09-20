@@ -1,0 +1,11 @@
+{
+  "displayName": "AWS Backup backup job has failed",
+  "description": "Alarm by Digito for AWS Backup that indicates AWS Backup made an attempt to initialize a backup job and failed to do so under the specified backup vault",
+  "alarmName": "Digito-BackupJobFailed_2020-12-06",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "backup:alarm:backup-jobs-failed:2020-12-06",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}

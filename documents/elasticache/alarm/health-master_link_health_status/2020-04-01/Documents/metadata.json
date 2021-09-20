@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis Master Link Health Status",
+  "description": "Digito alarm for Elasticache Redis migration, that triggers if the data in the ElastiCache primary node is not in sync with Redis on EC2",
+  "alarmName": "Digito-Elasticache-MasterLinkHealthStatus_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-master_link_health_status:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

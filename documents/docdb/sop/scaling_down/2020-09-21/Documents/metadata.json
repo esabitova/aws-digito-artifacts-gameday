@@ -1,0 +1,14 @@
+{
+  "displayName": "Scales the cluster down",
+  "description": "Scales the cluster down. The automation always leave at least 1 read replica",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ScaleDownDocumentDBClusterSOP_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "enabled": "false",
+  "tag": "docdb:sop:scaling_down:2020-09-21"
+}

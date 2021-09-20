@@ -5,7 +5,7 @@
   "attachments": "digito_gameday_primitives.zip",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-BlockSQSDeleteMessage_2021-03-09",
+  "documentName": "Digito-BlockSQSDeleteMessageTest_2021-03-09",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "Test behavior when messages are not deleted from a specific queue",

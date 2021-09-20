@@ -6,7 +6,7 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | CfnTemplatePath                                                                                            | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                                           | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwChangeThrottlingSettings_2020-10-26" SSM document
+    And published "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache value of "RestApiGwUsagePlanId" "before" SSM automation execution for teardown
       | RestApiGwUsagePlanId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} |
@@ -18,10 +18,10 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | OldBurstLimit                  |
       | {{cache:before>OldBurstLimit}} |
 
-    When SSM automation document "Digito-RestApiGwChangeThrottlingSettings_2020-10-26" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwThrottlingRate            | RestApiGwThrottlingBurst            | AutomationAssumeRole                                                                             |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwChangeThrottlingSettingsAssumeRoleArn}} |
-    And SSM automation document "Digito-RestApiGwChangeThrottlingSettings_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | RestApiGwUsagePlanId                                  | RestApiGwThrottlingRate            | RestApiGwThrottlingBurst            | AutomationAssumeRole                                                                                |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeRestApiGwThrottlingSettingsSOPAssumeRoleArn}} |
+    And SSM automation document "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache usage plan rate limit as "ActualRateLimit" and burst limit as "ActualBurstLimit" "after" SSM automation execution
@@ -35,7 +35,7 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | CfnTemplatePath                                                                                            | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                                           | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwChangeThrottlingSettings_2020-10-26" SSM document
+    And published "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache value of "RestApiGwUsagePlanId,RestApiGwStageName,RestApiGwId" "before" SSM automation execution for teardown
       | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} |
@@ -47,10 +47,10 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | OldBurstLimit                  |
       | {{cache:before>OldBurstLimit}} |
 
-    When SSM automation document "Digito-RestApiGwChangeThrottlingSettings_2020-10-26" executed
-      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | RestApiGwThrottlingRate            | RestApiGwThrottlingBurst            | AutomationAssumeRole                                                                             |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwChangeThrottlingSettingsAssumeRoleArn}} |
-    And SSM automation document "Digito-RestApiGwChangeThrottlingSettings_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | RestApiGwUsagePlanId                                  | RestApiGwStageName                                  | RestApiGwId                                  | RestApiGwThrottlingRate            | RestApiGwThrottlingBurst            | AutomationAssumeRole                                                                                |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeRestApiGwThrottlingSettingsSOPAssumeRoleArn}} |
+    And SSM automation document "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache usage plan rate limit as "ActualRateLimit" and burst limit as "ActualBurstLimit" "after" SSM automation execution
