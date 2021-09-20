@@ -1,0 +1,14 @@
+{
+  "displayName": "Change Reserved Memory for Elasticache Redis ReplicationGroup",
+  "description": "Change Reserved Memory for Elasticache Redis ReplicationGroup",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ElasticacheRedisChangeReservedMemorySOP_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "enabled": "false",
+  "tag": "elasticache:sop:redis_change_reserved_memory:2020-10-26"
+}

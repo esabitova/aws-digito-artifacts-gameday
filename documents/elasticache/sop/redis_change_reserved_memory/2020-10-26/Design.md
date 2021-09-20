@@ -1,5 +1,5 @@
 # Id
-elasticache:sop:redis_scale_up:2020-10-26
+elasticache:sop:redis_change_reserved_memory:2020-10-26
 
 ## Intent
 Scale up Redis cluster by changing the percentage of non-data memory that is used for backup and failover

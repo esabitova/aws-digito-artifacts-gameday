@@ -1,0 +1,329 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Change Reserved Memory for Elasticache Redis Cluster"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+parameters:
+  ReplicationGroupId:
+    description: (Required) The ElastiCache Replication Group ID.
+    type: String
+  AutomationAssumeRole:
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+    type: String
+  ReservedMemoryPercent:
+    description: (Optional) New value for reserved memory percent parameter. Must be set for redis version higher or equal to 3.2.4
+    type: String
+    default: ""
+  ReservedMemoryValue:
+    description: (Optional) New value for reserved memory parameter. Must be set for redis version less than 3.2.4
+    type: String
+    default: ""
+  CustomCacheParameterGroupDescription:
+    description: (Optional) A Custom Cache Parameter Group Description.
+    type: String
+    default: "Cache Parameter Group For Reserved Memory created by SSM document Digito-ElasticacheRedisChangeReservedMemorySOP_2020-10-26"
+  ApproveChangeMemoryReservationAutomatically:
+    type: Boolean
+    description: |-
+      (Optional) If it is true, approve changing reserved memory for cache parameter group automatically if it already exists.
+      Otherwise, give a user a chance to decide. It is false by default.
+    default: false
+  SNSTopicARNForManualApproval:
+    type: String
+    description: |-
+      (Optional) The ARN of the SNS Topic where a user will receive the notification
+      about the manual approval of changing reserved memory for cache parameter group if it already exists.
+    default: ""
+  IAMPrincipalForManualApproval:
+    type: String
+    description: |-
+      (Optional) ARN of AWS authenticated principal who are able to either approve or reject the changing reserved memory for cache parameter group if it already exists.
+      Can be either an AWS Identity and Access Management (IAM) user name or IAM user ARN or IAM role ARN or IAM assume role user ARN
+    default: ""
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: GetClusterMode
+    action: 'aws:executeAwsApi'
+    description: Get Cluster Mode for Replication Group
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ReplicationGroupId}}'
+    outputs:
+      - Name: ClusterEnabled
+        Selector: $.ReplicationGroups[0].ClusterEnabled
+        Type: Boolean
+    nextStep: FailIfClusterNotEnabled
+
+  - name: FailIfClusterNotEnabled
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - Variable: "{{GetClusterMode.ClusterEnabled}}"
+          BooleanEquals: false
+          NextStep: FailWithClusterModeDisabled
+      Default: CheckApproveInputs
+
+  - name: FailWithClusterModeDisabled
+    action: 'aws:executeScript'
+    description: Fail with message
+    isEnd: true
+    inputs:
+      Runtime: python3.7
+      Handler: raise_exception
+      InputPayload:
+        ErrorMessage: |-
+          Only Replication Groups with cluster mode enabled are supported by this SOP
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.raise_exception
+
+  - name: CheckApproveInputs
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - And:
+            - Variable: "{{ApproveChangeMemoryReservationAutomatically}}"
+              BooleanEquals: false
+            - Variable: "{{SNSTopicARNForManualApproval}}"
+              StringEquals: ""
+          NextStep: FailWithIncorrectApproveParams
+        - And:
+            - Variable: "{{ApproveChangeMemoryReservationAutomatically}}"
+              BooleanEquals: false
+            - Variable: "{{IAMPrincipalForManualApproval}}"
+              StringEquals: ""
+          NextStep: FailWithIncorrectApproveParams
+      Default: GetCustomCacheParameterGroupInfo
+
+  - name: FailWithIncorrectApproveParams
+    action: 'aws:executeScript'
+    description: Fail with message
+    isEnd: true
+    inputs:
+      Runtime: python3.7
+      Handler: raise_exception
+      InputPayload:
+        ErrorMessage: |-
+          If ApproveChangeMemoryReservationAutomatically paramter is set to `true`, both IAMPrincipalForManualApproval and SNSTopicARNForManualApproval parameters must be non-empty
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.raise_exception
+
+  - name: GetCustomCacheParameterGroupInfo
+    action: 'aws:executeScript'
+    description: Get Cache Parameter Group
+    outputs:
+      - Name: CacheParameterGroupExists
+        Selector: $.Payload.CacheParameterGroupExists
+        Type: String
+      - Name: CustomCacheParameterGroupName
+        Selector: $.Payload.CustomCacheParameterGroupName
+        Type: String
+      - Name: CacheParameterGroupFamily
+        Selector: $.Payload.CacheParameterGroupFamily
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_custom_parameter_group
+      InputPayload:
+        ReplicationGroupId: '{{ReplicationGroupId}}'
+        ReservedMemoryPercent: '{{ReservedMemoryPercent}}'
+        ReservedMemoryValue: '{{ReservedMemoryValue}}'
+        CustomCacheParameterGroupNamePostfix: '{{ReplicationGroupId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.get_custom_parameter_group
+
+  - name: CheckCustomCacheParameterGroupStatus
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - And:
+            - Variable: "{{ApproveChangeMemoryReservationAutomatically}}"
+              BooleanEquals: false
+            - Variable: '{{GetCustomCacheParameterGroupInfo.CacheParameterGroupExists}}'
+              StringEquals: 'true'
+          NextStep: ApproveChangeReservationOrCancel
+        - And:
+            - Variable: "{{ApproveChangeMemoryReservationAutomatically}}"
+              BooleanEquals: true
+            - Variable: "{{GetCustomCacheParameterGroupInfo.CacheParameterGroupExists}}"
+              StringEquals: 'true'
+          NextStep: ModifyCacheParameterGroup
+      Default: CreateCacheParameterGroup
+
+  - name: CreateCacheParameterGroup
+    action: 'aws:executeAwsApi'
+    description: Create Cache Parameter Group
+    inputs:
+      Service: elasticache
+      Api: CreateCacheParameterGroup
+      CacheParameterGroupName: '{{GetCustomCacheParameterGroupInfo.CustomCacheParameterGroupName}}'
+      CacheParameterGroupFamily: '{{GetCustomCacheParameterGroupInfo.CacheParameterGroupFamily}}'
+      Description: '{{CustomCacheParameterGroupDescription}}'
+    outputs:
+      - Name: CacheParameterGroupARN
+        Selector: $.CacheParameterGroup.ARN
+        Type: String
+    nextStep: ModifyCacheParameterGroup
+
+  - name: ApproveChangeReservationOrCancel
+    action: aws:approve
+    timeoutSeconds: 3600
+    onFailure: Abort
+    inputs:
+      NotificationArn: "{{SNSTopicARNForManualApproval}}"
+      Message: Do you agree to change memory reservation value to {{ReservedMemoryPercent}} in {{GetCustomCacheParameterGroupInfo.CustomCacheParameterGroupName}} custom parameter group? Existing clusters using this parameter group (if any) would be affected by this change.
+      MinRequiredApprovals: 1
+      Approvers:
+        - "{{IAMPrincipalForManualApproval}}"
+
+  - name: GetCacheParameterGroupAttachedToReplicationGroup
+    action: 'aws:executeScript'
+    outputs:
+      - Name: CacheParameterGroupName
+        Selector: $.Payload.CacheParameterGroupName
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_cache_parameter_group
+      InputPayload:
+        ReplicationGroupId: '{{ReplicationGroupId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.get_cache_parameter_group
+
+  - name: CheckCustomCacheParameterGroupStillAttached
+    action: 'aws:branch'
+    inputs:
+      Choices:
+        - And:
+            - Variable: '{{GetCustomCacheParameterGroupInfo.CacheParameterGroupExists}}'
+              StringEquals: 'true'
+            - Variable: '{{GetCacheParameterGroupAttachedToReplicationGroup.CacheParameterGroupName}}'
+              StringEquals: '{{GetCustomCacheParameterGroupInfo.CustomCacheParameterGroupName}}'
+          NextStep: VerifyReplicationGroupStatusBeforeModifyReplicationGroup
+      Default: FailWithParameterGroupNotInRG
+
+  - name: FailWithParameterGroupNotInRG
+    action: 'aws:executeScript'
+    description: Fail with message
+    isEnd: true
+    inputs:
+      Runtime: python3.7
+      Handler: raise_exception
+      InputPayload:
+        CustomCacheParameterGroupName: '{{GetCustomCacheParameterGroupInfo.CustomCacheParameterGroupName}}'
+        ReplicationGroupId: '{{ReplicationGroupId}}'
+        ErrorMessage: |-
+          Cache Parameter Group {CustomCacheParameterGroupName} is no longer attached to Replication Group {ReplicationGroupId}. Aborting changes
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.raise_exception
+
+  - name: VerifyReplicationGroupStatusBeforeModifyReplicationGroup
+    action: 'aws:assertAwsResourceProperty'
+    description: Assert the elasticache replication group to be in available state
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ReplicationGroupId}}'
+      PropertySelector: $.ReplicationGroups[0].Status
+      DesiredValues:
+        - 'available'
+
+  - name: ModifyCacheParameterGroup
+    action: 'aws:executeScript'
+    description: Modify cache parameter group to change memory reservation
+    inputs:
+      Runtime: python3.7
+      Handler: modify_cache_parameter_group
+      InputPayload:
+        CacheParameterGroupName: '{{GetCustomCacheParameterGroupInfo.CustomCacheParameterGroupName}}'
+        ReservedMemoryValue: '{{ReservedMemoryValue}}'
+        ReservedMemoryPercent: '{{ReservedMemoryPercent}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.modify_cache_parameter_group
+
+  - name: ModifyReplicationGroup
+    action: 'aws:executeAwsApi'
+    description: Modify Replication Group to add cache parameter group
+    inputs:
+      Service: elasticache
+      Api: ModifyReplicationGroup
+      CacheParameterGroupName: '{{GetCustomCacheParameterGroupInfo.CustomCacheParameterGroupName}}'
+      ReplicationGroupId: '{{ReplicationGroupId}}'
+      ApplyImmediately: true
+
+  - name: VerifyReplicationGroupStatusAfterModifyReplicationGroup
+    action: 'aws:waitForAwsResourceProperty'
+    description: Wait for the elasticache updated replication group to be in available
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ReplicationGroupId}}'
+      PropertySelector: $.ReplicationGroups[0].Status
+      DesiredValues:
+        - 'available'
+
+  - name: WaitForParametersInReplicationGroupToBeReady
+    action: 'aws:executeScript'
+    description: Wait for RG to be available for adding a cache parameter group
+    inputs:
+      Runtime: python3.7
+      Handler: wait_for_parameters_in_sync
+      InputPayload:
+        ReplicationGroupId: '{{ReplicationGroupId}}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.wait_for_parameters_in_sync
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

@@ -915,3 +915,56 @@ def apply_json_path_and_cache_value(cfn_output_params, ssm_test_cache, cfn_insta
     input_value = params['Input']
     result = jsonpath_ng.parse(json_path).find(input_value)[0].value
     put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, result)
+
+
+@given(parse('register for teardown by "{teardown_fixture_name}"\n{input_parameters}'))
+@when(parse('register for teardown by "{teardown_fixture_name}"\n{input_parameters}'))
+def register_for_teardown_by_dynamic_fixture(request, resource_pool, teardown_fixture_name, input_parameters,
+                                             cfn_output_params, ssm_test_cache,
+                                             cfn_installed_alarms):
+    """
+    Add keys to the dict which will be used by dynamically fetched teardown fixture to clean up everything after
+    Cucumber scenario.
+    You can find teardown_fixture_name as a method name in the project, usually in the corresponding service folder
+    :param request The pytest request object
+    :param teardown_fixture_name: dynamically passed fixture name
+    :param cfn_output_params The resource manager object to manipulate with testing resources
+    :param cfn_installed_alarms The resource manager object to manipulate with created alarms
+    :param ssm_test_cache The custom test cache
+    :param input_parameters The input parameters
+    :return: dict with populated keys and values for making teardown process
+    """
+    params = extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                               cfn_installed_alarms)
+    teardown_fixture_dict = request.getfixturevalue(teardown_fixture_name)
+    for param_name, value in params.items():
+        teardown_fixture_dict[param_name] = value
+    logging.warning(params)
+
+
+@given(parse('parse "{param_val_ref}" and cache as {cache_property}'))
+def parse_string(param_val_ref, cache_property, cfn_output_params, ssm_test_cache,
+                 cfn_installed_alarms):
+    """
+        Replaces all `{{some_value}}` substrings in a `param_val_ref` string with a values from cache/cfn-output/alarms
+        example:
+          if we have in cache: `ssm_test_cache['foo']['bar']="world"`
+          then expression:
+          `parse "hello {{cache:foo>bar}}" and cache as "HelloString"`
+          will create a new cache key:
+          ssm_test_cache['HelloString'] == "hello world"
+        :param cfn_output_params The resource manager object to manipulate with testing resources
+        :param cfn_installed_alarms The resource manager object to manipulate with created alarms
+        :param ssm_test_cache The custom test cache
+        :param param_val_ref: string to parse
+        :param cache_property: cache variable to save to
+    """
+    param_val_ref_pattern = re.compile('{{2}[^}]*}{2}')
+    ref_match_list = param_val_ref_pattern.findall(param_val_ref)
+    res = param_val_ref
+    for ref_match in ref_match_list:
+        value = parse_param_value(ref_match, {'cache': ssm_test_cache,
+                                              'cfn-output': cfn_output_params,
+                                              'alarm': cfn_installed_alarms})
+        res = res.replace(ref_match, value)
+    put_to_ssm_test_cache(ssm_test_cache, None, cache_property, res)
