@@ -6,15 +6,15 @@ Feature: SSM automation document to test EFS behavior after breaking security gr
       | CfnTemplatePath                                                                                     | ResourceType |
       | resource_manager/cloud_formation_templates/EFSTemplate.yml                                          | ON_DEMAND    |
       | documents/efs/test/break_security_group/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml       | ASSUME_ROLE  |
-    And published "Digito-EFSBreakSecurityGroup_2020-09-21" SSM document
+    And published "Digito-BreakEFSSecurityGroupTest_2020-09-21" SSM document
     And cache security group id for a mount target as "SecurityGroupId" "before" SSM automation execution
       | MountTargetId                            |
       | {{cfn-output:EFSTemplate>EFSMountTarget}}|
-    And SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" executed
-      | FileSystemId                     | ClientConnectionsAlarmName                            | MountTargetIds                            | AutomationAssumeRole                                                              |
-      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>ClientConnectionsAlarmName}} | {{cfn-output:EFSTemplate>EFSMountTarget}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoEFSBreakSecurityGroupAssumeRole}} |
+    And SSM automation document "Digito-BreakEFSSecurityGroupTest_2020-09-21" executed
+      | FileSystemId                     | ClientConnectionsAlarmName                            | MountTargetIds                            | AutomationAssumeRole                                                                  |
+      | {{cfn-output:EFSTemplate>EFSID}} | {{cfn-output:EFSTemplate>ClientConnectionsAlarmName}} | {{cfn-output:EFSTemplate>EFSMountTarget}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoBreakEFSSecurityGroupTestAssumeRole}} |
 
-    When SSM automation document "Digito-EFSBreakSecurityGroup_2020-09-21" execution in status "Success"
+    When SSM automation document "Digito-BreakEFSSecurityGroupTest_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 

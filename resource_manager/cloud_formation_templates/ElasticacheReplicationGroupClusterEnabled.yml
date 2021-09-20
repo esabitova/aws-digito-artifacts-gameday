@@ -21,6 +21,12 @@ Outputs:
   ReplicationGroupId:
     Description: The ID of the Replication group
     Value: !Ref ElastiCacheReplicationGroup
+  SNSTopicName:
+    Description: SNS Topic Name
+    Value: !Ref SNSTopic
+  RoleApproveChangeCacheParameterGroupArn:
+    Description: ARN of RoleApproveChangeCacheParameterBucket
+    Value: !GetAtt RoleApproveChangeCacheParameterBucket.Arn
 Parameters:
   EngineVersion:
     Description: The version number of the cache engine to be used for the clusters in this replication group
@@ -134,3 +140,55 @@ Resources:
               AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
             Action: kms:*
             Resource: "*"
+
+  SNSTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      KmsMasterKeyId: !Ref KmsKey
+
+  SNSTopicPolicy:
+    Type: "AWS::SNS::TopicPolicy"
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: SNSTopicPolicy
+        Statement:
+          - Sid: SNSTopicPolicyStatement
+            Effect: Allow
+            Principal:
+              Service:
+                - cloudwatch.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref SNSTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref "AWS::AccountId"
+      Topics:
+        - !Ref SNSTopic
+
+  RoleApproveChangeCacheParameterBucket:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref "AWS::AccountId"
+            Action:
+              - sts:AssumeRole
+
+  PolicyApproveChangeCacheParameterBucket:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: DigitoRestoreFromBackupAssumePolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Resource: "*"
+            Action:
+              - ssm:SendAutomationSignal
+      Roles:
+        - Ref: RoleApproveChangeCacheParameterBucket

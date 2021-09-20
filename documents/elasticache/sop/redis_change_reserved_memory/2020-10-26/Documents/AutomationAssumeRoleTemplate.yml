@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-IncreaseRedisShardsSOP_2020-10-26
+Description: Role for Digito-ElasticacheRedisChangeReservedMemorySOP_2020-10-26
 Outputs:
-  DigitoIncreaseRedisShardsSOPAssumeRole:
-    Description: Digito-IncreaseRedisShardsSOP_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoIncreaseRedisShardsSOPAssumeRole.Arn
+  DigitoElasticacheRedisChangeReservedMemoryAssumeRole:
+    Description: Digito-ElasticacheRedisChangeReservedMemorySOP_2020-10-26 Automation Assume Role ARN
+    Value: !GetAtt DigitoElasticacheRedisChangeReservedMemoryAssumeRole.Arn
 Resources:
-  DigitoIncreaseRedisShardsSOPAssumeRole:
+  DigitoElasticacheRedisChangeReservedMemoryAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoIncreaseRedisShardsSOPAssumePolicy:
+  DigitoElasticacheRedisChangeReservedMemoryAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoIncreaseRedisShardsSOPAssumePolicy
+      PolicyName: DigitoElasticacheRedisChangeReservedMemoryAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -45,6 +45,10 @@ Resources:
             Resource: "*"
             Action:
               - elasticache:DescribeReplicationGroups
-              - elasticache:ModifyReplicationGroupShardConfiguration
+              - elasticache:DescribeCacheClusters
+              - elasticache:DescribeCacheParameterGroups
+              - elasticache:ModifyReplicationGroup
+              - elasticache:ModifyCacheParameterGroup
+              - elasticache:CreateCacheParameterGroup
       Roles:
-        - Ref: DigitoIncreaseRedisShardsSOPAssumeRole
+        - Ref: DigitoElasticacheRedisChangeReservedMemoryAssumeRole

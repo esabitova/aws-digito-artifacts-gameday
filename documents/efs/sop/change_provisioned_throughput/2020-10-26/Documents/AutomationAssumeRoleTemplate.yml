@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-EFSChangeProvisionedThroughput_2020-10-26
+Description: Role for Digito-ChangeEFSProvisionedThroughputSOP_2020-10-26
 Outputs:
-  DigitoEfsChangeProvisionedThroughputAssumeRole:
-    Description: Digito-EFSChangeProvisionedThroughput_2020-10-26 Automation Assume Role ARN
+  DigitoChangeEFSProvisionedThroughputSOPAssumeRole:
+    Description: Digito-ChangeEFSProvisionedThroughputSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoEfsChangeProvisionedThroughputAssumeRole.Arn
+      Fn::GetAtt: DigitoChangeEFSProvisionedThroughputSOPAssumeRole.Arn
 Resources:
-  DigitoEfsChangeProvisionedThroughputAssumeRole:
+  DigitoChangeEFSProvisionedThroughputSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEfsChangeProvisionedThroughputAssumePolicy:
+  DigitoChangeEFSProvisionedThroughputSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoEfsChangeProvisionedThroughputAssumePolicy
+      PolicyName: DigitoChangeEFSProvisionedThroughputSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -48,4 +48,4 @@ Resources:
               - elasticfilesystem:DescribeFileSystems
               - elasticfilesystem:UpdateFileSystem
       Roles:
-        - Ref: DigitoEfsChangeProvisionedThroughputAssumeRole
+        - Ref: DigitoChangeEFSProvisionedThroughputSOPAssumeRole

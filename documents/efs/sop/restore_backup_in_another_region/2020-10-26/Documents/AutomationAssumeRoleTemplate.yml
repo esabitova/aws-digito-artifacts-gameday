@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoreBackup
+Description: Role for SSM Digito-RestoreBackupInAnotherRegion_2020-10-26
 Outputs:
-  DigitoEFSRestoreBackupAssumeRole:
-    Description: DigitoRestoreBackup Automation Assume Role ARN
+  DigitoRestoreEFSBackupInAnotherRegionSOPAssumeRole:
+    Description: Digito-RestoreBackupInAnotherRegion_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoEFSRestoreBackupAssumeRole.Arn
+      Fn::GetAtt: DigitoRestoreEFSBackupInAnotherRegionSOPAssumeRole.Arn
 Resources:
-  DigitoEFSRestoreBackupAssumeRole:
+  DigitoRestoreEFSBackupInAnotherRegionSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEFSRestoreBackupAssumePolicy:
+  DigitoRestoreEFSBackupInAnotherRegionSOPAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoEFSRestoreBackupAssumePolicy"
+      PolicyName: "DigitoRestoreEFSBackupInAnotherRegionSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -64,4 +64,4 @@ Resources:
               StringEquals:
                 iam:PassedToService: backup.amazonaws.com
       Roles:
-        - Ref: DigitoEFSRestoreBackupAssumeRole
+        - Ref: DigitoRestoreEFSBackupInAnotherRegionSOPAssumeRole

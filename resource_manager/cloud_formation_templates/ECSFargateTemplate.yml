@@ -29,6 +29,10 @@ Parameters:
   PublicSubnetTwo:
     Description: second PublicSubnet id
     Type: String
+  ServiceDesiredCount:
+    Description: amount of tasks running in service
+    Type: Number
+    Default: 1
 Outputs:
   ClusterName:
     Description: The name of the ECS cluster
@@ -48,6 +52,9 @@ Outputs:
   FargateContainerSecurityGroup:
     Description: A security group used to allow Fargate containers to receive traffic
     Value: !Ref 'FargateContainerSecurityGroup'
+  ECSFargateTaskAmountAlarm:
+    Description: An alarm for a task amount
+    Value: !Ref 'ECSFargateTaskAmountAlarm'
 Resources:
   # ECS Resources
   ECSCluster:
@@ -89,6 +96,39 @@ Resources:
                   - 'logs:PutLogEvents'
                 Resource: !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*"
 
+  ECSFargateTaskAmountAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmDescription: "Alarm checking that amount of running tasks in service is less that threshold"
+      ActionsEnabled: false
+      Metrics:
+        - Expression: !Join
+            - " "
+            - - "IF(m1 <"
+              - !Ref ServiceDesiredCount
+              - "OR m1 >"
+              - !Ref ServiceDesiredCount
+              - ", 1, 0)"
+          Id: e1
+          Label: 'Amount of tasks equals Threshold'
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              MetricName: MemoryUtilization
+              Namespace: AWS/ECS
+              Dimensions:
+                - Name: ServiceName
+                  Value: !GetAtt ECSService.Name
+                - Name: ClusterName
+                  Value: !Ref ECSCluster
+            Period: 60
+            Stat: SampleCount
+      Threshold: 0
+      TreatMissingData: notBreaching
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanThreshold
 
   ECSTaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -134,6 +174,6 @@ Resources:
             - !Ref PublicSubnetOne
             - !Ref PublicSubnetTwo
           AssignPublicIp: ENABLED
-      DesiredCount: 1
+      DesiredCount: !Ref ServiceDesiredCount
       TaskDefinition:
         Ref: "ECSTaskDefinition"

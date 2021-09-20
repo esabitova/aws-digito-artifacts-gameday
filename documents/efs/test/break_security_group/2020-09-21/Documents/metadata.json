@@ -3,7 +3,7 @@
   "description": "Test EFS behavior after breaking security group id",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-EFSBreakSecurityGroup_2020-09-21",
+  "documentName": "Digito-BreakEFSSecurityGroupTest_2020-09-21",
   "documentType": "Automation",
   "failureType": "AZ",
   "intent": "Used to emulate AZ failure for security groups",

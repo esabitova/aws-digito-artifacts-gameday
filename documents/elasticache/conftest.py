@@ -239,6 +239,26 @@ def revert_failover_settings(boto3_session):
         logging.info('Skip failover settings teardown')
 
 
+@given(parsers.parse('cache CacheParameterGroupName as "{cache_property}"\n{input_parameters}'))
+def cache_cache_parameter_group(boto3_session, resource_pool, ssm_test_cache, cache_property, input_parameters):
+    replication_group_id = extract_param_value(input_parameters, 'ReplicationGroupId', resource_pool, ssm_test_cache)
+    cache_parameter_group_name = elasticache_utils.get_cache_parameter_group(boto3_session, replication_group_id)
+    ssm_test_cache[cache_property] = str(cache_parameter_group_name)
+
+
+@pytest.fixture(scope='function')
+def delete_cache_parameter_group(boto3_session):
+    delete_param_group_dict = {}
+    yield delete_param_group_dict
+
+    elasticache_utils.delete_cache_parameter_group(boto3_session,
+                                                   cache_param_group=delete_param_group_dict[
+                                                       'CustomCacheParameterGroupName'],
+                                                   replication_group_id=delete_param_group_dict['ReplicationGroupId'],
+                                                   old_cache_param_group=delete_param_group_dict[
+                                                       'OldCacheParameterGroupName'])
+
+
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became equal to "{actual_property}" at "{step_key_for_actual}" '
                     'without order of PreferredAvailabilityZones'))

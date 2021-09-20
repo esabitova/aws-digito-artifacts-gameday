@@ -35,6 +35,7 @@ def extract_all_from_input_parameters(cf_output, cache, input_parameters, alarms
     :param cf_output - The CFN outputs
     :param cache - The cache, used to get cached values by given keys.
     :param input_parameters - The SSM input parameters as described in scenario feature file.
+    :param alarms - installed alarms
     """
     input_params = parse_str_table(input_parameters).rows[0]
     parameters = {}
@@ -42,7 +43,6 @@ def extract_all_from_input_parameters(cf_output, cache, input_parameters, alarms
         value = param_utils.parse_param_value(param_val_ref, {'cache': cache,
                                                               'cfn-output': cf_output,
                                                               'alarm': alarms})
-
         parameters[param] = value
     return parameters
 
@@ -65,12 +65,15 @@ def extract_and_cache_param_values(input_parameters, param_list, resource_manage
 def put_to_ssm_test_cache(ssm_test_cache: dict, cache_key, cache_property, value):
     """
     Put the value to the cache with the key cache property which should be placed under other key - cache_key
+    If cache_key is None, don't create a dictionary
     :param ssm_test_cache: cache
     :param cache_key: 1-level cache key
     :param cache_property: 2-level cache key
     :param value: 2-level cache value
     """
-    if cache_key in ssm_test_cache:
+    if not cache_key:
+        ssm_test_cache[cache_property] = value
+    elif cache_key in ssm_test_cache:
         cache_by_key: dict = ssm_test_cache.get(cache_key)
         cache_by_key[cache_property] = value
     else:

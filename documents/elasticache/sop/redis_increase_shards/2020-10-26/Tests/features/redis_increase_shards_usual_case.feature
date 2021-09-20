@@ -1,12 +1,12 @@
 @elasticache
-Feature: SSM automation document Digito-RedisIncreaseShards_2020-10-26
+Feature: SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26
 
-  Scenario: Execute SSM automation document Digito-RedisIncreaseShards_2020-10-26 without ReshardingConfiguration
+  Scenario: Execute SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26 without ReshardingConfiguration
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
       | resource_manager/cloud_formation_templates/ElasticacheReplicationGroupClusterEnabled.yml              | ON_DEMAND    |
       | documents/elasticache/sop/redis_increase_shards/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RedisIncreaseShards_2020-10-26" SSM document
+    And published "Digito-IncreaseRedisShardsSOP_2020-10-26" SSM document
     And cache by "describe_replication_groups" method of "elasticache" to "before"
       | Input-ReplicationGroupId                                                    | Output-NodeGroups                    |
       | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | $.ReplicationGroups[0].NodeGroups[*] |
@@ -15,11 +15,11 @@ Feature: SSM automation document Digito-RedisIncreaseShards_2020-10-26
     And cache values to "before"
       | ReplicationGroupId                                                          |
       | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} |
-    When SSM automation document "Digito-RedisIncreaseShards_2020-10-26" executed
-      | ReplicationGroupId                                                          | AutomationAssumeRole                                                                       | NewShardCount                  |
-      | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoElasticacheRedisIncreaseShardsAssumeRole}} | {{cache:before>NewShardCount}} |
+    When SSM automation document "Digito-IncreaseRedisShardsSOP_2020-10-26" executed
+      | ReplicationGroupId                                                          | AutomationAssumeRole                                                               | NewShardCount                  |
+      | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoIncreaseRedisShardsSOPAssumeRole}} | {{cache:before>NewShardCount}} |
 
-    Then SSM automation document "Digito-RedisIncreaseShards_2020-10-26" execution in status "Success"
+    Then SSM automation document "Digito-IncreaseRedisShardsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And assert "RecordStartTime, VerifyReplicationGroupAvailableStatusBeforeModification, ModifyReplicationGroupShardConfiguration, VerifyReplicationGroupAvailableStatusAfterModification, OutputRecoveryTime" steps are successfully executed in order
@@ -31,12 +31,12 @@ Feature: SSM automation document Digito-RedisIncreaseShards_2020-10-26
     And cache the size of "{{cache:after>NodeGroups}}" list as "NodeGroupIdsSize" "after"
     And assert "NodeGroupIdsSize" at "before" became not equal to "NodeGroupIdsSize" at "after"
 
-  Scenario: Execute SSM automation document Digito-RedisIncreaseShards_2020-10-26 with ReshardingConfiguration
+  Scenario: Execute SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26 with ReshardingConfiguration
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                       | ResourceType |
       | resource_manager/cloud_formation_templates/ElasticacheReplicationGroupClusterEnabled.yml              | ON_DEMAND    |
       | documents/elasticache/sop/redis_increase_shards/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RedisIncreaseShards_2020-10-26" SSM document
+    And published "Digito-IncreaseRedisShardsSOP_2020-10-26" SSM document
     And cache by "describe_replication_groups" method of "elasticache" to "before"
       | Input-ReplicationGroupId                                                    | Output-NodeGroups                    |
       | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | $.ReplicationGroups[0].NodeGroups[*] |
@@ -50,11 +50,11 @@ Feature: SSM automation document Digito-RedisIncreaseShards_2020-10-26
       | CurrentReshardingConfiguration           | NewShardCount                  |
       | {{cache:before>ReshardingConfiguration}} | {{cache:before>NewShardCount}} |
     And destring "{{cache:input>ReshardingConfiguration}}" ReshardingConfiguration as "ReshardingConfigurationDestringed" to "input"
-    When SSM automation document "Digito-RedisIncreaseShards_2020-10-26" executed
-      | ReplicationGroupId                                                          | AutomationAssumeRole                                                                       | NewShardCount                  | NewReshardingConfiguration              |
-      | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoElasticacheRedisIncreaseShardsAssumeRole}} | {{cache:before>NewShardCount}} | {{cache:input>ReshardingConfiguration}} |
+    When SSM automation document "Digito-IncreaseRedisShardsSOP_2020-10-26" executed
+      | ReplicationGroupId                                                          | AutomationAssumeRole                                                               | NewShardCount                  | NewReshardingConfiguration              |
+      | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoIncreaseRedisShardsSOPAssumeRole}} | {{cache:before>NewShardCount}} | {{cache:input>ReshardingConfiguration}} |
 
-    Then SSM automation document "Digito-RedisIncreaseShards_2020-10-26" execution in status "Success"
+    Then SSM automation document "Digito-IncreaseRedisShardsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And assert "RecordStartTime, VerifyReplicationGroupAvailableStatusBeforeModification, ModifyReplicationGroupShardConfiguration, VerifyReplicationGroupAvailableStatusAfterModification, OutputRecoveryTime" steps are successfully executed in order

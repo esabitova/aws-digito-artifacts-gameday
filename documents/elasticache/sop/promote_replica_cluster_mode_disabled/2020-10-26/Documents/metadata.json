@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-PromoteReplicaClusterModeDisabled_2020-10-26",
+  "documentName": "Digito-PromoteElasticacheReplicaClusterModeDisabledSOP_2020-10-26",
   "documentType": "Automation",
   "failureType": "HARDWARE",
   "minorVersion": "001",

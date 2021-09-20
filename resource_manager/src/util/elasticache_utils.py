@@ -1,9 +1,10 @@
 import logging
 
 import time
+import documents.util.scripts.src.elasticache_util as elasticache_util
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def count_replicas_in_replication_group(session, replication_group_id):
@@ -93,3 +94,51 @@ def decrease_replicas_in_replication_group(session, replication_group_id, desire
         ApplyImmediately=True
     )
     wait_for_available_status_on_rg_and_replicas(session, replication_group_id, timeout)
+
+
+def get_cache_parameter_group(session, replication_group_id: str) -> str:
+    """
+    gets cache parameter group attached to replication group
+    will throw ClientError if replication_group doesn't exist
+    :param session boto3 client session
+    :param replication_group_id ID of the replication group
+    :return: cache parameter group name
+    """
+    elasticache_client = session.client('elasticache')
+    return elasticache_util.get_cache_parameter_group({'ReplicationGroupId': replication_group_id},
+                                                      {},
+                                                      elasticache_client)
+
+
+def wait_for_parameters_in_sync(session, replication_group_id, time_to_wait=900, delay_sec=15):
+    elasticache_client = session.client('elasticache')
+    elasticache_util.wait_for_parameters_in_sync(
+        events={'ReplicationGroupId': replication_group_id},
+        context={},
+        elasticache_client=elasticache_client,
+        time_to_wait=time_to_wait,
+        delay_sec=delay_sec
+    )
+
+
+def delete_cache_parameter_group(session, cache_param_group: str,
+                                 replication_group_id: str, old_cache_param_group: str) -> None:
+    """
+    Changes CacheParameterGroup for replication group to an old one and removes specified CacheParameterGroup
+    :param session: boto3 client session
+    :param cache_param_group: Name of CacheParameterGroup to delete
+    :param replication_group_id: ID of the replication group
+    :param old_cache_param_group: Name of CacheParameterGroup to set for ReplicationGroup
+    :return:
+    """
+    elasticache_client = session.client('elasticache')
+    wait_for_parameters_in_sync(session, replication_group_id)
+    elasticache_client.modify_replication_group(
+        CacheParameterGroupName=old_cache_param_group,
+        ReplicationGroupId=replication_group_id,
+        ApplyImmediately=True
+    )
+
+    elasticache_client.delete_cache_parameter_group(
+        CacheParameterGroupName=cache_param_group
+    )

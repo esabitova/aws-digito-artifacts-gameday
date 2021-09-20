@@ -377,3 +377,17 @@ class TestCommonUtil(unittest.TestCase):
             f"Security group {events['EmptySecurityGroupId']} couldn't be deleted in {events['Timeout']} seconds",
             str(error.value)
         )
+
+    def test_raise_exception(self):
+        with pytest.raises(AssertionError) as assertion_error:
+            common_util.raise_exception({
+                'ErrorMessage': '{test} {test2} test3',
+                'test': 'replaced',
+                'test2': 'replaced2'},
+                {})
+        self.assertEqual('replaced replaced2 test3', str(assertion_error.value))
+
+    def test_raise_exception_no_event(self):
+        with pytest.raises(KeyError) as key_error:
+            common_util.raise_exception({}, {})
+        assert 'Requires ErrorMessage in events' in str(key_error.value)

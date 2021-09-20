@@ -179,3 +179,140 @@ class TestElasticacheUtil(unittest.TestCase):
             test_elasticache_util.REPLICATION_GROUP_ID
         )
         self.assertEqual(None, response)
+
+    def test_get_cache_parameter_group(self):
+        self.mock_elasticache.describe_replication_groups.return_value = \
+            test_elasticache_util.get_describe_replication_groups(test_elasticache_util.REPLICATION_GROUP_ID, 4, 4)
+        self.mock_elasticache.describe_cache_clusters.return_value = \
+            test_elasticache_util.get_describe_cache_clusters()
+        res = elasticache_utils.get_cache_parameter_group(
+            self.session_mock,
+            test_elasticache_util.REPLICATION_GROUP_ID)
+        self.mock_elasticache.describe_replication_groups.assert_called_once_with(
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID
+        )
+        self.mock_elasticache.describe_cache_clusters.assert_called_once_with(
+            CacheClusterId=f"{test_elasticache_util.REPLICATION_GROUP_ID}-001"
+        )
+        self.assertEqual('default.redis6.x.cluster.on', res)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_parameters_in_sync(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+        self.mock_elasticache.describe_replication_groups.return_value = \
+            test_elasticache_util.get_describe_replication_groups(test_elasticache_util.REPLICATION_GROUP_ID, 4, 4)
+        self.mock_elasticache.describe_cache_clusters.side_effect = [
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='001',
+                cache_parameter_group_status="applying"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='002',
+                cache_parameter_group_status="applying"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='003',
+                cache_parameter_group_status="applying"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='004',
+                cache_parameter_group_status="applying"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='001',
+                cache_parameter_group_status="applying"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='002',
+                cache_parameter_group_status="in-sync"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='003',
+                cache_parameter_group_status="in-sync"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='004',
+                cache_parameter_group_status="in-sync"
+            ),
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='001',
+                cache_parameter_group_status="in-sync"
+            ),
+        ]
+        calls = [
+            call(CacheClusterId=test_elasticache_util.REPLICATION_GROUP_ID + '-' + cluster_id)
+            for cluster_id in ['001', '002', '003', '004', '001', '002', '004', '001', '003']
+        ]
+        elasticache_utils.wait_for_parameters_in_sync(
+            self.session_mock,
+            test_elasticache_util.REPLICATION_GROUP_ID
+        )
+        self.mock_elasticache.describe_replication_groups.assert_called_once_with(
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID
+        )
+        self.mock_elasticache.describe_cache_clusters.assert_has_calls(calls)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_for_parameters_in_sync_timeout(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+        self.mock_elasticache.describe_replication_groups.return_value = \
+            test_elasticache_util.get_describe_replication_groups(test_elasticache_util.REPLICATION_GROUP_ID, 4, 4)
+        self.mock_elasticache.describe_cache_clusters.return_value = test_elasticache_util.get_describe_cache_clusters(
+            cluster_id='001',
+            cache_parameter_group_status="applying"
+        )
+        with pytest.raises(TimeoutError) as timeout_error:
+            elasticache_utils.wait_for_parameters_in_sync(
+                self.session_mock,
+                test_elasticache_util.REPLICATION_GROUP_ID
+            )
+        self.assertEqual(f"All CacheParameterGroups for replicas in rg {test_elasticache_util.REPLICATION_GROUP_ID} "
+                         f"didn't become available in 900 seconds",
+                         str(timeout_error.value)
+                         )
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_delete_cache_parameter_group(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+
+        old_cache_param_group_name = 'cpg_old'
+        new_cache_param_group_name = 'cpg_new'
+        self.mock_elasticache.describe_replication_groups.return_value = \
+            test_elasticache_util.get_describe_replication_groups(test_elasticache_util.REPLICATION_GROUP_ID, 1, 1)
+        self.mock_elasticache.describe_cache_clusters.side_effect = [
+            test_elasticache_util.get_describe_cache_clusters(
+                cluster_id='001',
+                cache_parameter_group_status="in-sync"
+            ),
+        ]
+        self.mock_elasticache.modify_replication_group.return_value = {}
+        self.mock_elasticache.delete_cache_parameter_group.return_value = {}
+        elasticache_utils.delete_cache_parameter_group(
+            self.session_mock,
+            new_cache_param_group_name,
+            test_elasticache_util.REPLICATION_GROUP_ID,
+            old_cache_param_group_name
+        )
+        self.mock_elasticache.describe_replication_groups.assert_called_once_with(
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID
+        )
+        self.mock_elasticache.describe_cache_clusters.assert_called_once_with(
+            CacheClusterId=test_elasticache_util.REPLICATION_GROUP_ID + '-001'
+        )
+        self.mock_elasticache.modify_replication_group.assert_called_once_with(
+            CacheParameterGroupName=old_cache_param_group_name,
+            ReplicationGroupId=test_elasticache_util.REPLICATION_GROUP_ID,
+            ApplyImmediately=True
+        )
+        self.mock_elasticache.delete_cache_parameter_group.assert_called_once_with(
+            CacheParameterGroupName=new_cache_param_group_name
+        )
