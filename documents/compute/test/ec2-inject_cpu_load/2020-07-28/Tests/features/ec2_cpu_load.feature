@@ -60,7 +60,6 @@ Feature: SSM automation document EC2 CPU stress testing
     Then Wait for the SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution is on step "TriggerRollback" in status "Success" for "240" seconds
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    And sleep for "240" seconds
 
     Then SSM automation document "Digito-SimulateHighCpuLoadInEc2_2020-07-28" execution in status "Cancelled"
       |ExecutionId               |
