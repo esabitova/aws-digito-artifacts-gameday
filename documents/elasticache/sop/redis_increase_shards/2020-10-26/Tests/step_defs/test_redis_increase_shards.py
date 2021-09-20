@@ -9,15 +9,15 @@ logger = logging.getLogger(__name__)
 
 
 @scenario('../features/redis_increase_shards_usual_case.feature',
-          'Execute SSM automation document Digito-RedisIncreaseShards_2020-10-26 without ReshardingConfiguration')
+          'Execute SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26 without ReshardingConfiguration')
 def test_redis_increase_shards_usual_case_empty_resharding_configuration():
-    """Execute SSM automation document Digito-RedisIncreaseShards_2020-10-26"""
+    """Execute SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26"""
 
 
 @scenario('../features/redis_increase_shards_usual_case.feature',
-          'Execute SSM automation document Digito-RedisIncreaseShards_2020-10-26 with ReshardingConfiguration')
+          'Execute SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26 with ReshardingConfiguration')
 def test_redis_increase_shards_usual_case_non_empty_resharding_configuration():
-    """Execute SSM automation document Digito-RedisIncreaseShards_2020-10-26"""
+    """Execute SSM automation document Digito-IncreaseRedisShardsSOP_2020-10-26"""
 
 
 @pytest.fixture(scope='function', autouse=True)

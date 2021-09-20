@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-RedisIncreaseReplicaCount_2020-10-26
+Description: Role for Digito-IncreaseRedisReplicaCountSOP_2020-10-26
 Outputs:
-  DigitoElasticacheRedisIncreaseReplicaCountAssumeRole:
-    Description: Digito-RedisIncreaseReplicaCount_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoElasticacheRedisIncreaseReplicaCountAssumeRole.Arn
+  DigitoIncreaseRedisReplicaCountSOPAssumeRole:
+    Description: Digito-IncreaseRedisReplicaCountSOP_2020-10-26 Automation Assume Role ARN
+    Value: !GetAtt DigitoIncreaseRedisReplicaCountSOPAssumeRole.Arn
 Resources:
-  DigitoElasticacheRedisIncreaseReplicaCountAssumeRole:
+  DigitoIncreaseRedisReplicaCountSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoElasticacheRedisIncreaseReplicaCountAssumePolicy:
+  DigitoIncreaseRedisReplicaCountSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoElasticacheRedisIncreaseReplicaCountAssumePolicy
+      PolicyName: DigitoIncreaseRedisReplicaCountSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -47,4 +47,4 @@ Resources:
               - elasticache:IncreaseReplicaCount
               - elasticache:DescribeReplicationGroups
       Roles:
-        - Ref: DigitoElasticacheRedisIncreaseReplicaCountAssumeRole
+        - Ref: DigitoIncreaseRedisReplicaCountSOPAssumeRole

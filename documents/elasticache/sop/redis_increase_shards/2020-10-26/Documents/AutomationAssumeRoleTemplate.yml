@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-RedisIncreaseShards_2020-10-26
+Description: Role for Digito-IncreaseRedisShardsSOP_2020-10-26
 Outputs:
-  DigitoElasticacheRedisIncreaseShardsAssumeRole:
-    Description: Digito-RedisIncreaseShards_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoElasticacheRedisIncreaseShardsAssumeRole.Arn
+  DigitoIncreaseRedisShardsSOPAssumeRole:
+    Description: Digito-IncreaseRedisShardsSOP_2020-10-26 Automation Assume Role ARN
+    Value: !GetAtt DigitoIncreaseRedisShardsSOPAssumeRole.Arn
 Resources:
-  DigitoElasticacheRedisIncreaseShardsAssumeRole:
+  DigitoIncreaseRedisShardsSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoElasticacheRedisIncreaseShardsAssumePolicy:
+  DigitoIncreaseRedisShardsSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoElasticacheRedisIncreaseShardsAssumePolicy
+      PolicyName: DigitoIncreaseRedisShardsSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -47,4 +47,4 @@ Resources:
               - elasticache:DescribeReplicationGroups
               - elasticache:ModifyReplicationGroupShardConfiguration
       Roles:
-        - Ref: DigitoElasticacheRedisIncreaseShardsAssumeRole
+        - Ref: DigitoIncreaseRedisShardsSOPAssumeRole
