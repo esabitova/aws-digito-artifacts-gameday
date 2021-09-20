@@ -934,8 +934,8 @@ def register_for_teardown_by_dynamic_fixture(request, resource_pool, teardown_fi
     :param input_parameters The input parameters
     :return: dict with populated keys and values for making teardown process
     """
-    params = extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
-                                               cfn_installed_alarms)
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
     teardown_fixture_dict = request.getfixturevalue(teardown_fixture_name)
     for param_name, value in params.items():
         teardown_fixture_dict[param_name] = value
