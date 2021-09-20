@@ -40,6 +40,3 @@ def execute_query(resource_pool, ssm_test_cache, boto3_session, input_parameters
     )
     query_execution_id = response['QueryExecutionId']
     wait_for_query_execution(query_execution_id, athena_client, 2, 60)
-
-
-
