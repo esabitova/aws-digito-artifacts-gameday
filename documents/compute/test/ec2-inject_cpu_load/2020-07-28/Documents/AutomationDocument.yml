@@ -33,7 +33,7 @@ parameters:
     description: (Optional) The duration - in seconds - of the CPU stress.
     allowedPattern: "^[0-9]+$"
     default: '300'
-  CPU:
+  Cpu:
     type: String
     description: (Optional) Specify the number of CPU stressors to use (default - 0 which means "all CPUs")
     default: "0"
@@ -82,7 +82,7 @@ mainSteps:
         - '{{InstanceId}}'
       Parameters:
         LoadPercent: '{{LoadPercent}}'
-        CPU: '{{CPU}}'
+        CPU: '{{Cpu}}'
         DurationSeconds: '{{DurationSeconds}}'
   - name: AssertAlarmTriggered
     action: 'aws:executeScript'
