@@ -23,7 +23,7 @@ Feature: SSM automation document Digito-ExceedRestApiGwQuotaTest_2020-09-21
     And Wait for the SSM automation document "Digito-ExceedRestApiGwQuotaTest_2020-09-21" execution is on step "SetQuotaConfiguration" in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And get API key and perform "24" https "GET" requests with interval "10" seconds
+    And get API key and perform "24" https "GET" requests with interval "20" seconds
     And SSM automation document "Digito-ExceedRestApiGwQuotaTest_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
