@@ -58,7 +58,7 @@ mainSteps:
           StringEquals: 'false'
       Default: GetPreviousExecutionInstanceId
   - name: AssertAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
+    action: aws:waitForAwsResourceProperty
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms

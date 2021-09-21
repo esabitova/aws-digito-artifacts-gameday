@@ -140,7 +140,7 @@ mainSteps:
         DBSnapshotIdentifier: '{{ResolveSnapshotId.SnapshotId}}'
   - name: WaitForNewDatabaseToBeAvailable
     action: 'aws:waitForAwsResourceProperty'
-    timeoutSeconds: 1800
+    timeoutSeconds: 3600
     inputs:
       Service: rds
       Api: DescribeDBInstances

@@ -62,8 +62,6 @@ mainSteps:
       Default: GetPreviousExecutionInstanceId
   - name: AssertAlarmToBeGreenBeforeTest
     action: aws:waitForAwsResourceProperty
-    maxAttempts: 1
-    timeoutSeconds: 300
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms

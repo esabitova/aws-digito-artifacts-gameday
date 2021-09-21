@@ -1,4 +1,4 @@
-@asg @cpu @stress @integration @asg_cpu_stress
+@asg @cpu @stress @integration @2020_07_28
 Feature: SSM automation document ASG CPU stress testing
   Exercise ASG instance CPU stress injection
 
@@ -33,7 +33,7 @@ Feature: SSM automation document ASG CPU stress testing
     And the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                                  |ResourceType|InstanceType          |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                    |   ON_DEMAND|{{cache:InstanceType}}|
-      |documents/compute/test/ec2-inject_cpu_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |
+      |documents/compute/test/asg-inject_cpu_load/2020-07-28/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE|                      |
     And published "Digito-SimulateHighCpuLoadInAsg_2020-07-28" SSM document
     And published "Digito-KillStressOnHealthyInstances_2020-07-28" SSM document
     And published "Digito-KillStressCommand_2020-07-28" SSM document

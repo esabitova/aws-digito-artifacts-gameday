@@ -1,13 +1,13 @@
 {
   "displayName": "Test - Inject CPU load to ASG",
   "description": "Test app performance under load.",
-  "documentName": "Digito-SimulateHighCpuLoadInAsg_2020-07-28",
+  "documentName": "Digito-SimulateHighCpuLoadInAsg_2021-09-22",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "dependsOn": "Digito-RunCpuStress_2020-07-28,Digito-KillStressCommand_2020-07-28",
-  "tag": "compute:test:asg-inject_cpu_load:2020-07-28",
+  "tag": "compute:test:asg-inject_cpu_load:2021-09-22",
   "failureType": "HARDWARE",
   "risk": "SMALL",
   "intent": "Test app performance under load.",
@@ -19,5 +19,5 @@
   "recommendedAlarms": {
       "CpuUtilizationAlarmName": "compute:alarm:asg-cpu-util:2020-07-13"
    },
-  "minorVersion": "003"
+  "minorVersion": "001"
 }
