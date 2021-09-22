@@ -13,13 +13,14 @@ def wait_for_crawler_running(glue_crawler_name, glue_client, delay_sec, wait_sec
     """
     iteration = 1
     elapsed = 0
+    previous_state = None
     while elapsed < wait_sec:
         start = time.time()
         response = glue_client.get_crawler(
             Name=glue_crawler_name
         )
         current_state = response['Crawler']['State']
-        previous_state = None
+
         if current_state != previous_state:
             logging.info(f'#{iteration}; Crawler {glue_crawler_name} is {current_state} '
                          f'Elapsed: {elapsed} sec;')

@@ -26,7 +26,7 @@ Outputs:
     Value: !Ref  S3CrawlerBucket
   S3OutputBucketName:
     Description: S3 bucket name where query results are stored
-    Value: !Ref  S3OutputBucket
+    Value: !Join [ "", [ "s3://" , Ref: S3OutputBucket, "/" ] ]
   GlueCrawlerName:
     Description: Glue Crawler name for creating table for Athena
     Value: !Ref  GlueCrawler
@@ -48,18 +48,19 @@ Resources:
     Type: 'AWS::Athena::WorkGroup'
     Properties:
       Description: Test WorkGroup for Athena
-      Name: !Join
-        - "-"
-        - - "digito-athena-workgroup"
-          - !Select
-            - 0
-            - !Split
-              - "-"
-              - !Select
-                - 2
-                - !Split
-                  - "/"
-                  - !Ref "AWS::StackId"
+      Name: "digito-athena-workgroup"
+#      !Join
+#        - "-"
+#        - - "digito-athena-workgroup"
+#          - !Select
+#            - 0
+#            - !Split
+#              - "-"
+#              - !Select
+#                - 2
+#                - !Split
+#                  - "/"
+#                  - !Ref "AWS::StackId"
       RecursiveDeleteOption: true
       WorkGroupConfiguration:
         PublishCloudWatchMetricsEnabled: true
@@ -87,7 +88,6 @@ Resources:
       SchemaChangePolicy:
         UpdateBehavior: "UPDATE_IN_DATABASE"
         DeleteBehavior: "LOG"
-      TablePrefix: 'athena_test_table_'
       Targets:
         S3Targets:
           - Path: !Sub "${S3CrawlerBucket}/"
