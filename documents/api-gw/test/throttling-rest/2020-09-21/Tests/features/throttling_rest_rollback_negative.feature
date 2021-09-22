@@ -39,7 +39,7 @@ Feature: SSM automation document Digito-TriggerRestApiGwThrottlingTest_2020-09-2
     And SSM automation document "Digito-TriggerRestApiGwThrottlingTest_2020-09-21" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And sleep for "15" seconds
+    And sleep for "60" seconds
     And cache usage plan rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
 
     Then assert "RateLimit" at "before" became equal to "RateLimit" at "after"
@@ -87,7 +87,7 @@ Feature: SSM automation document Digito-TriggerRestApiGwThrottlingTest_2020-09-2
     And SSM automation document "Digito-TriggerRestApiGwThrottlingTest_2020-09-21" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And sleep for "15" seconds
+    And sleep for "60" seconds
     And cache usage plan rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
 
     Then assert "RateLimit" at "before" became equal to "RateLimit" at "after"
@@ -134,7 +134,7 @@ Feature: SSM automation document Digito-TriggerRestApiGwThrottlingTest_2020-09-2
     And SSM automation document "Digito-TriggerRestApiGwThrottlingTest_2020-09-21" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And sleep for "15" seconds
+    And sleep for "60" seconds
     And cache usage plan rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
 
     Then assert "RateLimit" at "before" became equal to "RateLimit" at "after"
