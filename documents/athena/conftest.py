@@ -16,7 +16,7 @@ def run_crawler(resource_pool, ssm_test_cache, boto3_session, input_parameters):
     glue_client.start_crawler(
         Name=glue_crawler_name
     )
-    wait_for_crawler_running(glue_crawler_name, glue_client, 20, 300)
+    wait_for_crawler_running(glue_crawler_name, boto3_session, 20, 300)
 
 
 @when(parsers.parse('execute DML query\n{input_parameters}'))
@@ -40,4 +40,4 @@ def execute_query(resource_pool, ssm_test_cache, boto3_session, input_parameters
         WorkGroup=workgroup_name
     )
     query_execution_id = response['QueryExecutionId']
-    wait_for_query_execution(query_execution_id, athena_client, 2, 60)
+    wait_for_query_execution(query_execution_id, boto3_session, 2, 60)

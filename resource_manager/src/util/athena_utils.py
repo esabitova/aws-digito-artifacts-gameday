@@ -1,8 +1,11 @@
 import logging
 import time
 
+from resource_manager.src.util.boto3_client_factory import client
 
-def wait_for_query_execution(query_execution_id, athena_client, delay_sec, wait_sec):
+
+def wait_for_query_execution(query_execution_id, boto3_session, delay_sec, wait_sec):
+    athena_client = client('athena', boto3_session)
     iteration = 1
     elapsed = 0
     previous_state = None

@@ -1,8 +1,10 @@
 import logging
 import time
 
+from .boto3_client_factory import client
 
-def wait_for_crawler_running(glue_crawler_name, glue_client, delay_sec, wait_sec):
+
+def wait_for_crawler_running(glue_crawler_name, boto3_session, delay_sec, wait_sec):
     """
 
     :param glue_crawler_name:
@@ -11,6 +13,7 @@ def wait_for_crawler_running(glue_crawler_name, glue_client, delay_sec, wait_sec
     :param wait_sec:
     :return:
     """
+    glue_client = client('glue', boto3_session)
     iteration = 1
     elapsed = 0
     previous_state = None
