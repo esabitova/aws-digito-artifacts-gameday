@@ -75,13 +75,12 @@ Resources:
       CatalogId: !Ref 'AWS::AccountId'
       DatabaseInput:
         Description: Test database for Athena service
-        Name: "athena-test-database"
+
 
   GlueCrawler:
     Type: AWS::Glue::Crawler
     Properties:
-      Name: "digito-glue-crawler"
-      Description: AWS Glue crawler to crawl flights data
+      Description: AWS Glue crawler to crawl input data
       DatabaseName: !Ref GlueDataBase
       Role: !GetAtt GlueRole.Arn
       SchemaChangePolicy:
