@@ -33,3 +33,5 @@ def wait_for_query_execution(query_execution_id, boto3_session, delay_sec, wait_
         end = time.time()
         elapsed += (end - start)
         iteration += 1
+
+    raise AssertionError(f'After {wait_sec} seconds the query execution is in {current_state} state')

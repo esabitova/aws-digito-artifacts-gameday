@@ -46,6 +46,7 @@ class TestGlueUtil(unittest.TestCase):
 
     def test_wait_for_crawler_running_running_state(self):
         self.mock_glue_service.get_crawler.return_value = GET_CRAWLER_RESPONSE_RUNNING
-        glue_utils.wait_for_crawler_running(GLUE_CRAWLER_NAME, self.session_mock, DELAY_SEC, WAIT_SEC)
+        with pytest.raises(Exception) as exception_info:
+            glue_utils.wait_for_crawler_running(GLUE_CRAWLER_NAME, self.session_mock, DELAY_SEC, WAIT_SEC)
         self.mock_glue_service.get_crawler.assert_called_with(Name=GLUE_CRAWLER_NAME)
-        self.assertEqual(5, self.mock_glue_service.get_crawler.call_count)
+        self.assertTrue(exception_info.match('After 0.5 seconds the query execution is in RUNNING state'))

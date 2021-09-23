@@ -33,3 +33,5 @@ def wait_for_crawler_running(glue_crawler_name, boto3_session, delay_sec, wait_s
         end = time.time()
         elapsed += (end - start)
         iteration += 1
+
+    raise AssertionError(f'After {wait_sec} seconds the query execution is in {current_state} state')
