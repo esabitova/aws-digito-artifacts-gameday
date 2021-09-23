@@ -48,19 +48,18 @@ Resources:
     Type: 'AWS::Athena::WorkGroup'
     Properties:
       Description: Test WorkGroup for Athena
-      Name: "digito-athena-workgroup"
-#      !Join
-#        - "-"
-#        - - "digito-athena-workgroup"
-#          - !Select
-#            - 0
-#            - !Split
-#              - "-"
-#              - !Select
-#                - 2
-#                - !Split
-#                  - "/"
-#                  - !Ref "AWS::StackId"
+      Name: !Join
+        - "-"
+        - - "digito-athena-workgroup"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
       RecursiveDeleteOption: true
       WorkGroupConfiguration:
         PublishCloudWatchMetricsEnabled: true
@@ -111,26 +110,17 @@ Resources:
             Version: "2012-10-17"
             Statement:
               - Effect: "Allow"
-                Action: "*"
-#                  - glue:SearchTables
-#                  - glue:GetDatabase
-#                  - glue:DeleteDatabase
-#                  - glue:CreateTable
-#                  - glue:CreateDatabase
-#                  - glue:DeleteTable
-#                  - glue:GetTable
-#                Resource:
-#                  - arn:aws:glue:*:*:table/*/*
-#                  - arn:aws:glue:*:*:database/*
-#                  - arn:aws:glue:*:*:catalog
-#              - Effect: "Allow"
-#                Action:
-#                  - glue:GetCrawler
-#                  - glue:DeleteCrawler
-#                  - glue:StartCrawler
-#                  - glue:ListCrawlers
-#                  - glue:CreateCrawler
+                Action:
+                  - glue:*
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:GetBucketAcl
+                  - iam:ListRolePolicies
+                  - iam:GetRole
+                  - iam:GetRolePolicy
                 Resource: "*"
+
 
   S3OutputBucket:
     Type: AWS::S3::Bucket
@@ -159,6 +149,8 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
       BucketName: !Join
         - "-"
         - - "s3-athena-input-bucket"

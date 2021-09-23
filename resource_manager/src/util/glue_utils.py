@@ -6,11 +6,11 @@ from .boto3_client_factory import client
 
 def wait_for_crawler_running(glue_crawler_name, boto3_session, delay_sec, wait_sec):
     """
-
-    :param glue_crawler_name:
-    :param glue_client:
-    :param delay_sec:
-    :param wait_sec:
+    Waiter for Crawler running. Checks the state of the Crawler
+    :param boto3_session: boto3 session
+    :param glue_crawler_name: name of the Crawler
+    :param delay_sec: the delay in seconds between pulling attempts of crawler status
+    :param wait_sec: timeout in seconds on waiting for running completion
     :return:
     """
     glue_client = client('glue', boto3_session)

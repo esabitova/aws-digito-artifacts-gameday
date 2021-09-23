@@ -5,6 +5,14 @@ from resource_manager.src.util.boto3_client_factory import client
 
 
 def wait_for_query_execution(query_execution_id, boto3_session, delay_sec, wait_sec):
+    """
+    Waiter for Query execution. Checks the state of the execution
+    :param query_execution_id: Id of the query execution
+    :param boto3_session: boto3 session
+    :param delay_sec: the delay in seconds between pulling attempts of execution status
+    :param wait_sec: timeout in seconds on waiting for execution completion
+    :return:
+    """
     athena_client = client('athena', boto3_session)
     iteration = 1
     elapsed = 0

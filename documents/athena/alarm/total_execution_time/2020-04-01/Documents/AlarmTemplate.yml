@@ -11,7 +11,7 @@ Resources:
         - Ref: SNSTopicARN
       AlarmDescription: 'Digito alarm for Athena that measures the query execution time, is exceeding specified ${Threshold} limit'
       AlarmName: ${AlarmName}
-      ComparisonOperator: LessThanThreshold
+      ComparisonOperator: GreaterThanThreshold
       EvaluationPeriods: ${EvaluationPeriods}
       DatapointsToAlarm: ${DatapointsToAlarm}
       Dimensions:

@@ -5,7 +5,7 @@ Parameters:
     Type: String
 Resources:
   ${AlarmLogicalId}:
-  Type: AWS::CloudWatch::Alarm
+    Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmActions:
           - Ref: SNSTopicARN
@@ -16,7 +16,9 @@ Resources:
       DatapointsToAlarm: ${DatapointsToAlarm}
       Dimensions:
         - Name: WorkGroup
-          Value: ${AthenaWorkGroupName}
+          Value: '${AthenaWorkGroupName}'
+        - Name: QueryState
+          Value: FAILED
         - Name: QueryType
           Value: DML
       Namespace: AWS/Athena
