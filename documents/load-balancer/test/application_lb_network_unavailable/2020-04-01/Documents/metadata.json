@@ -10,5 +10,5 @@
   "minorVersion": "001",
   "risk": "MEDIUM",
   "tag": "load-balancer:test:application_lb_network_unavailable:2020-04-01",
-  "enabled": "false"
+  "enabled": "true"
 }

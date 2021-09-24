@@ -10,5 +10,5 @@
   "minorVersion": "001",
   "risk": "HIGH",
   "tag": "load-balancer:test:network_gw_lb_target_unavailable:2020-04-01",
-  "enabled": "false"
+  "enabled": "true"
 }
