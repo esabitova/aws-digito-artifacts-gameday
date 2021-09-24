@@ -1,0 +1,29 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
+Resources:
+  ${AlarmLogicalId}:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmActions:
+          - Ref: SNSTopicARN
+      AlarmDescription: 'Digito alarm for Athena that measures the query execution time, when the query is in FAILED state, is exceeding specified ${Threshold} limit'
+      AlarmName: ${AlarmName}
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
+      Dimensions:
+        - Name: WorkGroup
+          Value: '${AthenaWorkGroupName}'
+        - Name: QueryState
+          Value: FAILED
+        - Name: QueryType
+          Value: DML
+      Namespace: AWS/Athena
+      MetricName: TotalExecutionTime
+      Period: 60
+      Statistic: Maximum
+      Threshold: ${Threshold}
+      TreatMissingData: missing

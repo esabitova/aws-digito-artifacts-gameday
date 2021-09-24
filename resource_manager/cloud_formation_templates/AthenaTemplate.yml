@@ -1,0 +1,173 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Test stack for Athena and related resources
+Outputs:
+  AthenaWorkGroupName:
+    Description: Athena WorkGroup name
+    Value: !Ref  AthenaWorkGroup
+  S3CrawlerBucketName:
+    Description: S3 bucket name for uploading csv files for crawler
+    Value: !Ref  S3CrawlerBucket
+  GlueCrawlerName:
+    Description: Glue Crawler name for creating table for Athena
+    Value: !Ref  GlueCrawler
+  GlueDataBaseName:
+    Description: Glue Database name for query execution
+    Value: !Ref  GlueDataBase
+
+Parameters:
+  CleanupS3BucketLambdaArn:
+    Description: ARN of Cleanup S3 Bucket Lambda Function
+    Type: String
+  KmsKey:
+    Type: String
+    Description: KMS encryption Key Arn
+    Default: ""
+
+Resources:
+  AthenaWorkGroup:
+    Type: 'AWS::Athena::WorkGroup'
+    Properties:
+      Description: Test WorkGroup for Athena
+      Name: !Join
+        - "-"
+        - - "digito-athena-workgroup"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+      RecursiveDeleteOption: true
+      WorkGroupConfiguration:
+        PublishCloudWatchMetricsEnabled: true
+        ResultConfiguration:
+          EncryptionConfiguration:
+            EncryptionOption: "SSE_KMS"
+            KmsKey: !Sub '${KmsKey}'
+          OutputLocation: !Join [ "", [ "s3://" , Ref: S3OutputBucket, "/" ] ]
+
+  GlueDataBase:
+    Type: 'AWS::Glue::Database'
+    Properties:
+      CatalogId: !Ref 'AWS::AccountId'
+      DatabaseInput:
+        Description: Test database for Athena service
+
+
+  GlueCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Description: AWS Glue crawler to crawl input data
+      DatabaseName: !Ref GlueDataBase
+      Role: !GetAtt GlueRole.Arn
+      SchemaChangePolicy:
+        UpdateBehavior: "UPDATE_IN_DATABASE"
+        DeleteBehavior: "LOG"
+      Targets:
+        S3Targets:
+          - Path: !Sub "${S3CrawlerBucket}/"
+
+  GlueRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "glue.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      Path: "/"
+      Policies:
+        - PolicyName: "root"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - glue:GetDatabase
+                  - glue:GetCrawler
+                  - glue:CreateTable
+                  - glue:StartCrawler
+                  - glue:CreateDatabase
+                  - glue:GetTable
+                  - glue:CreateCrawler
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:GetBucketAcl
+                Resource: "*"
+
+
+  S3OutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      BucketName: !Join
+        - "-"
+        - - "s3-athena-output-bucket"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+
+  S3CrawlerBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      VersioningConfiguration:
+        Status: Enabled
+      BucketName: !Join
+        - "-"
+        - - "s3-athena-input-bucket"
+          - !Select
+            - 0
+            - !Split
+              - "-"
+              - !Select
+                - 2
+                - !Split
+                  - "/"
+                  - !Ref "AWS::StackId"
+
+  # To clean S3 buckets before deleting stack.
+  CleanupS3BucketsOnDelete:
+    Type: Custom::CleanupS3BucketsOnDelete
+    Properties:
+      ServiceToken: !Ref CleanupS3BucketLambdaArn
+      BucketNames:
+        - !Ref S3OutputBucket
+        - !Ref S3CrawlerBucket

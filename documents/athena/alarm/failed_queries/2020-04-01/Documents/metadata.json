@@ -1,0 +1,11 @@
+{
+  "displayName": "Athena Total Execution QueryState Failed alarm for TotalExecutionTime metric for DML queries",
+  "description": "Digito alarm for Athena that indicates if the query execution has failed, is exceeding specified threshold limit",
+  "alarmName": "Digito-athena:alarm:failed_queries:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "athena:alarm:failed_queries:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}
