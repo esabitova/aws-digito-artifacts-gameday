@@ -12,8 +12,8 @@ Feature: Alarm Setup - TotalExecutionTime_QueryState_Failed
       | alarmId    | AthenaWorkGroupName                               | SNSTopicARN                       | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:AthenaTemplate>AthenaWorkGroupName}} | {{cfn-output:SnsForAlarms>Topic}} | 2         | 1                 | 1                 |
     And execute DML query with FAILED state
-      | Database                                       | BucketName                                       | AthenaWorkGroupName                               |
-      | {{cfn-output:AthenaTemplate>GlueDataBaseName}} | {{cfn-output:AthenaTemplate>S3OutputBucketName}} | {{cfn-output:AthenaTemplate>AthenaWorkGroupName}} |
+      | Database                                       | AthenaWorkGroupName                               |
+      | {{cfn-output:AthenaTemplate>GlueDataBaseName}} | {{cfn-output:AthenaTemplate>AthenaWorkGroupName}} |
     Then assert metrics for all alarms are populated
     And Wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
 
@@ -28,7 +28,7 @@ Feature: Alarm Setup - TotalExecutionTime_QueryState_Failed
       | alarmId    | AthenaWorkGroupName                               | SNSTopicARN                       | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:AthenaTemplate>AthenaWorkGroupName}} | {{cfn-output:SnsForAlarms>Topic}} | 0         | 1                 | 1                 |
     And execute DML query with FAILED state
-      | Database                                       | BucketName                                       | AthenaWorkGroupName                               |
-      | {{cfn-output:AthenaTemplate>GlueDataBaseName}} | {{cfn-output:AthenaTemplate>S3OutputBucketName}} | {{cfn-output:AthenaTemplate>AthenaWorkGroupName}} |
+      | Database                                       | AthenaWorkGroupName                               |
+      | {{cfn-output:AthenaTemplate>GlueDataBaseName}} | {{cfn-output:AthenaTemplate>AthenaWorkGroupName}} |
     Then assert metrics for all alarms are populated
     And Wait until alarm {{alarm:under_test>AlarmName}} becomes ALARM within 180 seconds, check every 15 seconds

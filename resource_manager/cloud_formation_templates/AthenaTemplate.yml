@@ -24,9 +24,6 @@ Outputs:
   S3CrawlerBucketName:
     Description: S3 bucket name for uploading csv files for crawler
     Value: !Ref  S3CrawlerBucket
-  S3OutputBucketName:
-    Description: S3 bucket name where query results are stored
-    Value: !Join [ "", [ "s3://" , Ref: S3OutputBucket, "/" ] ]
   GlueCrawlerName:
     Description: Glue Crawler name for creating table for Athena
     Value: !Ref  GlueCrawler
@@ -110,14 +107,17 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action:
-                  - glue:*
+                  - glue:GetDatabase
+                  - glue:GetCrawler
+                  - glue:CreateTable
+                  - glue:StartCrawler
+                  - glue:CreateDatabase
+                  - glue:GetTable
+                  - glue:CreateCrawler
                   - s3:GetBucketLocation
                   - s3:ListBucket
                   - s3:GetObject
                   - s3:GetBucketAcl
-                  - iam:ListRolePolicies
-                  - iam:GetRole
-                  - iam:GetRolePolicy
                 Resource: "*"
 
 

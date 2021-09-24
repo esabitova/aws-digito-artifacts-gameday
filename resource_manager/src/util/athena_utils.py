@@ -4,9 +4,10 @@ import time
 from resource_manager.src.util.boto3_client_factory import client
 
 
-def wait_for_query_execution(query_execution_id, boto3_session, delay_sec, wait_sec):
+def wait_for_query_execution(query_execution_id, boto3_session, delay_sec, wait_sec, expected_query_state):
     """
     Waiter for Query execution. Checks the state of the execution
+    :param expected_query_state: expected query execution state: SUCCEEDED or FAILED
     :param query_execution_id: Id of the query execution
     :param boto3_session: boto3 session
     :param delay_sec: the delay in seconds between pulling attempts of execution status
@@ -27,7 +28,7 @@ def wait_for_query_execution(query_execution_id, boto3_session, delay_sec, wait_
         if current_state != previous_state:
             logging.info(f'#{iteration}; Query execution is {current_state} '
                          f'Elapsed: {elapsed} sec;')
-        if current_state == 'SUCCEEDED' or current_state == 'FAILED' or current_state == 'CANCELLED':
+        if current_state == expected_query_state:
             return
         time.sleep(delay_sec)
         end = time.time()

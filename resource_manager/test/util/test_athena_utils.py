@@ -9,6 +9,9 @@ from resource_manager.src.util import athena_utils
 QUERY_EXECUTION_ID = "some execution id"
 DELAY_SEC = 0.10
 WAIT_SEC = 0.5
+EXPECTED_QUERY_STATE_SUCCEEDED = "SUCCEEDED"
+EXPECTED_QUERY_STATE_FAILED = "FAILED"
+
 GET_QUERY_EXECUTION_RESPONSE_SUCCEEDED = {
     'QueryExecution': {
         'QueryExecutionId': "some execution id",
@@ -62,26 +65,30 @@ class TestGlueUtil(unittest.TestCase):
 
     def test_wait_for_crawler_running_succeeded_state(self):
         self.mock_athena_service.get_query_execution.return_value = GET_QUERY_EXECUTION_RESPONSE_SUCCEEDED
-        athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC)
+        athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC,
+                                              EXPECTED_QUERY_STATE_SUCCEEDED)
         self.mock_athena_service.get_query_execution.assert_called_once_with(QueryExecutionId=QUERY_EXECUTION_ID)
         self.assertEqual(1, self.mock_athena_service.get_query_execution.call_count)
 
     def test_wait_for_crawler_running_failed_state(self):
         self.mock_athena_service.get_query_execution.return_value = GET_QUERY_EXECUTION_RESPONSE_FAILED
-        athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC)
+        athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC,
+                                              EXPECTED_QUERY_STATE_FAILED)
         self.mock_athena_service.get_query_execution.assert_called_once_with(QueryExecutionId=QUERY_EXECUTION_ID)
         self.assertEqual(1, self.mock_athena_service.get_query_execution.call_count)
 
     def test_wait_for_crawler_running_queued_state(self):
         self.mock_athena_service.get_query_execution.return_value = GET_QUERY_EXECUTION_RESPONSE_QUEUED
         with pytest.raises(Exception) as exception_info:
-            athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC)
+            athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC,
+                                                  EXPECTED_QUERY_STATE_FAILED)
         self.mock_athena_service.get_query_execution.assert_called_with(QueryExecutionId=QUERY_EXECUTION_ID)
         self.assertTrue(exception_info.match('After 0.5 seconds the query execution is in QUEUED state'))
 
     def test_wait_for_crawler_running_running_state(self):
         self.mock_athena_service.get_query_execution.return_value = GET_QUERY_EXECUTION_RESPONSE_RUNNING
         with pytest.raises(Exception) as exception_info:
-            athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC)
+            athena_utils.wait_for_query_execution(QUERY_EXECUTION_ID, self.session_mock, DELAY_SEC, WAIT_SEC,
+                                                  EXPECTED_QUERY_STATE_SUCCEEDED)
         self.mock_athena_service.get_query_execution.assert_called_with(QueryExecutionId=QUERY_EXECUTION_ID)
         self.assertTrue(exception_info.match('After 0.5 seconds the query execution is in RUNNING state'))
