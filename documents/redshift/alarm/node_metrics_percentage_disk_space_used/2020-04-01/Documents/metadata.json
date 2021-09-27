@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon Redshift alarm for PercentageDiskSpaceUsed metric",
+  "description": "Alarm by Digito for Amazon Redshift, that reports disk space used at the cluster level, is equal to or greater than the specified threshold.",
+  "alarmName": "Digito-PercentageDiskSpaceUsed_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "redshift:alarm:node_metrics_percentage_disk_space_used:2020-04-01",
+  "failureType": "HARDWARE",
+  "minorVersion": "001"
+}

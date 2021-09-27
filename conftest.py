@@ -1,8 +1,12 @@
 import hashlib
 import logging
+import os.path
 import random
 import re
+import shutil
 import string
+import subprocess
+import sys
 import time
 import unittest
 import uuid
@@ -355,6 +359,69 @@ def set_up_cfn_template_resources(resource_pool, cfn_templates):
     :param cfn_templates: The table of parameters as input for cloud formation template
     """
     resource_pool.add_cfn_templates(cfn_templates)
+
+
+@given(parse('install dependencies from requirement file, '
+             'build Lambda distribution package, and save package path to "{cache_property}" cache property'
+             '\n{input_parameters_table}'))
+@when(parse('install dependencies from requirement file, '
+            'build Lambda distribution package, and save package path to "{cache_property}" cache property'
+            '\n{input_parameters_table}'))
+@then(parse('install dependencies from requirement file, '
+            'build Lambda distribution package, and save package path to "{cache_property}" cache property'
+            '\n{input_parameters_table}'))
+def create_package_with_dependencies(cache_property, input_parameters_table, ssm_test_cache):
+    """
+    Common step to create package for lambda with dependencies in zip archive format
+    :param cache_property: The cache property when package path will be saved
+    :param input_parameters_table: The table from cucumber scenario with params
+    RequirementsFileRelationalPath, DirectoryWithCodePath
+    :param ssm_test_cache: The custom test cache
+    :return: None
+    """
+    input_params = {name: val for name, val in
+                    parse_str_table(input_parameters_table).rows[0].items()}
+    requirements_file = os.path.abspath(input_params['RequirementsFileRelationalPath'])
+
+    # get full and relative path's for directories
+    src_dir = os.path.abspath(input_params['DirectoryWithCodeRelationalPath'])
+    tmp_dir = f'{os.path.abspath(".")}/.lambda_package_tmp-{uuid.uuid4().hex}'
+    lambda_package_tmp_path = f"{os.path.abspath(tmp_dir)}/lambda_function"
+    lambda_package_filename = f"lambda_function-{uuid.uuid4().hex}.zip"
+    package_directory_relative_path = os.path.normpath(input_params['DirectoryWithCodeRelationalPath'])
+    lambda_package_relative_path = f"{package_directory_relative_path}/../{lambda_package_filename}"
+    lambda_package_path = f"{src_dir}/../{lambda_package_filename}"
+
+    # create temporary directory with default permissions
+    octal_permissions = 0o755
+    os.mkdir(tmp_dir, octal_permissions)
+    logging.info(f"Created temporary directory '{tmp_dir}'")
+    # install dependencies using pip
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-t', tmp_dir, '-r', requirements_file, '--upgrade'])
+    logging.info(f"Packages from '{requirements_file}' were installed.")
+
+    # copy source code to temporary directory ignoring __pycache__
+    for item in os.listdir(src_dir):
+        if item == '__pycache__':
+            pass
+        # check that item is a file
+        elif os.path.isfile(f'{src_dir}/{item}'):
+            shutil.copy2(f'{src_dir}/{item}', f'{tmp_dir}/{item}')
+        # check that item is a directory
+        elif os.path.isdir(f'{src_dir}/{item}'):
+            shutil.copytree(f'{src_dir}/{item}', f'{tmp_dir}/{item}', copy_function=shutil.copy2)
+        else:
+            raise Exception(f"{src_dir}/{item} is not a directory or file")
+    # create .zip package
+    shutil.make_archive(lambda_package_tmp_path, 'zip', tmp_dir)
+    # move artifact from tmp dir
+    shutil.copy2(f'{lambda_package_tmp_path}.zip', lambda_package_path)
+    logging.info(f"The following content added into package: '{str(os.listdir(tmp_dir))}'")
+    # delete temporary directory
+    shutil.rmtree(tmp_dir)
+    # cache relative path
+    ssm_test_cache[cache_property] = lambda_package_relative_path
+    logging.info(f"Cached ssm_test_cache[{cache_property}]: '{lambda_package_relative_path}'")
 
 
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
@@ -797,7 +864,7 @@ def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path
     :param s3_key_ref: future s3 key where the file will be saved
     :param s3_bucket_name_prefix_ref: s3 bucket name where the file will be saved
     :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
-    :return:
+    :return: None
     """
     file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
     s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})

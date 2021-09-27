@@ -8,7 +8,7 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito that AWS Redshift Cluster have no schemas with quotas used more then ${Threshold} percent."
+      AlarmDescription: "Alarm by Digito for Amazon Redshift, that reports disk or storage space used relative to the configured schema quota, is equal to or greater than the specified ${Threshold}."
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: PercentageQuotaUsed

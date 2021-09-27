@@ -8,15 +8,15 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito for Amazon Redshift, that indicates number of schemas with exceeded quotas for the cluster ${ClusterName}."
+      AlarmDescription: "Alarm by Digito for Amazon Redshift, that reports disk space used at the cluster level, is equal to or greater than the specified ${Threshold}."
       AlarmActions:
         - Ref: SNSTopicARN
-      MetricName: NumExceededSchemaQuotas
+      MetricName: PercentageDiskSpaceUsed
       Namespace: AWS/Redshift
       Dimensions:
         - Name: ClusterIdentifier
           Value: '${ClusterName}'
-      Period: 300
+      Period: 60
       Statistic: Maximum
       Threshold: ${Threshold}
       EvaluationPeriods: ${EvaluationPeriods}

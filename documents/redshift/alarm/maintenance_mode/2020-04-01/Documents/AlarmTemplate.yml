@@ -8,7 +8,7 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito that AWS Redshift Cluster is in maintenance mode."
+      AlarmDescription: "Alarm by Digito for Amazon Redshift, that indicates whether the cluster ${ClusterName} is in maintenance mode."
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: MaintenanceMode

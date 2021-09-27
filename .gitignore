@@ -29,5 +29,6 @@ deps.json
 exec-vars.env
 package/
 .gradle/
+.lambda_package_tmp-*/
 aws_digito_artifacts_gameday/input/input-overrides-sop.json
 aws_digito_artifacts_gameday/input/input-overrides-test.json

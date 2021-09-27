@@ -8,15 +8,17 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito for Amazon Redshift, that indicates number of schemas with exceeded quotas for the cluster ${ClusterName}."
+      AlarmDescription: "Alarm by Digito for Amazon Redshift, that reports CPU utilization at node level of the cluster, is equal to or greater than the specified ${Threshold}."
       AlarmActions:
         - Ref: SNSTopicARN
-      MetricName: NumExceededSchemaQuotas
+      MetricName: CPUUtilization
       Namespace: AWS/Redshift
       Dimensions:
         - Name: ClusterIdentifier
           Value: '${ClusterName}'
-      Period: 300
+        - Name: NodeID
+          Value: '${NodeID}'
+      Period: 60
       Statistic: Maximum
       Threshold: ${Threshold}
       EvaluationPeriods: ${EvaluationPeriods}

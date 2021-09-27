@@ -1,6 +1,6 @@
 @redshift @integration @alarm
-Feature: Alarm Setup - Amazon Redshift Cluster_maintenance_mode
-  Scenario: Create redshift:alarm:maintenance_mode:2020-04-01 based on MaintenanceMode metric and check OK status
+Feature: Alarm Setup - Amazon Redshift Cluster_node_cpu_utilization
+  Scenario: Create redshift:alarm:node_metrics_cpu_utilization:2020-04-01 based on CPUUtilization metric and check OK status.
     Given install dependencies from requirement file, build Lambda distribution package, and save package path to "RedshiftLambdaPackagePath" cache property
       | RequirementsFileRelationalPath                                                                                    | DirectoryWithCodeRelationalPath                                                                  |
       | resource_manager/cloud_formation_templates/lambda_dependencies/redshift/redshift_performance/src/requirements.txt | resource_manager/cloud_formation_templates/lambda_dependencies/redshift/redshift_performance/src |
@@ -14,8 +14,8 @@ Feature: Alarm Setup - Amazon Redshift Cluster_maintenance_mode
       | resource_manager/cloud_formation_templates/shared/VPC.yml          | SHARED       |                                     |                          |                                    |                                    |                                      |                                      |                                                     |                                                  |                                                            |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml | SHARED       |                                     |                          |                                    |                                    |                                      |                                      |                                                     |                                                  |                                                            |
       | resource_manager/cloud_formation_templates/RedshiftTemplate.yml    | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PublicSubnetOne}} | {{cfn-output:VPC>PublicSubnetTwo}} | {{cfn-output:VPC>PublicSubnet1Cidr}} | {{cfn-output:VPC>PublicSubnet2Cidr}} | {{cache:RedshiftPerformanceLambdaPackage>S3Bucket}} | {{cache:RedshiftPerformanceLambdaPackage>S3Key}} | {{cache:RedshiftPerformanceLambdaPackage>S3ObjectVersion}} |
-    When alarm "redshift:alarm:maintenance_mode:2020-04-01" is installed
-      | alarmId    | ClusterName                                 | Threshold | EvaluationPeriods | DatapointsToAlarm | SNSTopicARN                       |
-      | under_test | {{cfn-output:RedshiftTemplate>ClusterName}} | 0         | 1                 | 1                 | {{cfn-output:SnsForAlarms>Topic}} |
+    When alarm "redshift:alarm:node_metrics_cpu_utilization:2020-04-01" is installed
+      | alarmId    | ClusterName                                 | NodeID    | Threshold | EvaluationPeriods | DatapointsToAlarm | SNSTopicARN                       |
+      | under_test | {{cfn-output:RedshiftTemplate>ClusterName}} | Compute-0 | 80        | 1                 | 1                 | {{cfn-output:SnsForAlarms>Topic}} |
     Then assert metrics for all alarms are populated
-    And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 180 seconds, check every 15 seconds
+    And wait until alarm {{alarm:under_test>AlarmName}} becomes OK within 300 seconds, check every 15 seconds
