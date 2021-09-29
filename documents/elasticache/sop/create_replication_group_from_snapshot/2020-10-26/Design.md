@@ -78,25 +78,29 @@ No.
         * Create a new elasticache replication group from an existing snapshot.
 
 1. `VerifyReplicationGroupStatusAfterCreateReplicationGroupFromSnapshot`
-   * Type: aws:waitForAwsResourceProperty
-   * Inputs:
-      * `Service`: elasticache
-      * `Api`: DescribeReplicationGroups
-      * `ReplicationGroupId`: pass TargetReplicationGroupId parameter
-      * `PropertySelector`: use the $.ReplicationGroups[0].Status selector
-      * `DesiredValues`: needs to be in available status
-   * Explanation:
-      * Wait for the elasticache new replication group to be in available [describe_replication_groups](https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_DescribeReplicationGroups.html) method
-      * Use the shared SSM Document as the step to avoid duplicates.
+    * Type: aws:waitForAwsResourceProperty
+    * Inputs:
+        * `Service`: elasticache
+        * `Api`: DescribeReplicationGroups
+        * `ReplicationGroupId`: pass TargetReplicationGroupId parameter
+        * `PropertySelector`: use the $.ReplicationGroups[0].Status selector
+        * `DesiredValues`: needs to be in available status
+    * Explanation:
+        * Wait for the elasticache new replication group to be in
+          available [describe_replication_groups](https://docs.aws.amazon.com/AmazonElastiCache/latest/APIReference/API_DescribeReplicationGroups.html)
+          method
+        * Use the shared SSM Document as the step to avoid duplicates.
 
 1. `OutputRecoveryTime`
-   * Type: aws:executeScript
-   * Inputs:
-      * `StartStepTime`: pass `StartStepTime` value from the `RecordStartTime` step
-   * Outputs:
-      * `RecoveryTime`: The time difference between the first step and last step for to create replication group from snapshot
-   * Explanation:
-      * Calculate the time difference it takes to perform the elasticache replication group  create replication group from snapshot
+    * Type: aws:executeScript
+    * Inputs:
+        * `StartStepTime`: pass `StartStepTime` value from the `RecordStartTime` step
+    * Outputs:
+        * `RecoveryTime`: The time difference between the first step and last step for to create replication group from
+          snapshot
+    * Explanation:
+        * Calculate the time difference it takes to perform the elasticache replication group create replication group
+          from snapshot
 
 ## Outputs
 

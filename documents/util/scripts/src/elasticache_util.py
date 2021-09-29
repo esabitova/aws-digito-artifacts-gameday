@@ -1,8 +1,12 @@
+import json
 import logging
 import time
+from distutils.version import LooseVersion
 
 import boto3
-from distutils.version import LooseVersion
+from botocore.exceptions import ClientError
+
+log = logging.getLogger()
 
 
 def check_required_params(required_params, events):
@@ -30,7 +34,7 @@ def verify_all_nodes_in_rg_available(events, context):
         status = rg['ReplicationGroups'][0]['Status']
         desired_members_count = len(rg['ReplicationGroups'][0]['MemberClusters'])
         available_members_count = len([x for x in rg['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']])
-        logging.info(f'Expected {desired_members_count} members, got {available_members_count}')
+        log.debug(f'Expected {desired_members_count} members, got {available_members_count}')
         if status == 'available' and available_members_count == desired_members_count:
             return True
         time.sleep(time_to_sleep)
@@ -45,9 +49,9 @@ def assert_cluster_mode_disabled(events, context):
     check_required_params(['ReplicationGroupId'], events)
     replication_group_id = events['ReplicationGroupId']
     elasticache_client = boto3.client('elasticache')
-    cluster_mode = elasticache_client.describe_replication_groups(
+    cluster_enabled = elasticache_client.describe_replication_groups(
         ReplicationGroupId=replication_group_id)['ReplicationGroups'][0]['ClusterEnabled']
-    if cluster_mode:
+    if cluster_enabled:
         raise AssertionError('Cluster mode is enabled. '
                              'This automation is applicable only for replication group with "cluster mode" disabled')
 
@@ -123,7 +127,7 @@ def get_custom_parameter_group(events: dict, context: dict) -> dict:
         return {
             "CacheParameterGroupExists": 'false',
             "CustomCacheParameterGroupName":
-                f'{family.replace(".","-")}-{events["CustomCacheParameterGroupNamePostfix"]}',
+                f'{family.replace(".", "-")}-{events["CustomCacheParameterGroupNamePostfix"]}',
             "CacheParameterGroupFamily": family
         }
     else:
@@ -227,3 +231,158 @@ def get_cache_parameter_group(events, context, elasticache_client=None) -> str:
         CacheClusterId=replication_group['ReplicationGroups'][0]['MemberClusters'][0]
     )
     return cache_group_name['CacheClusters'][0]['CacheParameterGroup']['CacheParameterGroupName']
+
+
+def describe_snapshot_and_extract_settings(events, context):
+    """
+    Describes snapshot and retrieves settings from source cluster if exists
+    """
+    check_required_params(['SnapshotName'], events)
+    snapshot_name = events['SnapshotName']
+    settings_to_copy = ['AtRestEncryptionEnabled',
+                        'KmsKeyId',
+                        'TransitEncryptionEnabled']
+    elasticache_client = boto3.client('elasticache')
+    snapshot_description = elasticache_client.describe_snapshots(SnapshotName=snapshot_name)['Snapshots'][0]
+    snapshot_create_time = snapshot_description['NodeSnapshots'][0]['SnapshotCreateTime']
+    replication_group_id = snapshot_description.get('ReplicationGroupId')
+    # If the source cluster was deleted then all possible source settings from the snapshot will be automatically
+    # copied while restoring
+    if replication_group_id:
+        source_settings = get_setting_from_replication_group_cluster_enabled(
+            elasticache_client, replication_group_id, settings_to_copy
+        )
+    else:
+        cache_cluster_id = snapshot_description['CacheClusterId']
+        source_settings = get_setting_from_replication_group_cluster_disabled(
+            elasticache_client, cache_cluster_id, settings_to_copy
+        )
+
+    return {'SourceSettings': json.dumps(source_settings),
+            'RecoveryPoint': snapshot_create_time.isoformat()}
+
+
+def get_setting_from_replication_group_cluster_enabled(client, replication_group_id, settings):
+    """
+    Get list of 'settings' from Replication Group,
+    get 'SecurityGroupIds', 'CacheSubnetGroupName' settings from Cache Cluster,
+    if Replication Group exists
+    :param client: Boto3(elasticache) client
+    :param replication_group_id: The ID of Replication Group
+    :param settings: The list of settings to get from Replication Group
+    """
+    group_description = describe_replication_group_if_exists(client, replication_group_id)
+    if not group_description:
+        return {}
+
+    group_description = group_description['ReplicationGroups'][0]
+    output = {
+        x: group_description[x]
+        for x in settings
+        if group_description.get(x) is not None
+    }
+    cache_cluster_id = group_description['MemberClusters'][0]
+    cluster_description = client.describe_cache_clusters(CacheClusterId=cache_cluster_id)['CacheClusters'][0]
+    output['SecurityGroupIds'] = [x['SecurityGroupId'] for x in cluster_description['SecurityGroups']]
+    output['CacheSubnetGroupName'] = cluster_description['CacheSubnetGroupName']
+
+    return output
+
+
+def get_setting_from_replication_group_cluster_disabled(client, cache_cluster_id, settings):
+    """
+    Get list of 'settings' from Replication Group,
+    get 'AutomaticFailover' and 'MultiAZ' settings from Replication Group,
+    get 'SecurityGroupIds', 'CacheSubnetGroupName' settings from Cache Cluster,
+    calculate number of cache clusters in Replication Group,
+    if Cache CLuster and Replication Group exist
+    :param client: Boto3(elasticache) client
+    :param cache_cluster_id: The ID of Cache Cluster
+    :param settings: The list of settings to get from Replication Group
+    """
+    cluster_description = describe_cache_cluster_if_exists(client, cache_cluster_id)
+    if not cluster_description:
+        # If source Replication Group (cluster mode disabled) is not available,
+        # we use recommended number of cache clusters (1 primary and 2 replicas) by default.
+        # Otherwise create_replication_group API call will create Replication Group (cluster mode disabled)
+        # from snapshot, with only 1 node (CacheCluster)
+        return {'NumCacheClusters': 3}
+
+    cluster_description = cluster_description['CacheClusters'][0]
+    output = {
+        'SecurityGroupIds': [x['SecurityGroupId'] for x in cluster_description['SecurityGroups']],
+        'CacheSubnetGroupName': cluster_description['CacheSubnetGroupName']
+    }
+    replication_group_id = cluster_description['ReplicationGroupId']
+    group_description = client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id)['ReplicationGroups'][0]
+    output['NumCacheClusters'] = len(group_description['MemberClusters'])
+    # It is not needed for the "cluster mode enabled" case since it is copying automatically from a snapshot during
+    # creation of replication group from a snapshot
+    for x in ['AutomaticFailover', 'MultiAZ']:
+        if group_description.get(x) is not None:
+            output[x + 'Enabled'] = group_description[x] in ['enabled', 'enabling']
+
+    for x in settings:
+        if group_description.get(x) is not None:
+            output[x] = group_description[x]
+
+    return output
+
+
+def describe_cache_cluster_if_exists(client, cache_cluster_id):
+    """
+    Describes Cache Cluster if exists by its ID
+    :param client: The boto3 client
+    :param cache_cluster_id: The ID of Cache Cluster
+    """
+    try:
+        response = client.describe_cache_clusters(CacheClusterId=cache_cluster_id)
+        log.info(f'Cache Cluster with ID "{cache_cluster_id}" found')
+        return response
+
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'CacheClusterNotFound':
+            log.info(f'Cache Cluster with ID "{cache_cluster_id}" does not exist')
+            return False
+        log.error(error)
+        raise error
+
+
+def describe_replication_group_if_exists(client, replication_group_id):
+    """
+    Describes if Replication Group if exists by its ID
+    :param client: The boto3 client
+    :param replication_group_id: The ID of Replication Group
+    """
+    try:
+        response = client.describe_replication_groups(ReplicationGroupId=replication_group_id)
+        log.info(f'Replication Group with ID "{replication_group_id}" found')
+        return response
+
+    except ClientError as error:
+        if error.response['Error']['Code'] == 'ReplicationGroupNotFoundFault':
+            log.info(f'Replication Group with ID "{replication_group_id}" does not exist')
+            return False
+        log.error(error)
+        raise error
+
+
+def create_replication_group_from_snapshot(events, context):
+    """
+    Describes snapshot and retrieves settings from source cluster if exists
+    """
+    required_params = ['ReplicationGroupId',
+                       'ReplicationGroupDescription',
+                       'Settings',
+                       'SnapshotName']
+    check_required_params(required_params, events)
+    kwargs = json.loads(events['Settings'])
+    for argument in ['ReplicationGroupId', 'ReplicationGroupDescription', 'SnapshotName']:
+        kwargs[argument] = events[argument]
+    elasticache_client = boto3.client('elasticache')
+    log.debug(f'Making API call create_replication_group with parameters: {kwargs}')
+    response = elasticache_client.create_replication_group(**kwargs)['ReplicationGroup']
+    log.debug(f'API call response: {response}')
+
+    return {'ReplicationGroupARN': response['ARN']}

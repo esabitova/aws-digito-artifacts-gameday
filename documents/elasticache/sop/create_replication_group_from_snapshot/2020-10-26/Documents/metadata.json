@@ -1,0 +1,14 @@
+{
+  "displayName": "Create ElastiCache Replication Group from snapshot",
+  "description": "Create ElastiCache Replication Group from snapshot",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-CreateElasticacheReplicationGroupFromSnapshotSOP_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "enabled": "true",
+  "tag": "elasticache:sop:create_replication_group_from_snapshot:2020-10-26"
+}

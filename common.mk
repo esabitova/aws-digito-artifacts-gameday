@@ -97,7 +97,7 @@ unit_test_incrementally:
 
 destroy_all_cfn_resources:
 	source venv/bin/activate && \
-	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL && \
+	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL	 && \
 	deactivate
 
 list_all_cfn_resources:

@@ -1,0 +1,128 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Create ElastiCache Replication Group from snapshot"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+  - DescribeSnapshot.RecoveryPoint
+  - CreateReplicationGroupFromSnapshot.ReplicationGroupARN
+
+parameters:
+  SourceSnapshotName:
+    type: String
+    description: (Required) SnapshotName
+  TargetReplicationGroupId:
+    type: String
+    description: (Required) The new replication group identifier, must contain from 1 to 40 alphanumeric characters or hyphens. The first character must be a letter.
+    allowedPattern: '^[a-zA-Z][a-zA-Z0-9-]{0,39}$'
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+  TargetReplicationGroupDescription:
+    type: String
+    description: (Optional) A user-created description for the new replication group.
+    default: 'Replication Group created From Snapshot'
+mainSteps:
+  - name: RecordStartTime
+    action: aws:executeScript
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: AssertSnapshotAvailableStatus
+    action: aws:assertAwsResourceProperty
+    inputs:
+      Service: elasticache
+      Api: DescribeSnapshots
+      SnapshotName: '{{ SourceSnapshotName }}'
+      PropertySelector: '$.Snapshots[0].SnapshotStatus'
+      DesiredValues: [ 'available' ]
+
+  - name: DescribeSnapshot
+    action: aws:executeScript
+    outputs:
+      - Name: RecoveryPoint
+        Selector: $.Payload.RecoveryPoint
+        Type: String
+      - Name: SourceSettings
+        Selector: $.Payload.SourceSettings
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: describe_snapshot_and_extract_settings
+      InputPayload:
+        SnapshotName: '{{ SourceSnapshotName }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.describe_cache_cluster_if_exists
+        SCRIPT_PLACEHOLDER::elasticache_util.describe_replication_group_if_exists
+        SCRIPT_PLACEHOLDER::elasticache_util.get_setting_from_replication_group_cluster_enabled
+        SCRIPT_PLACEHOLDER::elasticache_util.get_setting_from_replication_group_cluster_disabled
+        SCRIPT_PLACEHOLDER::elasticache_util.describe_snapshot_and_extract_settings
+
+  - name: CreateReplicationGroupFromSnapshot
+    action: aws:executeScript
+    outputs:
+      - Name: ReplicationGroupARN
+        Selector: $.Payload.ReplicationGroupARN
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: create_replication_group_from_snapshot
+      InputPayload:
+        Settings: '{{ DescribeSnapshot.SourceSettings }}'
+        SnapshotName: '{{ SourceSnapshotName }}'
+        ReplicationGroupId: '{{ TargetReplicationGroupId }}'
+        ReplicationGroupDescription: '{{ TargetReplicationGroupDescription }}'
+      Script: |-
+        SCRIPT_PLACEHOLDER::elasticache_util.imports
+        SCRIPT_PLACEHOLDER::elasticache_util.check_required_params
+        SCRIPT_PLACEHOLDER::elasticache_util.create_replication_group_from_snapshot
+
+  - name: VerifyReplicationGroupStatus
+    action: aws:waitForAwsResourceProperty
+    inputs:
+      Service: elasticache
+      Api: DescribeReplicationGroups
+      ReplicationGroupId: '{{ TargetReplicationGroupId }}'
+      PropertySelector: $.ReplicationGroups[0].Status
+      DesiredValues: [ 'available' ]
+
+  - name: OutputRecoveryTime
+    action: aws:executeScript
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

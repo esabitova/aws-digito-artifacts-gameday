@@ -204,7 +204,7 @@ def do_cache_by_method_of_service(cache_key, method_name, parameters, service_cl
                 if parameter.startswith(output_prefix):
                     json_paths[parameter.replace(output_prefix, "")] = value[0]
                 else:
-                    arguments[parameter.replace(input_prefix, "")] = value[0]
+                    arguments[parameter.replace(input_prefix, "")] = value
         else:
             if parameter.startswith(output_prefix):
                 json_paths[parameter.replace(output_prefix, "")] = value

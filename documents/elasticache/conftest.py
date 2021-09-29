@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import time
 
 import pytest
 from pytest_bdd import (
@@ -12,6 +13,7 @@ from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import (
     extract_param_value, put_to_ssm_test_cache
 )
+from resource_manager.src.util.elasticache_utils import do_create_elasticache_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +25,11 @@ cache_primary_and_replica_cluster_ids_expression = 'cache PrimaryClusterId and R
 @given(parsers.parse(cache_primary_and_replica_cluster_ids_expression))
 @when(parsers.parse(cache_primary_and_replica_cluster_ids_expression))
 @then(parsers.parse(cache_primary_and_replica_cluster_ids_expression))
-def cache_primary_or_replica_cluster_ids_for_cluster_mode_disabled(resource_pool, ssm_test_cache, boto3_session,
-                                                                   step_key, input_parameters):
+def cache_primary_and_replica_cluster_ids_for_cluster_mode_disabled(resource_pool, ssm_test_cache, boto3_session,
+                                                                    step_key, input_parameters):
     """
     Applicable only for Redis (cluster mode disabled) replication groups.
-    Cache primary or replica cluster ids.
+    Cache primary cluster id and last replica cluster id.
     """
     elasticache_client = client('elasticache', boto3_session)
     replication_group_id = extract_param_value(input_parameters, 'ReplicationGroupId', resource_pool, ssm_test_cache)
@@ -82,14 +84,43 @@ cache_replica_node_id_expression = 'cache random replica node ID as "{cache_prop
 
 
 @given(parsers.parse(cache_replica_node_id_expression))
-def cache_replica_node_id(resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
-    elasticache_client = boto3_session.client('elasticache')
+def cache_replica_node_ids(resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters):
+    elasticache_client = client('elasticache', boto3_session)
     replication_group_id = extract_param_value(input_parameters, 'ReplicationGroupId', resource_pool, ssm_test_cache)
     groups_description = elasticache_client.describe_replication_groups(ReplicationGroupId=replication_group_id)
     node_group_members = groups_description['ReplicationGroups'][0]['NodeGroups'][0]['NodeGroupMembers']
     node_id_list = [x['CacheClusterId'] for x in node_group_members if x['CurrentRole'] == 'replica']
     node_id = random.choice(node_id_list)
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, node_id)
+
+
+@given(parsers.parse('cache replication group settings as "{cache_property}" '
+                     '"{step_key}" SSM automation execution\n{input_parameters}'))
+@then(parsers.parse('cache replication group settings as "{cache_property}" '
+                    '"{step_key}" SSM automation execution\n{input_parameters}'))
+def cache_replication_group_settings(resource_pool, ssm_test_cache, boto3_session, cache_property,
+                                     step_key, input_parameters):
+    settings_list = ['AtRestEncryptionEnabled',
+                     'AutomaticFailover',
+                     'ClusterEnabled',
+                     'CacheNodeType',
+                     'KmsKeyId',
+                     'MultiAZ',
+                     'TransitEncryptionEnabled']
+    replication_group_id = extract_param_value(input_parameters, 'ReplicationGroupId', resource_pool, ssm_test_cache)
+    elasticache_client = client('elasticache', boto3_session)
+    group_description = elasticache_client.describe_replication_groups(
+        ReplicationGroupId=replication_group_id)['ReplicationGroups'][0]
+    settings_to_cache = {x: group_description[x] for x in settings_list}
+    settings_to_cache['NumNodeGroups'] = len(group_description['NodeGroups'])
+    settings_to_cache['NumMemberClusters'] = len(group_description['MemberClusters'])
+
+    cluster_description = elasticache_client.describe_cache_clusters(
+        CacheClusterId=group_description['MemberClusters'][0])['CacheClusters'][0]
+    settings_to_cache['CacheSubnetGroupName'] = cluster_description['CacheSubnetGroupName']
+    settings_to_cache['SecurityGroupIds'] = [sg['SecurityGroupId'] for sg in cluster_description['SecurityGroups']]
+    logging.info(f'Cache replication group settings as {cache_property} {step_key}: {settings_to_cache}')
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, settings_to_cache)
 
 
 register_replica_count_for_teardown_expression = 'register redis replication group replica count for teardown' \
@@ -186,6 +217,51 @@ def generate_resharding_configuration(resource_pool, ssm_test_cache, boto3_sessi
         resharding_configuration.append(resharding_configuration_item)
 
     common_test_utils.put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, resharding_configuration)
+
+
+@given(parsers.parse('create snapshot and cache as "{cache_property}" '
+                     '"{step_key}" SSM automation execution\n{input_parameters}'))
+def create_snapshot(resource_pool, ssm_test_cache, boto3_session, delete_snapshot, cache_property, step_key,
+                    input_parameters):
+    replication_group_id = extract_param_value(input_parameters, 'ReplicationGroupId', resource_pool, ssm_test_cache)
+    elasticache_client = client('elasticache', boto3_session)
+    snapshot_name = 'redis-snapshot-' + str(round(time.time()))
+    delete_snapshot['SnapshotName'] = snapshot_name
+
+    do_create_elasticache_snapshot(boto3_session, cache_property, elasticache_client, replication_group_id,
+                                   ssm_test_cache, step_key, snapshot_name)
+
+
+@given(parsers.parse('generate replication group ID and cache as "{cache_property}" '
+                     '"{step_key}" SSM automation execution'))
+def generate_replication_group_id(ssm_test_cache, cache_property, step_key, delete_replication_group):
+    replication_group_id = 'redis-' + str(round(time.time()))
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, replication_group_id)
+    delete_replication_group['ReplicationGroupId'] = replication_group_id
+
+
+@pytest.fixture(scope='function')
+def delete_replication_group(ssm_test_cache, boto3_session):
+    delete_replication_group = {}
+    yield delete_replication_group
+    replication_group_id = delete_replication_group['ReplicationGroupId']
+    logging.info('Start replication group teardown ...')
+    if elasticache_utils.check_replication_group_exists(boto3_session, replication_group_id):
+        elasticache_utils.delete_replication_group(boto3_session, replication_group_id, wait_for_deletion=True)
+    else:
+        logging.warning(f'Replication group {replication_group_id} not found! Skip replication group teardown')
+
+
+@pytest.fixture(scope='function')
+def delete_snapshot(ssm_test_cache, boto3_session):
+    delete_snapshot = {}
+    yield delete_snapshot
+    snapshot_name = delete_snapshot['SnapshotName']
+    logging.info('Start snapshot teardown ...')
+    if elasticache_utils.check_snapshot_exists(boto3_session, snapshot_name):
+        elasticache_utils.delete_snapshot(boto3_session, snapshot_name, wait_for_deletion=True)
+    else:
+        logging.warning(f'Snapshot "{snapshot_name}" not found! Skip snapshot teardown')
 
 
 @pytest.fixture(scope='function')
