@@ -1,0 +1,14 @@
+{
+  "displayName": "Increase shards in the cluster",
+  "description": "Increase shards in the ElastiCache Redis replication group (cluster mode enabled)",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-IncreaseRedisShardsSOP_2020-10-26",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE,AZ",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "enabled": "true",
+  "tag": "elasticache:sop:redis_increase_shards:2020-10-26"
+}

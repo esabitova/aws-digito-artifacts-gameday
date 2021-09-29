@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-RestApiGwChangeThrottlingSettings_2020-10-26",
+  "documentName": "Digito-ChangeRestApiGwThrottlingSettingsSOP_2020-10-26",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "Change throttling settings for REST API Gateway. The script checks if throttling rate or burst going to be changed on more than 50%. If so, raises an error. Customers have an option to disable this validation by passing ForceExecution parameter or change throttling burst and rate with smaller increments",

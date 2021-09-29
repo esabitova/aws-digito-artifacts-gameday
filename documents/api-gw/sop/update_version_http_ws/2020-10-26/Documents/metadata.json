@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-UpdateVersionHttpWs_2020-10-26",
+  "documentName": "Digito-UpdateHttpWsApiGwVersionSOP_2020-10-26",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "minorVersion": "001",

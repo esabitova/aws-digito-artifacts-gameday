@@ -1,4 +1,4 @@
-@asg @memory @stress @integration @asg_memory_stress
+@asg @memory @stress @integration
 Feature: SSM automation document ASG memory stress testing
   Exercise ASG instance memory stress injection
 

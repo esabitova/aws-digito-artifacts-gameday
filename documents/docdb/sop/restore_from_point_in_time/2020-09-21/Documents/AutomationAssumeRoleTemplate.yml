@@ -18,12 +18,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for restoring a database to an old stable state from a Point in Time
 Outputs:
-  DigitoRestoreFromPointInTimeAssumeRole:
-    Description: DigitoRestoreFromPointInTime Automation Assume Role ARN
+  DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumeRole:
+    Description: Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRestoreFromPointInTimeAssumeRole.Arn
+      Fn::GetAtt: DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumeRole.Arn
 Resources:
-  DigitoRestoreFromPointInTimeAssumeRole:
+  DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreFromPointInTimeAssumePolicy:
+  DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoRestoreFromPointInTimeAssumePolicy"
+      PolicyName: "DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -60,4 +60,4 @@ Resources:
               StringLike:
                 kms:ViaService: rds.*.amazonaws.com
       Roles:
-        - Ref: DigitoRestoreFromPointInTimeAssumeRole
+        - Ref: DigitoRestoreDocumentDBClusterFromPointInTimeSOPAssumeRole

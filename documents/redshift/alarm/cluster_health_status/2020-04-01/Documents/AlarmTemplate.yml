@@ -8,7 +8,7 @@ Resources:
     Properties:
       AlarmActions:
         - Ref: SNSTopicARN
-      AlarmDescription: 'Alarm by Digito that reports when redshift cluster is unhealthy.'
+      AlarmDescription: 'Alarm by Digito for Amazon Redshift that reports when cluster is unhealthy, and the cluster name is ${ClusterName}.'
       AlarmName: ${AlarmName}
       ComparisonOperator: LessThanThreshold
       DatapointsToAlarm: ${DatapointsToAlarm}
@@ -19,6 +19,6 @@ Resources:
         - Name: ClusterIdentifier
           Value: '${ClusterName}'
       Period: 60
-      Statistic: Maximum
+      Statistic: Minimum
       Threshold: ${Threshold}
       TreatMissingData: missing

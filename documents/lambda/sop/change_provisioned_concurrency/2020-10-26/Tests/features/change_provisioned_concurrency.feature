@@ -6,14 +6,14 @@ Feature: SSM automation document to change provisioned concurrency of the given 
       | CfnTemplatePath                                                                                           | ResourceType |
       | resource_manager/cloud_formation_templates/LambdaTemplate.yml                                             | ON_DEMAND    |
       | documents/lambda/sop/change_provisioned_concurrency/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeProvisionedConcurrency_2020-10-26" SSM document
+    And published "Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26" SSM document
     And the cached input parameters
       | ProvisionedConcurrentExecutions |
       | 10                              |
-    And SSM automation document "Digito-ChangeProvisionedConcurrency_2020-10-26" executed
+    And SSM automation document "Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26" executed
       | LambdaARN                               | LambdaQualifier                             | ProvisionedConcurrentExecutions           | AutomationAssumeRole                                                                              |
-      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:LambdaTemplate>LambdaVersion}} | {{cache:ProvisionedConcurrentExecutions}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaChangeProvisionedConcurrencyAssumeRoleArn}} |
-    When SSM automation document "Digito-ChangeProvisionedConcurrency_2020-10-26" execution in status "Success"
+      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:LambdaTemplate>LambdaVersion}} | {{cache:ProvisionedConcurrentExecutions}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeLambdaProvisionedConcurrencySOPAssumeRole}} |
+    When SSM automation document "Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then assert current provisioned concurrency is equal to input value
@@ -31,17 +31,17 @@ Feature: SSM automation document to change provisioned concurrency of the given 
       | CfnTemplatePath                                                                                           | ResourceType |
       | resource_manager/cloud_formation_templates/LambdaTemplate.yml                                             | ON_DEMAND    |
       | documents/lambda/sop/change_provisioned_concurrency/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeProvisionedConcurrency_2020-10-26" SSM document
+    And published "Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26" SSM document
     And create alias and cache its name as "AliasName" at step "before"
       | LambdaARN                               | LambdaVersion                               |
       | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cfn-output:LambdaTemplate>LambdaVersion}} |
     And the cached input parameters
       | ProvisionedConcurrentExecutions |
       | 10                              |
-    And SSM automation document "Digito-ChangeProvisionedConcurrency_2020-10-26" executed
+    And SSM automation document "Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26" executed
       | LambdaARN                               | LambdaQualifier            | ProvisionedConcurrentExecutions           | AutomationAssumeRole                                                                              |
-      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cache:before>AliasName}} | {{cache:ProvisionedConcurrentExecutions}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoLambdaChangeProvisionedConcurrencyAssumeRoleArn}} |
-    When SSM automation document "Digito-ChangeProvisionedConcurrency_2020-10-26" execution in status "Success"
+      | {{cfn-output:LambdaTemplate>LambdaARN}} | {{cache:before>AliasName}} | {{cache:ProvisionedConcurrentExecutions}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeLambdaProvisionedConcurrencySOPAssumeRole}} |
+    When SSM automation document "Digito-ChangeLambdaProvisionedConcurrencySOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then assert current provisioned concurrency is equal to input value

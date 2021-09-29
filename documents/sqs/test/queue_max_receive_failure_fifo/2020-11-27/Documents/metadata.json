@@ -1,0 +1,17 @@
+{
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "description": "Test FIFO Queue behavior after receiving a message maximum allowed times",
+  "attachments": "digito_gameday_primitives.zip",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ForceSQSFifoQueueMaxReceiveFailureTest_2020-11-27",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "displayName": "Test - FIFO Queue behavior after receiving a message maximum allowed times",
+  "risk": "HIGH",
+  "tag": "sqs:test:queue_max_receive_failure_fifo:2020-11-27",
+  "recommendedAlarms": {
+    "DeadLetterQueueAlarmName": "sqs:alarm:health_alarm_dlq_message:2020-11-26"
+  },
+  "minorVersion": "001"
+}

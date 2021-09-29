@@ -303,11 +303,8 @@ class TestSsmDocument(unittest.TestCase):
     def test_get_execution_step_url_with_passed_execs_no_step_fail(self):
         execution_id = 'test_execution_1'
         step_name = 'test_step'
-        execution = {'AutomationExecution':
-                     {'StepExecutions': [],
-                      'AutomationExecutionStatus': 'InProgress'
-                      }
-                     }
+        execution = {'AutomationExecution': {'StepExecutions': [],
+                                             'AutomationExecutionStatus': 'InProgress'}}
         steps = execution['AutomationExecution']['StepExecutions']
         self.assertRaises(Exception, self.ssm_document.get_execution_step_url, execution_id, step_name, steps)
 
@@ -320,6 +317,7 @@ class TestSsmDocument(unittest.TestCase):
 
     def test_parse_input_parameters(self):
         cf_output = {'VPC': {'PublicSubnet2Cidr': '10.0.1.0/24', 'PublicSubnetOne': 'subnet-09681e26eaa5d7619',
+                             'List': ['item1'],
                              'VPCId': 'vpc-0a57667ce26318a1e', 'PublicSubnetTwo': 'subnet-0833ad073dc1f378e',
                              'VPCCidr': '10.0.0.0/16', 'PrivateSubnetWithoutInternetOne': 'subnet-0cc8005cb344bc14e',
                              'PrivateSubnetWithoutInternetTwo': 'subnet-048dbf805312acf82',
@@ -330,14 +328,14 @@ class TestSsmDocument(unittest.TestCase):
         cfn_installed_alarms = {'under_test': {'AlarmName': 'network-unhealthy-host-count-B2e6-0'}}
         cache = {"SsmExecutionId": {"1": 'id1'}}
         input_parameters = """\
-| cf_output                             | alarm_input                       | cache_input |
-| {{cfn-output:VPC>PublicSubnetOne}}    | {{alarm:under_test>AlarmName}}    | {{cache:SsmExecutionId>1}}    |"""
+|cf_output|alarm_input|cache_input|list|
+|{{cfn-output:VPC>PublicSubnetOne}}|{{alarm:under_test>AlarmName}}|{{cache:SsmExecutionId>1}}|{{cfn-output:VPC>List}}"""
         res = self.ssm_document.parse_input_parameters(cf_output, cfn_installed_alarms, cache, input_parameters)
         self.assertEqual(res,
                          {'cf_output': ['subnet-09681e26eaa5d7619'],
                           'alarm_input': ['network-unhealthy-host-count-B2e6-0'],
-                          'cache_input': ['id1']}
-                         )
+                          'cache_input': ['id1'],
+                          'list': ['item1']})
 
     def test_send_resume_signal(self):
         self.mock_ssm.send_automation_signal.return_value = {}

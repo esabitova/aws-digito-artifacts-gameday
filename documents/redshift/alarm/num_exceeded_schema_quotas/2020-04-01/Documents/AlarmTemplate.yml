@@ -8,7 +8,7 @@ Resources:
     Type: "AWS::CloudWatch::Alarm"
     Properties:
       AlarmName: ${AlarmName}
-      AlarmDescription: "Alarm by Digito that AWS Redshift Cluster have no schemas with exceeded quotas."
+      AlarmDescription: "Alarm by Digito for Amazon Redshift, that indicates number of schemas with exceeded quotas for the cluster ${ClusterName}."
       AlarmActions:
         - Ref: SNSTopicARN
       MetricName: NumExceededSchemaQuotas

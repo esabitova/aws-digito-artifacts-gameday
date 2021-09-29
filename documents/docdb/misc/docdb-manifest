@@ -1,8 +1,8 @@
-Digito-RebootDbInstance_2020-09-21
-Digito-PromoteReadReplica_2020-09-21
-Digito-CreateNewDocDbInstance_2020-09-21
-Digito-ScalingUp_2020-09-21
-Digito-ScalingDown_2020-09-21
-Digito-DocDbRestoreFromBackup_2020-09-21
-Digito-RestoreFromPointInTime_2020-09-21
-Digito-DocDbDatabaseAlarm_2020-09-21
+Digito-RebootDocumentDBInstanceTest_2020-09-21
+Digito-PromoteDocumentDBReadReplicaSOP_2020-09-21
+Digito-CreateNewDocumentDBInstanceSOP_2020-09-21
+Digito-ScaleUpDocumentDBClusterSOP_2020-09-21
+Digito-ScaleDownDocumentDBClusterSOP_2020-09-21
+Digito-RestoreDocumentDBClusterFromBackupSOP_2020-09-21
+Digito-RestoreDocumentDBClusterFromPointInTimeSOP_2020-09-21
+Digito-ForceDocumentDBDatabaseToBeInaccessibleTest_2020-09-21

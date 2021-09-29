@@ -55,6 +55,7 @@ Resources:
               - 'ssm:CancelCommand'
               - 'cloudwatch:DescribeAlarms'
               - 'cloudwatch:GetMetricStatistics'
+              - 'cloudwatch:DescribeAlarmHistory'
           - Effect: Allow
             Resource:
               - Fn::GetAtt: DigitoSimulateHighCpuLoadInEc2AssumeRole.Arn

@@ -17,7 +17,7 @@ from botocore.exceptions import ClientError
 log = logging.getLogger()
 
 # we wait for this timeperiod for kinesis application get into "RUNNING" status:
-RETRY_START_APP_PARAMETER = 240
+RETRY_START_APP_PARAMETER = 360
 
 # time.sleep constant in case of activity failure:
 ORDINARY_SLEEP_INTERVAL = 10
@@ -43,10 +43,11 @@ def _wait_for_status(kinesis_analytics_client, app_name, status,
     app_status = ''
     while app_status != status:
         if datetime.utcnow() > end_stress:
-            raise ClientError(f'Kinesis Data Analytics application {app_name} '
-                              f'did not achieve status {status} '
-                              f'for {str(wait_period)} seconds.'
-                              f'Current application status is {app_status}.')
+            logging.error(f'Kinesis Data Analytics application {app_name} '
+                          f'did not achieve status {status} '
+                          f'for {str(wait_period)} seconds.'
+                          f'Current application status is {app_status}.')
+            raise RuntimeError()
         time.sleep(interval_to_sleep)
         app_status = kinesis_analytics_client.describe_application(
             ApplicationName=app_name)['ApplicationDetail']['ApplicationStatus']
@@ -393,17 +394,12 @@ def prove_snapshot_exist_or_confect(app_name: str, snapshot_name: str, session: 
                      f'New snapshot with provided name {confect_snapshot_name} '
                      f'will be confected and used for recover.')
         kinesis_analytics_client = client('kinesisanalyticsv2', session)
-        confect_snapshot_result = kinesis_analytics_client.create_application_snapshot(
+        kinesis_analytics_client.create_application_snapshot(
             ApplicationName=app_name,
             SnapshotName=confect_snapshot_name)['ResponseMetadata']['HTTPStatusCode']
-    if confect_snapshot_result == 200:
         logging.info(f'New snapshot with name {confect_snapshot_name} for application '
                      f'{app_name} successfully confected.')
-        return True, confect_snapshot_name
-    else:
-        logging.error(f'New snapshot with name {confect_snapshot_name} for application '
-                      f'{app_name} confection failed, error code: {confect_snapshot_result}')
-        raise
+    return True, confect_snapshot_name
 
 
 def add_kda_application_to_vpc(app_name, vpc_id, subnet_id, security_groups_id_list, session):
@@ -432,21 +428,20 @@ def add_kda_application_to_vpc(app_name, vpc_id, subnet_id, security_groups_id_l
             raise
     except Exception:
         logging.info(f'Now start add Kinesis Data Analytics application {app_name} to VPC {vpc_id}.')
-    add_to_vpc_status_code = kinesis_analytics_client.add_application_vpc_configuration(
+    kinesis_analytics_client.add_application_vpc_configuration(
         ApplicationName=app_name,
         ConditionalToken=conditional_token,
         VpcConfiguration={
             'SubnetIds': [subnet_id],
             'SecurityGroupIds': security_groups_ids_list})['ResponseMetadata']['HTTPStatusCode']
-    if add_to_vpc_status_code == 200:
-        logging.info(f'Kinesis Data Analytics application {app_name} included to VPC {vpc_id} '
-                     f'with Subnet ID {subnet_id} and Security group ID [{security_groups_id_list}]')
-    else:
-        logging.error(f'Kinesis Data Analytics application {app_name} '
-                      f'FAILED to be added to VPC {vpc_id} ')
-        raise
+    logging.info(f'Kinesis Data Analytics application {app_name} included to VPC {vpc_id} '
+                 f'with Subnet ID {subnet_id} and Security group ID [{security_groups_id_list}]')
     _wait_for_status(
         kinesis_analytics_client, app_name, "RUNNING")
+    subnet_status = kinesis_analytics_client.describe_application(
+        ApplicationName=app_name,
+        IncludeAdditionalDetails=True)['ApplicationDetail']['ApplicationConfigurationDescription']
+    vpc_configuration_id = subnet_status['VpcConfigurationDescriptions'][0]['VpcConfigurationId']
     return 'Yes', vpc_configuration_id
 
 
@@ -458,3 +453,19 @@ def get_kda_vpc_security_groups_id_list(app_name: str, session: Session) -> list
     security_groups_id_list = get_kda_vpc_security_group(
         {'ApplicationName': app_name}, {}, kinesis_analytics_client)
     return security_groups_id_list["KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue"]
+
+
+def trigger_input_stream_lambda_loader_several_times(lambda_loader_name: str,
+                                                     invoke_attempts: int,
+                                                     session: Session):
+    """
+    triggers input stream lambda loader several times, to put dummy ticker data to input stream
+    """
+    lambda_client = client('lambda', session)
+    i = 0
+    while i < invoke_attempts:
+        lambda_client.invoke(
+            FunctionName=lambda_loader_name
+        )
+        i += 1
+    return

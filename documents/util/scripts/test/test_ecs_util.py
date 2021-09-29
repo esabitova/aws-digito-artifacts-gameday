@@ -5,12 +5,64 @@ import documents.util.scripts.test.test_data_provider as test_data_provider
 from botocore.exceptions import ClientError
 from unittest.mock import patch, MagicMock
 
+from resource_manager.test.util.mock_sleep import MockSleep
+
 TD_FAMILY = "hello_world"
 TD_ARN = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:task-definition/{TD_FAMILY}:1"
 TD_ARN_2 = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:task-definition/{TD_FAMILY}:2"
 TD_ARN_NEW = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:task-definition/new-{TD_FAMILY}:1"
 SERVICE_NAME = "Test-service-name"
 CLUSTER_NAME = "Test-cluster-name"
+CLUSTER_ARN = f"arn:aws:ecs:eu-central-1:{test_data_provider.ACCOUNT_ID}:cluster/{CLUSTER_NAME}"
+
+
+def get_cluster(failed=False):
+    if not failed:
+        res = {
+            "clusters": [
+                {
+                    "clusterArn": CLUSTER_ARN,
+                    "clusterName": CLUSTER_NAME,
+                    "status": "ACTIVE",
+                    "registeredContainerInstancesCount": 0,
+                    "runningTasksCount": 0,
+                    "pendingTasksCount": 0,
+                    "activeServicesCount": 0,
+                    "statistics": [],
+                    "tags": [],
+                    "settings": [],
+                    "capacityProviders": [],
+                    "defaultCapacityProviderStrategy": []
+                }
+            ],
+            "failures": []
+        }
+    else:
+        res = {
+            "clusters": [],
+            "failures": [
+                {
+                    "arn": CLUSTER_ARN,
+                    "reason": "MISSING"
+                }
+            ]
+        }
+    return res
+
+
+def get_list_tasks():
+    res = {
+        'taskArns': [TD_ARN, TD_ARN_2]
+    }
+    return [res]
+
+
+def get_paginate_side_effect(function):
+    class PaginateMock(MagicMock):
+        def paginate(self, **kwargs):
+            return function()
+
+    return PaginateMock
 
 
 def get_task_definition():
@@ -220,3 +272,63 @@ class TestEcsUtil(unittest.TestCase):
                                                              cluster=CLUSTER_NAME,
                                                              taskDefinition=TD_ARN)
         self.assertEqual("ClientException", client_error.value.response['Error']['Code'])
+
+    def test_stop_selected_tasks_100_percentage(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "PercentageOfTasksToStop": 100
+        }
+        self.mock_ecs.describe_services.return_value = {'services': [{'desiredCount': 2}]}
+        self.mock_ecs.get_paginator = get_paginate_side_effect(get_list_tasks)
+        self.mock_ecs.stop_task.return_value = True
+
+        res = ecs_util.stop_selected_tasks(events, None)
+
+        self.mock_ecs.stop_task.assert_called_with(cluster=CLUSTER_NAME,
+                                                   task=TD_ARN_2)
+        self.assertEqual(res, True)
+
+    def test_stop_selected_tasks_when_desiredCount_is_zero(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "PercentageOfTasksToStop": 50
+        }
+        self.mock_ecs.describe_services.return_value = {'services': [{'desiredCount': 0}]}
+        self.mock_ecs.get_paginator = get_paginate_side_effect(get_list_tasks)
+        self.mock_ecs.stop_task.return_value = True
+
+        res = ecs_util.stop_selected_tasks(events, None)
+
+        self.mock_ecs.stop_task.assert_not_called()
+        self.assertEqual(res, True)
+
+    def test_stop_selected_tasks_less_than_total(self):
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME,
+            "PercentageOfTasksToStop": 50
+        }
+        self.mock_ecs.describe_services.return_value = {'services': [{'desiredCount': 2}]}
+        self.mock_ecs.get_paginator = get_paginate_side_effect(get_list_tasks)
+        self.mock_ecs.stop_task.return_value = True
+
+        res = ecs_util.stop_selected_tasks(events, None)
+
+        self.mock_ecs.stop_task.assert_called_with(cluster=CLUSTER_NAME,
+                                                   task=TD_ARN)
+        self.assertEqual(res, True)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_stable_service(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+        events = {
+            "ServiceName": SERVICE_NAME,
+            "ClusterName": CLUSTER_NAME
+        }
+        res = ecs_util.wait_services_stable(events, None)
+        self.assertEqual(res, True)

@@ -30,7 +30,7 @@ Small
 * ssm:GetAutomationExecution
 * ssm:GetParameters
 
-Additionally, inherited from `Digito-RestoreFromBackup_2020-09-21`
+Additionally, inherited from `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
 
 * s3:ListBucket
 * s3:ListBucketVersions
@@ -110,7 +110,7 @@ back changes from the previous run
 1. `RollbackPreviousExecution`
     * Type: aws:executeAutomation
     * Inputs:
-        * `DocumentName`: `Digito-RestoreFromBackup_2020-09-21`
+        * `DocumentName`: `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `SNSTopicARNForManualApproval`: {{SNSTopicARNForManualApproval}}
@@ -118,11 +118,11 @@ back changes from the previous run
             * `S3BucketToRestoreName`: {{PrepareRollbackOfPreviousExecution.S3BucketToRestoreWhereObjectWillBeCopiedTo}}
             * `S3BackupBucketName` {{PrepareRollbackOfPreviousExecution.S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:
-        * Copy all files from the `S3BucketToRestoreWhereObjectWillBeCopiedTo` bucket to the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by shared SSM Document `Digito-RestoreFromBackup_2020-09-21`
+        * Copy all files from the `S3BucketToRestoreWhereObjectWillBeCopiedTo` bucket to the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by shared SSM Document `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
 1. `BackupS3BucketWhereObjectsWillBeDeletedFrom`
     * Type: aws:executeAutomation
     * Inputs:
-        * `DocumentName`: `Digito-RestoreFromBackup_2020-09-21`
+        * `DocumentName`: `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `SNSTopicARNForManualApproval`: {{SNSTopicARNForManualApproval}}
@@ -130,16 +130,16 @@ back changes from the previous run
             * `S3BucketToRestoreName`: {{S3BucketWhereObjectsWillBeDeletedFrom}}
             * `S3BackupBucketName` {{S3BucketToRestoreWhereObjectWillBeCopiedTo}}
     * Explanation:
-        * Copy all files from the `S3BucketWhereObjectsWillBeDeletedFrom` bucket to the `S3BucketToRestoreWhereObjectWillBeCopiedTo` bucket by shared SSM Document `Digito-RestoreFromBackup_2020-09-21`
+        * Copy all files from the `S3BucketWhereObjectsWillBeDeletedFrom` bucket to the `S3BucketToRestoreWhereObjectWillBeCopiedTo` bucket by shared SSM Document `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
 1. `CleanS3BucketWhereObjectsWillBeDeletedFrom`
     * Type: aws:executeAutomation
     * Inputs:
-        * `DocumentName`: `Digito-CleanS3Bucket_2021-03-03`
+        * `DocumentName`: `Digito-CleanS3BucketUtil_2021-03-03`
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `S3BucketNameToClean`: {{S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:
-        * Clean the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by calling shared SSM document  `Digito-CleanS3Bucket_2021-03-03`
+        * Clean the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by calling shared SSM document  `Digito-CleanS3BucketUtil_2021-03-03`
     * OnFailure: step: RollbackCurrentExecution
 1. `AssertAlarmToBeRed`
     * Type: aws:waitForAwsResourceProperty
@@ -152,7 +152,7 @@ back changes from the previous run
 1. `RollbackCurrentExecution`
     * Type: aws:executeAutomation
     * Inputs:
-        * `DocumentName`: `Digito-RestoreFromBackup_2020-09-21`
+        * `DocumentName`: `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
         * `RuntimeParameters`:
             * `AutomationAssumeRole`: {{AutomationAssumeRole}}
             * `SNSTopicARNForManualApproval`: {{SNSTopicARNForManualApproval}}
@@ -160,7 +160,7 @@ back changes from the previous run
             * `S3BucketToRestoreName`: {{S3BucketToRestoreWhereObjectWillBeCopiedTo}}
             * `S3BackupBucketName` {{S3BucketWhereObjectsWillBeDeletedFrom}}
     * Explanation:
-        * Copy all files from the `S3BucketToRestoreWhereObjectWillBeCopiedTo` bucket to the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by shared SSM Document `Digito-RestoreFromBackup_2020-09-21`
+        * Copy all files from the `S3BucketToRestoreWhereObjectWillBeCopiedTo` bucket to the `S3BucketWhereObjectsWillBeDeletedFrom` bucket by shared SSM Document `Digito-RestoreS3BucketFromBackupSOP_2020-09-21`
 1. `AssertAlarmToBeGreen`
     * Type: aws:waitForAwsResourceProperty
     * Inputs:

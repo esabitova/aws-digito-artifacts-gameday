@@ -2,7 +2,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-SimulateInternetUnavailable_2020-09-21",
+  "documentName": "Digito-SimulateNatGwInternetUnavailableTest_2020-09-21",
   "documentType": "Automation",
   "failureType": "AZ",
   "displayName": "Tests systems behavior when internet connection becomes unavailable due to misconfigured routes",

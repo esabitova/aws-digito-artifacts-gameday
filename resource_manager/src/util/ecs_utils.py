@@ -153,7 +153,7 @@ def get_container_definitions(td_arn: str,
     """
     ecs_client = client('ecs', session)
 
-    container_definitions = ecs_client.\
+    container_definitions = ecs_client. \
         describe_task_definition(taskDefinition=td_arn)["taskDefinition"]["containerDefinitions"][0]
     return container_definitions
 
@@ -178,3 +178,31 @@ def wait_services_stable(cluster_name: str,
             'MaxAttempts': 20
         }
     )
+
+
+def get_number_of_nodes_in_status(session: Session, ecs_cluster: str, node_status: str) -> int:
+    ecs_client = client('ecs', session)
+
+    describe_cluster = ecs_client.describe_clusters(
+        clusters=[ecs_cluster]
+    )
+    if not describe_cluster['clusters']:
+        raise ClientError(
+            error_response={
+                "Error":
+                    {
+                        "Code": "ClusterNotFound",
+                        "Message": f"Could not find cluster: {ecs_cluster}"
+                    }
+            },
+            operation_name='ListContainerInstances'
+        )
+    paginator = ecs_client.get_paginator('list_container_instances')
+    page_iterator = paginator.paginate(
+        cluster=ecs_cluster,
+        status=node_status
+    )
+    amount_of_nodes = 0
+    for page in page_iterator:
+        amount_of_nodes = amount_of_nodes + len(page['containerInstanceArns'])
+    return amount_of_nodes

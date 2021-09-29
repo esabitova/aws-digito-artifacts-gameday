@@ -1,4 +1,4 @@
-@${serviceName}
+# @${serviceName}
 Feature: SSM automation document ${documentName}
 
   Scenario: Execute SSM automation document ${documentName}

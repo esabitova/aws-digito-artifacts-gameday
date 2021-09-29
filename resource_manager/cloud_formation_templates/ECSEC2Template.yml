@@ -51,6 +51,10 @@ Outputs:
   EcsHostSecurityGroup:
     Description: A security group used to allow containers to receive traffic
     Value: !Ref 'EcsHostSecurityGroup'
+  ECSTaskAmountAlarm:
+    Condition: NotGPU
+    Description: An alarm for a task amount
+    Value: !Ref 'ECSTaskAmountAlarm'
 Parameters:
   DesiredCapacity:
     Type: Number
@@ -87,6 +91,10 @@ Parameters:
   PublicSubnetTwo:
     Description: second PublicSubnet id
     Type: String
+  ServiceDesiredCount:
+    Description: amount of tasks running in service
+    Type: Number
+    Default: 1
 Conditions:
   GPU: !Equals
     - !Ref IsGPUTask
@@ -232,9 +240,44 @@ Resources:
     Properties:
       Cluster:
         Ref: "ECSCluster"
-      DesiredCount: 1
+      DesiredCount: !Ref ServiceDesiredCount
       TaskDefinition:
         Ref: "ECSTaskDefinition"
+
+  ECSTaskAmountAlarm:
+    Type: "AWS::CloudWatch::Alarm"
+    Condition: NotGPU
+    Properties:
+      AlarmDescription: "Alarm checking that amount of running tasks in service is less that threshold"
+      ActionsEnabled: false
+      Metrics:
+        - Expression: !Join
+            - " "
+            - - "IF(m1 <"
+              - !Ref ServiceDesiredCount
+              - "OR m1 >"
+              - !Ref ServiceDesiredCount
+              - ", 1, 0)"
+          Id: e1
+          Label: 'Amount of tasks equals Threshold'
+        - Id: m1
+          ReturnData: false
+          MetricStat:
+            Metric:
+              MetricName: MemoryUtilization
+              Namespace: AWS/ECS
+              Dimensions:
+                - Name: ServiceName
+                  Value: !GetAtt ECSService.Name
+                - Name: ClusterName
+                  Value: !Ref ECSCluster
+            Period: 60
+            Stat: SampleCount
+      Threshold: 0
+      TreatMissingData: notBreaching
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanThreshold
 
   ECSGPUTaskDefinition:
     Type: AWS::ECS::TaskDefinition

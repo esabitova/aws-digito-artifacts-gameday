@@ -26,6 +26,7 @@ parameters:
   StreamName:
     type: String
     description: (Required) Kinesis Data Stream name
+    allowedPattern: "[a-zA-Z0-9_.-]+"
   TargetShardCount:
     type: Integer
     description: |
@@ -33,8 +34,9 @@ parameters:
 
       * Set this value to more than double your current shard count for a stream.
       * Set this value below half your current shard count for a stream.
-      * Set this value to more than 500 shards in a stream (the default limit for shard count per stream is 500 per account per region), unless you request a limit increase.
-      * Scale a stream with more than 500 shards down unless you set this value to less than 500 shards.
+      * Set this value to more than 10000 shards in a stream (the default limit for shard count per stream is 10000 per account per region), unless you request a limit increase.
+      * Scale a stream with more than 10000 shards down unless you set this value to less than 10000 shards.
+      Source: https://docs.aws.amazon.com/kinesis/latest/APIReference/API_UpdateShardCount.html
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.

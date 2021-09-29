@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for KPUs metric for Apache Flink/SQL applications", 
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink/SQL applications that indicates if the number of Kinesis Processing Units currently in use, is exceeding specified threshold range",
+  "alarmName": "Digito-kinesis-analytics:alarm:alarm:recovery-kpus:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:recovery-kpus:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

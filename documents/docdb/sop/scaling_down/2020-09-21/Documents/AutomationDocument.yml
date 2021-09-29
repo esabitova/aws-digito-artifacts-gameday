@@ -1,0 +1,108 @@
+#
+# Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this
+# software and associated documentation files (the "Software"), to deal in the Software
+# without restriction, including without limitation the rights to use, copy, modify,
+# merge, publish, distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+# INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+# PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+# SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+---
+description: "Scales the cluster down"
+schemaVersion: "0.3"
+assumeRole: "{{ AutomationAssumeRole }}"
+outputs:
+  - OutputRecoveryTime.RecoveryTime
+  
+parameters:
+  DBClusterIdentifier:
+    type: String
+    description: (Required) DBClusterIdentifier
+  NumberOfDBInstancesToDelete:
+    type: Integer
+    description: (Optional) The number of DB instances to delete
+    default: 1
+  DBInstancesIdentifiersToDelete:
+    type: StringList
+    description: (Optional) The list of identifiers of instances to be deleted. The parameter `DBInstancesToDelete` is ignored if at least one DBInstanceIdentifier specified.
+    default: []
+  AutomationAssumeRole:
+    type: String
+    description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
+mainSteps:
+  - name: RecordStartTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: StartTime
+        Selector: $.Payload
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: start_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.start_time
+
+  - name: PerformRecovery
+    # if params.DBInstancesIdentifiersToDelete is empty
+    #   Determine cluster parameters and the number of instances to delete
+    #     Call [boto3.describe_db_clusters]
+    #       Parameters:
+    #         DBClusterIdentifier=params.DBClusterIdentifier
+    #       Take '.DBClusters[].DBClusterMembers[]'
+    #         SSM should leave at least 1 read replica alive. 
+    #         RealNumberToDelete = min('.DBClusters[].DBClusterMembers[]' - 2, params.NumberOfDBInstancesToDelete)
+    #           EXAMPLE: Cluster has 3 instances - 1 Primary and 2 Replicas. Therefore '.DBClusters[].DBClusterMembers[]' - 2 = 1, we can delete only one replica.
+    #         Take RealNumberToDelete number of instances from  '.DBClusters[].DBClusterMembers[]' where ".DBClusters[].DBClusterMembers[].IsClusterWriter" == False
+    #         explicitly log this calculations
+    #       Delete instances
+    #         Call [boto3.delete_db_instance] for selected instances
+    #           Params:
+    #             DBInstanceIdentifier=(an instance identifier)
+    #       Make sure instances deleted
+    #         Call [boto3.describe_db_clusters] to make sure selected instance are gone
+    #           Parameters:
+    #             DBClusterIdentifier=params.DBClusterIdentifier
+    #           Take '.DBClusters[].DBClusterMembers[]'
+    # otherwise
+    #   Determine cluster parameters and the number of instances to delete
+    #     Call [boto3.describe_db_clusters]
+    #       Parameters:
+    #         DBClusterIdentifier=params.DBClusterIdentifier
+    #       Take '.DBClusters[].DBClusterMembers[].DBInstanceIdentifier' and match with params.DBInstancesIdentifiersToDelete.
+    #       SSM should leave at least 1 read replica alive. Cut the params.DBInstancesIdentifiersToDelete collection if needed to follow this rule
+    #         if params.DBInstancesIdentifiersToDelete includes master try to exclude it first. If rule of "master + 1 read replica" isn't fulfilled, remove another item from collection
+    #         explicitly log this actions
+    #   For each of params.DBInstancesIdentifiersToDelete
+    #     ignore if the given instance identifier doesn't exist. Log these kind of errors
+    #     Call [boto3.delete_db_instance]
+    #       Params:
+    #         DBInstanceIdentifier=(an instance identifier)
+    #   Make sure instances deleted
+    #     Call [boto3.describe_db_clusters] to make sure selected instance are gone
+    #       Parameters:
+    #         DBClusterIdentifier=params.DBClusterIdentifier
+    #       Take '.DBClusters[].DBClusterMembers[]'   
+  
+
+  - name: OutputRecoveryTime
+    action: 'aws:executeScript'
+    outputs:
+      - Name: RecoveryTime
+        Selector: $.Payload
+        Type: Integer
+    inputs:
+      Runtime: python3.7
+      Handler: recovery_time
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.recovery_time
+      InputPayload:
+        StartTime: '{{ RecordStartTime.StartTime }}'

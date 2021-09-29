@@ -1,0 +1,14 @@
+{
+  "displayName": "Scales the cluster up",
+  "description": "Scales the cluster up",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ScaleUpDocumentDBClusterSOP_2020-09-21",
+  "documentType": "Automation",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001",
+  "risk": "SMALL",
+  "enabled": "false",
+  "tag": "docdb:sop:scaling_up:2020-09-21"
+}

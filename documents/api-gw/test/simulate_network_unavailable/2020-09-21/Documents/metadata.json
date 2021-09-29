@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-RestApiGwSimulateNetworkUnavailable_2020-09-21",
+  "documentName": "Digito-SimulateRestApiGwNetworkUnavailableTest_2020-09-21",
   "documentType": "Automation",
   "failureType": "REGION",
   "minorVersion": "001",

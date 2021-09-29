@@ -18,12 +18,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for promoting Read replica to the Primary instance
 Outputs:
-  DigitoPromoteReadReplicaAssumeRole:
-    Description: DigitoPromoteReadReplica Automation Assume Role ARN
+  DigitoPromoteDocumentDBReadReplicaSOPAssumeRole:
+    Description: Digito-PromoteDocumentDBReadReplicaSOP_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoPromoteReadReplicaAssumeRole.Arn
+      Fn::GetAtt: DigitoPromoteDocumentDBReadReplicaSOPAssumeRole.Arn
 Resources:
-  DigitoPromoteReadReplicaAssumeRole:
+  DigitoPromoteDocumentDBReadReplicaSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoPromoteReadReplicaAssumePolicy:
+  DigitoPromoteDocumentDBReadReplicaSOPAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoPromoteReadReplicaAssumePolicy"
+      PolicyName: "DigitoPromoteDocumentDBReadReplicaSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -48,4 +48,4 @@ Resources:
               - 'rds:DescribeDBClusters'
               - 'rds:FailoverDBCluster'
       Roles:
-        - Ref: DigitoPromoteReadReplicaAssumeRole
+        - Ref: DigitoPromoteDocumentDBReadReplicaSOPAssumeRole

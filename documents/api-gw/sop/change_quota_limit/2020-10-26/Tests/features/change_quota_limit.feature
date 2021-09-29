@@ -1,12 +1,12 @@
 @api-gw
 Feature: SSM automation document to change REST API GW usage plan limits
 
-  Scenario: Execute Digito-RestApiGwChangeQuotaLimit_2020-10-26 to change quota limit with new quota less than 50%
+  Scenario: Execute Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26 to change quota limit with new quota less than 50%
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                              | ON_DEMAND    |
       | documents/api-gw/sop/change_quota_limit/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwChangeQuotaLimit_2020-10-26" SSM document
+    And published "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" SSM document
     And cache API GW property "$.quota.limit" as "QuotaLimit" "before" SSM automation execution
       | RestApiGwUsagePlanId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} |
@@ -20,11 +20,11 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | QuotaLimit                  |
       | {{cache:before>QuotaLimit}} |
 
-    When SSM automation document "Digito-RestApiGwChangeQuotaLimit_2020-10-26" executed
-      | RestApiGwUsagePlanId                                  | ForceExecution | RestApiGwQuotaLimit                 | RestApiGwQuotaPeriod         | AutomationAssumeRole                                                                     |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | False          | {{cache:before>ExpectedQuotaLimit}} | {{cache:before>QuotaPeriod}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRESTAPIGWChangeQuotaLimitAssumeRoleArn}} |
+    When SSM automation document "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" executed
+      | RestApiGwUsagePlanId                                  | ForceExecution | RestApiGwQuotaLimit                 | RestApiGwQuotaPeriod         | AutomationAssumeRole                                                                        |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | False          | {{cache:before>ExpectedQuotaLimit}} | {{cache:before>QuotaPeriod}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRoleArn}} |
 
-    Then SSM automation document "Digito-RestApiGwChangeQuotaLimit_2020-10-26" execution in status "Success"
+    Then SSM automation document "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache API GW property "$.quota.limit" as "QuotaLimit" "after" SSM automation execution
@@ -38,12 +38,12 @@ Feature: SSM automation document to change REST API GW usage plan limits
     And assert "QuotaPeriod" at "before" became equal to "QuotaPeriod" at "after"
 
 
-  Scenario: Execute Digito-RestApiGwChangeQuotaLimit_2020-10-26 to change quota limit with new quota more than 50%
+  Scenario: Execute Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26 to change quota limit with new quota more than 50%
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                              | ON_DEMAND    |
       | documents/api-gw/sop/change_quota_limit/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwChangeQuotaLimit_2020-10-26" SSM document
+    And published "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" SSM document
     And cache API GW property "$.quota.limit" as "QuotaLimit" "before" SSM automation execution
       | RestApiGwUsagePlanId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} |
@@ -57,11 +57,11 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | QuotaPeriod                  |
       | {{cache:before>QuotaPeriod}} |
 
-    When SSM automation document "Digito-RestApiGwChangeQuotaLimit_2020-10-26" executed
-      | RestApiGwUsagePlanId                                  | ForceExecution | RestApiGwQuotaLimit                 | RestApiGwQuotaPeriod            | AutomationAssumeRole                                                                     |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | False          | {{cache:before>ExpectedQuotaLimit}} | {{cache:before>ExpectedPeriod}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRESTAPIGWChangeQuotaLimitAssumeRoleArn}} |
+    When SSM automation document "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" executed
+      | RestApiGwUsagePlanId                                  | ForceExecution | RestApiGwQuotaLimit                 | RestApiGwQuotaPeriod            | AutomationAssumeRole                                                                        |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | False          | {{cache:before>ExpectedQuotaLimit}} | {{cache:before>ExpectedPeriod}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRoleArn}} |
 
-    Then SSM automation document "Digito-RestApiGwChangeQuotaLimit_2020-10-26" execution in status "Failed"
+    Then SSM automation document "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache API GW property "$.quota.limit" as "QuotaLimit" "after" SSM automation execution
@@ -76,12 +76,12 @@ Feature: SSM automation document to change REST API GW usage plan limits
     And assert "QuotaLimit" at "before" became equal to "QuotaLimit" at "after"
     And assert "QuotaPeriod" at "before" became equal to "QuotaPeriod" at "after"
 
-  Scenario: Execute Digito-RestApiGwChangeQuotaLimit_2020-10-26 to change quota limit with ForceExecution=True
+  Scenario: Execute Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26 to change quota limit with ForceExecution=True
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                              | ON_DEMAND    |
       | documents/api-gw/sop/change_quota_limit/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwChangeQuotaLimit_2020-10-26" SSM document
+    And published "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" SSM document
     And cache API GW property "$.quota.limit" as "QuotaLimit" "before" SSM automation execution
       | RestApiGwUsagePlanId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} |
@@ -95,11 +95,11 @@ Feature: SSM automation document to change REST API GW usage plan limits
       | QuotaLimit                  |
       | {{cache:before>QuotaLimit}} |
 
-    When SSM automation document "Digito-RestApiGwChangeQuotaLimit_2020-10-26" executed
-      | RestApiGwUsagePlanId                                  | ForceExecution | RestApiGwQuotaLimit                 | RestApiGwQuotaPeriod         | AutomationAssumeRole                                                                     |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | False          | {{cache:before>ExpectedQuotaLimit}} | {{cache:before>QuotaPeriod}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRESTAPIGWChangeQuotaLimitAssumeRoleArn}} |
+    When SSM automation document "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" executed
+      | RestApiGwUsagePlanId                                  | ForceExecution | RestApiGwQuotaLimit                 | RestApiGwQuotaPeriod         | AutomationAssumeRole                                                                        |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwUsagePlanId}} | False          | {{cache:before>ExpectedQuotaLimit}} | {{cache:before>QuotaPeriod}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRoleArn}} |
 
-    Then SSM automation document "Digito-RestApiGwChangeQuotaLimit_2020-10-26" execution in status "Success"
+    Then SSM automation document "Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache API GW property "$.quota.limit" as "QuotaLimit" "after" SSM automation execution

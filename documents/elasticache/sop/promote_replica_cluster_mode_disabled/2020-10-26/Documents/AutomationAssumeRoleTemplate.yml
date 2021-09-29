@@ -16,13 +16,13 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-PromoteReplicaClusterModeDisabled_2020-10-26
+Description: Role for Digito-PromoteElasticacheReplicaClusterModeDisabledSOP_2020-10-26
 Outputs:
-  DigitoElasticachePromoteReplicaClusterModeDisabledAssumeRole:
-    Description: Digito-PromoteReplicaClusterModeDisabled_2020-10-26 Automation Assume Role ARN
-    Value: !GetAtt DigitoElasticachePromoteReplicaClusterModeDisabledAssumeRole.Arn
+  DigitoPromoteElasticacheReplicaClusterModeDisabledSOPAssumeRole:
+    Description: Digito-PromoteElasticacheReplicaClusterModeDisabledSOP_2020-10-26 Automation Assume Role ARN
+    Value: !GetAtt DigitoPromoteElasticacheReplicaClusterModeDisabledSOPAssumeRole.Arn
 Resources:
-  DigitoElasticachePromoteReplicaClusterModeDisabledAssumeRole:
+  DigitoPromoteElasticacheReplicaClusterModeDisabledSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -34,10 +34,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoElasticachePromoteReplicaClusterModeDisabledAssumePolicy:
+  DigitoPromoteElasticacheReplicaClusterModeDisabledSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoElasticachePromoteReplicaClusterModeDisabledAssumePolicy
+      PolicyName: DigitoPromoteElasticacheReplicaClusterModeDisabledSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -50,4 +50,4 @@ Resources:
               - logs:DescribeLogGroups
               - logs:DescribeLogStreams
       Roles:
-        - Ref: DigitoElasticachePromoteReplicaClusterModeDisabledAssumeRole
+        - Ref: DigitoPromoteElasticacheReplicaClusterModeDisabledSOPAssumeRole

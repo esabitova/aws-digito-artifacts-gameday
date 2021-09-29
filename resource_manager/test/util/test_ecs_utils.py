@@ -4,11 +4,55 @@ import pytest
 from unittest.mock import MagicMock, patch
 
 from botocore.exceptions import ClientError
+from botocore.paginate import PageIterator
 
 import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.ecs_utils as ecs_utils
 import documents.util.scripts.test.test_ecs_util as test_ecs_util
 from resource_manager.test.util.mock_sleep import MockSleep
+
+
+def get_list_container_instances_side_effect_with_pages(pages, number_of_nodes):
+    result = []
+    instance_id = 0
+    for i in range(0, pages):
+        page_result = {"containerInstanceArns": []}
+        for j in range(0, number_of_nodes):
+            instance_id += 1
+            instance_name = f"test{instance_id}"
+            page_result['containerInstanceArns'].append(instance_name)
+        result.append(page_result)
+    return result
+
+
+def get_paginate_side_effect(number_of_pages, number_of_nodes):
+    class PageIteratorMock(PageIterator):
+        def __init__(self):
+            super(PageIteratorMock, self).__init__(
+                self,
+                input_token='input_token',
+                output_token='output_token',
+                more_results='more_results',
+                result_keys='result_keys',
+                non_aggregate_keys='non_aggregate_keys',
+                limit_key='limit_key',
+                max_items='max_items',
+                starting_token='starting_token',
+                page_size='page_size',
+                op_kwargs='op_kwargs'
+            )
+
+        def __iter__(self):
+            snapshots = get_list_container_instances_side_effect_with_pages(number_of_pages, number_of_nodes)
+            for snapshot in snapshots:
+                yield snapshot
+
+    class PaginateMock(MagicMock):
+        def paginate(self, cluster, status):
+            paginator = PageIteratorMock()
+            return paginator
+
+    return PaginateMock
 
 
 @pytest.mark.unit_test
@@ -204,3 +248,35 @@ class TestEcsUtil(unittest.TestCase):
                                              test_ecs_util.SERVICE_NAME,
                                              self.session_mock)
         self.assertEqual(None, res)
+
+    def test_get_number_of_nodes_in_status(self):
+        self.mock_ecs.describe_clusters.return_value = test_ecs_util.get_cluster()
+        self.mock_ecs.get_paginator.side_effect = get_paginate_side_effect(3, 10)
+
+        result = ecs_utils.get_number_of_nodes_in_status(self.session_mock,
+                                                         test_ecs_util.CLUSTER_NAME,
+                                                         'ACTIVE')
+        self.mock_ecs.describe_clusters.assert_called_once_with(
+            clusters=[test_ecs_util.CLUSTER_NAME]
+        )
+        self.assertEqual(30, result)
+
+    def test_get_number_of_nodes_in_status_no_cluster(self):
+        self.mock_ecs.describe_clusters.return_value = test_ecs_util.get_cluster(True)
+        self.mock_ecs.list_container_instances.return_value = {
+            "containerInstanceArns": [
+                "test1",
+                "test2"
+            ]
+        }
+        with pytest.raises(ClientError) as client_error:
+            ecs_utils.get_number_of_nodes_in_status(self.session_mock,
+                                                    test_ecs_util.CLUSTER_NAME,
+                                                    'ACTIVE')
+        self.mock_ecs.describe_clusters.assert_called_once_with(
+            clusters=[test_ecs_util.CLUSTER_NAME]
+        )
+        self.mock_ecs.list_container_instances.assert_not_called()
+        self.assertEqual(f"An error occurred (ClusterNotFound) when calling the ListContainerInstances operation: "
+                         f"Could not find cluster: {test_ecs_util.CLUSTER_NAME}",
+                         str(client_error.value))

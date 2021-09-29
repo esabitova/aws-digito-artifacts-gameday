@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for MillisBehindLatest metric for SQL applications", 
+  "description": "Digito alarm for Kinesis Data Analytics for SQL, that Indicates how far behind from the current time an application is reading from the streaming source",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-millisbehindlatest-sql:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-millisbehindlatest-sql:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

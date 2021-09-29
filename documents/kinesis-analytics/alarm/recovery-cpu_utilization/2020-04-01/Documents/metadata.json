@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for cpuUtilization metric for Apache Flink applications",
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink applications that tracks the overall percentage of CPU utilization across task managers, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:recovery-cpu_utilization:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:recovery-cpu_utilization:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

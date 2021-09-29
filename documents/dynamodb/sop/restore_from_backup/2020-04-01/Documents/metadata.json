@@ -1,7 +1,7 @@
 {
   "displayName": "Restore from backup",
   "description": "Used to restore Dynamodb table from a backup",
-  "documentName": "Digito-RestoreFromBackup_2020-04-01",
+  "documentName": "Digito-RestoreDynamoDBTableFromBackupSOP_2020-04-01",
   "documentType": "Automation",
   "documentContentPath": "AutomationDocument.yml",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",

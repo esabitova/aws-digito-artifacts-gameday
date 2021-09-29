@@ -1,33 +1,33 @@
 @api-gw
-Feature: SSM automation document Digito-ThrottlingHttpWs_2020-09-21
+Feature: SSM automation document Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21
 
-  Scenario: Execute SSM automation document Digito-ThrottlingHttpWs_2020-09-21 for HTTP API
+  Scenario: Execute SSM automation document Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21 for HTTP API
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                             | ON_DEMAND    |
       | documents/api-gw/test/throttling-http-ws/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ThrottlingHttpWs_2020-09-21" SSM document
+    And published "Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21" SSM document
     And cache default route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                           |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} |
 
-    When SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                           | AutomationAssumeRole                                                              | 4xxAlarmName                                             |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwThrottlingHttpWsAssumeRole}} | {{cfn-output:HTTPWSApiGwTemplate>Http4XXErrorAlarmName}} |
-    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
+    When SSM automation document "Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                           | AutomationAssumeRole                                                                         | 4xxAlarmName                                             |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoTriggerHttpWsApiGwThrottlingTestAssumeRole}} | {{cfn-output:HTTPWSApiGwTemplate>Http4XXErrorAlarmName}} |
+    And Wait for the SSM automation document "Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21" execution is on step "AssertAlarmToBeRed" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And call endpoint "HttpEndpoint" "12" times with delay "20" seconds using method "POST"
       | HttpEndpoint                                                |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiThrottledEndpoint}} |
-    And Wait for the SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress"
+    And Wait for the SSM automation document "Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21" execution is on step "AssertAlarmToBeGreen" in status "InProgress"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And call endpoint "HttpEndpoint" "12" times with delay "20" seconds using method "POST"
       | HttpEndpoint                                                |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiThrottledEndpoint}} |
 
-    Then SSM automation document "Digito-ThrottlingHttpWs_2020-09-21" execution in status "Success"
+    Then SSM automation document "Digito-TriggerHttpWsApiGwThrottlingTest_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache default route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution

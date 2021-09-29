@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Redis Key Authorization Failures",
+  "description": "Digito alarm for Elasticache Redis that triggers if the total number of failed attempts by users to access keys they don’t have permission to access, exceeds specified threshold limit",
+  "alarmName": "Digito-Elasticache-KeyAuthorizationFailures_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-key_authorization_failures:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

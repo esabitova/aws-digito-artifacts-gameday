@@ -1,3 +1,4 @@
-Digito-RedisIncreaseReplicaCount_2020-10-26
-Digito-RedisDecreaseReplicaCount_2020-10-26
-Digito-PromoteReplicaClusterModeDisabled_2020-10-26
+Digito-IncreaseRedisReplicaCountSOP_2020-10-26
+Digito-DecreaseRedisReplicaCountSOP_2020-10-26
+Digito-PromoteElasticacheReplicaClusterModeDisabledSOP_2020-10-26
+Digito-CreateElasticacheReplicationGroupFromSnapshotSOP_2020-10-26

@@ -292,4 +292,4 @@ class TestKinesisAnalyticsUtil(unittest.TestCase):
         mock_config.side_effect = lambda retries: self.config
         mock_boto3.client = self.mock_client
         ttemp = "KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue"
-        self.assertEqual([MOCK_SECURITY_GROUP_ID], get_kda_vpc_security_group(MOCK_EVENTS, {})[ttemp])
+        self.assertEqual(MOCK_SECURITY_GROUP_ID, get_kda_vpc_security_group(MOCK_EVENTS, {})[ttemp])

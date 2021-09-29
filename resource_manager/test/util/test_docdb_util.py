@@ -6,8 +6,9 @@ from botocore.exceptions import ClientError
 
 import resource_manager.src.util.boto3_client_factory as client_factory
 import resource_manager.src.util.docdb_utils as docdb_utils
-from documents.util.scripts.test.test_docdb_util import DOCDB_CLUSTER_ID, DOCDB_INSTANCE_ID, \
-    get_docdb_instances_side_effect, get_cluster_azs_side_effect, get_docdb_instances_with_status_side_effect
+from documents.util.scripts.test.test_docdb_util import DOCDB_CLUSTER_ID, DOCDB_INSTANCE_ID, DOCDB_SUBNET_GROUP_NAME, \
+    get_docdb_instances_side_effect, get_describe_db_cluster_side_effect, \
+    get_docdb_instances_with_status_side_effect, get_subnet_group_side_effect
 from documents.util.scripts.test.mock_sleep import MockSleep
 
 
@@ -82,10 +83,13 @@ class TestDocDBUtil(unittest.TestCase):
         self.assertEqual(result, az)
 
     def test_get_cluster_azs(self):
-        self.mock_docdb_service.describe_db_clusters.return_value = get_cluster_azs_side_effect()
+        self.mock_docdb_service.describe_db_clusters.return_value = get_describe_db_cluster_side_effect()
+        self.mock_docdb_service.describe_db_subnet_groups.return_value = get_subnet_group_side_effect()
         result = docdb_utils.get_cluster_azs(self.session_mock, DOCDB_CLUSTER_ID)
         self.mock_docdb_service.describe_db_clusters.assert_called_once_with(DBClusterIdentifier=DOCDB_CLUSTER_ID)
-        self.assertListEqual(result, ['us-east-1a', 'us-east-1b', 'us-east-1c'])
+        self.mock_docdb_service.describe_db_subnet_groups.assert_called_once_with(
+            DBSubnetGroupName=DOCDB_SUBNET_GROUP_NAME)
+        self.assertListEqual(result, ['us-east-1a', 'us-east-1b'])
 
     def test_get_cluster_members(self):
         cluster_members = [

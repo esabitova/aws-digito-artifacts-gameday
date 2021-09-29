@@ -58,7 +58,7 @@ mainSteps:
           StringEquals: 'false'
       Default: GetPreviousExecutionInstanceId
   - name: AssertAlarmToBeGreenBeforeTest
-    action: aws:assertAwsResourceProperty
+    action: aws:waitForAwsResourceProperty
     inputs:
       Service: cloudwatch
       Api: DescribeAlarms
@@ -71,7 +71,7 @@ mainSteps:
     onFailure: step:TriggerRollback
     onCancel: step:TriggerRollback
     inputs:
-      DocumentName: AWSFIS-Run-Memory-Stress
+      DocumentName: Digito-RunMemoryStress_2020-07-28
       InstanceIds:
         - '{{InstanceId}}'
       Parameters:

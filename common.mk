@@ -13,8 +13,8 @@ clean_test_artifacts:
 	rm -rf .pytest-incremental*
 
 clean_canary_artifacts:
-	rm -rf documents/docdb/test/database_alarm/2020-09-21/Test/canary/package  && \
-	rm -f documents/docdb/test/database_alarm/2020-09-21/Test/canary/*.zip
+	rm -rf documents/docdb/test/database_inaccessible_alarm/2020-09-21/Test/canary/package  && \
+	rm -f documents/docdb/test/database_inaccessible_alarm/2020-09-21/Test/canary/*.zip
 
 clean_all: clean clean_test_artifacts clean_canary_artifacts
 
@@ -76,6 +76,14 @@ unit_test_multiple_times: clean_test_artifacts
 	python3 -m pytest -m unit_test --reruns 5 --count=100 -x --timeout=50 --disable-socket && \
 	deactivate
 
+# Find lines which are not in master branch and not covered by unit tests. Firstly, coverage tests need to be executed
+find_uncovered_new_lines: unit_test
+	# If it was executed from the nested Makefiles when workdir was not changed after moving to the parent Makefile
+	cd "$(CWD)/" && \
+	source venv/bin/activate && \
+	python3 -m diff_cover.diff_cover_tool documentation/coverage/coverage.xml --compare-branch=origin/master --fail-under=100 && \
+	deactivate
+
 find_unused_fixtures:
 	source venv/bin/activate && \
 	python3 -m pytest --dead-fixtures&& \
@@ -89,7 +97,7 @@ unit_test_incrementally:
 
 destroy_all_cfn_resources:
 	source venv/bin/activate && \
-	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL && \
+	PYTHONPATH=. python resource_manager/src/tools/resource_tool.py -c DESTROY_ALL	 && \
 	deactivate
 
 list_all_cfn_resources:
@@ -116,7 +124,7 @@ style_validator:
 # Wrapper rule to execute unit tests and linter together easily in the nested Makefiles
 linter_and_unit_test: test_linter unit_test
 
-#todo DIG-977 create CW Canary distribution package in database_alarm.feature
+#todo DIG-977 create CW Canary distribution package in database_inaccessible_alarm.feature
 build_canary_artifacts: clean_canary_artifacts test_linter
 	source venv/bin/activate && \
 	cd documents/docdb/canary/database-connection-canary && \

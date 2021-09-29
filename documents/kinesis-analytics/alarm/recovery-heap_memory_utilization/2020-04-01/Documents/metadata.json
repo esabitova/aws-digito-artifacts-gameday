@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for heapMemoryUtilization metric for Flink applications",
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink applications that tracks the overall heap memory utilization across task managers, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:recovery-heap_memory_utilization:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:recovery-heap_memory_utilization:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

@@ -1,0 +1,14 @@
+{
+  "displayName": "Test ALB when network unavailable",
+  "description": "Test ALB when network unavailable",
+  "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
+  "documentContentPath": "AutomationDocument.yml",
+  "documentFormat": "YAML",
+  "documentName": "Digito-ForceApplicationLbNetworkUnavailableTest_2020-04-01",
+  "documentType": "Automation",
+  "failureType": "AZ,SOFTWARE",
+  "minorVersion": "001",
+  "risk": "MEDIUM",
+  "tag": "load-balancer:test:application_lb_network_unavailable:2020-04-01",
+  "enabled": "true"
+}

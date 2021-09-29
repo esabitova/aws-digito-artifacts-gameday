@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RestoreFromBackup
+Description: Role for SSM Digito-RestoreS3BucketFromBackupSOP_2020-09-21
 Outputs:
-  DigitoRestoreFromBackupAssumeRole:
-    Description: DigitoRestoreFromBackup Automation Assume Role ARN
+  DigitoRestoreS3BucketFromBackupSOPAssumeRole:
+    Description: Digito-RestoreS3BucketFromBackupSOP_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoRestoreFromBackupAssumeRole.Arn
+      Fn::GetAtt: DigitoRestoreS3BucketFromBackupSOPAssumeRole.Arn
 Resources:
-  DigitoRestoreFromBackupAssumeRole:
+  DigitoRestoreS3BucketFromBackupSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRestoreFromBackupAssumePolicy:
+  DigitoRestoreS3BucketFromBackupSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoRestoreFromBackupAssumePolicy
+      PolicyName: DigitoRestoreS3BucketFromBackupSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -57,7 +57,7 @@ Resources:
               - SNS:Publish
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoRestoreFromBackupAssumeRole.Arn
+              - Fn::GetAtt: DigitoRestoreS3BucketFromBackupSOPAssumeRole.Arn
             Action:
               - iam:PassRole
           - Effect: Allow
@@ -70,4 +70,4 @@ Resources:
               StringLike:
                 kms:ViaService: sns.*.amazonaws.com
       Roles:
-        - Ref: DigitoRestoreFromBackupAssumeRole
+        - Ref: DigitoRestoreS3BucketFromBackupSOPAssumeRole

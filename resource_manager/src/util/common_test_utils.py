@@ -1,13 +1,15 @@
 import random
 import uuid
 
-from resource_manager.src.util import param_utils as param_utils
-from sttable import parse_str_table
+import jsonpath_ng
 from boto3 import Session
+from sttable import parse_str_table
+
+from resource_manager.src.util import param_utils as param_utils
 from .boto3_client_factory import client
 
 
-def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cache) -> str:
+def extract_param_value(input_parameters, param_key, resource_pool, ssm_test_cache):
     """
     Extract value of CloudFormation output parameter
     :param input_parameters: the table with input parameters
@@ -33,6 +35,7 @@ def extract_all_from_input_parameters(cf_output, cache, input_parameters, alarms
     :param cf_output - The CFN outputs
     :param cache - The cache, used to get cached values by given keys.
     :param input_parameters - The SSM input parameters as described in scenario feature file.
+    :param alarms - installed alarms
     """
     input_params = parse_str_table(input_parameters).rows[0]
     parameters = {}
@@ -40,7 +43,6 @@ def extract_all_from_input_parameters(cf_output, cache, input_parameters, alarms
         value = param_utils.parse_param_value(param_val_ref, {'cache': cache,
                                                               'cfn-output': cf_output,
                                                               'alarm': alarms})
-
         parameters[param] = value
     return parameters
 
@@ -63,12 +65,15 @@ def extract_and_cache_param_values(input_parameters, param_list, resource_manage
 def put_to_ssm_test_cache(ssm_test_cache: dict, cache_key, cache_property, value):
     """
     Put the value to the cache with the key cache property which should be placed under other key - cache_key
+    If cache_key is None, don't create a dictionary
     :param ssm_test_cache: cache
     :param cache_key: 1-level cache key
     :param cache_property: 2-level cache key
     :param value: 2-level cache value
     """
-    if cache_key in ssm_test_cache:
+    if not cache_key:
+        ssm_test_cache[cache_property] = value
+    elif cache_key in ssm_test_cache:
         cache_by_key: dict = ssm_test_cache.get(cache_key)
         cache_by_key[cache_property] = value
     else:
@@ -173,3 +178,42 @@ def check_security_group_exists(session: Session, security_group_id: str):
     if 'SecurityGroups' not in group_list or not group_list['SecurityGroups']:
         return False
     return True
+
+
+def do_cache_by_method_of_service(cache_key, method_name, parameters, service_client, ssm_test_cache):
+    """
+    Cache response values by JSONPath from parameters
+    :param cache_key: The cache key in ssm_test_cache
+    :param method_name: The name of the AWS API method
+    :param parameters: The parsed parameters with input arguments for boto3 method call and output JSONPaths
+    :param service_client: The boto3 client of the service
+    :return:
+    """
+    output_prefix = "Output-"
+    input_prefix = "Input-"
+    arguments = {}
+    json_paths = {}
+    for parameter, value in parameters.items():
+        if isinstance(value, list):
+            if len(value) > 1 and parameter.startswith(output_prefix):
+                raise AssertionError(f'Only one JSONPath can be applied. '
+                                     f'Parameter: {parameter}, value: {value}')
+            # to support wrapping into the list in the
+            # resource_manager.src.ssm_document.SsmDocument.parse_input_parameters
+            if len(value) > 0:
+                if parameter.startswith(output_prefix):
+                    json_paths[parameter.replace(output_prefix, "")] = value[0]
+                else:
+                    arguments[parameter.replace(input_prefix, "")] = value
+        else:
+            if parameter.startswith(output_prefix):
+                json_paths[parameter.replace(output_prefix, "")] = value
+            else:
+                arguments[parameter.replace(input_prefix, "")] = value
+    response = getattr(service_client, method_name)(**arguments)
+    for cache_property, json_path in json_paths.items():
+        found = jsonpath_ng.parse(json_path).find(response)
+        if found:
+            # Always output as an array even len(found)==1 for the easiest processing
+            target_value = [f.value for f in found]
+            put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)

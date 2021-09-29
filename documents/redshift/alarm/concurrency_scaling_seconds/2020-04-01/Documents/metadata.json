@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon Redshift alarm for ConcurrencyScalingSeconds metric.",
+  "description": "Alarm by Digito for Amazon Redshift, that reports number of seconds used by concurrency scaling clusters that have active query processing activity, is equal to or greater than the specified threshold.",
+  "alarmName": "Digito-ConcurrencyScalingSeconds_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "redshift:alarm:concurrency_scaling_seconds:2020-04-01",
+  "failureType": "HARDWARE",
+  "minorVersion": "001"
+}

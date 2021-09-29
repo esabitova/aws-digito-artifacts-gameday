@@ -1,10 +1,7 @@
 import boto3
 import logging
-import time
-from datetime import datetime
 
 from botocore.config import Config
-from botocore.exceptions import ClientError
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -146,7 +143,7 @@ def update_kda_vpc_security_group(events, context):
             'VpcConfigurationUpdates': [
                 {'VpcConfigurationId': vpc_configuration_id,
                     'SubnetIdUpdates': subnet_id,
-                    'SecurityGroupIdUpdates': security_group_id}]})['ResponseMetadata']['HTTPStatusCode']
+                    'SecurityGroupIdUpdates': [security_group_id]}]})['ResponseMetadata']['HTTPStatusCode']
     return update_status
 
 
@@ -161,126 +158,5 @@ def get_kda_vpc_security_group(events, context, kinesis_analytics_client=None):
     security_group_ids = kinesis_analytics_client.describe_application(
         ApplicationName=app_name, IncludeAdditionalDetails=True)['ApplicationDetail']
     security_group_ids = security_group_ids['ApplicationConfigurationDescription']
-    security_group_ids = security_group_ids['VpcConfigurationDescriptions'][0]['SecurityGroupIds']
-    return {"KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue": security_group_ids}
-
-
-def confect_fake_vpc_security_group(events, context):
-    """
-    Confect fake VPC security group, to attach to Kinesis Data Analytics application
-    on gameday test
-    """
-    required_params = [
-        'ApplicationName',
-        'ExecutionId',
-        'Tag'
-    ]
-    for key in required_params:
-        if key not in events:
-            raise KeyError(f'Requires {key} in events')
-    config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
-    kinesis_analytics_client = boto3.client('kinesisanalyticsv2', config=config)
-    ec2_client = boto3.client('ec2', config=config)
-    app_name = events['ApplicationName']
-    get_data_about_app = kinesis_analytics_client.describe_application(
-        ApplicationName=app_name, IncludeAdditionalDetails=True)['ApplicationDetail']
-    get_vpc_data_about_app = get_data_about_app['ApplicationConfigurationDescription']
-    get_vpc_data_about_app = get_vpc_data_about_app['VpcConfigurationDescriptions'][0]
-    vpc_id = get_vpc_data_about_app['VpcId']
-    group_id = ec2_client.create_security_group(
-        Description=f'Empty SG for executionID {events["ExecutionId"]}',
-        GroupName=f'EmptySG-{events["ExecutionId"]}',
-        VpcId=vpc_id,
-        TagSpecifications=[
-            {
-                'ResourceType': 'security-group',
-                'Tags': [
-                    {
-                        'Key': 'Digito',
-                        'Value': events['Tag']
-                    },
-                ]
-            }
-        ]
-    )['GroupId']
-    result = ec2_client.revoke_security_group_egress(
-        GroupId=group_id,
-        IpPermissions=[
-            {
-                "IpProtocol": "-1",
-                "IpRanges": [
-                    {
-                        "CidrIp": "0.0.0.0/0"
-                    }
-                ],
-                "Ipv6Ranges": [],
-                "PrefixListIds": [],
-                "UserIdGroupPairs": []
-            }
-        ]
-    )
-    if not result['Return']:
-        remove_fake_vpc_security_group({'EmptySecurityGroupId': group_id}, context)
-        raise ClientError(
-            error_response={
-                "Error":
-                {
-                    "Code": "CouldNotRevoke",
-                    "Message": f"Could not revoke egress from sg: {group_id}"
-                }
-            },
-            operation_name='RevokeSecurityGroupEgress'
-        )
-    return {'KinesisDataAnalyticsApplicationVPCFakeSecurityGroupIdsList': [group_id]}
-
-
-def remove_fake_vpc_security_group(events, context):
-    """
-    Remove fake VPC security group, former confected on a previous test step
-    """
-    required_params = [
-        'EmptySecurityGroupId'
-    ]
-    for key in required_params:
-        if key not in events:
-            raise KeyError(f'Requires {key} in events')
-    time_to_wait = 1800
-    ec2_client = boto3.client('ec2')
-    if 'Timeout' in events:
-        time_to_wait = events['Timeout']
-    timeout_timestamp = time.time() + int(time_to_wait)
-    while time.time() < timeout_timestamp:
-        try:
-            logger.info(f'Deleting empty security group: {events["EmptySecurityGroupId"]}')
-            group_list = ec2_client.describe_security_groups(
-                Filters=[
-                    {
-                        'Name': 'group-id',
-                        'Values': [
-                            events["EmptySecurityGroupId"][0],
-                        ]
-                    },
-                ]
-            )
-            if not group_list['SecurityGroups']:
-                break
-            group_id = group_list['SecurityGroups'][0]['GroupId']
-            logger.info(f'Deleting empty security group: {group_id}')
-            response = ec2_client.delete_security_group(
-                GroupId=group_id
-            )
-            if response['ResponseMetadata']['HTTPStatusCode'] < 400:
-                break
-        except ClientError as error:
-            if error.response['Error']['Code'] == 'InvalidGroup.NotFound':
-                logger.info(f"Empty security group doesn't exist: {events['EmptySecurityGroupId']}")
-                break
-            elif error.response['Error']['Code'] == 'DependencyViolation' \
-                    or error.response['Error']['Code'] == 'RequestLimitExceeded':
-                time.sleep(5)
-                continue
-            else:
-                raise error
-    if datetime.timestamp(datetime.now()) > timeout_timestamp:
-        raise TimeoutError(f'Security group {events["EmptySecurityGroupId"]} couldn\'t '
-                           f'be deleted in {time_to_wait} seconds')
+    security_group_id = security_group_ids['VpcConfigurationDescriptions'][0]['SecurityGroupIds'][0]
+    return {"KinesisDataAnalyticsApplicationVPCSecurityGroupMappingOriginalValue": security_group_id}

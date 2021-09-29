@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for InputProcessing.ProcessingFailedRecords metric for SQL applications",
+  "description": "Digito alarm for Kinesis Data Analytics for SQL applications that indicates the number of records returned by a Lambda function that were marked with ProcessingFailed status, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-processing_failed_records:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-processing_failed_records:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

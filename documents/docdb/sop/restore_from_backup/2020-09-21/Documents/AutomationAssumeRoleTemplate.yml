@@ -18,12 +18,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Role for recovering the database into a known good state
 Outputs:
-  DigitoDocDbRestoreFromBackupAssumeRole:
-    Description: DigitoDocDbRestoreFromBackup Automation Assume Role ARN
+  DigitoRestoreDocumentDBClusterFromBackupSOPAssumeRole:
+    Description: Digito-RestoreDocumentDBClusterFromBackupSOP_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoDocDbRestoreFromBackupAssumeRole.Arn
+      Fn::GetAtt: DigitoRestoreDocumentDBClusterFromBackupSOPAssumeRole.Arn
 Resources:
-  DigitoDocDbRestoreFromBackupAssumeRole:
+  DigitoRestoreDocumentDBClusterFromBackupSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoDocDbRestoreFromBackupAssumePolicy:
+  DigitoRestoreDocumentDBClusterFromBackupSOPAssumePolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoDocDbRestoreFromBackupAssumePolicy"
+      PolicyName: "DigitoRestoreDocumentDBClusterFromBackupSOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -61,4 +61,4 @@ Resources:
               StringLike:
                 kms:ViaService: rds.*.amazonaws.com
       Roles:
-        - Ref: DigitoDocDbRestoreFromBackupAssumeRole
+        - Ref: DigitoRestoreDocumentDBClusterFromBackupSOPAssumeRole

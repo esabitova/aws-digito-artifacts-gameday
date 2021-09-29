@@ -28,6 +28,9 @@ Outputs:
   EC2MemoryAlarm:
     Description: EC2 Memory Utilization Alarm
     Value: !Ref EC2MemoryAlarm
+  EC2StatusCheckAlarm:
+    Description: EC2 Instance Status Check Alarm
+    Value: !Ref EC2StatusCheckAlarm
   ImageId:
      Description: EC2 Instance AMI
      Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
@@ -393,10 +396,6 @@ Resources:
       Dimensions:
         - Name: InstanceId
           Value: !Ref EC2Instance
-        - Name: ImageId
-          Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
-        - Name: InstanceType
-          Value: !Ref InstanceType
         - Name: cpu
           Value: cpu-total
   EC2MemoryAlarm:
@@ -414,7 +413,18 @@ Resources:
       Dimensions:
         - Name: InstanceId
           Value: !Ref EC2Instance
-        - Name: ImageId
-          Value: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , !FindInMap [ AWSInstanceType2Arch, !Ref InstanceType, Arch ] ]
-        - Name: InstanceType
-          Value: !Ref InstanceType
+  EC2StatusCheckAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      Namespace: AWS/EC2
+      MetricName: StatusCheckFailed
+      Unit: Count
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: breaching
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref EC2Instance

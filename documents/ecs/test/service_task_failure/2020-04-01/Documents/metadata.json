@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-ServiceTaskFailure_2020-04-01",
+  "documentName": "Digito-ForceECSServiceTaskFailureTest_2020-04-01",
   "documentType": "Automation",
   "failureType": "AZ,SOFTWARE,HARDWARE",
   "minorVersion": "001",

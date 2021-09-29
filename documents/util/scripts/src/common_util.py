@@ -18,10 +18,23 @@ def recovery_time(events, context):
     return (datetime.now(timezone.utc) - parser.parse(events['StartTime'])).seconds
 
 
-def create_empty_security_group(events, context):
+def create_empty_security_group(events: dict, context: dict) -> dict:
+    """
+    Creates a empty security group in provided VPC
+    The name of this SG contains Execution Id of the SSM execution
+    :param events: The dictionary that supposed to have the following keys:
+        * `VpcId` - The vpc id to create SG into
+        * `ExecutionId` - The execution id of SSM
+        * `Tag` - a value of `Digito` tag to assign
+    :param context:
+    :return: Dict with two keys:
+        * EmptySecurityGroupId - string wih SG id, you can use it as String parameter in SSM
+        * EmptySecurityGroupId - one element list wih SG id, you can use it as StringList parameter in SSM
+    """
     required_params = [
         'VpcId',
-        'ExecutionId'
+        'ExecutionId',
+        'Tag'
     ]
 
     for key in required_params:
@@ -34,6 +47,17 @@ def create_empty_security_group(events, context):
         Description=f'Empty SG for executionID {events["ExecutionId"]}',
         GroupName=f'EmptySG-{events["ExecutionId"]}',
         VpcId=events['VpcId'],
+        TagSpecifications=[
+            {
+                'ResourceType': 'security-group',
+                'Tags': [
+                    {
+                        'Key': 'Digito',
+                        'Value': events['Tag']
+                    },
+                ]
+            }
+        ]
     )['GroupId']
 
     result = ec2_client.revoke_security_group_egress(
@@ -64,7 +88,7 @@ def create_empty_security_group(events, context):
             },
             operation_name='RevokeSecurityGroupEgress'
         )
-    return {'EmptySecurityGroupId': group_id}
+    return {'EmptySecurityGroupId': group_id, 'EmptySecurityGroupIdList': [group_id]}
 
 
 def remove_empty_security_group(events, context):

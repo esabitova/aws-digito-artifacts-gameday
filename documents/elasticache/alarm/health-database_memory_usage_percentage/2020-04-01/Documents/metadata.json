@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Database Memory Usage Percentage",
+  "description": "Digito alarm for Elasticache Redis that indicates if percentage of the memory available for the cluster that is in use, drops below specified threshold limit",
+  "alarmName": "Digito-Elasticache-DatabaseMemoryUsagePercentage_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-database_memory_usage_percentage:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

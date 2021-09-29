@@ -6,7 +6,7 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                                            | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_http_ws/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" SSM document
+    And published "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                  | HttpWsRouteKey |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageName}} | POST /test     |
@@ -19,10 +19,10 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
     And generate different value of "Limit" than "OldBurstLimit" from "3000" to "4000" as "ExpectedBurstLimit" "before" SSM automation execution
       | OldBurstLimit               |
       | {{cache:before>BurstLimit}} |
-    When SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                  | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                            |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageName}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole}} |
-    Then SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                  | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                               |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageName}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole}} |
+    Then SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
@@ -38,7 +38,7 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                                            | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_http_ws/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" SSM document
+    And published "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsRouteKey |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | POST /test     |
@@ -51,10 +51,10 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
     And generate different value of "Limit" than "OldBurstLimit" from "70" to "80" as "ExpectedBurstLimit" "before" SSM automation execution
       | OldBurstLimit               |
       | {{cache:before>BurstLimit}} |
-    When SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                            |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole}} |
-    Then SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                               |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole}} |
+    Then SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
@@ -70,7 +70,7 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                                            | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_http_ws/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" SSM document
+    And published "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsRouteKey |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | POST /test     |
@@ -83,10 +83,10 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
     And generate different value of "Limit" than "OldBurstLimit" from "70" to "80" as "ExpectedBurstLimit" "before" SSM automation execution
       | OldBurstLimit               |
       | {{cache:before>BurstLimit}} |
-    When SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                            |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole}} |
-    Then SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                               |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole}} |
+    Then SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
@@ -102,7 +102,7 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                                            | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_http_ws/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" SSM document
+    And published "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsRouteKey |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | POST /test     |
@@ -115,10 +115,10 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
     And generate different value of "Limit" than "OldBurstLimit" from "10" to "20" as "ExpectedBurstLimit" "before" SSM automation execution
       | OldBurstLimit               |
       | {{cache:before>BurstLimit}} |
-    When SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                            |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole}} |
-    Then SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                               |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole}} |
+    Then SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
@@ -134,7 +134,7 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                                            | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_http_ws/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" SSM document
+    And published "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsRouteKey |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | POST /test     |
@@ -144,10 +144,10 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
     And generate different value of "Limit" than "OldBurstLimit" from "70" to "80" as "ExpectedBurstLimit" "before" SSM automation execution
       | OldBurstLimit               |
       | {{cache:before>BurstLimit}} |
-    When SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                            |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | 20000                | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole}} |
-    Then SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" execution in status "Failed"
+    When SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate | HttpWsThrottlingBurst               | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                               |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | 20000                | {{cache:before>ExpectedBurstLimit}} | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole}} |
+    Then SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution
@@ -163,7 +163,7 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
       | CfnTemplatePath                                                                                               | ResourceType |
       | resource_manager/cloud_formation_templates/HTTPWSApiGwTemplate.yml                                            | ON_DEMAND    |
       | documents/api-gw/sop/change_throttling_settings_http_ws/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" SSM document
+    And published "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" SSM document
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "before" SSM automation execution
       | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsRouteKey |
       | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | POST /test     |
@@ -173,10 +173,10 @@ Feature: SSM automation document to change HTTP or WS API GW route throttling se
     And generate different value of "Limit" than "OldRateLimit" from "70" to "80" as "ExpectedRateLimit" "before" SSM automation execution
       | OldRateLimit               |
       | {{cache:before>RateLimit}} |
-    When SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" executed
-      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                            |
-      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | 10000                 | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoApiGwChangeThrottlingSettingsHttpWsAssumeRole}} |
-    Then SSM automation document "Digito-ChangeThrottlingSettingsHttpWs_2020-10-26" execution in status "Failed"
+    When SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" executed
+      | HttpWsApiGwId                                  | HttpWsStageName                                           | HttpWsThrottlingRate               | HttpWsThrottlingBurst | HttpWsRouteKey | ForceExecution | AutomationAssumeRole                                                                               |
+      | {{cfn-output:HTTPWSApiGwTemplate>HttpApiGwId}} | {{cfn-output:HTTPWSApiGwTemplate>HttpStageNameThrottled}} | {{cache:before>ExpectedRateLimit}} | 10000                 | POST /test     | true           | {{cfn-output:AutomationAssumeRoleTemplate>DigitoChangeHttpWsApiGwThrottlingSettingsSOPAssumeRole}} |
+    Then SSM automation document "Digito-ChangeHttpWsApiGwThrottlingSettingsSOP_2020-10-26" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache route throttling rate limit as "RateLimit" and burst limit as "BurstLimit" "after" SSM automation execution

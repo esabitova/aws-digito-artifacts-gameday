@@ -1,8 +1,12 @@
 import hashlib
 import logging
+import os.path
 import random
 import re
+import shutil
 import string
+import subprocess
+import sys
 import time
 import unittest
 import uuid
@@ -10,6 +14,7 @@ from datetime import datetime
 from typing import List
 
 import boto3
+import jsonpath_ng
 import pytest
 from botocore.exceptions import ClientError
 from pytest import ExitCode
@@ -29,6 +34,7 @@ from resource_manager.src.resource_pool import ResourcePool
 from resource_manager.src.s3 import S3
 from resource_manager.src.ssm_document import SsmDocument
 from resource_manager.src.util import common_test_utils
+from resource_manager.src.util.boto3_client_factory import client
 from resource_manager.src.util.common_test_utils import put_to_ssm_test_cache
 from resource_manager.src.util.cw_util import get_ec2_metric_max_datapoint, wait_for_metric_alarm_state
 from resource_manager.src.util.cw_util import get_metric_alarm_state
@@ -109,11 +115,11 @@ def pytest_runtest_makereport(item, call):
 
 
 def pytest_sessionstart(session):
-    '''
+    """
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     For this case we want to create test DDB tables before running any test.
     :param session: Tests session
-    '''
+    """
     # Execute when running integration tests
     if session.config.option.run_integration_tests:
         # Generating testing session id in order to tie test resources to specific session, so that when
@@ -145,12 +151,12 @@ def pytest_sessionstart(session):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    '''
+    """
     Hook https://docs.pytest.org/en/stable/reference.html#initialization-hooks \n
     :param session: The pytest session object.
-    :param exitstatus(int): The status which pytest will return to the system.
+    :param exitstatus: (int) The status which pytest will return to the system.
     :return:
-    '''
+    """
     # Execute only when running integration tests and disabled skip session level hooks
     # In case we do execute tests not in single session, for example in different machines, we don't want
     # to perform resource fix/destroy since one session can try to modify resource state which is used
@@ -185,11 +191,11 @@ def target_service(request):
 
 @pytest.fixture(scope='session')
 def boto3_session(request):
-    '''
+    """
     Creates session for given profile name. More about how to configure AWS profile:
     https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html
     :param request The pytest request object
-    '''
+    """
     # Applicable only for integration tests
     if request.session.config.option.run_integration_tests:
         aws_role_arn = request.session.config.option.aws_role_arn
@@ -282,11 +288,11 @@ def ssm_document(request, boto3_session, ssm_test_cache, function_logger):
 
 @pytest.fixture(scope='function')
 def ssm_test_cache():
-    '''
+    """
     Cache for test. There may be cases when state between test steps can be changed,
     but we want to remember it to be able to verify how state was changed after.
     Example you can find in: .../documents/rds/test/force_aurora_failover/Tests/features/aurora_failover_cluster.feature
-    '''
+    """
     cache = dict()
     return cache
 
@@ -353,6 +359,69 @@ def set_up_cfn_template_resources(resource_pool, cfn_templates):
     :param cfn_templates: The table of parameters as input for cloud formation template
     """
     resource_pool.add_cfn_templates(cfn_templates)
+
+
+@given(parse('install dependencies from requirement file, '
+             'build Lambda distribution package, and save package path to "{cache_property}" cache property'
+             '\n{input_parameters_table}'))
+@when(parse('install dependencies from requirement file, '
+            'build Lambda distribution package, and save package path to "{cache_property}" cache property'
+            '\n{input_parameters_table}'))
+@then(parse('install dependencies from requirement file, '
+            'build Lambda distribution package, and save package path to "{cache_property}" cache property'
+            '\n{input_parameters_table}'))
+def create_package_with_dependencies(cache_property, input_parameters_table, ssm_test_cache):
+    """
+    Common step to create package for lambda with dependencies in zip archive format
+    :param cache_property: The cache property when package path will be saved
+    :param input_parameters_table: The table from cucumber scenario with params
+    RequirementsFileRelationalPath, DirectoryWithCodePath
+    :param ssm_test_cache: The custom test cache
+    :return: None
+    """
+    input_params = {name: val for name, val in
+                    parse_str_table(input_parameters_table).rows[0].items()}
+    requirements_file = os.path.abspath(input_params['RequirementsFileRelationalPath'])
+
+    # get full and relative path's for directories
+    src_dir = os.path.abspath(input_params['DirectoryWithCodeRelationalPath'])
+    tmp_dir = f'{os.path.abspath(".")}/.lambda_package_tmp-{uuid.uuid4().hex}'
+    lambda_package_tmp_path = f"{os.path.abspath(tmp_dir)}/lambda_function"
+    lambda_package_filename = f"lambda_function-{uuid.uuid4().hex}.zip"
+    package_directory_relative_path = os.path.normpath(input_params['DirectoryWithCodeRelationalPath'])
+    lambda_package_relative_path = f"{package_directory_relative_path}/../{lambda_package_filename}"
+    lambda_package_path = f"{src_dir}/../{lambda_package_filename}"
+
+    # create temporary directory with default permissions
+    octal_permissions = 0o755
+    os.mkdir(tmp_dir, octal_permissions)
+    logging.info(f"Created temporary directory '{tmp_dir}'")
+    # install dependencies using pip
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-t', tmp_dir, '-r', requirements_file, '--upgrade'])
+    logging.info(f"Packages from '{requirements_file}' were installed.")
+
+    # copy source code to temporary directory ignoring __pycache__
+    for item in os.listdir(src_dir):
+        if item == '__pycache__':
+            pass
+        # check that item is a file
+        elif os.path.isfile(f'{src_dir}/{item}'):
+            shutil.copy2(f'{src_dir}/{item}', f'{tmp_dir}/{item}')
+        # check that item is a directory
+        elif os.path.isdir(f'{src_dir}/{item}'):
+            shutil.copytree(f'{src_dir}/{item}', f'{tmp_dir}/{item}', copy_function=shutil.copy2)
+        else:
+            raise Exception(f"{src_dir}/{item} is not a directory or file")
+    # create .zip package
+    shutil.make_archive(lambda_package_tmp_path, 'zip', tmp_dir)
+    # move artifact from tmp dir
+    shutil.copy2(f'{lambda_package_tmp_path}.zip', lambda_package_path)
+    logging.info(f"The following content added into package: '{str(os.listdir(tmp_dir))}'")
+    # delete temporary directory
+    shutil.rmtree(tmp_dir)
+    # cache relative path
+    ssm_test_cache[cache_property] = lambda_package_relative_path
+    logging.info(f"Cached ssm_test_cache[{cache_property}]: '{lambda_package_relative_path}'")
 
 
 @when(parse('SSM automation document "{ssm_document_name}" executed\n{ssm_input_parameters}'))
@@ -590,7 +659,8 @@ def reject_automation(cfn_output_params, ssm_test_cache, boto3_session, input_pa
 @given(parse('cache constant value {value} as "{cache_property}" '
              '"{step_key}" SSM automation execution'))
 def cache_expected_constant_value_before_ssm(ssm_test_cache, value, cache_property, step_key):
-    param_value = parse_param_value(value, {'cache': ssm_test_cache})
+    param_value = parse_param_value(value, {'cache': ssm_test_cache,
+                                            'cfn-output': cfn_output_params})
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, str(param_value))
 
 
@@ -604,6 +674,8 @@ def cache_rollback_execution_id(ssm_document, ssm_test_cache, input_parameters):
 
 
 @when(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
+            '\n{input_parameters}'))
+@then(parse('cache execution output value of "{target_property}" as "{cache_property}" after SSM automation execution'
             '\n{input_parameters}'))
 def cache_execution_output_value(ssm_test_cache, boto3_session, target_property, cache_property, input_parameters):
     execution_id = parse_param_values_from_table(input_parameters, {
@@ -792,7 +864,7 @@ def upload_file_to_s3(request, boto3_session, ssm_test_cache, file_relative_path
     :param s3_key_ref: future s3 key where the file will be saved
     :param s3_bucket_name_prefix_ref: s3 bucket name where the file will be saved
     :param cache_property: the name of the cache property where URI, key, bucket, object version will be saved
-    :return:
+    :return: None
     """
     file_rel_path = parse_param_value(file_relative_path_ref, {'cache': ssm_test_cache})
     s3_key = parse_param_value(s3_key_ref, {'cache': ssm_test_cache})
@@ -876,6 +948,16 @@ def send_resume_signal_to_execution(execution_id_param, ssm_step_name_param,
     ssm_document.send_resume_signal(execution_id, ssm_step_name)
 
 
+@when(parse('stop FIS experiment\n{input_parameters}'))
+def stop_fis_experiment(boto3_session, resource_pool, ssm_test_cache, input_parameters):
+    experiment_id = common_test_utils.extract_param_value(input_parameters, 'ExperimentId',
+                                                          resource_pool, ssm_test_cache)
+    fis_client = client('fis', boto3_session)
+    fis_client.stop_experiment(
+        id=experiment_id
+    )
+
+
 @given(parse('cache values to "{cache_key}"\n{input_parameters}'))
 @when(parse('cache values to "{cache_key}"\n{input_parameters}'))
 def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
@@ -886,4 +968,74 @@ def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cach
     params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
                                                                  cfn_installed_alarms)
     for param_name, value in params.items():
-        put_to_ssm_test_cache(ssm_test_cache, cache_key, param_name, value)
+        ssm_test_cache[cache_key][param_name] = value
+
+
+@given(parse('apply "{json_path}" JSONPath '
+             'and cache value as "{cache_property}" to "{cache_key}"\n{input_parameters}'))
+@when(parse('apply "{json_path}" JSONPath '
+            'and cache value as "{cache_property}" to "{cache_key}"\n{input_parameters}'))
+def apply_json_path_and_cache_value(cfn_output_params, ssm_test_cache, cfn_installed_alarms, json_path,
+                                    cache_property, cache_key, input_parameters):
+    """
+    Apply json_path to the Input parameter as the reference to cfn output, alarms, input parameter table,
+    ssm test cache and cache value
+    """
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
+    input_value = params['Input']
+    result = jsonpath_ng.parse(json_path).find(input_value)[0].value
+    put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, result)
+
+
+@given(parse('register for teardown by "{teardown_fixture_name}"\n{input_parameters}'))
+@when(parse('register for teardown by "{teardown_fixture_name}"\n{input_parameters}'))
+def register_for_teardown_by_dynamic_fixture(request, resource_pool, teardown_fixture_name, input_parameters,
+                                             cfn_output_params, ssm_test_cache,
+                                             cfn_installed_alarms):
+    """
+    Add keys to the dict which will be used by dynamically fetched teardown fixture to clean up everything after
+    Cucumber scenario.
+    You can find teardown_fixture_name as a method name in the project, usually in the corresponding service folder
+    :param request The pytest request object
+    :param teardown_fixture_name: dynamically passed fixture name
+    :param cfn_output_params The resource manager object to manipulate with testing resources
+    :param cfn_installed_alarms The resource manager object to manipulate with created alarms
+    :param ssm_test_cache The custom test cache
+    :param input_parameters The input parameters
+    :return: dict with populated keys and values for making teardown process
+    """
+    params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
+                                                                 cfn_installed_alarms)
+    teardown_fixture_dict = request.getfixturevalue(teardown_fixture_name)
+    for param_name, value in params.items():
+        teardown_fixture_dict[param_name] = value
+    logging.warning(params)
+
+
+@given(parse('parse "{param_val_ref}" and cache as {cache_property}'))
+def parse_string(param_val_ref, cache_property, cfn_output_params, ssm_test_cache,
+                 cfn_installed_alarms):
+    """
+        Replaces all `{{some_value}}` substrings in a `param_val_ref` string with a values from cache/cfn-output/alarms
+        example:
+          if we have in cache: `ssm_test_cache['foo']['bar']="world"`
+          then expression:
+          `parse "hello {{cache:foo>bar}}" and cache as "HelloString"`
+          will create a new cache key:
+          ssm_test_cache['HelloString'] == "hello world"
+        :param cfn_output_params The resource manager object to manipulate with testing resources
+        :param cfn_installed_alarms The resource manager object to manipulate with created alarms
+        :param ssm_test_cache The custom test cache
+        :param param_val_ref: string to parse
+        :param cache_property: cache variable to save to
+    """
+    param_val_ref_pattern = re.compile('{{2}[^}]*}{2}')
+    ref_match_list = param_val_ref_pattern.findall(param_val_ref)
+    res = param_val_ref
+    for ref_match in ref_match_list:
+        value = parse_param_value(ref_match, {'cache': ssm_test_cache,
+                                              'cfn-output': cfn_output_params,
+                                              'alarm': cfn_installed_alarms})
+        res = res.replace(ref_match, value)
+    put_to_ssm_test_cache(ssm_test_cache, None, cache_property, res)

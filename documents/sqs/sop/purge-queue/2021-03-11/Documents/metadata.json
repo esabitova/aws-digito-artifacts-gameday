@@ -4,7 +4,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-PurgeQueue_2021-03-11",
+  "documentName": "Digito-PurgeSQSQueueSOP_2021-03-11",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "intent": "To clean up SQS queue",

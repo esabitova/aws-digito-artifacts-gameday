@@ -396,15 +396,33 @@ class KinesisAnalyticsTestUtils(unittest.TestCase):
             TEST_APPLICATION_NAME, 'NoSuchSnapshot', self.session_mock),
             (True, 'NoSuchSnapshot'))
 
-    def test_prove_snapshot_exist_or_confect_new_one_error(self):
+    def test__wait_for_status_fail(self):
         """
-        test prove_snapshot_exist_or_confect if snapshot exists
+        test _wait_for_status()
         """
-        self.mock_kinesis_analytics.list_application_snapshots = lambda ApplicationName,\
-            Limit=kinan_utils.SNAPSHOTS_QUOTA, status_code=200: mock_list_application_snapshots(
-                ApplicationName, Limit, status_code)
-        self.mock_kinesis_analytics.create_application_snapshot.side_effect = lambda \
-            ApplicationName, SnapshotName: {'ResponseMetadata': {'HTTPStatusCode': 400}}
-        with self.assertRaises(Exception):
-            kinan_utils.prove_snapshot_exist_or_confect(
-                TEST_APPLICATION_NAME, 'NoSuchSnapshot', self.session_mock)
+        self.mock_kinesis_analytics.describe_application.side_effect = lambda ApplicationName,\
+            IncludeAdditionalDetails=True: mock_describe_flink_application(ApplicationName, 'RUNNING')
+        with self.assertRaises(RuntimeError):
+            kinan_utils._wait_for_status(
+                kinesis_analytics_client=self.client_side_effect_map.get('kinesisanalyticsv2'),
+                app_name=TEST_APPLICATION_NAME,
+                status='RUNNING',
+                wait_period=0,
+                interval_to_sleep=-0.001)
+
+    @patch('resource_manager.src.util.kinesis_analytics_utils.choices')
+    def test__snapshot_postfix(self, mock_choices):
+        """
+        test _snapshot_postfix()
+        """
+        mock_choices.side_effect = lambda t, k: "gorx12"
+        self.assertEqual(kinan_utils._snapshot_postfix(postfix_digits=6), "gorx12")
+
+    @patch('resource_manager.src.util.kinesis_analytics_utils.choices')
+    def test__new_test_standard_snapshot_name(self, mock_choices):
+        """
+        test _new_test_standard_snapshot_name()
+        """
+        mock_choices.side_effect = lambda t, k=6: "gorx12"
+        self.assertEqual(kinan_utils._new_test_standard_snapshot_name(TEST_APPLICATION_NAME),
+                         "TEST-KinesisAnalyticsFl_Ve6KhqPQMAxk-gorx12")

@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for millisBehindLatest metric for Apache Flink applications", 
+  "description": "Digito alarm for Kinesis Data Analytics for Apache Flink, that indicates how far behind from the current time the consumer is behind the head of the stream",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-millisbehindlatest-flink:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-millisbehindlatest-flink:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

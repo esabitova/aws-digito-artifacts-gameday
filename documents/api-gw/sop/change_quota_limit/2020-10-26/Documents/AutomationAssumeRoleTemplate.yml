@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM RESTAPIGWChangeQuotaLimit
+Description: Role for SSM Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26
 Outputs:
-  DigitoRESTAPIGWChangeQuotaLimitAssumeRoleArn:
-    Description: DigitoRESTAPIGWChangeQuotaLimit Automation Assume Role ARN
+  DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRoleArn:
+    Description: Digito-ChangeRestApiGwQuotaLimitSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      !GetAtt DigitoRESTAPIGWChangeQuotaLimitAssumeRole.Arn
+      !GetAtt DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRole.Arn
 Resources:
-  DigitoRESTAPIGWChangeQuotaLimitAssumeRole:
+  DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoRESTAPIGWChangeQuotaLimitAssumePolicy:
+  DigitoChangeRESTAPIGWQuotaLimitSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoRESTAPIGWChangeQuotaLimitAssumePolicy
+      PolicyName: DigitoChangeRESTAPIGWQuotaLimitSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -50,4 +50,4 @@ Resources:
               - apigateway:PATCH
               - ssm:GetAutomationExecution
       Roles:
-        - Ref: DigitoRESTAPIGWChangeQuotaLimitAssumeRole
+        - Ref: DigitoChangeRESTAPIGWQuotaLimitSOPAssumeRole

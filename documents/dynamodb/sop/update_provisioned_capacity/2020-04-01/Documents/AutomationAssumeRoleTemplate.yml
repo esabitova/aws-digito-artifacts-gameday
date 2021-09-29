@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM UpdateProvisionedCapacity
+Description: Role for SSM Digito-UpdateDynamoDBTableProvisionedCapacitySOP_2020-04-01
 Outputs:
-  DigitoUpdateProvisionedCapacityAssumeRole:
-    Description: DigitoUpdateProvisionedCapacity Automation Assume Role ARN
+  DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumeRole:
+    Description: Digito-UpdateDynamoDBTableProvisionedCapacitySOP_2020-04-01 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoUpdateProvisionedCapacityAssumeRole.Arn
+      Fn::GetAtt: DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumeRole.Arn
 Resources:
-  DigitoUpdateProvisionedCapacityAssumeRole:
+  DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoUpdateProvisionedCapacityAssumePolicy:
+  DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoUpdateProvisionedCapacityAssumePolicy"
+      PolicyName: "DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -49,4 +49,4 @@ Resources:
               - dynamodb:DescribeTable
               - ssm:GetAutomationExecution
       Roles:
-        - Ref: DigitoUpdateProvisionedCapacityAssumeRole
+        - Ref: DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumeRole

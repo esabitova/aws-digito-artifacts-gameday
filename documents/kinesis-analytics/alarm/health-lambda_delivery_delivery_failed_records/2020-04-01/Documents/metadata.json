@@ -1,0 +1,11 @@
+{
+  "displayName": "Kinesis Data Analytics alarm for LambdaDelivery.DeliveryFailedRecords metric for SQL applications",
+  "description": "Digito alarm for Kinesis Data Analytics for SQL applications that tracks if the number of records returned by a Lambda function that were marked with DeliveryFailed status, is exceeding specified threshold limit",
+  "alarmName": "Digito-kinesis-analytics:alarm:health-lambda_delivery_delivery_failed_records:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-analytics:alarm:health-lambda_delivery_delivery_failed_records:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

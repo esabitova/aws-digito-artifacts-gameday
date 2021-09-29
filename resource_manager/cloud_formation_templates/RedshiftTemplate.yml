@@ -49,6 +49,9 @@ Outputs:
   LambdaArn:
     Description: arn of lambda function
     Value: !GetAtt LambdaFunction.Arn
+  LambdaRedshiftPerformanceArn:
+    Description: arn of lambda function
+    Value: !GetAtt LambdaRedshiftPerformance.Arn
   ClusterEndpoint:
     Description: Cluster endpoint
     Value: !Sub "${RedshiftCluster.Endpoint.Address}:${RedshiftCluster.Endpoint.Port}"
@@ -112,15 +115,34 @@ Parameters:
     Default: dc2.large
     AllowedValues:
     - dc2.large
+    - ra3.xlplus
   PortNumber:
     Description: The port number on which the cluster accepts incoming connections.
     Type: Number
     Default: '5439'
+  RedshiftPerformanceLambdaPackageS3Bucket:
+    Type: String
+    Description: S3 bucket for distribution package
+  RedshiftPerformanceLambdaPackageS3Key:
+    Type: String
+    Description: S3 key for distribution package
+  RedshiftPerformanceLambdaPackageS3BucketObjectVersion:
+      Type: String
+      Description: S3 object version for distribution package
+      Default: ""
 Conditions:
   IsMultiNodeCluster:
     Fn::Equals:
     - Ref: ClusterType
     - multi-node
+  RedshiftPerformanceLambdaPackageS3BucketHasVersion: !Not
+    - !Equals
+      - !Ref RedshiftPerformanceLambdaPackageS3BucketObjectVersion
+      - ""
+  ConcurrencyScalingAvailable:
+    Fn::Equals:
+    - Ref: NodeType
+    - ra3.xlplus
 Resources:
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret
@@ -130,7 +152,7 @@ Resources:
         SecretStringTemplate: '{"username": "admin"}'
         GenerateStringKey: "password"
         PasswordLength: 16
-        ExcludeCharacters: "\"@/\\"
+        ExcludeCharacters: "\"@/\\'"
   RedshiftCluster:
     Type: "AWS::Redshift::Cluster"
     Properties:
@@ -174,6 +196,14 @@ Resources:
       Parameters:
         - ParameterName: enable_user_activity_logging
           ParameterValue: 'true'
+        - ParameterName: max_concurrency_scaling_clusters
+          ParameterValue: '2'
+        - ParameterName: wlm_json_configuration
+          ParameterValue:
+            Fn::If:
+            - ConcurrencyScalingAvailable
+            - "[ { \"user_group\": [ \"test_writers-*\" ], \"query_group\": [], \"name\": \"Queue 1\", \"memory_percent_to_use\": 1, \"query_concurrency\": 1, \"concurrency_scaling\": \"auto\", \"max_execution_time\": 30000, \"user_group_wild_card\": 1 }, { \"user_group\": [ \"test_writers2-*\" ], \"query_group\": [], \"name\": \"Queue 2\", \"memory_percent_to_use\": 1, \"query_concurrency\": 1, \"concurrency_scaling\": \"auto\", \"max_execution_time\": 29000, \"user_group_wild_card\": 1 }, { \"user_group\": [], \"query_group\": [], \"name\": \"Default queue\" }, { \"concurrency_scaling\": \"auto\", \"auto_wlm\": false }, { \"short_query_queue\": false } ]"
+            - "[{ \"concurrency_scaling\": \"off\", \"auto_wlm\": true }]"
   RedshiftClusterSubnetGroup:
     Type: AWS::Redshift::ClusterSubnetGroup
     Properties:
@@ -256,7 +286,6 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.8
       Timeout: 30
-      ReservedConcurrentExecutions: 1
       Environment:
         Variables:
           REDSHIFT_CLUSTER_ID: !Ref RedshiftCluster
@@ -340,3 +369,63 @@ Resources:
             Resource: '*'
       Roles:
         - Ref: LambdaRole
+  LambdaRedshiftPerformance:
+    Type: AWS::Lambda::Function
+    Properties:
+      KmsKeyArn: !Ref KmsKey
+      Code:
+        S3Bucket:
+          Ref: RedshiftPerformanceLambdaPackageS3Bucket
+        S3Key:
+          Ref: RedshiftPerformanceLambdaPackageS3Key
+        S3ObjectVersion:
+          Fn::If:
+            - RedshiftPerformanceLambdaPackageS3BucketHasVersion
+            - Ref: RedshiftPerformanceLambdaPackageS3BucketObjectVersion
+            - Ref: AWS::NoValue
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaRedshiftPerformanceRole.Arn
+      Runtime: python3.7
+      Timeout: 900
+      # a lot of memory required because the scrip utilize big amount of threads
+      # https://docs.aws.amazon.com/lambda/latest/dg/configuration-function-common.html#configuration-memory-console
+      # 5000Mb (3CPU) is not enough, 8000 - sometimes, and 10k works fine always
+      MemorySize: 8900
+      VpcConfig:
+        SubnetIds:
+          - !Ref PublicSubnetOne
+          - !Ref PublicSubnetTwo
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+      Environment:
+        Variables:
+          REDSHIFT_CLUSTER_HOST: !Sub "${RedshiftCluster.Endpoint.Address}"
+          REDSHIFT_DB:  !Join
+            - "-"
+            - - "digito-redshift-db"
+              - !Select
+                - 0
+                - !Split
+                  - "-"
+                  - !Select
+                    - 2
+                    - !Split
+                      - "/"
+                      - !Ref "AWS::StackId"
+          REDSHIFT_DB_USER: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::username}}'
+          REDSHIFT_DB_PASSWORD: !Sub '{{resolve:secretsmanager:${GeneratedSecretString}::password}}'
+  LambdaRedshiftPerformanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: Lambda Role
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole

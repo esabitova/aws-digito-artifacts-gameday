@@ -3,7 +3,7 @@
   "displayName": "SOP - DocumentDb restore from backup",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-DocDbRestoreFromBackup_2020-09-21",
+  "documentName": "Digito-RestoreDocumentDBClusterFromBackupSOP_2020-09-21",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "description": "Used to recover the database into a known good state",

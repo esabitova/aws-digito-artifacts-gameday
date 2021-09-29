@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM DigitoEFSBreakSecurityGroup
+Description: Role for SSM Digito-BreakEFSSecurityGroupTest_2020-09-21
 Outputs:
-  DigitoEFSBreakSecurityGroupAssumeRole:
-    Description: DigitoEFSBreakSecurityGroup Automation Assume Role ARN
+  DigitoBreakEFSSecurityGroupTestAssumeRole:
+    Description: Digito-BreakEFSSecurityGroupTest_2020-09-21 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoEFSBreakSecurityGroupAssumeRole.Arn
+      Fn::GetAtt: DigitoBreakEFSSecurityGroupTestAssumeRole.Arn
 Resources:
-  DigitoEFSBreakSecurityGroupAssumeRole:
+  DigitoBreakEFSSecurityGroupTestAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoEFSBreakSecurityGroupAssumePolicy:
+  DigitoBreakEFSSecurityGroupTestAssumePolicy:
     Type: "AWS::IAM::Policy"
     Properties:
-      PolicyName: "DigitoEFSBreakSecurityGroupAssumePolicy"
+      PolicyName: "DigitoBreakEFSSecurityGroupTestAssumePolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -56,8 +56,8 @@ Resources:
               - ssm:StartAutomationExecution
           - Effect: Allow
             Resource:
-              - Fn::GetAtt: DigitoEFSBreakSecurityGroupAssumeRole.Arn
+              - Fn::GetAtt: DigitoBreakEFSSecurityGroupTestAssumeRole.Arn
             Action:
               - iam:PassRole
       Roles:
-        - Ref: DigitoEFSBreakSecurityGroupAssumeRole
+        - Ref: DigitoBreakEFSSecurityGroupTestAssumeRole

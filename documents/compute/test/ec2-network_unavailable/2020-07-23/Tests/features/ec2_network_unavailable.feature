@@ -5,7 +5,7 @@ Feature: SSM automation document EC2 Network Unavailable testing
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation network unavailable on EC2 instance
     Given the cached input parameters
       |AlarmGreaterThanOrEqualToThreshold|InstanceType|DurationInMinutes|
-      |                                70|    t2.small|                10|
+      |                                70|    t2.small|               10|
     And the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                                  |ResourceType|InstanceType          |AlarmGreaterThanOrEqualToThreshold          |
       |resource_manager/cloud_formation_templates/EC2WithCWAgentCfnTemplate.yml                         |   ON_DEMAND|{{cache:InstanceType}}|{{cache:AlarmGreaterThanOrEqualToThreshold}}|
@@ -13,8 +13,8 @@ Feature: SSM automation document EC2 Network Unavailable testing
     And published "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" SSM document
 
     When SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" executed
-      |InstanceId                                         |AutomationAssumeRole                                                                       |SyntheticAlarmName                                  |DurationInMinutes          |
-      |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateNetworkUnavailableInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2CpuAlarm}}|{{cache:DurationInMinutes}}|
+      |InstanceId                                         |AutomationAssumeRole                                                                       |SyntheticAlarmName                                          |DurationInMinutes          |
+      |{{cfn-output:EC2WithCWAgentCfnTemplate>InstanceId}}|{{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateNetworkUnavailableInEc2AssumeRole}}|{{cfn-output:EC2WithCWAgentCfnTemplate>EC2StatusCheckAlarm}}|{{cache:DurationInMinutes}}|
 
     Then SSM automation document "Digito-SimulateNetworkUnavailableInEc2_2020-07-23" execution in status "Success"
       |ExecutionId               |

@@ -24,6 +24,7 @@ Outputs:
     Value: !Ref DBInstancePrimary
   DBInstanceReplicaIdentifier:
     Value: !Ref DBInstanceReplica
+    Condition: "CreateReadReplica"
   ClusterEndpoint:
     Value: !GetAtt DBCluster.Endpoint
   ClusterPort:
@@ -43,6 +44,10 @@ Parameters:
     Description: "Instance class. Please refer to: https://docs.aws.amazon.com/documentdb/latest/developerguide/db-instance-classes.html#db-instance-classes-by-region"
     Type: "String"
     Default: "db.t3.medium"
+  CreateReadReplica:
+    Description: The flag whether or not to create replica
+    Type: "String"
+    Default: False
   VPC:
     Type: String
     Description: VPC ID
@@ -57,9 +62,6 @@ Parameters:
     Type: String
     Description: PrivateSubnet ID
   PrivateSubnet02:
-    Type: String
-    Description: PrivateSubnet ID
-  PrivateSubnet03:
     Type: String
     Description: PrivateSubnet ID
   DbClusterPort:
@@ -91,6 +93,9 @@ Conditions:
     - !Equals
       - !Ref DocumentDbConnectionAttemptCanaryS3ObjectVersion
       - ""
+  CreateReadReplica: !Equals 
+    - !Ref CreateReadReplica
+    - "True"
 Resources:
   GeneratedSecretString:
     Type: AWS::SecretsManager::Secret
@@ -157,7 +162,6 @@ Resources:
       SubnetIds:
         - !Ref PrivateSubnet01
         - !Ref PrivateSubnet02
-        - !Ref PrivateSubnet03
 
   DBInstancePrimary:
     Type: "AWS::DocDB::DBInstance"
@@ -181,6 +185,7 @@ Resources:
 
   DBInstanceReplica:
     Type: "AWS::DocDB::DBInstance"
+    Condition: CreateReadReplica
     Properties:
       DBClusterIdentifier: !Ref DBCluster
       DBInstanceIdentifier: !Join

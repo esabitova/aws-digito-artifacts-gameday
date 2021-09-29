@@ -6,17 +6,17 @@ Feature: SSM automation document to update REST API deployment
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                               | ON_DEMAND    |
       | documents/api-gw/sop/update_version_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwUpdateVersionRest_2020-10-26" SSM document
+    And published "Digito-UpdateRestApiGwVersionSOP_2020-10-26" SSM document
     And cache current deployment id as "CurrentDeploymentId" "before" SSM automation execution
       | RestApiGwId                                  | RestStageName                                       |
       | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} |
     And create dummy deployment and cache id as "DeploymentIdToApply" "before" SSM automation execution
       | RestApiGwId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwId}} |
-    When SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" executed
-      | RestApiGwId                                  | RestStageName                                       | RestDeploymentId                     | AutomationAssumeRole                                                                      |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cache:before>DeploymentIdToApply}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwUpdateVersionRestAssumeRoleArn}} |
-    Then SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" executed
+      | RestApiGwId                                  | RestStageName                                       | RestDeploymentId                     | AutomationAssumeRole                                                                     |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cache:before>DeploymentIdToApply}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateRestApiGwVersionSOPAssumeRoleArn}} |
+    Then SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache current deployment id as "CurrentDeploymentId" "after" SSM automation execution
@@ -40,14 +40,14 @@ Feature: SSM automation document to update REST API deployment
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                               | ON_DEMAND    |
       | documents/api-gw/sop/update_version_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwUpdateVersionRest_2020-10-26" SSM document
+    And published "Digito-UpdateRestApiGwVersionSOP_2020-10-26" SSM document
     And cache current deployment id as "CurrentDeploymentId" "before" SSM automation execution
       | RestApiGwId                                  | RestStageName                                       |
       | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} |
-    When SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" executed
-      | RestApiGwId                                  | RestStageName                                       | RestDeploymentId                     | AutomationAssumeRole                                                                      |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cache:before>CurrentDeploymentId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwUpdateVersionRestAssumeRoleArn}} |
-    Then SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" execution in status "Failed"
+    When SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" executed
+      | RestApiGwId                                  | RestStageName                                       | RestDeploymentId                     | AutomationAssumeRole                                                                     |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cache:before>CurrentDeploymentId}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateRestApiGwVersionSOPAssumeRoleArn}} |
+    Then SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
@@ -57,7 +57,7 @@ Feature: SSM automation document to update REST API deployment
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                               | ON_DEMAND    |
       | documents/api-gw/sop/update_version_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwUpdateVersionRest_2020-10-26" SSM document
+    And published "Digito-UpdateRestApiGwVersionSOP_2020-10-26" SSM document
     And cache current deployment id as "CurrentDeploymentId" "before" SSM automation execution
       | RestApiGwId                                  | RestStageName                                       |
       | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} |
@@ -67,10 +67,10 @@ Feature: SSM automation document to update REST API deployment
     And set dummy deployment number "5" as current and cache previous deployment as "ExpectedDeploymentIdToApply" "before" SSM automation execution
       | RestApiGwId                                  | RestStageName                                       | DummyDeployments                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cache:before>DummyDeployments}} |
-    When SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" executed
-      | RestApiGwId                                  | RestStageName                                       | AutomationAssumeRole                                                                      |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwUpdateVersionRestAssumeRoleArn}} |
-    Then SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" execution in status "Success"
+    When SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" executed
+      | RestApiGwId                                  | RestStageName                                       | AutomationAssumeRole                                                                     |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateRestApiGwVersionSOPAssumeRoleArn}} |
+    Then SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache current deployment id as "CurrentDeploymentId" "after" SSM automation execution
@@ -94,11 +94,11 @@ Feature: SSM automation document to update REST API deployment
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                               | ON_DEMAND    |
       | documents/api-gw/sop/update_version_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwUpdateVersionRest_2020-10-26" SSM document
-    When SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" executed
-      | RestApiGwId                                  | RestStageName                                       | AutomationAssumeRole                                                                      |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwUpdateVersionRestAssumeRoleArn}} |
-    Then SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" execution in status "Failed"
+    And published "Digito-UpdateRestApiGwVersionSOP_2020-10-26" SSM document
+    When SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" executed
+      | RestApiGwId                                  | RestStageName                                       | AutomationAssumeRole                                                                     |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateRestApiGwVersionSOPAssumeRoleArn}} |
+    Then SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
@@ -107,14 +107,14 @@ Feature: SSM automation document to update REST API deployment
       | CfnTemplatePath                                                                                | ResourceType |
       | resource_manager/cloud_formation_templates/RestApiGwTemplate.yml                               | ON_DEMAND    |
       | documents/api-gw/sop/update_version_rest/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-RestApiGwUpdateVersionRest_2020-10-26" SSM document
+    And published "Digito-UpdateRestApiGwVersionSOP_2020-10-26" SSM document
     And create dummy deployment and cache id as "DummyDeploymentId" "before" SSM automation execution
       | RestApiGwId                                  |
       | {{cfn-output:RestApiGwTemplate>RestApiGwId}} |
-    When SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" executed
-      | RestApiGwId                                  | RestStageName                                       | AutomationAssumeRole                                                                      |
-      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoRestApiGwUpdateVersionRestAssumeRoleArn}} |
-    Then SSM automation document "Digito-RestApiGwUpdateVersionRest_2020-10-26" execution in status "Failed"
+    When SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" executed
+      | RestApiGwId                                  | RestStageName                                       | AutomationAssumeRole                                                                     |
+      | {{cfn-output:RestApiGwTemplate>RestApiGwId}} | {{cfn-output:RestApiGwTemplate>RestApiGwStageName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateRestApiGwVersionSOPAssumeRoleArn}} |
+    Then SSM automation document "Digito-UpdateRestApiGwVersionSOP_2020-10-26" execution in status "Failed"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     Then delete dummy deployment

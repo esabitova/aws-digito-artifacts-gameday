@@ -1,10 +1,8 @@
 import logging
 
-
 import boto3
 from pytest_bdd.parsers import parse
 from pytest_bdd.steps import given, when
-
 
 from resource_manager.src.util.enums.lambda_invocation_type import \
     LambdaInvocationType

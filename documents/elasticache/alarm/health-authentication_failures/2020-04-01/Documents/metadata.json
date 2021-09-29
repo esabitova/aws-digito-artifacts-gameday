@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon Elasticache for Redis alarm for Authentication Failures",
+  "description": "Alarm by Digito for Amazon Elasticache for Redis that indicates when the total number of failed attempts to authenticate with the Redis AUTH command is exceeding specified threshold limit",
+  "alarmName": "Digito-Elasticache-AuthenticationFailures_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-authentication_failures:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

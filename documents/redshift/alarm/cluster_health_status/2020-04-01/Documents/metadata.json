@@ -1,11 +1,11 @@
 {
-  "displayName": "Health status",
-  "description": "Alarm by Digito that reports when redshift cluster is unhealthy.",
+  "displayName": "Amazon Redshift alarm for HealthStatus metric.",
+  "description": "Alarm by Digito for Amazon Redshift that reports when cluster is unhealthy.",
   "alarmName": "Digito-cluster_health_status_2020-04-01",
   "alarmType": "Metric",
   "alarmContentPath": "AlarmTemplate.yml",
   "documentFormat": "YAML",
   "tag": "redshift:alarm:cluster_health_status:2020-04-01",
-  "failureType": "HARDWARE",
+  "failureType": "HARDWARE,SOFTWARE",
   "minorVersion": "001"
 }

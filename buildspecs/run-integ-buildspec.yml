@@ -12,15 +12,15 @@ phases:
       - python -m pip install -r requirements.txt
       - pip install --upgrade awscli
       - aws --version
-      - rm -rf documents/docdb/canary/database-connection-canary/package # Clean canary package files before creation of a new distribution package for database_alarm.feature test of DocumentDB
-      - rm -f documents/docdb/canary/database-connection-canary/*.zip #todo DIG-977 create CW Canary distribution package in database_alarm.feature
-      - pip install --target documents/docdb/canary/database-connection-canary/package/python -r documents/docdb/canary/database-connection-canary/requirements.txt # Install all requirements for database_alarm.feature test of DocumentDB
+      - rm -rf documents/docdb/canary/database-connection-canary/package # Clean canary package files before creation of a new distribution package for database_inaccessible_alarm.feature test of DocumentDB
+      - rm -f documents/docdb/canary/database-connection-canary/*.zip #todo DIG-977 create CW Canary distribution package in database_inaccessible_alarm.feature
+      - pip install --target documents/docdb/canary/database-connection-canary/package/python -r documents/docdb/canary/database-connection-canary/requirements.txt # Install all requirements for database_inaccessible_alarm.feature test of DocumentDB
       - zip -r documents/docdb/canary/database-connection-canary/database-connection-canary.zip documents/docdb/canary/database-connection-canary/package # Zip all dependencies and source files for
       - zip -g documents/docdb/canary/database-connection-canary/database-connection-canary.zip documents/docdb/canary/database-connection-canary/python/*
   build:
     commands:
       - echo "Executing test group [`echo $TEST_GROUP`] with [`echo $WORKERS`] workers."
-      - python -m pytest --run_integration_tests --keep_test_resources --distributed_mode -m `echo $TEST_GROUP` --workers `echo $WORKERS` --pool_size "RestApiGwPrivateEndpointTemplate={ON_DEMAND:6},DynamoDBTemplate={ON_DEMAND:8},DynamoDBTemplateWithLimitedThroughput={ON_DEMAND:3},HTTPWSApiGwTemplate={ON_DEMAND:8},AsgCfnTemplate={ON_DEMAND:3},EC2WithCWAgentCfnTemplate={ON_DEMAND:8},SqsTemplate={ON_DEMAND:8},RestApiGwTemplate={ON_DEMAND:8},EFSTemplate={ON_DEMAND:8},DynamoDBTemplateWithProvisionedBilling={ON_DEMAND:2,DEDICATED:4},DynamoDBTemplateWithStream={ON_DEMAND:2},DynamoDBTemplateWithKinesis={ON_DEMAND:2},DynamoDBTemplateWithIndexAndContributorInsights={ON_DEMAND:2},DynamoDBTemplateWithAutoScaling={ON_DEMAND:2},LambdaTemplate={ON_DEMAND:4},NatCfnTemplate={DEDICATED:4}" --cucumberjson=integration-tests-report.json --aws_profile no_profile
+      - python -m pytest --run_integration_tests --keep_test_resources --distributed_mode -m `echo $TEST_GROUP` --workers `echo $WORKERS` --pool_size "RestApiGwPrivateEndpointTemplate={ON_DEMAND:6},DynamoDBTemplate={ON_DEMAND:8},DynamoDBTemplateWithLimitedThroughput={ON_DEMAND:3},HTTPWSApiGwTemplate={ON_DEMAND:8},AsgCfnTemplate={ON_DEMAND:3},EC2WithCWAgentCfnTemplate={ON_DEMAND:8},SqsTemplate={ON_DEMAND:8},RestApiGwTemplate={ON_DEMAND:8},EFSTemplate={ON_DEMAND:8},DynamoDBTemplateWithProvisionedBilling={ON_DEMAND:2,DEDICATED:4},DynamoDBTemplateWithStream={ON_DEMAND:2},DynamoDBTemplateWithKinesis={ON_DEMAND:2},DynamoDBTemplateWithIndexAndContributorInsights={ON_DEMAND:2},DynamoDBTemplateWithAutoScaling={ON_DEMAND:2},LambdaTemplate={ON_DEMAND:4},NatCfnTemplate={DEDICATED:4},ECSEC2Template={ON_DEMAND:8}" --cucumberjson=integration-tests-report.json --aws_profile no_profile
 reports:
   integration-tests-report:
     files:

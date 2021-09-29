@@ -16,14 +16,14 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM LambdaChangeConcurrencyLimit
+Description: Role for SSM Digito-ChangeLambdaConcurrencyLimitSOP_2020-10-26
 Outputs:
-  DigitoLambdaChangeConcurrencyLimitAssumeRoleArn:
-    Description: DigitoLambdaChangeConcurrencyLimit Automation Assume Role ARN
+  DigitoChangeLambdaConcurrencyLimitSOPAssumeRole:
+    Description: Digito-ChangeLambdaConcurrencyLimitSOP_2020-10-26 Automation Assume Role ARN
     Value:
-      Fn::GetAtt: DigitoLambdaChangeConcurrencyLimitAssumeRole.Arn
+      Fn::GetAtt: DigitoChangeLambdaConcurrencyLimitSOPAssumeRole.Arn
 Resources:
-  DigitoLambdaChangeConcurrencyLimitAssumeRole:
+  DigitoChangeLambdaConcurrencyLimitSOPAssumeRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -35,10 +35,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoLambdaChangeConcurrencyLimitAssumePolicy:
+  DigitoChangeLambdaConcurrencyLimitSOPAssumePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: DigitoLambdaChangeConcurrencyLimitAssumePolicy
+      PolicyName: DigitoChangeLambdaConcurrencyLimitSOPAssumePolicy
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -59,4 +59,4 @@ Resources:
               - logs:DescribeLogGroups
               - logs:DescribeLogStreams
       Roles:
-        - Ref: DigitoLambdaChangeConcurrencyLimitAssumeRole
+        - Ref: DigitoChangeLambdaConcurrencyLimitSOPAssumeRole

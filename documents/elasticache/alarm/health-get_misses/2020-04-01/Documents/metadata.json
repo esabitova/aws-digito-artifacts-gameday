@@ -1,0 +1,11 @@
+{
+  "displayName": "Elasticache Memcached GetMisses",
+  "description": "Digito alarm for Elasticache Memcached that indicates when the number of get requests the cache has received where the key requested was not found is exceeding specified threshold range",
+  "alarmName": "Digito-Elasticache-GetMisses_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "elasticache:alarm:health-get_misses:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

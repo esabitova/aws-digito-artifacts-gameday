@@ -4,6 +4,7 @@ from test import test_data_provider
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+
 from documents.util.scripts.src import route_through_appliance
 from documents.util.scripts.test.test_data_provider \
     import ROUTE_TABLE_ID, NAT_GATEWAY_ID, INTERNET_DESTINATION

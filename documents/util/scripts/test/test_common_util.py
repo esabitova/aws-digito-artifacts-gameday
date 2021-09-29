@@ -9,6 +9,8 @@ import documents.util.scripts.src.common_util as common_util
 import documents.util.scripts.test.test_data_provider as test_data_provider
 from documents.util.scripts.test.mock_sleep import MockSleep
 
+TEST_TAG = 'testservice:test:do_something_with_configuration'
+
 
 @pytest.mark.unit_test
 class TestCommonUtil(unittest.TestCase):
@@ -46,7 +48,8 @@ class TestCommonUtil(unittest.TestCase):
     def test_create_empty_security_group(self):
         events = {
             'VpcId': test_data_provider.VPC_ID,
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'Tag': TEST_TAG
         }
         self.mock_ec2.create_security_group.return_value = {
             'GroupId': test_data_provider.SECURITY_GROUP
@@ -62,7 +65,10 @@ class TestCommonUtil(unittest.TestCase):
             Description=f'Empty SG for executionID {events["ExecutionId"]}',
             GroupName=f'EmptySG-{events["ExecutionId"]}',
             VpcId=events['VpcId'],
-        )
+            TagSpecifications=[
+                {'ResourceType': 'security-group',
+                 'Tags': [{'Key': 'Digito',
+                           'Value': events['Tag']}, ]}])
 
         self.mock_ec2.revoke_security_group_egress.assert_called_once_with(
             GroupId=test_data_provider.SECURITY_GROUP,
@@ -81,7 +87,8 @@ class TestCommonUtil(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(result, {'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP})
+        self.assertEqual(result, {'EmptySecurityGroupId': test_data_provider.SECURITY_GROUP,
+                                  'EmptySecurityGroupIdList': [test_data_provider.SECURITY_GROUP]})
 
     def test_create_empty_security_group_wrong_params(self):
         events = {
@@ -96,7 +103,8 @@ class TestCommonUtil(unittest.TestCase):
     def test_create_empty_security_group_could_not_revoke(self):
         events = {
             'VpcId': test_data_provider.VPC_ID,
-            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID
+            'ExecutionId': test_data_provider.AUTOMATION_EXECUTION_ID,
+            'Tag': TEST_TAG
         }
         self.mock_ec2.create_security_group.return_value = {
             'GroupId': test_data_provider.SECURITY_GROUP
@@ -120,7 +128,10 @@ class TestCommonUtil(unittest.TestCase):
             Description=f'Empty SG for executionID {events["ExecutionId"]}',
             GroupName=f'EmptySG-{events["ExecutionId"]}',
             VpcId=events['VpcId'],
-        )
+            TagSpecifications=[
+                {'ResourceType': 'security-group',
+                 'Tags': [{'Key': 'Digito',
+                           'Value': events['Tag']}, ]}])
 
         self.mock_ec2.revoke_security_group_egress.assert_called_once_with(
             GroupId=test_data_provider.SECURITY_GROUP,
@@ -323,23 +334,6 @@ class TestCommonUtil(unittest.TestCase):
 
         assert 'Requires EmptySecurityGroupId in events' in str(error.value)
 
-    def test_raise_exception_empty_event(self):
-        events = {}
-
-        with pytest.raises(KeyError) as error:
-            common_util.raise_exception(events, None)
-
-        assert 'Requires ErrorMessage in events' in str(error.value)
-
-    def test_raise_exception(self):
-        events = {'first': '1',
-                  'second': '2',
-                  'ErrorMessage': "First is {first}, second is {second}"}
-
-        with pytest.raises(AssertionError) as error:
-            common_util.raise_exception(events, None)
-        assert 'First is 1, second is 2' in str(error.value)
-
     @patch('time.sleep')
     @patch('time.time')
     def test_remove_empty_security_group_timeout(self, patched_time, patched_sleep):
@@ -383,3 +377,17 @@ class TestCommonUtil(unittest.TestCase):
             f"Security group {events['EmptySecurityGroupId']} couldn't be deleted in {events['Timeout']} seconds",
             str(error.value)
         )
+
+    def test_raise_exception(self):
+        with pytest.raises(AssertionError) as assertion_error:
+            common_util.raise_exception({
+                'ErrorMessage': '{test} {test2} test3',
+                'test': 'replaced',
+                'test2': 'replaced2'},
+                {})
+        self.assertEqual('replaced replaced2 test3', str(assertion_error.value))
+
+    def test_raise_exception_no_event(self):
+        with pytest.raises(KeyError) as key_error:
+            common_util.raise_exception({}, {})
+        assert 'Requires ErrorMessage in events' in str(key_error.value)

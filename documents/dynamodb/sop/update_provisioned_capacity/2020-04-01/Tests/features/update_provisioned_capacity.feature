@@ -6,7 +6,7 @@ Feature: SSM automation document used to update provisioned capacity for DynamoD
       | CfnTemplatePath                                                                                          | ResourceType |
       | resource_manager/cloud_formation_templates/dedicated/DynamoDBTemplateWithProvisionedBilling.yml          | DEDICATED    |
       | documents/dynamodb/sop/update_provisioned_capacity/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |
-    And published "Digito-UpdateProvisionedCapacity_2020-04-01" SSM document
+    And published "Digito-UpdateDynamoDBTableProvisionedCapacitySOP_2020-04-01" SSM document
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "OldReadCapacityUnits" "before" SSM automation execution
       | TableName                                                           |
       | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} |
@@ -19,11 +19,11 @@ Feature: SSM automation document used to update provisioned capacity for DynamoD
     And generate different value of "WriteCapacityUnits" than "OldWriteCapacityUnits" from "1" to "4" as "ExpectedWriteCapacityUnits" "before" SSM automation execution
       | OldWriteCapacityUnits                  |
       | {{cache:before>OldWriteCapacityUnits}} |
-    And SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" executed
-      | DynamoDBTableName                                                   | DynamoDBTableRCU                           | DynamoDBTableWCU                            | AutomationAssumeRole                                                                  |
-      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} | {{cache:before>ExpectedReadCapacityUnits}} | {{cache:before>ExpectedWriteCapacityUnits}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateProvisionedCapacityAssumeRole}} |
+    And SSM automation document "Digito-UpdateDynamoDBTableProvisionedCapacitySOP_2020-04-01" executed
+      | DynamoDBTableName                                                   | DynamoDBTableRCU                           | DynamoDBTableWCU                            | AutomationAssumeRole                                                                                  |
+      | {{cfn-output:DynamoDBTemplateWithProvisionedBilling>DynamoDBTable}} | {{cache:before>ExpectedReadCapacityUnits}} | {{cache:before>ExpectedWriteCapacityUnits}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoUpdateDynamoDBTableProvisionedCapacitySOPAssumeRole}} |
 
-    When SSM automation document "Digito-UpdateProvisionedCapacity_2020-04-01" execution in status "Success"
+    When SSM automation document "Digito-UpdateDynamoDBTableProvisionedCapacitySOP_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache table property "$.Table.ProvisionedThroughput.ReadCapacityUnits" as "ActualReadCapacityUnits" "after" SSM automation execution

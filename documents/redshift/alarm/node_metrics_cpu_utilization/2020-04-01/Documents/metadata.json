@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon Redshift alarm for CPUUtilization metric.",
+  "description": "Alarm by Digito for Amazon Redshift, that reports CPU utilization at node level of the cluster, is equal to or greater than the specified threshold.",
+  "alarmName": "Digito-CPUUtilization_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "redshift:alarm:node_metrics_cpu_utilization:2020-04-01",
+  "failureType": "HARDWARE",
+  "minorVersion": "001"
+}
