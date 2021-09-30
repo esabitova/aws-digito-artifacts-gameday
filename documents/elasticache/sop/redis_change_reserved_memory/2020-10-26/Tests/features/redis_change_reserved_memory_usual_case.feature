@@ -11,9 +11,6 @@ Feature: SSM automation document Digito-ElasticacheRedisChangeReservedMemorySOP_
       | ReplicationGroupId                                                          |
       | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} |
     And parse "redis6-x-{{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}}" and cache as CustomCacheParameterGroupName
-    And register for teardown by "delete_cache_parameter_group"
-      | ReplicationGroupId                                                          | CustomCacheParameterGroupName           | OldCacheParameterGroupName           |
-      | {{cfn-output:ElasticacheReplicationGroupClusterEnabled>ReplicationGroupId}} | {{cache:CustomCacheParameterGroupName}} | {{cache:OldCacheParameterGroupName}} |
 
     When SSM automation document "Digito-ElasticacheRedisChangeReservedMemorySOP_2020-10-26" executed
       | ReplicationGroupId                                                          | ReservedMemoryPercent | AutomationAssumeRole                                                                             | SNSTopicARNForManualApproval                                          | IAMPrincipalForManualApproval                                                                    | ApproveChangeMemoryReservationAutomatically |

@@ -1,6 +1,7 @@
 import time
-import resource_manager.src.constants as constants
 from pytest_bdd import given, parsers, when, then
+
+import resource_manager.src.constants as constants
 from resource_manager.src.util import lambda_utils
 from resource_manager.src.util.common_test_utils import (extract_param_value,
                                                          put_to_ssm_test_cache)
@@ -20,7 +21,7 @@ lambda_state_expression = 'wait for lambda to be in active state for "{time_to_w
 create_alias_expression = 'create alias and cache its name as "{cache_property}" at step "{step_key}"' \
                           '\n{input_parameters}'
 delete_alias_expression = 'delete alias\n{input_parameters}'
-wait_memory_changed_expression = 'wait for lambda memory size to have a new value for "{time_to_wait}" seconds' \
+wait_memory_changed_expression = 'wait for lambda memory size to have a new value for "{time_to_wait:d}" seconds' \
                                  '\n{input_parameters}'
 publish_function_version_expression = 'published function version and cached version as "{cache_property}"' \
                                       ' at step "{step_key}"' \
@@ -82,21 +83,11 @@ def delete_alias(
 @given(parsers.parse(wait_memory_changed_expression))
 @when(parsers.parse(wait_memory_changed_expression))
 @then(parsers.parse(wait_memory_changed_expression))
-def wait_memory_changed(
-        resource_pool, ssm_test_cache, time_to_wait, input_parameters, boto3_session
-):
+def wait_memory_changed(resource_pool, ssm_test_cache, time_to_wait, input_parameters, boto3_session):
     lambda_arn = extract_param_value(input_parameters, "LambdaARN", resource_pool, ssm_test_cache)
     expected_memory_size = int(extract_param_value(input_parameters, "MemorySize", resource_pool, ssm_test_cache))
-    actual_memory_size = 0
-    start_time = time.time()
-    elapsed_time = time.time() - start_time
-    while expected_memory_size != actual_memory_size:
-        if elapsed_time > int(time_to_wait):
-            raise Exception(f'Waiting for lambda {lambda_arn} to change memory size timed out')
-        time.sleep(constants.sleep_time_secs)
-        elapsed_time = time.time() - start_time
-        actual_memory_size = int(lambda_utils.get_memory_size(lambda_arn, boto3_session))
-    return True
+
+    lambda_utils.do_wait_for_memory_changed(lambda_arn, expected_memory_size, time_to_wait, boto3_session)
 
 
 @given(parsers.parse(__cache_memory_size_value_expression))

@@ -1,12 +1,13 @@
 import logging
-import time
 from concurrent.futures.thread import ThreadPoolExecutor
 
+import time
 from boto3 import Session
 from botocore.exceptions import ClientError
 
 from resource_manager.src.util.enums.lambda_invocation_type import LambdaInvocationType
 from .boto3_client_factory import client
+from .. import constants
 
 log = logging.getLogger()
 
@@ -287,3 +288,30 @@ def get_function_execution_time_limit(lambda_arn: str, session: Session):
     lambda_client = client('lambda', session)
     function_configuration = lambda_client.get_function_configuration(FunctionName=lambda_arn)
     return function_configuration.get('Timeout')
+
+
+def do_wait_for_memory_changed(lambda_arn, expected_memory_size, time_to_wait, boto3_session):
+    """
+    Wait for the change of Lambda function's memory size
+    :param lambda_arn: ARN of the Lambda function
+    :param expected_memory_size: Expected size of the memory to wait
+    :param time_to_wait: how many seconds to wait for the change
+    :return: None
+    """
+    passed = 0
+    iteration = 1
+    start = time.time()
+    while passed < time_to_wait:
+        actual_memory_size = int(get_memory_size(lambda_arn, boto3_session))
+        if expected_memory_size == actual_memory_size:
+            logging.info(f'#{iteration}; Lambda has the expected memory size: {actual_memory_size} '
+                         f'Elapsed: {passed} sec;')
+            return
+        logging.info(f'#{iteration}; Lambda has the old memory size: {actual_memory_size} '
+                     f'Elapsed: {passed} sec;')
+        time.sleep(constants.sleep_time_secs)
+        end = time.time()
+        passed = end - start
+        iteration += 1
+
+    raise TimeoutError(f'Waiting for lambda {lambda_arn} to change memory size timed out')
