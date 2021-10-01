@@ -22,7 +22,7 @@ And make sure you have created necessary JIRA issue for your current work."
 start=$(date +%s)
 echo "========== Started pre-commit git hook at $(date -R) =========="
 # Keep in mind that the current working directory for .git/hooks is the root of the project
-(make -f enable_git_hooks) # There is the single way to automatically copy git hooks asap before pre-push and other attempts to execute the same hooks
+(make -f common.mk enable_git_hooks) # There is the single way to automatically copy git hooks asap before pre-push and other attempts to execute the same hooks
 (make -f common.mk test_linter style_validator cfn_lint)
 exit_code_1=$?
 (check_branch_name)

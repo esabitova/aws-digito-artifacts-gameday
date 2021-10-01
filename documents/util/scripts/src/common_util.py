@@ -174,3 +174,34 @@ def raise_exception(events, context):
 
     format_dict = {k: v for k, v in events.items() if k != 'ErrorMessage'}
     raise AssertionError(events['ErrorMessage'].format(**format_dict))
+
+
+def check_required_params(required_params, events):
+    """
+    Check for required parameters in events. Allow empty, None or 0 values.
+    """
+    for key in required_params:
+        if key not in events:
+            raise KeyError(f'Requires {key} in events')
+
+
+def verify_number_is_in_inclusive_range(events, context):
+    """
+    Check that NumberOfInstancesToCreate is within a defined range.
+    The range is inclusive: [RangeMin, RangeMax]
+    """
+    required_params = ['NumberOfInstancesToCreate', 'RangeMin', 'RangeMax']
+    check_required_params(required_params, events)
+
+    try:
+        number = int(events['NumberOfInstancesToCreate'])
+        range_min = int(events['RangeMin'])
+        range_max = int(events['RangeMax'])
+    except Exception:
+        raise ValueError("Input parameters should be integers")
+    else:
+        if range_min <= number <= range_max:
+            return True
+        else:
+            raise AssertionError(
+                f"Number of desired instances should be within [{range_min}, {range_max}], but found {number}")

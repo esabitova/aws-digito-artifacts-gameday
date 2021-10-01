@@ -956,6 +956,7 @@ def stop_fis_experiment(boto3_session, resource_pool, ssm_test_cache, input_para
 
 @given(parse('cache values to "{cache_key}"\n{input_parameters}'))
 @when(parse('cache values to "{cache_key}"\n{input_parameters}'))
+@then(parse('cache values to "{cache_key}"\n{input_parameters}'))
 def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
                  cfn_installed_alarms):
     """

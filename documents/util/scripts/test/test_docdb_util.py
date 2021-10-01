@@ -1,5 +1,6 @@
 import copy
 import unittest
+import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, call
 from botocore.paginate import PageIterator
@@ -10,7 +11,8 @@ from documents.util.scripts.src.docdb_util import count_cluster_instances, verif
     verify_cluster_instances, get_cluster_az, create_new_instance, get_recovery_point_input, \
     backup_cluster_instances_type, restore_to_point_in_time, restore_db_cluster_instances, rename_replaced_db_cluster, \
     rename_replaced_db_instances, rename_restored_db_instances, get_latest_snapshot_id, restore_db_cluster, \
-    restore_security_group_ids, get_db_cluster_properties, wait_for_available_instances
+    restore_security_group_ids, get_db_cluster_properties, wait_for_available_instances, \
+    get_current_db_instance_class, scale_up_cluster, delete_list_of_instances
 from documents.util.scripts.test.common_test_util import assert_having_all_not_empty_arguments_in_events
 from documents.util.scripts.test.mock_sleep import MockSleep
 
@@ -176,6 +178,11 @@ DESCRIBE_DB_INSTANCES_RESPONSE = {
     ]
 }
 
+DELETE_LIST_OF_INSTANCES_RESPONSE = [
+    f'{DOCDB_CLUSTER_ID}-instance-1',
+    f'{DOCDB_CLUSTER_ID}-instance-2'
+]
+
 
 def get_docdb_clusters_side_effect(number_of_instances=1):
     result = {
@@ -239,6 +246,50 @@ def get_describe_snapshots_side_effect_with_pages(pages, number_of_snapshots):
             page_result['DBClusterSnapshots'].append(snapshot)
         result.append(page_result)
     return result
+
+
+def get_docdb_instances_with_timestamp_side_effect():
+    instance_new = {
+        'InstanceCreateTime': datetime(2020, 12, 1),
+        'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+        'DBInstanceClass': DOCDB_INSTANCE_CLASS
+    }
+    instance_old = {
+        'InstanceCreateTime': datetime(2020, 1, 1),
+        'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+        'DBInstanceClass': 'db.t3.medium'
+    }
+    return [{'DBInstances': [instance_new, instance_old]}]
+
+
+def get_paginated_instances_side_effect():
+    class PageIteratorMock(PageIterator):
+        def __init__(self):
+            super(PageIteratorMock, self).__init__(
+                self,
+                input_token='input_token',
+                output_token='output_token',
+                more_results='more_results',
+                result_keys='result_keys',
+                non_aggregate_keys='non_aggregate_keys',
+                limit_key='limit_key',
+                max_items='max_items',
+                starting_token='starting_token',
+                page_size='page_size',
+                op_kwargs='op_kwargs'
+            )
+
+        def __iter__(self):
+            instances = get_docdb_instances_with_timestamp_side_effect()
+            for instance in instances:
+                yield instance
+
+    class PaginateMock(MagicMock):
+        def paginate(self, Filters):
+            paginator = PageIteratorMock()
+            return paginator
+
+    return PaginateMock
 
 
 def get_paginate_side_effect(number_of_pages, number_of_snapshots):
@@ -325,6 +376,14 @@ def get_unavailable_instance_side_effect(DBInstanceIdentifier):
     response = copy.deepcopy(DESCRIBE_DB_INSTANCES_RESPONSE)
     response['DBInstances'][0]['DBInstanceStatus'] = 'unavailable'
     return response
+
+
+def get_scale_up_instances_side_effect(amount):
+    response = []
+    for _ in range(amount):
+        rnd = str(uuid.uuid4()).split('-')[-1]
+        response.append(f'{DOCDB_CLUSTER_ID}-{rnd}')
+    return {'DBInstancesIdentifiers': response}
 
 
 @pytest.mark.unit_test
@@ -1084,3 +1143,122 @@ class TestDocDBUtil(unittest.TestCase):
         self.mock_docdb.describe_db_instances.assert_called_with(
             DBInstanceIdentifier=DOCDB_INSTANCE_ID
         )
+
+    # Test get_current_db_instance_class
+    def test_get_current_db_instance_custom_class(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS
+        }
+        response = get_current_db_instance_class(events, None)
+        self.assertEqual({
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS
+        }, response)
+
+    def test_get_current_db_instance_current_class(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBInstanceClass': 'current'
+        }
+        self.mock_docdb.get_paginator.side_effect = \
+            get_paginated_instances_side_effect()
+        response = get_current_db_instance_class(events, None)
+        self.assertEqual({
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS
+        }, response)
+        self.mock_docdb.get_paginator.assert_called_once_with('describe_db_instances')
+
+    def test_get_current_db_instance_empty_class(self):
+        events = {
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID,
+            'DBInstanceClass': ''
+        }
+        self.assertRaises(KeyError, get_current_db_instance_class, events, None)
+
+    def test_get_current_db_instance_empty_cluster_id(self):
+        events = {
+            'DBClusterIdentifier': None,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS
+        }
+        self.assertRaises(Exception, get_current_db_instance_class, events, None)
+
+    def test_get_current_db_instance_no_instances_found(self):
+        events = {
+            'DBClusterIdentifier': 'something',
+            'DBInstanceClass': 'current'
+        }
+        self.assertRaises(Exception, get_current_db_instance_class, events, None)
+
+    # Test scale up cluster
+    def test_scale_up_cluster_6_instances(self):
+        events = {
+            'DBInstanceIdentifierPrefix': DOCDB_CLUSTER_ID,
+            'NumberOfInstancesToCreate': 6,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'DBClusterEngine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.mock_docdb.scale_up_instances.return_value = get_scale_up_instances_side_effect(6)
+        response = scale_up_cluster(events, None)
+        self.assertEqual(6, len(response['DBInstancesIdentifiers']))
+
+    def test_scale_up_cluster_0_instances(self):
+        events = {
+            'DBInstanceIdentifierPrefix': DOCDB_CLUSTER_ID,
+            'NumberOfInstancesToCreate': 0,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'DBClusterEngine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.assertRaises(KeyError, scale_up_cluster, events, None)
+
+    def test_scale_up_cluster_missing_number(self):
+        events = {
+            'DBInstanceIdentifierPrefix': DOCDB_CLUSTER_ID,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'DBClusterEngine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.assertRaises(KeyError, scale_up_cluster, events, None)
+
+    def test_scale_up_cluster_missing_class(self):
+        events = {
+            'DBInstanceIdentifierPrefix': DOCDB_CLUSTER_ID,
+            'NumberOfInstancesToCreate': 2,
+            'DBClusterEngine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.assertRaises(KeyError, scale_up_cluster, events, None)
+
+    def test_scale_up_cluster_missing_engine(self):
+        events = {
+            'DBInstanceIdentifierPrefix': DOCDB_CLUSTER_ID,
+            'NumberOfInstancesToCreate': 2,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        self.assertRaises(KeyError, scale_up_cluster, events, None)
+
+    def test_scale_up_cluster_missing_cluster_id(self):
+        events = {
+            'DBInstanceIdentifierPrefix': DOCDB_CLUSTER_ID,
+            'NumberOfInstancesToCreate': 6,
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'DBClusterEngine': DOCDB_ENGINE
+        }
+        self.assertRaises(KeyError, scale_up_cluster, events, None)
+
+    # Test delete list of instances
+    def test_delete_list_of_instances(self):
+        instance_identifiers = [
+            f'{DOCDB_CLUSTER_ID}-instance-1',
+            f'{DOCDB_CLUSTER_ID}-instance-2'
+        ]
+        self.mock_docdb.delete_list_of_instances.return_value = DELETE_LIST_OF_INSTANCES_RESPONSE
+        response = delete_list_of_instances(instance_identifiers)
+        self.assertListEqual(DELETE_LIST_OF_INSTANCES_RESPONSE, response)
+
+    def test_delete_list_of_instances_empty_list(self):
+        instance_identifiers = []
+        response = delete_list_of_instances(instance_identifiers)
+        self.assertIsNone(response)
