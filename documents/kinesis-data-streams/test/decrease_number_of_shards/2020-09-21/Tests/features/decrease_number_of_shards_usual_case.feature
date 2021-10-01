@@ -12,9 +12,9 @@ Feature: SSM automation document Digito-DecreaseNumberOfShards_2020-09-21
     And cache values to "before"
       | StreamName                                             |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} |
-    And alarm "kinesis-data-streams:alarm:get_records_latency:2020-04-01" is installed
+    And alarm "kinesis-data-streams:alarm:write_provisioned_throughput_exceeded:2020-04-01" is installed
       | alarmId    | KinesisDataStreamName                                  | Threshold | SNSTopicARN                       | EvaluationPeriods | DatapointsToAlarm |
-      | under_test | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | 100       | {{cfn-output:SnsForAlarms>Topic}} | 5                 | 3                 |
+      | under_test | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | 0         | {{cfn-output:SnsForAlarms>Topic}} | 5                 | 3                 |
     And cache by "describe_stream_summary" method of "kinesis" to "before"
       | Input-StreamName                                       | Output-OldShardCount                      |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |

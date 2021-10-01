@@ -1,0 +1,11 @@
+{
+  "displayName": "Alarm for Amazon Kinesis Data Streams WriteProvisionedThroughputExceeded",
+  "description": "Health alarm by Digito that reports when the time taken per GetRecords operation is over specified milliseconds",
+  "alarmName": "Digito-KinesisDataStreamsWriteProvisionedThroughputExceeded:2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "kinesis-data-streams:alarm:write_provisioned_throughput_exceeded:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

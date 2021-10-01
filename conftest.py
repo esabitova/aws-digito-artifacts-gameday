@@ -968,7 +968,7 @@ def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cach
     params = common_test_utils.extract_all_from_input_parameters(cfn_output_params, ssm_test_cache, input_parameters,
                                                                  cfn_installed_alarms)
     for param_name, value in params.items():
-        ssm_test_cache[cache_key][param_name] = value
+        put_to_ssm_test_cache(ssm_test_cache, cache_key, param_name, value)
 
 
 @given(parse('apply "{json_path}" JSONPath '
