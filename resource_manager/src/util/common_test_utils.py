@@ -203,8 +203,11 @@ def do_cache_by_method_of_service(cache_key, method_name, parameters, service_cl
             if len(value) > 0:
                 if parameter.startswith(output_prefix):
                     json_paths[parameter.replace(output_prefix, "")] = value[0]
-                else:
-                    arguments[parameter.replace(input_prefix, "")] = value
+                else:  # to handle wrapping the single element to list in SsmDocument.parse_input_parameters DIG-1555
+                    if len(value) == 1:
+                        arguments[parameter.replace(input_prefix, "")] = value[0]
+                    else:
+                        arguments[parameter.replace(input_prefix, "")] = value
         else:
             if parameter.startswith(output_prefix):
                 json_paths[parameter.replace(output_prefix, "")] = value
