@@ -1,0 +1,11 @@
+{
+  "displayName": "Application Load Balancer alarm for LambdaInternalError metric",
+  "description": "Alarm by Digito for Application load balancer, that reports number of requests to a Lambda function that failed because of an issue internal to the load balancer or AWS Lambda, is equal to or greater than specified threshold",
+  "alarmName": "Digito-LambdaInternalError_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "load-balancer:alarm:application_lambda_internal_error:2020-04-01",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}

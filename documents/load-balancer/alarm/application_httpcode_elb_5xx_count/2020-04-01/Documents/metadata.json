@@ -1,0 +1,11 @@
+{
+  "displayName": "Application Load Balancer alarm for HTTPCode_ELB_5XX_Count metric",
+  "description": "Alarm by Digito for Application load balancer, that reports number of HTTP 5XX server error codes that originate from the load balancer, is eual to or greater than the specified threshold",
+  "alarmName": "Digito-HTTPCode_ELB_5XX_Count_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "load-balancer:alarm:application_httpcode_elb_5xx_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

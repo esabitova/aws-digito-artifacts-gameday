@@ -1,0 +1,11 @@
+{
+  "displayName": "Application Load Balancer alarm for RejectedConnectionCount metric",
+  "description": "Alarm by Digito for Application load balancer, that reports connections were rejected because the load balancer had reached its maximum number of connections, is equal to or greater than the specified threshold",
+  "alarmName": "Digito-RejectedConnectionCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "load-balancer:alarm:application_rejected_connection_count:2020-04-01",
+  "failureType": "SOFTWARE,HARDWARE",
+  "minorVersion": "001"
+}
