@@ -1,4 +1,4 @@
-@asg @integration @asg_node_replace
+@asg @integration @node_replace
 Feature: SSM automation document ASG node replace testing
   Exercise ASG node replace injection
 
@@ -19,13 +19,14 @@ Feature: SSM automation document ASG node replace testing
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
 
+
   Scenario: Create AWS resources using CloudFormation template and execute SSM automation node replace on ASG instances in rollback mode
     Given the cached input parameters
       |InstanceType|TestDurationInMinutes|
       |    t2.small|                    5|
     And the cloud formation templates as integration test resources
-      |CfnTemplatePath                                                                                          |ResourceType|InstanceType          |
-      |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                            |   ON_DEMAND|{{cache:InstanceType}}|
+      |CfnTemplatePath                                                                              |ResourceType|InstanceType          |
+      |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                |   ON_DEMAND|{{cache:InstanceType}}|
       |documents/compute/test/asg-node_replace/2020-07-23/Documents/AutomationAssumeRoleTemplate.yml| ASSUME_ROLE|                      |
     And published "Digito-RefreshAsgInstances_2020-07-23" SSM document
 
