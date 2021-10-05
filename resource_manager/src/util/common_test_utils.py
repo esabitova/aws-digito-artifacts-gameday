@@ -217,6 +217,8 @@ def do_cache_by_method_of_service(cache_key, method_name, parameters, service_cl
     for cache_property, json_path in json_paths.items():
         found = jsonpath_ng.parse(json_path).find(response)
         if found:
-            # Always output as an array even len(found)==1 for the easiest processing
-            target_value = [f.value for f in found]
+            if len(found) == 1:
+                target_value = found[0].value
+            else:
+                target_value = [f.value for f in found]
             put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)

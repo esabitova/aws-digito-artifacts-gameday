@@ -19,10 +19,10 @@ Feature: SSM automation document Digito-DecreaseNumberOfShards_2020-09-21
       | Input-StreamName                                       | Output-OldShardCount                      |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
     And calculate "{{cache:before>OldShardCount}}" "*" "2" and cache result as "ExpectedShardCount" "before" SSM automation execution
-    And SSM automation document "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" executed
-      | StreamName                                             | AutomationAssumeRole                                                                                             | TargetShardCount                    |
-      | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoKinesisDataStreamsUpdateKinesisDataStreamsShardCountAssumeRole}} | {{cache:before>ExpectedShardCount}} |
-    And SSM automation document "Digito-UpdateKinesisDataStreamsShardCount_2020-10-26" execution in status "Success"
+    And SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" executed
+      | StreamName                                             | AutomationAssumeRole                                                                                 | TargetShardCount                    |
+      | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole}} | {{cache:before>ExpectedShardCount}} |
+    And SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache by "describe_stream_summary" method of "kinesis" to "after_increasing"
