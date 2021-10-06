@@ -17,9 +17,6 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
     Then SSM automation document "Digito-ScaleECSServiceSOP_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And waits until the ECSService is stable (tasks started or stopped)
-      | ECSService                                    | ECSCluster                                    |
-      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
       | ECSService                                    | ECSCluster                                    |
       | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
@@ -33,6 +30,9 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
       | resource_manager/cloud_formation_templates/ECSFargateTemplate.yml                     | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PublicSubnetOne}}  | {{cfn-output:VPC>PublicSubnetTwo}} |
       | documents/ecs/sop/scale_service/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                     |                                    |
     And published "Digito-ScaleECSServiceSOP_2020-04-01" SSM document
+    And waits until the ECSService is stable (tasks started or stopped)
+      | ECSService                                    | ECSCluster                                    |
+      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "before" SSM execution
       | ECSService                                    | ECSCluster                                    |
       | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
@@ -45,9 +45,6 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
     Then SSM automation document "Digito-ScaleECSServiceSOP_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And waits until the ECSService is stable (tasks started or stopped)
-      | ECSService                                    | ECSCluster                                    |
-      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
       | ECSService                                    | ECSCluster                                    |
       | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
@@ -61,6 +58,9 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
       | resource_manager/cloud_formation_templates/ECSFargateTemplate.yml                     | ON_DEMAND    | {{cfn-output:VPC>VPCId}} | {{cfn-output:VPC>PublicSubnetOne}}  | {{cfn-output:VPC>PublicSubnetTwo}} |
       | documents/ecs/sop/scale_service/2020-04-01/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                                     |                                    |
     And published "Digito-ScaleECSServiceSOP_2020-04-01" SSM document
+    And waits until the ECSService is stable (tasks started or stopped)
+      | ECSService                                    | ECSCluster                                    |
+      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "before" SSM execution
       | ECSService                                    | ECSCluster                                    |
       | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
@@ -70,9 +70,6 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
     Then SSM automation document "Digito-ScaleECSServiceSOP_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And waits until the ECSService is stable (tasks started or stopped)
-      | ECSService                                    | ECSCluster                                    |
-      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
       | ECSService                                    | ECSCluster                                    |
       | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
@@ -95,9 +92,6 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
     Then SSM automation document "Digito-ScaleECSServiceSOP_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And waits until the ECSService is stable (tasks started or stopped)
-      | ECSService                                    | ECSCluster                                    |
-      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache number of tasks as "AmountOFTasks" "after" SSM execution
       | ECSService                                    | ECSCluster                                    |
       | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
@@ -117,9 +111,6 @@ Feature: SSM automation document Digito-ScaleECSServiceSOP_2020-04-01
     Then SSM automation document "Digito-ScaleECSServiceSOP_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And waits until the ECSService is stable (tasks started or stopped)
-      | ECSService                                    | ECSCluster                                    |
-      | {{cfn-output:ECSFargateTemplate>ECSService}}  | {{cfn-output:ECSFargateTemplate>ClusterName}} |
     And cache memory and cpu as "ContainerDefinitions" "after" SSM execution
       | TaskDefinitionArn                                   |
       | {{cfn-output:ECSFargateTemplate>ECSTaskDefinition}} |

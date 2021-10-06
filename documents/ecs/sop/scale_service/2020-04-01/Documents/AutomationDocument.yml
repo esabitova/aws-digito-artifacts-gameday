@@ -95,6 +95,20 @@ mainSteps:
         NumberOfTasks: '{{NumberOfTasks}}'
         TaskDefinitionArn: '{{CreateNewTaskDefinitionOrGetFromParameter.NewTaskDefinitionArn}}'
 
+  - name: WaitForScaleUpToComplete
+    action: aws:executeScript
+    description: Wait for all status tasks in ECS application to be in "RUNNING" state
+    inputs:
+      Runtime: python3.7
+      Handler: wait_services_stable
+      Script: |-
+        SCRIPT_PLACEHOLDER::ecs_util.imports
+        SCRIPT_PLACEHOLDER::ecs_util.check_required_params
+        SCRIPT_PLACEHOLDER::ecs_util.wait_services_stable
+      InputPayload:
+        ServiceName: '{{ServiceName}}'
+        ClusterName: '{{ClusterName}}'
+
   - name: OutputRecoveryTime
     action: 'aws:executeScript'
     outputs:

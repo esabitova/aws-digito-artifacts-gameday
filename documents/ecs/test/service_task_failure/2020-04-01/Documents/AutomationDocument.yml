@@ -89,7 +89,7 @@ mainSteps:
         ClusterName: '{{ClusterName}}'
         PercentageOfTasksToStop: '{{PercentageOfTasksToStop}}'
 
-  - name: WaitTasksToBeRestored
+  - name: WaitForServiceToBeRestored
     action: aws:executeScript
     inputs:
       Runtime: python3.7

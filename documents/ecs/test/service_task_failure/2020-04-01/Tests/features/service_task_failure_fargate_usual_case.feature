@@ -18,7 +18,7 @@ Feature: SSM automation document Digito-ForceECSServiceTaskFailureTest_2020-04-0
     Then SSM automation document "Digito-ForceECSServiceTaskFailureTest_2020-04-01" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And assert "AssertAlarmToBeGreenBeforeTest,InjectFailure,StopSelectedTasks,WaitTasksToBeRestored,AssertAlarmToBeGreen" steps are successfully executed in order
+    And assert "AssertAlarmToBeGreenBeforeTest,InjectFailure,StopSelectedTasks,WaitForServiceToBeRestored,AssertAlarmToBeGreen" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
 
