@@ -17,7 +17,7 @@ Resources:
         - Name: LoadBalancer
           Value: ${ApplicationELBFullName}
         - Name: TargetGroup
-          Value: ${LambdaTargetFullName}
+          Value: ${TargetGroup}
       Period: 60
       Statistic: Sum
       Threshold: ${Threshold}

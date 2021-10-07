@@ -9,7 +9,7 @@ Feature: Alarm Setup - application load-balancer UnHealthyHostCount
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml             | SHARED       |                          |                                                    |                                                    |                                                      |                            |
 
     When alarm "load-balancer:alarm:application_unhealthy_host_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | LambdaTargetFullName                                                   | ApplicationELBFullName                                                | Threshold | EvaluationPeriods | DatapointsToAlarm |
+      | alarmId    | SNSTopicARN                       | TargetGroup                                                            | ApplicationELBFullName                                                | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>UnhealthyTargetFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | 1000      | 1                 | 1                 |
     And sleep for "60" seconds
     Then assert metrics for all alarms are populated
@@ -23,7 +23,7 @@ Feature: Alarm Setup - application load-balancer UnHealthyHostCount
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml             | SHARED       |                          |                                                    |                                                    |                                                      |                            |
 
     When alarm "load-balancer:alarm:application_unhealthy_host_count:2020-04-01" is installed
-      | alarmId    | SNSTopicARN                       | LambdaTargetFullName                                                   | ApplicationELBFullName                                                | Threshold | EvaluationPeriods | DatapointsToAlarm |
+      | alarmId    | SNSTopicARN                       | TargetGroup                                                            | ApplicationELBFullName                                                | Threshold | EvaluationPeriods | DatapointsToAlarm |
       | under_test | {{cfn-output:SnsForAlarms>Topic}} | {{cfn-output:ApplicationLoadBalancerTemplate>UnhealthyTargetFullName}} | {{cfn-output:ApplicationLoadBalancerTemplate>ApplicationELBFullName}} | 1         | 1                 | 1                 |
     And sleep for "60" seconds
     Then assert metrics for all alarms are populated
