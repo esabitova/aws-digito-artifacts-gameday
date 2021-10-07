@@ -34,8 +34,6 @@ class TestPublishDocuments(unittest.TestCase):
     @pytest.mark.style_validator
     @pytest.mark.metadata_validator
     def test_validate_metadata_files(self):
-        # TODO: Remove skip list once all services get their names fixed
-        skip_name_check = ['ec2', 'compute', 'ebs', 'app_common', 'rds']
         pd = PublishDocuments(boto3.Session())
         fail_messages = []
         global_metadata_validator = GlobalMetadataValidator()
@@ -53,8 +51,7 @@ class TestPublishDocuments(unittest.TestCase):
                         violations = []
                         document_type = get_service_type_from_path(file_path)
                         if document_type is not None:
-                            violations = pd.get_metadata_violations(document_metadata, file_path, document_type,
-                                                                    skip_name_check)
+                            violations = pd.get_metadata_violations(document_metadata, file_path, document_type)
                         fail_messages.extend(violations)
                         global_metadata_validator.iterate_file(document_metadata, file_path)
 
