@@ -235,13 +235,13 @@ class PublishDocuments:
         """
 
         metadata_file_path = document_metadata['location'] + '/metadata.json'
-        meta_attrs_map = metadata_attrs.metadata_attrs_map
-        required_attributes = []
-        if '/test/' in metadata_file_path:
-            required_attributes = meta_attrs_map.get('test')
-        elif '/sop/' in metadata_file_path:
-            required_attributes = meta_attrs_map.get('sop')
-        violations = self.get_metadata_violations(document_metadata, metadata_file_path, required_attributes)
+        relative_file_path = os.path.relpath(metadata_file_path, os.getcwd())
+        document_type = None
+        if '/test/' in relative_file_path:
+            document_type = 'test'
+        elif '/sop/' in relative_file_path:
+            document_type = 'sop'
+        violations = self.get_metadata_violations(document_metadata, relative_file_path, document_type)
 
         for violation in violations:
             logging.error(violation)
