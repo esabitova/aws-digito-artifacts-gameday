@@ -249,14 +249,13 @@ class PublishDocuments:
             raise Exception("Detected [{}] metadata.json structural violations. Check ERROR logs for more details."
                             .format(len(violations)))
 
-    def get_metadata_violations(self, document_metadata, metadata_file_path, document_type, skip_name_check):
+    def get_metadata_violations(self, document_metadata, metadata_file_path, document_type):
         """
         Validates metadata.json files for SSM documents based on given required attributes
         and returns failed attributes messages for given metadata.json file.
         :param document_metadata The metadata.json file content
         :param metadata_file_path The metadata.json file path.
         :param document_type The type of the document
-        :skip_name_check list of services to skip name check
         """
         failed_fields = []
         required_attributes = metadata_attrs.metadata_attrs_map.get(document_type)
@@ -288,13 +287,13 @@ class PublishDocuments:
             failed_fields.append(f'Invalid tag {":".join(tag)} for document at path {os.sep.join(parsed_path[1:-2])}')
 
         if 'documentName' in required_attributes:
-            failed_name = self.validate_document_name(document_metadata, document_type, parsed_path, skip_name_check)
+            failed_name = self.validate_document_name(document_metadata, document_type, parsed_path)
             if failed_name is not None:
                 failed_fields.append(failed_name)
 
         return failed_fields
 
-    def validate_document_name(self, document_metadata, document_type, parsed_path, skip_services):
+    def validate_document_name(self, document_metadata, document_type, parsed_path):
         """
         Validates that documentName follows pattern Digito-<Action><ServiceName>DocumentName<Suffix>_<Date>
         <Action> if from allowed actions list
@@ -306,7 +305,7 @@ class PublishDocuments:
         name = document_metadata.get('documentName')
         service_tag = parsed_path[2] if document_type == 'util' else parsed_path[1]
         # TODO: Remove skip list once all services get their names fixed
-        if service_tag in skip_services:
+        if service_tag in ['ec2', 'compute', 'ebs', 'app_common', 'rds']:
             return None
         date_version = parsed_path[4]
         default_service_name = self.get_default_service_name_from_tag(service_tag)
