@@ -2,6 +2,7 @@
   "service": "s3",
   "type": "test",
   "name": "accidental_delete",
+  "fullName": "AccidentallyDeleteS3Files",
   "displayName": "Test to accidentally delete files from S3 bucket",
   "description": "Accidental delete is testing the case where all versions of files in the bucket were deleted, and we are restoring from the backup bucket",
   "primaryResourceId": "S3BucketWhereObjectsWillBeDeletedFrom",

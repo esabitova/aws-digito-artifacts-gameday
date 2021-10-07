@@ -16,10 +16,10 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for SSM Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21
+Description: Role for SSM Digito-ForceDynamoDBTableReadThrottlingTest_2020-09-21
 Outputs:
   DigitoForceDynamoDBTableReadThrottlingTestAssumeRole:
-    Description: Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21 Automation Assume Role ARN
+    Description: Digito-ForceDynamoDBTableReadThrottlingTest_2020-09-21 Automation Assume Role ARN
     Value:
       Fn::GetAtt: DigitoForceDynamoDBTableReadThrottlingTestAssumeRole.Arn
 Resources:

@@ -60,6 +60,19 @@ def __get_date():
     return date
 
 
+def __get_suffix(doc_type: str):
+    """
+    Get SSM document name suffix from document type
+    :param doc_type: SSM doc type
+    :return: string
+    """
+    suffix_map = {
+        "test": "Test",
+        "sop": "SOP"
+    }
+    return suffix_map[doc_type]
+
+
 def __create_dir_if_not_exists(dir_path: str):
     """
     Creates directory if it does not exist
@@ -194,8 +207,7 @@ def __get_scenarios(feature_files: str, step_def_location: str):
 
 
 def __create_role_doc(target_file_path: str, doc_name: str, service_name: str, name: str,
-                      supports_rollback: str, role_name: str):
-    policy_name = "Digito{}{}AssumePolicy".format(__pascal_case(service_name), __pascal_case(name))
+                      supports_rollback: str, role_name: str, policy_name: str):
     role_content = template_lookup.get_template('AutomationAssumeRoleTemplate.yml.mak')\
         .render(documentName=doc_name, roleName=role_name, policyName=policy_name, supportsRollback=supports_rollback)
     with open(target_file_path, "w") as f:
@@ -387,6 +399,7 @@ def main(argv):
     service_name = __get_input(InputType.SERVICE, validator.validate_small_case_numeric_with_hyphens)
     doc_type = __get_input(InputType.TYPE, validator.validate_input, 'test|sop')
     name = __get_input(InputType.NAME, validator.validate_small_case_with_underscore)
+    suffix = __get_suffix(doc_type)
     date = __get_date()
 
     artifacts_dir = os.path.join(constants.PACKAGE_DIR, 'documents', service_name, doc_type, name, date)
@@ -399,14 +412,16 @@ def main(argv):
     metadata_path = os.path.join(main_docs_path, constants.METADATA_DOC_NAME)
     ___exit_if_exists_and_no_overwrite([automation_doc_path, role_doc_path, metadata_path])
 
+    full_name = __get_input(InputType.FULL_NAME)
     display_name = __get_input(InputType.DISPLAY_NAME)
     description = __get_input(InputType.DESCRIPTION)
     resource_id = __get_input(InputType.RESOURCE_ID, validator.validate_alpha_numeric_input)
     failure_type = __get_input(InputType.FAILURE_TYPE, validator.validate_one_or_more_of, constants.FAILURE_TYPES)
     risk = __get_input(InputType.RISK, validator.validate_one_of, constants.RISKS)
 
-    document_name = "Digito-{}_{}".format(__pascal_case(name), date)
-    role_name = "Digito{}{}AssumeRole".format(__pascal_case(service_name), __pascal_case(name))
+    document_name = "Digito-{}{}_{}".format(full_name, suffix, date)
+    role_name = "Digito{}{}AssumeRole".format(full_name, suffix)
+    policy_name = "Digito{}{}AssumePolicy".format(full_name, suffix)
     replacements = {
         "${serviceName}": service_name,
         "${documentType}": doc_type,
@@ -421,7 +436,7 @@ def main(argv):
         "${risk}": risk,
         "${tag}": ":".join([service_name, doc_type, name, date]),
         "${roleName}": role_name,
-        "${policyName}": "Digito{}{}AssumePolicy".format(__pascal_case(service_name), __pascal_case(name)),
+        "${policyName}": policy_name,
         "${primaryResourceIdentifier}": resource_id
     }
 
@@ -439,7 +454,7 @@ def main(argv):
     __create_dir_if_not_exists(main_docs_path)
     __create_artifact(os.path.join(constants.TEMPLATES_DIR, constants.METADATA_DOC_NAME), metadata_path, replacements)
     __create_role_doc(role_doc_path, doc_name=document_name, service_name=service_name, name=name,
-                      supports_rollback=supports_rollback, role_name=role_name)
+                      supports_rollback=supports_rollback, role_name=role_name, policy_name=policy_name)
     __create_artifact(os.path.join(constants.TEMPLATES_DIR, automation_doc_template), automation_doc_path, replacements)
     __print_success('Successfully created artifacts under {}.'.format(os.path.relpath(main_docs_path,
                                                                                       constants.PACKAGE_DIR)))

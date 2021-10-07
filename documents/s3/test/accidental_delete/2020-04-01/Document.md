@@ -32,7 +32,7 @@ SMALL
 
 ## Depends On
     * Digito-RestoreS3BucketFromBackupSOP_2020-09-21
-    * Digito-CleanS3BucketUtil_2021-03-03
+    * Digito-CleanS3BucketUtil_2020-03-03
 
 ## Supports Rollback
 Yes

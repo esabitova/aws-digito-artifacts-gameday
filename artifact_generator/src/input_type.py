@@ -6,11 +6,13 @@ class InputType(Enum):
     """
     Enumeration for artifact generator inputs
     """
-    SERVICE = ('Enter service name(ex - api-gw', 'service')
+    SERVICE = ('Enter service name(ex - api-gw)', 'service')
     TYPE = ('Is this a test or a sop (test/sop)?', 'type')
-    NAME = ('Enter name of test/sop (ex - restore_from_backup)', 'name')
-    DATE = ('Enter date in YYYY-MM-DD format if in the past, else we default to current date', 'date')
+    NAME = ('Enter short name of test/sop (ex - restore_from_backup)', 'name')
+    FULL_NAME = ('Enter full document name in format <Action><Service><SomeDescription> '
+                 '(ex - RestoreDynamoDBTableFromBackup)', 'fullName')
     DISPLAY_NAME = ('Enter display name', 'displayName')
+    DATE = ('Enter date in YYYY-MM-DD format if in the past, else we default to current date', 'date')
     DESCRIPTION = ('Enter description', 'description')
     RESOURCE_ID = ('Enter a name for the primary resource ID input parameter (ex: QueueUrl, DatabaseIdentifier)',
                    'primaryResourceId')

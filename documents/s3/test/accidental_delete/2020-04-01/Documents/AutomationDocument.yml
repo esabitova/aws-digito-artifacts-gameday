@@ -159,7 +159,7 @@ mainSteps:
     action: aws:executeAutomation
     onCancel: 'step:TriggerRollback'
     inputs:
-      DocumentName: Digito-CleanS3BucketUtil_2021-03-03
+      DocumentName: Digito-CleanS3BucketUtil_2020-03-03
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         S3BucketNameToClean: '{{S3BucketWhereObjectsWillBeDeletedFrom}}'

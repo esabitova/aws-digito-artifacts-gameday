@@ -2,6 +2,7 @@
     "type": "sop",
     "name": "my_sop",
     "date": "2021-05-04",
+    "fullName": "DoMyServiceMyDocument",
     "displayName": "My Display Name",
     "description": "My Description",
     "primaryResourceId": "ResourceId",
