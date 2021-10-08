@@ -17,15 +17,19 @@
 ---
 description: >-
             ## Id
+
             Digito-PurgeSQSQueueSOP_2021-03-11
 
             ## Intent
+
             Cleans up the given queue
 
             ## Type
+
             SOP
 
             ## Risk
+
             High
 
             ## Requirements:
@@ -35,6 +39,7 @@ description: >-
               * sqs:PurgeQueue
 
             ## Cancellation behavior
+
             Fail
 
             ## Inputs
@@ -47,6 +52,7 @@ description: >-
               * description: The URL of the SQS Queue
 
             ## Details
+
             The document purges the queue using API and waits one minute for purge to complete
 
             ## Steps executed in normal flow

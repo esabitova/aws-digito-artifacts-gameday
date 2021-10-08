@@ -17,22 +17,28 @@
 ---
 description: >-
             ## Id
+
             Digito-ForceSQSStandardQueueMaxReceiveFailureTest_2020-11-27
 
             ## Intent
+
             Test standard SQS behavior after receiving a message maximum allowed times. Wait for alarm for metric ApproximateNumberOfMessagesVisible for DLQ to trigger when number of messages on DLQ is more than 0
 
             ## Type
+
             TEST
 
             ## Risk
+
             High
 
             ## Requirements:
+
               * standard SQS queue with DLQ redrive policy set up
               * Amazon CloudWatch alarm is setup for [ApproximateNumberOfMessagesVisible](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric for DLQ. Should trigger when number messages is more than 0
 
             ## Depends on
+
             Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11
 
             ## Permission required for AutomationAssumeRole
@@ -60,9 +66,11 @@ description: >-
               * logs:DescribeLogStreams
 
             ## Supports Rollback
+
             Yes. The document reverts redrive policy and visibility timeout and moves messages back from DLQ
 
             ## Cancellation behavior
+
             The document reverts redrive policy and visibility timeout and moves messages back from DLQ
 
             ## Inputs
@@ -88,6 +96,7 @@ description: >-
               * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
 
             ## Details
+
             The document injects failure by setting redrive policy to a small number of retries and visibility timeout
             to zero and reading messages until they get redriven to DLQ. After test the document executes
             Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11 SOP to move all messages back from DLQ. Note that messages
@@ -123,6 +132,7 @@ description: >-
               * MoveMessagesForPreviousExecution
 
             ## Outputs
+  
             None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"

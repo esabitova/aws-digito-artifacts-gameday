@@ -17,15 +17,19 @@
 ---
 description: >-
             ## Id
+
             Digito-ForceSQSCapacityFailureTest_2021-03-13
 
             ## Intent
+
             Test SQS behaviour after sending a message close to maximum allowed size. Wait for alarm for metric SentMessageSize to trigger when message size is higher than threshold which should be slightly less than 256kb
 
             ## Type
+
             TEST
 
             ## Risk
+
             Medium
 
             ## Requirements:
@@ -48,9 +52,11 @@ description: >-
               * kms:Encrypt
 
             ## Supports Rollback
+
             Yes. The document removes message which triggers the alarm
 
             ## Cancellation behavior
+
             The document removes message which triggers the alarm
 
             ## Inputs
@@ -76,6 +82,7 @@ description: >-
               * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
 
             ## Details
+
             The document injects failure by sending a message with a size above threshold of the specified alarm.
             In case of issues users should manually remove the message.
 
@@ -96,6 +103,7 @@ description: >-
               * RemovePreviousExecutionFailureMessage
 
             ## Outputs
+
             None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"

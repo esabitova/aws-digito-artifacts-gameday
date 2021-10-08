@@ -17,15 +17,19 @@
 ---
 description: >-
             ## Id
+
             Digito-BreakSQSQueuePolicyTest_2020-11-27
 
             ## Intent
+
             Test behavior when messages cannot be sent to an SQS queue. Adds deny policy to send messages to queue and waits for NumberOfMessagesSent metric alarm to trigger when number of messages sent is 0.
 
             ## Type
+
             TEST
 
             ## Risk
+
             High
 
             ## Requirements:
@@ -45,9 +49,11 @@ description: >-
               * iam:PassRole
 
             ## Supports Rollback
+
             Yes. The document returns the queue policy to its initial state
 
             ## Cancellation behavior
+
             The document returns the queue policy to its initial state
 
             ## Inputs
@@ -73,6 +79,7 @@ description: >-
               * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
 
             ## Details
+
             The document injects failure by adding a deny send message policy to the queue. In case of issues users
             should manually remove the deny send message policy.
 
@@ -94,6 +101,7 @@ description: >-
               * RollbackPreviousExecution
 
             ## Outputs
+
             None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"

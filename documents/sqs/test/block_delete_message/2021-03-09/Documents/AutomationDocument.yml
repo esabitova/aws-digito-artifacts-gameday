@@ -17,15 +17,19 @@
 ---
 description: >-
             ## Id
+
             Digito-BlockSQSDeleteMessageTest_2021-03-09
 
             ## Intent
+
             Test behavior when messages are not deleted from a specific queue. Adds deny policy to delete messages from queue and waits for ApproximateAgeOfOldestMessage metric alarm to indicate messages not being deleted and stay on queue for a time higher that the average time to process
 
             ## Type
+
             TEST
 
             ## Risk
+
             High
 
             ## Requirements:
@@ -42,9 +46,11 @@ description: >-
               * iam:PassRole
 
             ## Supports Rollback
+
             Yes. The document returns the queue policy to its initial state
 
             ## Cancellation behavior
+
             The document returns the queue policy to its initial state
 
             ## Inputs
@@ -70,6 +76,7 @@ description: >-
               * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
 
             ## Details
+
             The document injects failure by adding a deny delete message policy to the queue. In case of issues users
             should manually remove the deny delete message policy.
 
@@ -91,6 +98,7 @@ description: >-
               * RollbackPreviousExecution
 
             ## Outputs
+
             None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
