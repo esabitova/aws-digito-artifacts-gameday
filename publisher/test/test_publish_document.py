@@ -12,18 +12,6 @@ from publisher.src.global_metadata_validator import GlobalMetadataValidator
 from publisher.src.publish_documents import PublishDocuments
 
 
-def get_service_type_from_path(file_path):
-    if '/alarm/' in file_path:
-        return 'alarm'
-    elif '/test/' in file_path:
-        return 'test'
-    elif '/sop/' in file_path:
-        return 'sop'
-    elif '/util/' in file_path:
-        return 'util'
-    return None
-
-
 class TestPublishDocuments(unittest.TestCase):
     target_service = ""
 
@@ -49,7 +37,7 @@ class TestPublishDocuments(unittest.TestCase):
                         if not self.__file_in_target_service(file_path):
                             continue
                         violations = []
-                        document_type = get_service_type_from_path(file_path)
+                        document_type = pd.get_document_type_from_path(file_path)
                         if document_type is not None:
                             violations = pd.get_metadata_violations(document_metadata, file_path, document_type)
                         fail_messages.extend(violations)

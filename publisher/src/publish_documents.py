@@ -236,18 +236,15 @@ class PublishDocuments:
 
         metadata_file_path = document_metadata['location'] + '/metadata.json'
         relative_file_path = os.path.relpath(metadata_file_path, os.getcwd())
-        document_type = None
-        if '/test/' in relative_file_path:
-            document_type = 'test'
-        elif '/sop/' in relative_file_path:
-            document_type = 'sop'
-        violations = self.get_metadata_violations(document_metadata, relative_file_path, document_type)
+        document_type = self.get_document_type_from_path(relative_file_path)
 
-        for violation in violations:
-            logging.error(violation)
-        if len(violations) > 0:
-            raise Exception("Detected [{}] metadata.json structural violations. Check ERROR logs for more details."
-                            .format(len(violations)))
+        if document_type is not None:
+            violations = self.get_metadata_violations(document_metadata, relative_file_path, document_type)
+            for violation in violations:
+                logging.error(violation)
+            if len(violations) > 0:
+                raise Exception("Detected [{}] metadata.json structural violations. Check ERROR logs for more details."
+                                .format(len(violations)))
 
     def get_metadata_violations(self, document_metadata, metadata_file_path, document_type):
         """
@@ -331,6 +328,18 @@ class PublishDocuments:
             return tag.upper()
         # Convert all other tags to pascal case, e.g. some-service -> SomeService
         return tag.replace("-", " ").replace("_", " ").title().replace(" ", "")
+
+    def get_document_type_from_path(self, file_path):
+        # Return document type (sop/test/util/alarm) based on the folder structure
+        if '/alarm/' in file_path:
+            return 'alarm'
+        elif '/test/' in file_path:
+            return 'test'
+        elif '/sop/' in file_path:
+            return 'sop'
+        elif '/util/' in file_path:
+            return 'util'
+        return None
 
 
 def main(argv):
