@@ -15,7 +15,103 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "To move messages from one queue to another"
+description: >-
+            ## Id
+            Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11
+
+            ## Intent
+            Moves messages from one queue to another. Can be used to restore messages from Dead Letter queue back to main operation one or visa versa
+
+            ## Type
+            SOP
+
+            ## Risk
+            Medium
+
+            ## Requirements
+              * Source SQS Queue
+              * Target SQS Queue
+
+            ## Permission required for AutomationAssumeRole
+              * sqs:SendMessage
+              * sqs:DeleteMessage
+              * sqs:ReceiveMessage
+              * sqs:GetQueueAttributes
+
+            ##### In case queues are encrypted with a KMS key
+              * kms:GenerateDataKey
+              * kms:Decrypt
+              * kms:Encrypt
+
+            ##### To log output to CloudWatch
+              * logs:CreateLogStream
+              * logs:PutLogEvents
+              * logs:DescribeLogGroups
+              * logs:DescribeLogStreams
+
+            ## Cancellation behavior
+            Fail
+
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above
+
+            ### (Required) SourceQueueUrl
+              * type: String
+              * description: The URL of the source SQS Queue
+
+            ### (Required) TargetQueueUrl
+              * type: String
+              * description: The URL of the target SQS Queue
+
+            ### (Required) NumberOfMessagesToTransfer
+              * type: Integer
+              * description: The number of messages to be sent
+
+            ### (Optional) MessagesTransferBatchSize
+              * type: Integer
+              * description: The number of messages that going to be transferred per batch. Maximum is 10
+              * default: 10
+
+            ### (Optional) ForceExecution
+              * type: Boolean
+              * description: (Optional) If True, validation of input parameters will be skipped
+              * default: false
+
+            ## Details
+              This document reads the specified number of messages from the source queue, attempts to send them to the
+              target queue, and then deletes sent messages from the source queue.
+              Re-executing this document can lead to duplicate messages in the target queue if the message was not successfully transferred during the previous attempt.
+              Number of messages, latency (e.g. cross-region transfer) and message size can lead to a significant time for transferring messages. Since there is a hard cap of 10 minutes for executeScript action, the script would automatically stop after 9 minutes and report on how many messages have been sent so far.
+              Validates if given 'Source' and 'Target' queues are different types (FIFO, Standard). If so, the script will throw an error. Customers can suppress the validation by passing `ForceExecution` parameter.
+              Bear in mind that in case of FIFO queue, messages might be re-ordered while being transferred to the target one.
+
+            ## Steps executed in normal flow
+              * RecordStartTime
+              * TransferMessages
+              * OutputRecoveryTime
+
+            ## Outputs
+            ### OutputRecoveryTime.RecoveryTime
+              * type: Integer
+              * description: SOP execution time in seconds
+
+            ### TransferMessages.TimeElapsed
+              * type: String
+              * description: Time in seconds elapsed during message transfer
+
+            ### TransferMessages.NumberOfMessagesTransferredToTarget
+              * type: Integer
+              * description: Number of messages transfered to target
+
+            ### TransferMessages.NumberOfMessagesFailedToSendToTarget
+              * type: Integer
+              * description: Number of messages failed to be moved to target
+
+            ### TransferMessages.NumberOfMessagesFailedToDeleteFromSource
+              * type: Integer
+              * description: Number of messages failed to be removed from source after transfer
 schemaVersion: "0.3"
 assumeRole: "{{AutomationAssumeRole}}"
 parameters:
@@ -47,6 +143,7 @@ outputs:
   - "TransferMessages.TimeElapsed"
 mainSteps:
   - name: RecordStartTime
+    description: 'Start recording execution time'
     action: 'aws:executeScript'
     outputs:
       - Name: StartTime
@@ -60,6 +157,10 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.start_time
 
   - name: TransferMessages
+    description: >-
+      Execute script that reads messages from source source, sends them to target source, confirms that messages were
+      received and removes them from source afterwards. Returns the number of messages moved, failed, and failed to be
+      removed from source but transferred to target.
     action: aws:executeScript
     outputs:
       - Name: "NumberOfMessagesTransferredToTarget"
@@ -97,6 +198,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.is_queue_fifo
 
   - name: OutputRecoveryTime
+    description: 'Calculate execution time'
     action: 'aws:executeScript'
     outputs:
       - Name: RecoveryTime

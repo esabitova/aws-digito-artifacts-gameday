@@ -15,7 +15,50 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "To clean up SQS queue"
+description: >-
+            ## Id
+            Digito-PurgeSQSQueueSOP_2021-03-11
+
+            ## Intent
+            Cleans up the given queue
+
+            ## Type
+            SOP
+
+            ## Risk
+            High
+
+            ## Requirements:
+              * SQS Queue
+
+            ## Permission required for AutomationAssumeRole
+              * sqs:PurgeQueue
+
+            ## Cancellation behavior
+            Fail
+
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above
+
+            ### (Required) QueueUrl
+              * type: String
+              * description: The URL of the SQS Queue
+
+            ## Details
+            The document purges the queue using API and waits one minute for purge to complete
+
+            ## Steps executed in normal flow
+              * RecordStartTime
+              * PurgeQueue
+              * SleepUntilCompletionOfPurgeQueue
+              * OutputRecoveryTime
+
+            ## Outputs
+            ### OutputRecoveryTime.RecoveryTime
+              * type: Integer
+              * description: SOP execution time in seconds
 schemaVersion: "0.3"
 assumeRole: "{{AutomationAssumeRole}}"
 parameters:
@@ -29,6 +72,7 @@ outputs:
   - OutputRecoveryTime.RecoveryTime
 mainSteps:
   - name: RecordStartTime
+    description: 'Start recording execution time'
     action: 'aws:executeScript'
     outputs:
       - Name: StartTime
@@ -42,20 +86,21 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.start_time
 
   - name: PurgeQueue
+    description: Call SQS API to purge SQS queue
     action: 'aws:executeAwsApi'
     maxAttempts: 3
-    description: Purge SQS queue
     inputs:
       Service: sqs
       Api: PurgeQueue
       QueueUrl: '{{QueueUrl}}'
   - name: SleepUntilCompletionOfPurgeQueue
-    description: The message deletion process takes up to 60 seconds
+    description: Sleep as the message deletion process takes up to 60 seconds
     action: aws:sleep
     inputs:
       Duration: PT60S # 60 seconds
 
   - name: OutputRecoveryTime
+    description: 'Calculate execution time'
     action: 'aws:executeScript'
     outputs:
       - Name: RecoveryTime

@@ -15,7 +15,83 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Test behavior when messages are not deleted from a specific queue"
+description: >-
+            ## Id
+            Digito-BlockSQSDeleteMessageTest_2021-03-09
+
+            ## Intent
+            Test behavior when messages are not deleted from a specific queue. Adds deny policy to delete messages from queue and waits for ApproximateAgeOfOldestMessage metric alarm to indicate messages not being deleted and stay on queue for a time higher that the average time to process
+
+            ## Type
+            TEST
+
+            ## Risk
+            High
+
+            ## Requirements:
+              * SQS queue
+              * Amazon CloudWatch alarm is setup for [ApproximateAgeOfOldestMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric. Threshold age should be higher than average time to process message on this queue
+
+            ## Permission required for AutomationAssumeRole
+              * cloudwatch:DescribeAlarms
+              * sqs:GetQueueAttributes
+              * sqs:SetQueueAttributes
+              * ssm:GetParameters
+              * ssm:GetAutomationExecution
+              * ssm:StartAutomationExecution
+              * iam:PassRole
+
+            ## Supports Rollback
+            Yes. The document returns the queue policy to its initial state
+
+            ## Cancellation behavior
+            The document returns the queue policy to its initial state
+
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above
+
+            ### (Required) QueueUrl
+              * type: String
+              * description: The URL of the SQS queue
+
+            ### (Required) SQSUserErrorAlarmName
+              * type: String
+              * description: Amazon CloudWatch alarm for [ApproximateAgeOfOldestMessage](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric. Maximum age should be higher than average time to process message on this queue
+
+            ### (Optional) IsRollback
+              * type: String
+              * description: Run the rollback steps of the document. True or False. If True, the parameter PreviousExecutionId should also be specified
+              * default: false
+
+            ### (Optional) PreviousExecutionId
+              * type: String
+              * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
+
+            ## Details
+            The document injects failure by adding a deny delete message policy to the queue. In case of issues users
+            should manually remove the deny delete message policy.
+
+            ## Steps executed in normal flow
+              * CheckIsRollback
+              * AssertAlarmToBeGreenBeforeTest
+              * BackupCurrentExecution
+              * GetPolicyWithDenyOnDeleteMessageAction
+              * UpdatePolicy
+              * AssertAlarmToBeRed
+              * RollbackCurrentExecution
+              * AssertAlarmToBeGreen
+
+            ## Steps executed in rollback flow
+              * CheckIsRollback
+              * GetInputsFromPreviousExecution
+              * AssertInputsFromPreviousExecution
+              * PrepareRollbackOfPreviousExecution
+              * RollbackPreviousExecution
+
+            ## Outputs
+            None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
@@ -31,15 +107,16 @@ parameters:
   IsRollback:
     type: String
     description: >-
-      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+      (Optional) Run the rollback steps of the document. True or False. If True, the parameter PreviousExecutionId should also be specified
     default: 'false'
   PreviousExecutionId:
     type: String
     description: >-
-      (Optional) Previous execution id for which resources need to be cleaned up.
+      (Optional) SSM execution ID of the previous execution of this document for which resources need to be cleaned up
     default: ''
 mainSteps:
   - name: CheckIsRollback
+    description: Check if document should be executed in rollback mode
     action: aws:branch
     inputs:
       Choices:
@@ -49,6 +126,7 @@ mainSteps:
       Default: AssertAlarmToBeGreenBeforeTest
 
   - name: GetInputsFromPreviousExecution
+    description: Get input from previous execution. This will be used to validate that rollback is executed with the same input
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -65,6 +143,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: AssertInputsFromPreviousExecution
+    description: Validate that rollback is executed with the same input
     action: aws:branch
     inputs:
       Choices:
@@ -74,6 +153,7 @@ mainSteps:
     isEnd: true
 
   - name: PrepareRollbackOfPreviousExecution
+    description: Get initial queue policy from previous execution
     action: aws:executeScript
     outputs:
       - Name: Policy
@@ -92,6 +172,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
   - name: RollbackPreviousExecution
+    description: Revert queue policy to initial state
     action: aws:executeScript
     inputs:
       Runtime: python3.6
@@ -106,6 +187,7 @@ mainSteps:
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
+    description: Ensure alarm is green before starting test. Fail if alarm is not green within expected time
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 1200
     inputs:
@@ -116,6 +198,7 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
   - name: BackupCurrentExecution
+    description: Backup initial queue policy for rollback
     action: aws:executeAwsApi
     outputs:
       - Name: Policy
@@ -132,6 +215,7 @@ mainSteps:
         - QueueArn
       QueueUrl: '{{ QueueUrl }}'
   - name: GetPolicyWithDenyOnDeleteMessageAction
+    description: Generate queue policy that denies message deletion
     action: aws:executeScript
     outputs:
       - Name: Policy
@@ -156,6 +240,7 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::sqs_util.add_deny_in_sqs_policy
   - name: UpdatePolicy
+    description: Set queue policy to the generated one
     action: aws:executeAwsApi
     inputs:
       Service: sqs
@@ -164,6 +249,7 @@ mainSteps:
       Attributes:
         Policy: '{{ GetPolicyWithDenyOnDeleteMessageAction.Policy }}'
   - name: AssertAlarmToBeRed
+    description: Wait for expected alarm to be red after failure is injected
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 1000
     onFailure: 'step:RollbackCurrentExecution'
@@ -176,6 +262,7 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "ALARM" ]
   - name: RollbackCurrentExecution
+    description: Revert queue policy to initial state
     action: aws:executeScript
     onCancel: 'step:TriggerRollback'
     inputs:
@@ -189,6 +276,7 @@ mainSteps:
 
         SCRIPT_PLACEHOLDER::sqs_util.revert_sqs_policy
   - name: AssertAlarmToBeGreen
+    description: Wait for the alarm to be green after test is complete
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 600
     inputs:
@@ -200,6 +288,7 @@ mainSteps:
       DesiredValues: [ "OK" ]
     isEnd: true
   - name: TriggerRollback
+    description: This step is executed when ssm document is cancelled while it was in progress. This step starts a new execution of document in rollback mode to rollback the changes made as part of normal execution
     action: 'aws:executeScript'
     onFailure: Abort
     outputs:
