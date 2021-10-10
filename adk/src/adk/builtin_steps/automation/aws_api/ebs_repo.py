@@ -65,18 +65,18 @@ def get_ebs_create_volume(snapshot_var='EBSSnapshotIdentifier',
 
 def ebs_describe_instance_volume(instance_id='InstanceIdentifier', device_name='DeviceName'):
     return AwsApiStep(
-        name='EbsDescribeInstance',
-        description='Describe instances '
-        + '[DescribeInstances](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeInstances.html)',
+        name='DescribeInstanceVolume',
+        description='Describe volumes by instance and device '
+        + '[DescribeVolumes](https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_DescribeVolumes.html)',
         service='ec2',
-        camel_case_api='DescribeInstances',
+        camel_case_api='DescribeVolumes',
         api_params={
-            'InstanceIds': ['{{ ' + instance_id + ' }}'],
-            'Filters': [{'Name': 'block-device-mapping.device-name',
-                        'Values': ['{{ ' + device_name + ' }}']}]
+            'Filters':
+                [{'Name': 'attachment.device', 'Values': ['{{' + device_name + '}}']},
+                 {'Name': 'attachment.instance-id', 'Values': ['{{' + instance_id + '}}']}]
         },
-        outputs=[Output('VolumeId', DataType.String,
-                        '$.Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId')]
+        outputs=[Output('VolumeId', DataType.String, '$.Volumes[0].VolumeId'),
+                 Output('CurrentSizeGiB', DataType.Integer, '$.Volumes[0].Size')]
     )
 
 
@@ -94,7 +94,7 @@ def ebs_describe_volume(volume_id='EbsDescribeInstance.VolumeId'):
     )
 
 
-def resize_volume(volume_id='EbsDescribeInstance.VolumeId', size_gb='SizeGib'):
+def resize_volume(volume_id='DescribeInstanceVolume.VolumeId', size_gb='SizeGib'):
     return AwsApiStep(
         name='ModifyVolume',
         description='Modify the Volume '

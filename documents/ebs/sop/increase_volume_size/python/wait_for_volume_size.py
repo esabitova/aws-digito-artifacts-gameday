@@ -25,7 +25,7 @@ class WaitForVolumeSize(PythonStep):
         return []
 
     def get_inputs(self) -> List[str]:
-        return ['SizeGib', 'EbsDescribeInstance.VolumeId']
+        return ['SizeGib', 'DescribeInstanceVolume.VolumeId']
 
     def get_description(self) -> str:
         return 'Wait until volume is updated to new value.'

@@ -9,18 +9,18 @@ class TestCheckLargerVolume(unittest.TestCase):
 
     def test_check_larger_volume_smaller(self):
         python_step = CheckLargerVolume()
-        params = {'DescribeVolume.CurrentSizeGiB': 4, 'SizeGib': 5}
+        params = {'DescribeInstanceVolume.CurrentSizeGiB': 4, 'SizeGib': 5}
         python_step.invoke(params)
         self.assertFalse(params['CheckLargerVolume.VolumeAlreadyGreater'])
 
     def test_check_larger_volume_greater(self):
         python_step = CheckLargerVolume()
-        params = {'DescribeVolume.CurrentSizeGiB': 4, 'SizeGib': 3}
+        params = {'DescribeInstanceVolume.CurrentSizeGiB': 4, 'SizeGib': 3}
         python_step.invoke(params)
         self.assertTrue(params['CheckLargerVolume.VolumeAlreadyGreater'])
 
     def test_check_larger_volume_same(self):
         python_step = CheckLargerVolume()
-        params = {'DescribeVolume.CurrentSizeGiB': 4, 'SizeGib': 4}
+        params = {'DescribeInstanceVolume.CurrentSizeGiB': 4, 'SizeGib': 4}
         python_step.invoke(params)
         self.assertTrue(params['CheckLargerVolume.VolumeAlreadyGreater'])
