@@ -94,7 +94,7 @@ mainSteps:
   - name: RollbackPreviousExecution
     action: aws:executeAutomation
     inputs:
-      DocumentName: Digito-UpdateKinesisDataStreamsShardCount_2020-10-26
+      DocumentName: Digito-UpdateKinesisDataStreamsShardCountSOP_2020-10-26
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         StreamName: '{{StreamName}}'
@@ -129,7 +129,7 @@ mainSteps:
     onCancel: step:TriggerRollback
     action: aws:executeAutomation
     inputs:
-      DocumentName: Digito-UpdateKinesisDataStreamsShardCount_2020-10-26
+      DocumentName: Digito-UpdateKinesisDataStreamsShardCountSOP_2020-10-26
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         StreamName: '{{StreamName}}'
@@ -138,7 +138,7 @@ mainSteps:
   - name: AssertAlarmToBeRed
     action: aws:waitForAwsResourceProperty
     maxAttempts: 1
-    timeoutSeconds: 900
+    timeoutSeconds: 1800
     onFailure: step:RollbackCurrentExecution
     onCancel: step:TriggerRollback
     inputs:
@@ -154,7 +154,7 @@ mainSteps:
     onCancel: step:TriggerRollback
     action: aws:executeAutomation
     inputs:
-      DocumentName: Digito-UpdateKinesisDataStreamsShardCount_2020-10-26
+      DocumentName: Digito-UpdateKinesisDataStreamsShardCountSOP_2020-10-26
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         StreamName: '{{StreamName}}'

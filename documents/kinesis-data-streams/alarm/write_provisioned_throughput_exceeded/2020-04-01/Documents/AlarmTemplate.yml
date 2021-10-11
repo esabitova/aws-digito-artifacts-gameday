@@ -21,4 +21,4 @@ Resources:
       Period: 60
       Statistic: Maximum
       Threshold: ${Threshold}
-      TreatMissingData: missing
+      TreatMissingData: notBreaching

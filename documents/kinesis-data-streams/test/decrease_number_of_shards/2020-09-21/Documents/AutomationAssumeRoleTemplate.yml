@@ -47,6 +47,10 @@ Resources:
               - kinesis:DescribeStream
               - kinesis:UpdateKinesisDataStreamsShardCount
               - kinesis:DescribeStreamSummary
+              - kinesis:UpdateShardCount
+              - cloudwatch:DescribeAlarms
+              - ssm:StartAutomationExecution
+              - ssm:GetAutomationExecution
           - Effect: Allow
             Resource:
               - !GetAtt DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole.Arn
