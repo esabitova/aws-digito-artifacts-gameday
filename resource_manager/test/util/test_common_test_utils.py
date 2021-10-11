@@ -60,7 +60,7 @@ class TestCommonTestUtil(unittest.TestCase):
     def test_do_cache_by_method_of_service(self):
         self.client.some_method.return_value = {'Key2': 'Key2Value', 'Key3': 'Key3Value1'}
         actual_ssm_test_cache = {}
-        expected_ssm_test_cache = {'before': {'Key2': ['Key2Value'], 'Key3': ['Key3Value1']}}
+        expected_ssm_test_cache = {'before': {'Key2': 'Key2Value', 'Key3': 'Key3Value1'}}
         common_test_utils.do_cache_by_method_of_service("before", "some_method",
                                                         {'Input-Key1': 'Value1', 'Input-Key2': ['Value1'],
                                                          'Output-Key2': '$.Key2', 'Output-Key3': ['$.Key3']},
