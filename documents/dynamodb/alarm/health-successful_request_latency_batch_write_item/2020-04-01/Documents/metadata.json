@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon DynamoDB alarm for SuccessfulRequestLatency metric on BatchWriteItem operation",
+  "description": "Alarm by Digito for Amazon DynamoDB, that reports elapsed time for successful requests with regards to BatchWriteItem operation, is equal to or greater than the specified threshold.",
+  "alarmName": "Digito-SuccessfulRequestLatencyBatchWriteItem_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "dynamodb:alarm:health-successful_request_latency_batch_write_item:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

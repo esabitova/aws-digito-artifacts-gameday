@@ -1,0 +1,11 @@
+{
+  "displayName": "Amazon DynamoDB alarm for SuccessfulRequestLatency metric on TransactWriteItems operation",
+  "description": "Alarm by Digito for Amazon DynamoDB, that reports elapsed time for successful requests with regards to TransactWriteItems operation, is equal to or greater than the specified threshold.",
+  "alarmName": "Digito-SuccessfulRequestLatencyTransactWriteItems_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "dynamodb:alarm:health-successful_request_latency_transact_write_items:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

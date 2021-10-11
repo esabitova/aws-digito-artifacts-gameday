@@ -108,3 +108,22 @@ class TestCommonTestUtil(unittest.TestCase):
         }
         res = common_test_utils.check_security_group_exists(self.session_mock, 'test')
         self.assertEqual(True, res)
+
+    def test_group_list_elements(self):
+        test_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+        test_chunk_size = 3
+        chunked_list = common_test_utils.group_list_elements(test_list, test_chunk_size)
+        self.assertEqual(len(chunked_list), len(test_list) // test_chunk_size + 1)
+        self.assertEqual([item for chunk in chunked_list for item in chunk], test_list)
+
+    def test_execute_function_with_gaussian_delay(self):
+        mu = 1
+        sigma = 0.2
+        msg = "foo"
+
+        def func(a):
+            return a
+
+        result = common_test_utils.execute_function_with_gaussian_delay(func, mu, sigma, msg)
+        expected_result = func(msg)
+        self.assertEqual(result, expected_result)
