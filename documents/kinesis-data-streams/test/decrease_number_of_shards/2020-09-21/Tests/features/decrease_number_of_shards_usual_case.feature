@@ -15,7 +15,7 @@ Feature: SSM automation document Digito-DecreaseNumberOfShards_2020-09-21
 #      | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} |
     And alarm "kinesis-data-streams:alarm:write_provisioned_throughput_exceeded:2020-04-01" is installed
       | alarmId    | KinesisDataStreamName                                  | Threshold | SNSTopicARN                       | EvaluationPeriods | DatapointsToAlarm |
-      | under_test | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | 1         | {{cfn-output:SnsForAlarms>Topic}} | 5                 | 3                 |
+      | under_test | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | 0         | {{cfn-output:SnsForAlarms>Topic}} | 1                 | 1                 |
     And cache by "describe_stream_summary" method of "kinesis" to "before"
       | Input-StreamName                                       | Output-OldShardCount                      |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
@@ -33,7 +33,7 @@ Feature: SSM automation document Digito-DecreaseNumberOfShards_2020-09-21
     When Wait for the SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" execution is on step "DecreaseShardCountToOneShard" in status "Success" for "420" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
-    And put "5000" records asynchronously in "20" threads with "0" seconds delay between each other to Kinesis Data Stream
+    And put "500" records asynchronously in "50" threads with "0" seconds delay between each other to Kinesis Data Stream
       | KinesisDataStreamName                                  |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} |
     And SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" execution in status "Success"

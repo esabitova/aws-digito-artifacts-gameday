@@ -14,8 +14,7 @@ def generate_records(messages_to_sent_number: int):
     """
     records = []
     for i in range(int(messages_to_sent_number)):
-        message = f'This is {i} message.'
-        records.append({'Data': bytes(message, 'utf-8'), 'PartitionKey': str(uuid.uuid4())})
+        records.append({'Data': bytes(str(i), 'utf-8'), 'PartitionKey': str(uuid.uuid4())})
     return records
 
 
@@ -50,7 +49,9 @@ def put_records(boto3_session, stream_name: str, records: list):
     :param boto3_session The boto3 session
     """
     client = boto3_session.client('kinesis')
-    client.put_records(StreamName=stream_name, Records=records)
+    failed_record_count = client.put_records(StreamName=stream_name, Records=records)['FailedRecordCount']
+    logging.info(f'Execution of put_records to {stream_name} Kinesis Data Stream was completed, '
+                 f'the number of failed records to sent: {failed_record_count}')
 
 
 def get_records(boto3_session, shard_iterator: str, limit: int):
