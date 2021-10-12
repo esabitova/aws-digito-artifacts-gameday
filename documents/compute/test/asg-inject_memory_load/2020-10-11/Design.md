@@ -45,9 +45,11 @@ Rollback is supported to terminate stress testing in case if critical applicatio
   * type: String
   * description: "(Optional) The number of virtual memory stressors (default: 1)"
   * default: '1'
-### Percent:
+### LoadPercent:
   * type: String
-  * description: "(Required) The percentage of virtual memory to use (required)."
+  * description: (Optional) Specify the target memory load percentage. Valid values are between 0 (no load) and 100 (full load) (default - 100)
+  * default: "100"
+  * allowedPattern: "^(100|[1-9]?[0-9])$"
 ### PercentageOfInstances
   * type: Integer
   * description: (Optional) Percentage of ASG EC2 instances to be impacted

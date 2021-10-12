@@ -4,8 +4,8 @@ Feature: SSM automation document ASG memory stress testing
 
   Scenario: Execute SSM automation document to perform memory stress injection on ASG
     Given the cached input parameters
-      | InstanceType | Percent | DurationSeconds | AlarmNamespace | MetricPeriod | PercentageOfInstances | ExpectedRecoveryTime | Workers |
-      | t2.small     | 90      | 300             | CWAgent        | 60           | 50                    | 120                  | 6       |
+      | InstanceType | LoadPercent | DurationSeconds | AlarmNamespace | MetricPeriod | PercentageOfInstances | ExpectedRecoveryTime | Workers |
+      | t2.small     | 90          | 300             | CWAgent        | 60           | 50                    | 120                  | 6       |
     And the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                     | ResourceType | InstanceType           |
       | resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                       | ON_DEMAND    | {{cache:InstanceType}} |
@@ -13,8 +13,8 @@ Feature: SSM automation document ASG memory stress testing
     And published "Digito-InjectMemoryLoadInAsgTest_2020-10-11" SSM document
 
     When SSM automation document "Digito-InjectMemoryLoadInAsgTest_2020-10-11" executed
-      | AutoScalingGroupName                               | AutomationAssumeRole                                                                    | MemoryUtilizationAlarmName                                  | Percent           | DurationSeconds           | PercentageOfInstances           | ExpectedRecoveryTime           |Workers          |
-      | {{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInAsgAssumeRole}} | {{cfn-output:AsgCfnTemplate>AsgMemoryUtilizationAlarmName}} | {{cache:Percent}} | {{cache:DurationSeconds}} | {{cache:PercentageOfInstances}} | {{cache:ExpectedRecoveryTime}} |{{cache:Workers}}|
+      | AutoScalingGroupName                               | AutomationAssumeRole                                                                    | MemoryUtilizationAlarmName                                  | LoadPercent           | DurationSeconds           | PercentageOfInstances           | ExpectedRecoveryTime           |Workers          |
+      | {{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInAsgAssumeRole}} | {{cfn-output:AsgCfnTemplate>AsgMemoryUtilizationAlarmName}} | {{cache:LoadPercent}} | {{cache:DurationSeconds}} | {{cache:PercentageOfInstances}} | {{cache:ExpectedRecoveryTime}} |{{cache:Workers}}|
     And SSM automation document "Digito-InjectMemoryLoadInAsgTest_2020-10-11" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
@@ -29,8 +29,8 @@ Feature: SSM automation document ASG memory stress testing
 
   Scenario: Execute SSM automation document to perform memory stress injection on ASG with rollback
     Given the cached input parameters
-      | InstanceType | Percent | DurationSeconds | AlarmNamespace | MetricPeriod | PercentageOfInstances | ExpectedRecoveryTime | Workers |
-      | t2.small     | 90      | 900             | CWAgent        | 60           | 50                    | 120                  | 6       |
+      | InstanceType | LoadPercent | DurationSeconds | AlarmNamespace | MetricPeriod | PercentageOfInstances | ExpectedRecoveryTime | Workers |
+      | t2.small     | 90          | 900             | CWAgent        | 60           | 50                    | 120                  | 6       |
     And the cloud formation templates as integration test resources
       |CfnTemplatePath                                                                                     |ResourceType|InstanceType          |
       |resource_manager/cloud_formation_templates/AsgCfnTemplate.yml                                       |   ON_DEMAND|{{cache:InstanceType}}|
@@ -38,8 +38,8 @@ Feature: SSM automation document ASG memory stress testing
     And published "Digito-InjectMemoryLoadInAsgTest_2020-10-11" SSM document
 
     When SSM automation document "Digito-InjectMemoryLoadInAsgTest_2020-10-11" executed
-      | AutoScalingGroupName                               | AutomationAssumeRole                                                                    | MemoryUtilizationAlarmName                                  | Percent           | DurationSeconds           | PercentageOfInstances           | ExpectedRecoveryTime           |Workers          |
-      | {{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInAsgAssumeRole}} | {{cfn-output:AsgCfnTemplate>AsgMemoryUtilizationAlarmName}} | {{cache:Percent}} | {{cache:DurationSeconds}} | {{cache:PercentageOfInstances}} | {{cache:ExpectedRecoveryTime}} |{{cache:Workers}}|
+      | AutoScalingGroupName                               | AutomationAssumeRole                                                                    | MemoryUtilizationAlarmName                                  | LoadPercent           | DurationSeconds           | PercentageOfInstances           | ExpectedRecoveryTime           |Workers          |
+      | {{cfn-output:AsgCfnTemplate>AutoScalingGroupName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoSimulateHighMemoryLoadInAsgAssumeRole}} | {{cfn-output:AsgCfnTemplate>AsgMemoryUtilizationAlarmName}} | {{cache:LoadPercent}} | {{cache:DurationSeconds}} | {{cache:PercentageOfInstances}} | {{cache:ExpectedRecoveryTime}} |{{cache:Workers}}|
 
     Then Wait for the SSM automation document "Digito-InjectMemoryLoadInAsgTest_2020-10-11" execution is on step "RunMemoryStress" in status "InProgress" for "600" seconds
       |ExecutionId               |
