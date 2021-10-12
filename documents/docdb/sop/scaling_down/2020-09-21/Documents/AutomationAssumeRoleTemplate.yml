@@ -44,6 +44,9 @@ Resources:
           - Effect: Allow
             Resource: "*"
             Action:
+              - rds:CreateDBInstance
+              - rds:DeleteDBInstance
               - rds:DescribeDBClusters
+              - rds:DescribeDBInstances
       Roles:
         - Ref: DigitoScaleDownDocumentDBClusterSOPAssumeRole

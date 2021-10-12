@@ -512,6 +512,18 @@ def delete_docdb_instance(identifier):
     )
 
 
+def create_docdb_instance(instance_params):
+    """
+    Create one instance and wait for it to become available.
+    """
+    docdb = boto3.client('docdb')
+    create_new_instance_random_az(instance_params)
+    waiter = docdb.get_waiter('db_instance_available')
+    waiter.wait(
+        DBInstanceIdentifier=instance_params['DBInstanceIdentifier']
+    )
+
+
 def delete_list_of_instances(instance_identifiers):
     """
     Delete instances and wait for removal.
@@ -522,3 +534,92 @@ def delete_list_of_instances(instance_identifiers):
         for identifier in instance_identifiers:
             t_executor.submit(delete_docdb_instance, identifier)
     return instance_identifiers
+
+
+def scale_down_cluster(events, context):
+    """
+    Delete instances from the cluster.
+    """
+    required_params = [
+        'DBInstancesIdentifiersToDelete'
+    ]
+    check_required_params(required_params, events)
+
+    docdb = boto3.client('docdb')
+    for identifier in events['DBInstancesIdentifiersToDelete']:
+        docdb.delete_db_instance(DBInstanceIdentifier=identifier)
+
+
+def validate_cluster_members_amount(events, context):
+    """
+    Ensure 2 instances before scaling down the cluster.
+    These 2 instances will satisfy the condition 1 Primary + 1 Replica.
+    """
+    required_params = [
+        'DBClusterMembers'
+    ]
+    check_required_params(required_params, events)
+
+    if len(events['DBClusterMembers']) <= 2:
+        raise AssertionError('The amount of DBClusterMembers should be greater than 2 to perform scaling down.')
+
+
+def get_instances_to_delete_by_number(number, cluster_members):
+    """
+    Get list of random instances identifiers from cluster replicas members.
+    Ensure 1 Primary + 1 Replica remain after following deletion.
+    """
+    cluster_replicas_identifiers = [
+        member['DBInstanceIdentifier'] for member in cluster_members if not member['IsClusterWriter']
+    ]
+    cluster_members_amount = len(cluster_members)
+    if cluster_members_amount - 2 < number:
+        raise ValueError(f'Impossible to delete {number} instances. '
+                         f'Max allowed for removal amount is {cluster_members_amount - 2}.')
+    return random.sample(cluster_replicas_identifiers, number)
+
+
+def get_instances_to_delete_by_ids(ids, cluster_members):
+    """
+    Get list of instances identifiers to delete. Ensure 1 Primary + 1 Replica remain after following deletion.
+    """
+    cluster_writer_identifier = [
+        member['DBInstanceIdentifier'] for member in cluster_members if member['IsClusterWriter']
+    ][0]
+    if cluster_writer_identifier in ids:
+        raise ValueError(f'DBInstancesIdentifiersToDelete contains Primary identifier {cluster_writer_identifier}.')
+
+    cluster_replicas_identifiers = [
+        member['DBInstanceIdentifier'] for member in cluster_members if not member['IsClusterWriter']
+    ]
+    # at least 1 item should remain in (cluster_replicas_identifiers - ids)
+    difference = [i for i in cluster_replicas_identifiers if i not in ids]
+    if not difference:
+        raise AssertionError(f'The condition `1 Primary + 1 Replica` is not satisfied if we remove instances: {ids}.')
+    if len(difference) == len(cluster_replicas_identifiers):
+        raise ValueError('DBInstancesIdentifiersToDelete does not contain identifiers belonging to cluster.')
+
+    return ids
+
+
+def get_instances_to_delete(events, context):
+    """
+    Get list of instances to delete, considering 1 condition: cluster should have 1 Primary and at least 1 Replica
+    instance after following deletion.
+    """
+    required_params = [
+        'DBClusterMembers'
+    ]
+    check_required_params(required_params, events)
+
+    if not events.get('DBInstancesIdentifiersToDelete'):
+        logging.info('Parameter "DBInstancesIdentifiersToDelete" will be ignored')
+        check_required_params(['NumberOfDBInstancesToDelete'], events)
+        return {
+            'DBInstancesIdentifiersToDelete': get_instances_to_delete_by_number(events['NumberOfDBInstancesToDelete'],
+                                                                                events['DBClusterMembers'])}
+    else:
+        logging.info('Parameter "NumberOfDBInstancesToDelete" will be ignored')
+        return {
+            'DBInstancesIdentifiersToDelete': get_instances_to_delete_by_ids(events['DBInstancesIdentifiersToDelete'],
+                                                                             events['DBClusterMembers'])}

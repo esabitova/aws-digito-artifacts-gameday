@@ -33,6 +33,8 @@ assert_azs_expression = 'assert instance AZ value "{actual_property}" at "{step_
                         '\n{input_parameters}'
 cache_replica_id_expression = 'cache replica instance identifier as "{cache_property}" at step "{step_key}"' \
                               '\n{input_parameters}'
+cache_instances_metadata_expression = 'cache cluster instances metadata as "{cache_property}" at step "{step_key}"' \
+    '\n{input_parameters}'
 assert_primary_instance_expression = 'assert if the cluster member is the primary instance\n{input_parameters}'
 wait_for_instances_availability_expression = 'wait for instances to be available for "{time_to_wait}" seconds' \
                                              '\n{input_parameters}'
@@ -222,6 +224,18 @@ def cache_replica_identifier(
     put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, replica_identifier)
 
 
+@given(parsers.parse(cache_instances_metadata_expression))
+def cache_cluster_instances_metadata(
+        resource_pool, ssm_test_cache, boto3_session, cache_property, step_key, input_parameters
+):
+    cluster_id = extract_param_value(
+        input_parameters, "DBClusterIdentifier", resource_pool, ssm_test_cache
+    )
+    cluster_instances = docdb_utils.get_cluster_instances(boto3_session, cluster_id)
+
+    put_to_ssm_test_cache(ssm_test_cache, step_key, cache_property, cluster_instances)
+
+
 @then(parsers.parse(assert_primary_instance_expression))
 def assert_is_cluster_member_primary_instance(
         resource_pool, ssm_test_cache, boto3_session, input_parameters
@@ -240,6 +254,7 @@ def assert_is_cluster_member_primary_instance(
     assert is_cluster_writer
 
 
+@given(parsers.parse(wait_for_instances_availability_expression))
 @then(parsers.parse(wait_for_instances_availability_expression))
 def wait_for_instances(
         resource_pool, ssm_test_cache, boto3_session, time_to_wait, input_parameters

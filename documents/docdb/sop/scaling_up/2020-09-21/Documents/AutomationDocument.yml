@@ -83,6 +83,7 @@ parameters:
   DBClusterIdentifier:
     type: String
     description: (Required) Amazon Document DB cluster identifier.
+    allowedPattern: "[a-zA-Z0-9_.-]+"
   DBInstanceClass:
     type: String
     description: (Optional) The class of new DB instances.
