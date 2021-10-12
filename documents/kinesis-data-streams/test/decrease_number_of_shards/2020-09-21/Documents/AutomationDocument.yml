@@ -15,7 +15,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Test system behavior if Amazon Kinesis Data Streams shards has been decreased and the alarm based on GetRecords.Latency has been moved to ALARM state"
+description: "Test system behavior if Amazon Kinesis Data Streams shards has been decreased and the alarm based on WriteProvisionedThroughputExceeded has been moved to ALARM state"
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:

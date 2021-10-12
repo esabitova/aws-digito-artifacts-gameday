@@ -47,7 +47,5 @@ Resources:
               - kinesis:DescribeStream
               - kinesis:UpdateShardCount
               - kinesis:DescribeStreamSummary
-              - ssm:StartAutomationExecution
-              - ssm:GetAutomationExecution
       Roles:
         - Ref: DigitoUpdateKinesisDataStreamsShardCountSOPAssumeRole

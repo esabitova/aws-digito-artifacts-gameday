@@ -31,11 +31,13 @@ def generate_and_cache_random_string_with_prefix(ssm_test_cache, prefix, field_n
     ssm_test_cache[field_name] = rnd
 
 
+@given(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
+                     'became equal to "{actual_property}" at "{step_key_for_actual}"'))
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-        == ssm_test_cache[step_key_for_actual][actual_property]
+           == ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.cfparse('assert the difference between "{expected_property}" at "{step_key_for_expected}" '
@@ -44,14 +46,14 @@ def assert_equal(ssm_test_cache, expected_property, step_key_for_expected, actua
 def assert_difference(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual,
                       expected_difference: int):
     assert int(ssm_test_cache[step_key_for_expected][expected_property]) \
-        - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
+           - int(ssm_test_cache[step_key_for_actual][actual_property]) == expected_difference
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
                     'became not equal to "{actual_property}" at "{step_key_for_actual}"'))
 def assert_not_equal(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-        != ssm_test_cache[step_key_for_actual][actual_property]
+           != ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.parse('assert "{expected_property}" at "{step_key_for_expected}" '
@@ -64,7 +66,7 @@ def assert_equal_to_value(ssm_test_cache, expected_property, step_key_for_expect
                     'less than "{actual_property}" at "{step_key_for_actual}"'))
 def assert_less_than(ssm_test_cache, expected_property, step_key_for_expected, actual_property, step_key_for_actual):
     assert ssm_test_cache[step_key_for_expected][expected_property] \
-        < ssm_test_cache[step_key_for_actual][actual_property]
+           < ssm_test_cache[step_key_for_actual][actual_property]
 
 
 @then(parsers.parse('assert security group "{expected_property}" at "{step_key_for_expected}" was removed'))
@@ -79,7 +81,7 @@ def assert_value_isin(ssm_test_cache, expected_property, step_key_for_expected, 
     temp_var = ssm_test_cache[step_key_for_actual][actual_property]
     if isinstance(temp_var, (list, tuple, dict)):
         assert ssm_test_cache[step_key_for_expected][expected_property] in \
-            ssm_test_cache[step_key_for_actual][actual_property]
+               ssm_test_cache[step_key_for_actual][actual_property]
     else:
         raise AssertionError(f'{actual_property} needs to be one of list, tuple, dict')
 
