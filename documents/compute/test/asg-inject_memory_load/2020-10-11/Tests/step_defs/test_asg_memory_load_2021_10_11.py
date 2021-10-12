@@ -1,7 +1,6 @@
 # coding=utf-8
 """SSM automation document for ASG memory injection. feature tests."""
 
-import pytest
 from pytest_bdd import (
     scenario
 )
