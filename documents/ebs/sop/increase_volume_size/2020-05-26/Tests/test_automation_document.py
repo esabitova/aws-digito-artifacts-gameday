@@ -21,7 +21,10 @@ class TestIncreaseVolumeSize(unittest.TestCase):
         self.mock_ec2.describe_instances.return_value = {'Reservations': [{'Instances': [{'BlockDeviceMappings': [
             {'Ebs': {'VolumeId': 'vol-123123'}, 'DeviceName': '/dev/device'}
         ]}]}]}
-        self.mock_ec2.describe_volumes.side_effect = [{'Volumes': [{'VolumeId': 'vol-123123', 'Size': 8}]}, {'Volumes': [{'Size': 10}]}]
+        self.mock_ec2.describe_volumes.side_effect = [
+            {'Volumes': [{'VolumeId': 'vol-123123', 'Size': 8}]},
+            {'Volumes': [{'Size': 10}]}
+        ]
         self.mock_ssm.get_command_invocation.return_value = {'Status': 'Success', 'ResponseCode': 0}
         self.mock_ssm.send_command.return_value = {'Command': {'CommandId': 'Command1234'}}
 
