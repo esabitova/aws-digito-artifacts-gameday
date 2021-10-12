@@ -5,7 +5,7 @@
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",
   "documentFormat": "YAML",
-  "documentName": "Digito-DecreaseNumberOfShards_2020-09-21",
+  "documentName": "Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21",
   "documentType": "Automation",
   "failureType": "SOFTWARE",
   "minorVersion": "001",

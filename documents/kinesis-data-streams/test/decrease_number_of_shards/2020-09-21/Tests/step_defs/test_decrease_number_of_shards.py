@@ -7,21 +7,22 @@ from pytest_bdd import scenario
 
 
 @scenario('../features/decrease_number_of_shards_usual_case.feature',
-          'Execute Digito-DecreaseNumberOfShards_2020-09-21 in usual case')
+          'Execute Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21 in usual case')
 def test_decrease_number_of_shards_usual_case():
-    """Execute SSM automation document Digito-DecreaseNumberOfShards_2020-09-21"""
+    pass
 
 
 @scenario('../features/decrease_number_of_shards_rollback_previous.feature',
-          'Execute SSM automation document Digito-DecreaseNumberOfShards_2020-09-21 in rollback')
+          'Execute SSM automation document Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21 in rollback')
 def test_decrease_number_of_shards_rollback_previous():
-    """Execute SSM automation document Digito-DecreaseNumberOfShards_2020-09-21 in rollback"""
+    pass
 
 
 @scenario('../features/decrease_number_of_shards_failed.feature',
-          'Execute SSM automation document Digito-DecreaseNumberOfShards_2020-09-21 to test failure case')
+          'Execute SSM automation document Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21 '
+          'to test failure case')
 def test_decrease_number_of_shards_failed():
-    """Execute SSM automation document Digito-DecreaseNumberOfShards_2020-09-21 to test failure case"""
+    pass
 
 
 @pytest.fixture(scope='function', autouse=True)

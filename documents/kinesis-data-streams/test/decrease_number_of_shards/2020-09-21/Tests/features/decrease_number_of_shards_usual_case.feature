@@ -1,15 +1,15 @@
 @kinesis-data-streams
-Feature: SSM automation document Digito-DecreaseNumberOfShards_2020-09-21
+Feature: SSM automation document Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21
 
-  Scenario: Execute Digito-DecreaseNumberOfShards_2020-09-21 in usual case
+  Scenario: Execute Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21 in usual case
     Given the cloud formation templates as integration test resources
       | CfnTemplatePath                                                                                                     | ResourceType | KmsKey                              |
       | resource_manager/cloud_formation_templates/shared/KMS.yml                                                           | SHARED       |                                     |
-      | resource_manager/cloud_formation_templates/KinesisDataStream.yml                                                    | ON_DEMAND    | {{cfn-output:KMS>EncryptAtRestKey}} |
+      | resource_manager/cloud_formation_templates/KinesisDataStream.yml                                                    | DEDICATED    | {{cfn-output:KMS>EncryptAtRestKey}} |
       | documents/kinesis-data-streams/test/decrease_number_of_shards/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                                     |
       | documents/kinesis-data-streams/sop/update_shard_count/2020-10-26/Documents/AutomationAssumeRoleTemplate.yml         | ASSUME_ROLE  |                                     |
       | resource_manager/cloud_formation_templates/shared/SnsForAlarms.yml                                                  | SHARED       |                                     |
-    And published "Digito-DecreaseNumberOfShards_2020-09-21" SSM document
+    And published "Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21" SSM document
 #    And cache values to "before"
 #      | StreamName                                             |
 #      | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} |
@@ -26,17 +26,17 @@ Feature: SSM automation document Digito-DecreaseNumberOfShards_2020-09-21
     And SSM automation document "Digito-UpdateKinesisDataStreamsShardCountSOP_2020-10-26" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" executed
+    And SSM automation document "Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21" executed
       | StreamName                                             | AutomationAssumeRole                                                                                 | KinesisDataStreamsUserErrorAlarmName |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | {{cfn-output:AutomationAssumeRoleTemplate>DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole}} | {{alarm:under_test>AlarmName}}       |
 
-    When Wait for the SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" execution is on step "DecreaseShardCountToOneShard" in status "Success" for "420" seconds
+    When Wait for the SSM automation document "Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21" execution is on step "DecreaseShardCountToOneShard" in status "Success" for "420" seconds
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And put "500" records asynchronously in "50" threads with "0" seconds delay between each other to Kinesis Data Stream
       | KinesisDataStreamName                                  |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} |
-    And SSM automation document "Digito-DecreaseNumberOfShards_2020-09-21" execution in status "Success"
+    And SSM automation document "Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>2}} |
     And cache by "describe_stream_summary" method of "kinesis" to "after_increasing"

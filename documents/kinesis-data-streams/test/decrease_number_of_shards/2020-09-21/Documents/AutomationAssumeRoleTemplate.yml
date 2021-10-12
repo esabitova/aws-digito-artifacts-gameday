@@ -16,10 +16,10 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Role for Digito-DecreaseNumberOfShards_2020-09-21
+Description: Role for Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21
 Outputs:
   DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole:
-    Description: Digito-DecreaseNumberOfShards_2020-09-21 Automation Assume Role ARN
+    Description: Digito-DecreaseNumberOfKinesisDataStreamsShardsTest_2020-09-21 Automation Assume Role ARN
     Value: !GetAtt DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole.Arn
 Resources:
   DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole:
@@ -55,6 +55,6 @@ Resources:
             Resource:
               - !GetAtt DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole.Arn
             Action:
-                - iam:PassRole
+              - iam:PassRole
       Roles:
         - Ref: DigitoKinesisDataStreamsDecreaseNumberOfShardsAssumeRole
