@@ -10,7 +10,7 @@ class TestIncreaseVolumeSizeRealResources(unittest.TestCase):
     def test_increase_volume_against_real_resources(self):
         step_input = {
             'InstanceIdentifier': 'i-07ea9963f44b0c548',
-            'SizeGib': 13,
+            'SizeGib': 14,
             'DeviceName': '/dev/xvda',
             'Partition': '1',
             'AutomationAssumeRole': 'MyAutomation'

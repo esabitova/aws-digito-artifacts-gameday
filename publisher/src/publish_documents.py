@@ -3,6 +3,7 @@ import glob
 import json
 import logging
 import os
+import re
 import sys
 import importlib.util
 
@@ -234,29 +235,28 @@ class PublishDocuments:
         """
 
         metadata_file_path = document_metadata['location'] + '/metadata.json'
-        meta_attrs_map = metadata_attrs.metadata_attrs_map
-        required_attributes = []
-        if '/test/' in metadata_file_path:
-            required_attributes = meta_attrs_map.get('test')
-        elif '/sop/' in metadata_file_path:
-            required_attributes = meta_attrs_map.get('sop')
-        violations = self.get_metadata_violations(document_metadata, metadata_file_path, required_attributes)
+        relative_file_path = os.path.relpath(metadata_file_path, os.getcwd())
+        document_type = self.get_document_type_from_path(relative_file_path)
 
-        for violation in violations:
-            logging.error(violation)
-        if len(violations) > 0:
-            raise Exception("Detected [{}] metadata.json structural violations. Check ERROR logs for more details."
-                            .format(len(violations)))
+        if document_type is not None:
+            violations = self.get_metadata_violations(document_metadata, relative_file_path, document_type)
+            for violation in violations:
+                logging.error(violation)
+            if len(violations) > 0:
+                raise Exception("Detected [{}] metadata.json structural violations. Check ERROR logs for more details."
+                                .format(len(violations)))
 
-    def get_metadata_violations(self, document_metadata, metadata_file_path, required_attributes):
+    def get_metadata_violations(self, document_metadata, metadata_file_path, document_type):
         """
         Validates metadata.json files for SSM documents based on given required attributes
         and returns failed attributes messages for given metadata.json file.
-        :param required_attributes The list of required attributes should be presented in metadata file.
         :param document_metadata The metadata.json file content
         :param metadata_file_path The metadata.json file path.
+        :param document_type The type of the document
         """
         failed_fields = []
+        required_attributes = metadata_attrs.metadata_attrs_map.get(document_type)
+
         for rf in required_attributes:
             value = document_metadata.get(rf)
             if not value:
@@ -282,7 +282,64 @@ class PublishDocuments:
         parsed_path = os.path.normpath(metadata_file_path).split(os.sep)
         if tag != parsed_path[-6:-2]:
             failed_fields.append(f'Invalid tag {":".join(tag)} for document at path {os.sep.join(parsed_path[1:-2])}')
+
+        if 'documentName' in required_attributes:
+            failed_name = self.validate_document_name(document_metadata, document_type, parsed_path)
+            if failed_name is not None:
+                failed_fields.append(failed_name)
+
         return failed_fields
+
+    def validate_document_name(self, document_metadata, document_type, parsed_path):
+        """
+        Validates that documentName follows pattern Digito-<Action><ServiceName>DocumentName<Suffix>_<Date>
+        <Action> if from allowed actions list
+        <ServiceName> allowed service name alias or use upper case by default (e.g. sqs -> SQS)
+        <Suffix> is determined by document_type: SOP, Test or Util
+        <Date> is in format YYYY-MM-DD
+        :return error message or None
+        """
+        name = document_metadata.get('documentName')
+        service_tag = parsed_path[2] if document_type == 'util' else parsed_path[1]
+        # TODO: Remove skip list once all services get their names fixed
+        if service_tag in ['ec2', 'compute', 'ebs', 'app_common', 'rds']:
+            return None
+        date_version = parsed_path[4]
+        default_service_name = self.get_default_service_name_from_tag(service_tag)
+        service_name_options = metadata_attrs.allowed_service_name_aliases.get(service_tag, [default_service_name])
+        doc_type_suffix = metadata_attrs.metadata_doc_type_suffix.get(document_type)
+        name_pattern = r'Digito-[a-zA-Z]+(' + '|'.join(
+            service_name_options) + r')' + "[a-zA-Z0-9]+" + doc_type_suffix + r"_(\d{4}-\d{2}-\d{2})"
+
+        match = re.fullmatch(name_pattern, name)
+        if match is None:
+            return f'Invalid document name {name} for document at path {os.sep.join(parsed_path[1:-2])}\n' \
+                   f'Expected pattern is Digito-<Action>{service_name_options[0]}<DocumentName>{doc_type_suffix}' \
+                   f'_{date_version}'
+        date_match = match.group(2)
+        if not date_match == date_version:
+            return f'Invalid date in document name {name} for document at path {os.sep.join(parsed_path[1:-2])}\n' \
+                   f'Expected date is {date_version}'
+        return None
+
+    def get_default_service_name_from_tag(self, tag):
+        # Convert short service tags to uppercase, e.g. sqs -> SQS, ec2 -> EC2, s3 -> S3
+        if len(tag) <= 3:
+            return tag.upper()
+        # Convert all other tags to pascal case, e.g. some-service -> SomeService
+        return tag.replace("-", " ").replace("_", " ").title().replace(" ", "")
+
+    def get_document_type_from_path(self, file_path):
+        # Return document type (sop/test/util/alarm) based on the folder structure
+        if '/alarm/' in file_path:
+            return 'alarm'
+        elif '/test/' in file_path:
+            return 'test'
+        elif '/sop/' in file_path:
+            return 'sop'
+        elif '/util/' in file_path:
+            return 'util'
+        return None
 
 
 def main(argv):

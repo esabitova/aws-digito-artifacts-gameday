@@ -165,10 +165,24 @@ def wait_services_stable(events, context):
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     ecs_client = boto3.client('ecs', config=config)
 
+    cluster_name = events['ClusterName']
+    service = events.get('ServiceName')
+
+    if service:
+        services = [service]
+    else:
+        services = []
+        paginator = ecs_client.get_paginator('list_services')
+        pages = paginator.paginate(cluster=cluster_name)
+
+        for page in pages:
+            service_arns = page.get('serviceArns')
+            services.extend(service_arns)
+
     waiter = ecs_client.get_waiter('services_stable')
     waiter.wait(
-        cluster=events['ClusterName'],
-        services=[events['ServiceName']],
+        cluster=cluster_name,
+        services=services,
         WaiterConfig={
             'Delay': 15,
             'MaxAttempts': 20

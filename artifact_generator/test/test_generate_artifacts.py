@@ -21,10 +21,9 @@ class TestGenerateArtifacts(unittest.TestCase):
     TEST_DOC_TYPE = 'test'
     SOP_DOC_TYPE = 'sop'
     TEST_NAME = 'my_test'
-    TEST_NAME_PASCAL_CASE = 'MyTest'
     SOP_NAME = 'my_sop'
-    SOP_NAME_PASCAL_CASE = 'MySop'
     DATE = '2021-05-04'
+    FULL_NAME = 'DoMyServiceMyDocument'
     DISPLAY_NAME = 'My Display Name'
     DESCRIPTION = 'My Description'
     RESOURCE_ID = 'ResourceId'
@@ -36,8 +35,10 @@ class TestGenerateArtifacts(unittest.TestCase):
     ALARM_ID = 'my-service:alarm:user-error:2021-05-04'
     RECOVERY_POINT_STEP = 'CalculateRecoveryPoint'
     CFN_TEMPLATE_NAME = 'MyServiceTemplate'
-    SSM_TEST_DOC_NAME = "Digito-{}_{}".format(TEST_NAME_PASCAL_CASE, DATE)
-    SSM_SOP_DOC_NAME = "Digito-{}_{}".format(SOP_NAME_PASCAL_CASE, DATE)
+    SSM_TEST_SUFFIX = 'Test'
+    SSM_SOP_SUFFIX = 'SOP'
+    SSM_TEST_DOC_NAME = "Digito-{}{}_{}".format(FULL_NAME, SSM_TEST_SUFFIX, DATE)
+    SSM_SOP_DOC_NAME = "Digito-{}{}_{}".format(FULL_NAME, SSM_SOP_SUFFIX, DATE)
 
     expected_replacements_common = {
         '${serviceName}': SERVICE_NAME,
@@ -57,20 +58,16 @@ class TestGenerateArtifacts(unittest.TestCase):
                                   '${documentType}': TEST_DOC_TYPE,
                                   '${name}': TEST_NAME,
                                   '${tag}': ":".join([SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE]),
-                                  '${roleName}': "Digito{}{}AssumeRole".format(SERVICE_NAME_PASCAL_CASE,
-                                                                               TEST_NAME_PASCAL_CASE),
-                                  '${policyName}': "Digito{}{}AssumePolicy".format(SERVICE_NAME_PASCAL_CASE,
-                                                                                   TEST_NAME_PASCAL_CASE),
+                                  '${roleName}': "Digito{}{}AssumeRole".format(FULL_NAME, SSM_TEST_SUFFIX),
+                                  '${policyName}': "Digito{}{}AssumePolicy".format(FULL_NAME, SSM_TEST_SUFFIX),
                                   '${alarmNameOutput}': ALARM_CFN_OUTPUT}
     expected_replacements_sop = {**expected_replacements_common,
                                  '${documentName}': SSM_SOP_DOC_NAME,
                                  '${documentType}': SOP_DOC_TYPE,
                                  '${name}': SOP_NAME,
                                  '${tag}': ":".join([SERVICE_NAME, SOP_DOC_TYPE, SOP_NAME, DATE]),
-                                 '${roleName}': "Digito{}{}AssumeRole".format(SERVICE_NAME_PASCAL_CASE,
-                                                                              SOP_NAME_PASCAL_CASE),
-                                 '${policyName}': "Digito{}{}AssumePolicy".format(SERVICE_NAME_PASCAL_CASE,
-                                                                                  SOP_NAME_PASCAL_CASE),
+                                 '${roleName}': "Digito{}{}AssumeRole".format(FULL_NAME, SSM_SOP_SUFFIX),
+                                 '${policyName}': "Digito{}{}AssumePolicy".format(FULL_NAME, SSM_SOP_SUFFIX),
                                  '${alarmNameOutput}': ''}
     scenario_name = 'Scenario: Execute SSM automation document'
 
@@ -81,18 +78,17 @@ class TestGenerateArtifacts(unittest.TestCase):
     package_dir = pathlib.Path(__file__).parent.parent.parent.absolute()
     templates_path = os.path.join(pathlib.Path(__file__).parent.parent, 'src', 'templates')
 
-    input_for_test = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID,
+    input_for_test = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, FULL_NAME, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID,
                       FAILURE_TYPE, RISK, 'yes', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
                       RESOURCE_ID_CFN_OUTPUT, ALARM_CFN_OUTPUT, 'no']
-    input_for_test_synth_alarm = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, DISPLAY_NAME, DESCRIPTION,
+    input_for_test_synth_alarm = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, FULL_NAME, DISPLAY_NAME, DESCRIPTION,
                                   RESOURCE_ID, FAILURE_TYPE, RISK, 'yes', 'Synthetic', CFN_TEMPLATE_NAME,
                                   RESOURCE_ID_CFN_OUTPUT, ALARM_CFN_OUTPUT, 'no']
-    input_for_test_no_rollback = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID,
-                                  FAILURE_TYPE, RISK, 'no', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
+    input_for_test_no_rollback = [SERVICE_NAME, TEST_DOC_TYPE, TEST_NAME, DATE, FULL_NAME, DISPLAY_NAME, DESCRIPTION,
+                                  RESOURCE_ID, FAILURE_TYPE, RISK, 'no', ALARM_PREFIX, ALARM_ID, CFN_TEMPLATE_NAME,
                                   RESOURCE_ID_CFN_OUTPUT, ALARM_CFN_OUTPUT, 'no']
-    input_for_sop = [SERVICE_NAME, SOP_DOC_TYPE, SOP_NAME, DATE, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID, FAILURE_TYPE,
-                     RISK, 'yes', RECOVERY_POINT_STEP, CFN_TEMPLATE_NAME,
-                     RESOURCE_ID_CFN_OUTPUT, 'no']
+    input_for_sop = [SERVICE_NAME, SOP_DOC_TYPE, SOP_NAME, DATE, FULL_NAME, DISPLAY_NAME, DESCRIPTION, RESOURCE_ID,
+                     FAILURE_TYPE, RISK, 'yes', RECOVERY_POINT_STEP, CFN_TEMPLATE_NAME, RESOURCE_ID_CFN_OUTPUT, 'no']
 
     with open(os.path.join(pathlib.Path(__file__).parent,
                            'resources/input-overrides-sop-missing-service.json'), 'r') as f:
@@ -126,7 +122,7 @@ class TestGenerateArtifacts(unittest.TestCase):
         expected_replacements = {}
         expected_replacements.update(self.expected_replacements_test)
         expected_replacements['${alarmPrefix}'] = self.ALARM_PREFIX
-        expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}'\
+        expected_replacements['${recommendedAlarms}'] = ',\n  "recommendedAlarms": {{ "{}AlarmName": "{}" }}' \
             .format(self.ALARM_PREFIX, self.ALARM_ID)
 
         self.__generate_and_validate(mock_lookup, mock_re_sub, mock_open, mock_is_file, mock_mkdir, mock_is_dir, [],
@@ -162,7 +158,7 @@ class TestGenerateArtifacts(unittest.TestCase):
                           mock_is_dir):
         expected_replacements = {}
         expected_replacements.update(self.expected_replacements_sop)
-        expected_replacements['${recoveryPointStep}'] = '- name: {} # step that calculates the recovery point'\
+        expected_replacements['${recoveryPointStep}'] = '- name: {} # step that calculates the recovery point' \
             .format(self.RECOVERY_POINT_STEP)
         expected_replacements['${recoveryPointOutput}'] = '- {}.RecoveryPoint'.format(self.RECOVERY_POINT_STEP)
         expected_replacements['${recommendedAlarms}'] = ''

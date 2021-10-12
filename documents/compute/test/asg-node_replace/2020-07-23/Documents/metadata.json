@@ -15,5 +15,5 @@
         "2": "Wait for instances to be replaced.",
         "3": "Verify monitor stays green."
     },
-    "minorVersion": "002"
+    "minorVersion": "003"
 }

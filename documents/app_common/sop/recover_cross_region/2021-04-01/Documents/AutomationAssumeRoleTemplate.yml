@@ -37,10 +37,10 @@ Resources:
                 - ssm.amazonaws.com
             Action:
               - sts:AssumeRole
-  DigitoAsgScaleOutAssumePolicy:
+  DigitoAppCommonCrossRegionRecoveryPolicy:
     Type: 'AWS::IAM::Policy'
     Properties:
-      PolicyName: "DigitoAsgScaleOutAssumePolicy"
+      PolicyName: "DigitoAppCommonCrossRegionRecoveryPolicy"
       PolicyDocument:
         Version: 2012-10-17
         Statement:

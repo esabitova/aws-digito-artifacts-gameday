@@ -1,0 +1,11 @@
+{
+  "displayName": "Application Load Balancer alarm for LambdaUserError metric",
+  "description": "Alarm by Digito for Application load balancer, that reports number of requests to a Lambda function that failed because of an issue with the Lambda function, is equal to or greater than the specified threshold",
+  "alarmName": "Digito-LambdaUserError_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "load-balancer:alarm:application_lambda_user_error:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

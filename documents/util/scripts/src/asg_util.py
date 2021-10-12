@@ -161,9 +161,10 @@ def cancel_instance_refresh(events, context):
         raise KeyError('Requires AutoScalingGroupName in events')
     config = Config(retries={'max_attempts': 20, 'mode': 'standard'})
     autoscaling = boto3.client('autoscaling', config=config)
-    autoscaling.cancel_instance_refresh(
+    output = autoscaling.cancel_instance_refresh(
         AutoScalingGroupName=events['AutoScalingGroupName']
     )
+    return output
 
 
 def assert_no_refresh_in_progress(events, context):

@@ -57,6 +57,13 @@ def get_list_tasks():
     return [res]
 
 
+def get_list_services():
+    res = {
+        'serviceArns': [SERVICE_NAME]
+    }
+    return [res]
+
+
 def get_paginate_side_effect(function):
     class PaginateMock(MagicMock):
         def paginate(self, **kwargs):
@@ -330,5 +337,18 @@ class TestEcsUtil(unittest.TestCase):
             "ServiceName": SERVICE_NAME,
             "ClusterName": CLUSTER_NAME
         }
+        res = ecs_util.wait_services_stable(events, None)
+        self.assertEqual(res, True)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_wait_stable_service_without_service(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_sleep.side_effect = mock_sleep.sleep
+        patched_time.side_effect = mock_sleep.time
+        events = {
+            "ClusterName": CLUSTER_NAME
+        }
+        self.mock_ecs.get_paginator = get_paginate_side_effect(get_list_services)
         res = ecs_util.wait_services_stable(events, None)
         self.assertEqual(res, True)

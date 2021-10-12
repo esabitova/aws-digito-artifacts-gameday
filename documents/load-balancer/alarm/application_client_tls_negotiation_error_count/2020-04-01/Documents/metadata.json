@@ -1,0 +1,11 @@
+{
+  "displayName": "Application Load Balancer alarm for ClientTLSNegotiationErrorCount metric",
+  "description": "Alarm by Digito for Application load balancer, that reports number of TLS connections initiated by the client that did not establish a session with the load balancer due to a TLS error, is equal to or greater than specified threshold",
+  "alarmName": "Digito-ClientTLSNegotiationErrorCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "load-balancer:alarm:application_client_tls_negotiation_error_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

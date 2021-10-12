@@ -18,7 +18,7 @@
 #
 ---
 AWSTemplateFormatVersion: 2010-09-09
-Description: Test stack for DocumentDb with Canary
+Description: Test stack for Amazon DocumentDb cluster and related resources. Without Canary
 Outputs:
   DBClusterIdentifier:
     Value: !Ref DBCluster

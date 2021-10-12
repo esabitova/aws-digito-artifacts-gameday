@@ -7,7 +7,6 @@ import boto3
 import pytest
 import yaml
 
-import publisher.src.document_metadata_attrs as metadata_attrs
 from publisher.src.document_validator import DocumentValidator
 from publisher.src.global_metadata_validator import GlobalMetadataValidator
 from publisher.src.publish_documents import PublishDocuments
@@ -24,14 +23,11 @@ class TestPublishDocuments(unittest.TestCase):
     @pytest.mark.metadata_validator
     def test_validate_metadata_files(self):
         pd = PublishDocuments(boto3.Session())
-        meta_attrs_map = metadata_attrs.metadata_attrs_map
         fail_messages = []
         global_metadata_validator = GlobalMetadataValidator()
         for root, dirs, files in os.walk("documents"):
             if "not_completed" in dirs:
                 dirs.remove('not_completed')
-            if "util" in dirs:
-                dirs.remove('util')
 
             for f in files:
                 if f == 'metadata.json':
@@ -41,15 +37,9 @@ class TestPublishDocuments(unittest.TestCase):
                         if not self.__file_in_target_service(file_path):
                             continue
                         violations = []
-                        if '/alarm/' in file_path:
-                            violations = pd.get_metadata_violations(document_metadata, file_path,
-                                                                    meta_attrs_map.get('alarm'))
-                        elif '/test/' in file_path:
-                            violations = pd.get_metadata_violations(document_metadata, file_path,
-                                                                    meta_attrs_map.get('test'))
-                        elif '/sop/' in file_path:
-                            violations = pd.get_metadata_violations(document_metadata, file_path,
-                                                                    meta_attrs_map.get('sop'))
+                        document_type = pd.get_document_type_from_path(file_path)
+                        if document_type is not None:
+                            violations = pd.get_metadata_violations(document_metadata, file_path, document_type)
                         fail_messages.extend(violations)
                         global_metadata_validator.iterate_file(document_metadata, file_path)
 

@@ -10,6 +10,7 @@ from typing import Any, Callable, List, Tuple
 from boto3 import Session
 from boto3.dynamodb.types import BINARY, NUMBER, STRING, Binary
 from botocore.exceptions import ClientError
+from resource_manager.src.util.common_test_utils import execute_function_with_gaussian_delay
 
 log = logging.getLogger()
 
@@ -23,7 +24,7 @@ class DynamoDbIndexType(Enum):
 def _execute_boto3_dynamodb(boto3_session: Session, delegate: Callable[[Any], dict]) -> dict:
     """
     Executes the given delegate against `dynamodb` client.
-    Validates is the response is successfull (return code `200`)
+    Validate if the response is successful (return code 200)
     :param delegate: The lambda function
     :param boto3_session: The boto3 session
     """
@@ -194,7 +195,7 @@ def _create_backup(boto3_session: Session, table_name: str, backup_name: str):
 
 def _update_table(boto3_session: Session, table_name: str, **kwargs) -> dict:
     """
-    Updates the given table with specified set of parametes (`kwargs`). Calls `update_table` of `dynamodb` client
+    Updates the given table with specified set of parameters (`kwargs`). Calls `update_table` of `dynamodb` client
     :param table_name: The table name
     :param kwargs: The parameters of update_table
     :param boto3_session: The boto3 session
@@ -243,7 +244,7 @@ def wait_table_to_be_active(table_name: str,
     """
     Waits until the table became active
     :param table_name: The table name
-    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param delay_sec: The delay in seconds between pulling attempts of table status
     :param boto3_session: The boto3 session
     """
 
@@ -375,7 +376,7 @@ def remove_global_table_and_wait_for_active(table_name: str,
     Removes replicas in the given regions and waits them to be removed
     :param table_name: The table name
     :param global_table_regions: The list of regions where replica should be removed from
-    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param delay_sec: The delay in seconds between pulling attempts of table status
     :param boto3_session: The boto3 session
     """
     replicas, replicas_exist = _check_if_replicas_exist(table_name=table_name,
@@ -425,7 +426,7 @@ def add_global_table_and_wait_for_active(table_name: str,
     Adds global table in the given regions and waits when replicas and the table it self became ACTIVE
     :param table_name: The table name
     :param global_table_regions: The list of regions
-    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param delay_sec: The delay in seconds between pulling attempts of table status
     :param boto3_session: The boto3 session
     """
     _update_table(boto3_session=boto3_session,
@@ -486,7 +487,7 @@ def drop_and_wait_dynamo_db_table_if_exists(table_name: str,
     Requests table deletion and waits until the given table is gone
     :param table_name: The table name
     :param wait_sec: The number of seconds to wait table deletion
-    :param delay_sec: The delay in seconds between pulling atttempts of table status
+    :param delay_sec: The delay in seconds between pulling attempts of table status
     :param boto3_session: The boto3 session
     """
     start = time.time()
@@ -535,6 +536,375 @@ def put_item_single(boto3_session, table_name: str, item: dict):
     """
     dynamo_db_client = boto3_session.client('dynamodb')
     dynamo_db_client.put_item(TableName=table_name, Item=item)
+
+
+def update_item_single(boto3_session: Session, table_name: str, item: dict, attribute_updates: dict):
+    """
+    Function that updates item
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param item The item key
+    :param attribute_updates expression which defines attributes to update and how to update
+    :return None
+    example:
+    {
+      "new_attribute_name": {
+        "Action": "PUT",
+        "Value": {"S": "test"}
+      }
+    }
+    where:
+    "new_attribute_name" - the attribute name
+    "Acton" - A value that specifies how to perform the update. Can be PUT, DELETE or ADD
+    "Value" - The new value, if applicable, for this attribute.
+    For mor information see the documentation:
+    https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/LegacyConditionalParameters.AttributeUpdates.html
+    """
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.update_item(TableName=table_name, Key=item, AttributeUpdates=attribute_updates)
+
+
+def delete_item_single(boto3_session: Session, table_name: str, item: dict):
+    """
+    Function that updates item
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param item The item key
+    :return None
+    """
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.delete_item(TableName=table_name, Key=item)
+
+
+def batch_write_items_single(boto3_session: Session, table_name: str, items_for_batch: list):
+    """
+    This function writes items into DynamoDB table
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items_for_batch The list of the items for batch operation
+    :return none
+    """
+    batch = generate_batch_for_write_operation(table_name, items_for_batch)
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.batch_write_item(RequestItems=batch)
+
+
+def batch_get_items_single(boto3_session: Session, table_name: str, items_for_batch: list):
+    """
+    This function gets items from DynamoDB table
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items_for_batch The list of the items for batch operation
+    :return none
+    """
+    batch = generate_batch_for_get_operation(table_name, items_for_batch)
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.batch_get_item(RequestItems=batch)
+
+
+def transact_write_items_single(boto3_session: Session, table_name: str, items_for_transaction: list):
+    """
+    This function performs transact_write_item operation in DynamoDB table
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items_for_transaction The list of the items for transaction operation
+    :return none
+    """
+    transaction = generate_transaction_for_write_operation(table_name, items_for_transaction)
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.transact_write_items(TransactItems=transaction)
+
+
+def transact_get_items_single(boto3_session: Session, table_name: str, items_for_transaction: list):
+    """
+    This function performs transact_get_item operation in DynamoDB table
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items_for_transaction The list of the items for transaction operation
+    :return none
+    """
+    transaction = generate_transaction_for_get_operation(table_name, items_for_transaction)
+    dynamo_db_client = boto3_session.client('dynamodb')
+    dynamo_db_client.transact_get_items(TransactItems=transaction)
+
+
+def generate_list_of_attribute_updates(number_of_items: int) -> list:
+    """
+    Creates list of attribute_updates dictionaries
+    :pram number_of_items: The number of items
+    :return list
+    """
+    def create_attribute_update(random_string: str) -> dict:
+        attribute_update = {
+            "test_attribute_name": {
+                "Action": "PUT",
+                "Value": {"S": random_string}
+            }
+        }
+        return attribute_update
+    values = [create_attribute_update(_get_random_value(value_type='S')) for i in range(number_of_items)]
+    return values
+
+
+def generate_transaction_for_write_operation(table, items):
+    """
+    Create transaction for write items operation
+    :param table the name of the table
+    :param items - list of items
+    :return list
+    """
+    transaction = [
+        {
+            'Put':
+                {
+                    "Item": item,
+                    "TableName": table
+                }
+        } for item in items
+    ]
+    return transaction
+
+
+def generate_transaction_for_get_operation(table, items):
+    """
+    Create transaction for get items operation
+    :param table the name of the table
+    :param items - list of items
+    :return list
+    """
+    transaction = [
+        {
+            'Get':
+                {
+                    "Key": item,
+                    "TableName": table
+                }
+        } for item in items
+    ]
+    return transaction
+
+
+def generate_batch_for_write_operation(table, items):
+    """
+    Creates batch of items from items
+    :param table the name of the table
+    :param items - list of items
+    :return dict
+    """
+    batch = {
+        table: [
+            {
+                'PutRequest': {
+                    'Item': item
+                }
+            }
+            for item in items
+        ]
+    }
+    return batch
+
+
+def generate_batch_for_get_operation(table, items):
+    """
+    Creates batch of items from items
+    :param table the name of the table
+    :param items - list of items
+    :return dict
+    """
+    batch = {
+        table: {
+            'Keys': items
+        }
+    }
+    return batch
+
+
+def transact_write_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                                       items: list, mu: int, sigma: float):
+    """
+    Stress test for dynamodb TransactWriteItems operation that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous TransactWriteItems requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items List of list of items for transaction
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f"Start DynamoDB transact write items stress test, write transaction {len(items)} times")
+    with ThreadPoolExecutor(max_workers=len(items)) as executor:
+        for items_for_transaction in items:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, transact_write_items_single,
+                                mu, sigma, boto3_session, table_name, items_for_transaction)
+            )
+    logging.info(f'DynamoDB transact write items stress test done. Items were written: {items}')
+
+
+def transact_get_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                                     items: list, mu: int, sigma: float):
+    """
+    Stress test for dynamodb TransactGetItems operation that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous TransactGetItems requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items List of list of items for transaction
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f"Start DynamoDB transact get items stress test, get transaction {len(items)} times")
+    with ThreadPoolExecutor(max_workers=len(items)) as executor:
+        for items_for_transaction in items:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, transact_get_items_single,
+                                mu, sigma, boto3_session, table_name, items_for_transaction)
+            )
+    logging.info(f'DynamoDB transact get items stress test done. Items were gotten: {items}')
+
+
+def batch_write_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                                    items: list, mu: int, sigma: float):
+    """
+    Stress test for dynamodb BatchWriteItem operation that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous BatchWriteItem requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items List of list of items for batch
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f"Start DynamoDB batch write items stress test, write batch {len(items)} times")
+    with ThreadPoolExecutor(max_workers=len(items)) as executor:
+        for items_for_batch in items:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, batch_write_items_single,
+                                mu, sigma, boto3_session, table_name, items_for_batch)
+            )
+    logging.info(f'DynamoDB batch write items stress test done. Items were written: {items}')
+
+
+def batch_get_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                                  items: list, mu: int, sigma: float):
+    """
+    Stress test for dynamodb BatchGetItem operation that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous BatchGetItem requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items List of list of items for batch
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f"Start DynamoDB batch get items stress test, get batch {len(items)} times")
+    with ThreadPoolExecutor(max_workers=len(items)) as executor:
+        for items_for_batch in items:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, batch_get_items_single,
+                                mu, sigma, boto3_session, table_name, items_for_batch)
+            )
+    logging.info(f'DynamoDB batch get items stress test done. Items were gotten: {items}')
+
+
+def update_item_async_stress_test_time_divided(boto3_session: Session, table_name: str, item: dict,
+                                               updates: list, mu: int, sigma: float):
+    """
+    Stress test for dynamodb updating item that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous update requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param updates List of update_items dictionary
+    :param item The item attribute
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f"Start DynamoDB update items stress test, update {len(updates)} times")
+    with ThreadPoolExecutor(max_workers=len(updates)) as executor:
+        for update in updates:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, update_item_single,
+                                mu, sigma, boto3_session, table_name, item, update)
+            )
+    logging.info(f'DynamoDB update items stress test done. Updates were applied: {updates}')
+
+
+def delete_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                               items: list, mu: int, sigma: float):
+    """
+    Stress test for dynamodb deleting item that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous delete requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items The list of the items to delete
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f"Start DynamoDB delete items stress test, items to delete: {str(items)}")
+    with ThreadPoolExecutor(max_workers=len(items)) as executor:
+        for item in items:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, delete_item_single,
+                                mu, sigma, boto3_session, table_name, item)
+            )
+    logging.info(f'DynamoDB delete items stress test done. Items: {items}')
+
+
+def get_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                            number: int, item: dict, mu: int, sigma: float):
+    """
+    Stress test for dynamo db reading item that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous read requests
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param number Number of times to read item
+    :param item The item attribute
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    logging.info(f'Start DynamoDB read items stress test, read {str(number)} times')
+    with ThreadPoolExecutor(max_workers=number) as executor:
+        for i in range(number):
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, get_item_single,
+                                mu, sigma, boto3_session, table_name, item)
+            )
+    logging.info(f'DynamoDB read items stress test done. Item {item} were written {str(number)} times.')
+
+
+def put_item_async_stress_test_time_divided(boto3_session: Session, table_name: str,
+                                            items: list, mu: int, sigma: float):
+    """
+    Stress test for dynamo db reading item that has a schema of { attribute: value }
+    Use multiple threads to make lots of simultaneous read requests
+    :param items List of items to put into table
+    :param boto3_session The boto3 session
+    :param table_name The table name
+    :param items The items
+    :param mu median time
+    :param sigma standard deviation
+    :return None
+    """
+    futures = []
+    items_size = len(items)
+    logging.info(f'Start DynamoDB put items stress test, write {items_size} times')
+    with ThreadPoolExecutor(max_workers=items_size) as executor:
+        for item in items:
+            futures.append(
+                executor.submit(execute_function_with_gaussian_delay, put_item_single,
+                                mu, sigma, boto3_session, table_name, item)
+            )
+    logging.info(f'DynamoDB put items stress test done. Items: {items}')
 
 
 def get_item_async_stress_test(boto3_session: Session, table_name: str, number: int, item: dict):
@@ -614,10 +984,9 @@ def generate_random_item(boto3_session: Session, table_name: str, total_number: 
                 attribute_type = attribute['AttributeType']
                 random_value = _get_random_value(attribute_type)
                 item[attribute_name] = {attribute_type: random_value}
-        logging.info(f'{item}')
         items.append(item)
 
-    logging.info(f'generated {len(items)} items')
+    logging.info(f'generated {len(items)} items: {items}')
     if len(items) == 1:
         return items[0]
     return items

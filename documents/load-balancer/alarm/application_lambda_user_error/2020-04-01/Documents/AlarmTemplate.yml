@@ -1,0 +1,26 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
+Resources:
+  ${AlarmLogicalId}:
+    Type: 'AWS::CloudWatch::Alarm'
+    Properties:
+      AlarmName: ${AlarmName}
+      AlarmDescription: "Alarm by Digito for Application load balancer, that reports number of requests to a Lambda function that failed because of an issue with the Lambda function, is equal to or greater than the specified ${Threshold}"
+      AlarmActions:
+        - Ref: SNSTopicARN
+      MetricName: LambdaUserError
+      Namespace: AWS/ApplicationELB
+      Dimensions:
+        - Name: TargetGroup
+          Value: ${LambdaTargetFullName}
+      Period: 60
+      Statistic: Sum
+      Threshold: ${Threshold}
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      Unit: Count

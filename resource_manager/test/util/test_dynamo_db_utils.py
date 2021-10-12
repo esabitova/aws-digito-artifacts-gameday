@@ -18,7 +18,15 @@ from resource_manager.src.util.dynamo_db_utils import (
     drop_and_wait_dynamo_db_table_if_exists, get_continuous_backups_status,
     get_contributor_insights_status_for_table_and_indexes,
     get_earliest_recovery_point_in_time, get_kinesis_destinations, get_stream_settings,
-    get_time_to_live, remove_global_table_and_wait_for_active, wait_table_to_be_active)
+    get_time_to_live, remove_global_table_and_wait_for_active, wait_table_to_be_active,
+    update_item_single, generate_list_of_attribute_updates, update_item_async_stress_test_time_divided,
+    delete_item_single, delete_item_async_stress_test_time_divided, batch_write_items_single, batch_get_items_single,
+    generate_batch_for_write_operation, generate_batch_for_get_operation,
+    batch_write_item_async_stress_test_time_divided, batch_get_item_async_stress_test_time_divided,
+    generate_transaction_for_write_operation, generate_transaction_for_get_operation,
+    transact_get_item_async_stress_test_time_divided, transact_write_item_async_stress_test_time_divided,
+    transact_get_items_single, transact_write_items_single,
+    get_item_async_stress_test_time_divided, put_item_async_stress_test_time_divided)
 from boto3.dynamodb.types import STRING, NUMBER, BINARY, Binary
 
 GENERIC_SUCCESS_RESULT = {
@@ -1037,3 +1045,239 @@ class TestDynamoDbUtil(unittest.TestCase):
         output = generate_random_item(self.session_mock, 'table_name', 10)
         self.assertEqual(10, len(output))
         self.assertIsInstance(output[0]['id']['S'], str)
+
+    def test_update_item_single(self):
+        test_key = {'some_key': 'some_value'}
+        test_update = {
+            "test_attribute_name": {
+                "Action": "PUT",
+                "Value": {"S": "test"}
+            }
+        }
+        update_item_single(self.session_mock, 'table_name', item=test_key, attribute_updates=test_update)
+        self.dynamodb_client_mock.update_item.assert_called_with(
+            TableName='table_name', Key=test_key, AttributeUpdates=test_update
+        )
+
+    def test_delete_item_single(self):
+        test_key = {'some_key': 'some_value'}
+        delete_item_single(boto3_session=self.session_mock, table_name='my_table', item=test_key)
+        self.dynamodb_client_mock.delete_item.assert_called_with(
+            TableName='my_table', Key=test_key
+        )
+
+    def test_transact_write_items_single(self):
+        table = 'test'
+        items_for_transaction = [{"key1": {'S': 'value1'}}]
+        transact_write_items_single(boto3_session=self.session_mock, table_name=table,
+                                    items_for_transaction=items_for_transaction)
+        expected_request_items = [
+            {
+                'Put':
+                    {
+                        'Item': {"key1": {'S': 'value1'}},
+                        'TableName': 'test'
+                    }
+            }
+        ]
+        self.dynamodb_client_mock.transact_write_items.assert_called_with(
+            TransactItems=expected_request_items
+        )
+
+    def test_transact_get_items_single(self):
+        table = 'test'
+        items_for_transaction = [{"key1": {'S': 'value1'}}]
+        transact_get_items_single(boto3_session=self.session_mock, table_name=table,
+                                  items_for_transaction=items_for_transaction)
+        expected_request_items = [
+            {
+                'Get':
+                    {
+                        'Key': {"key1": {'S': 'value1'}},
+                        'TableName': 'test'
+                    }
+            }
+        ]
+        self.dynamodb_client_mock.transact_get_items.assert_called_with(
+            TransactItems=expected_request_items
+        )
+
+    def test_batch_write_items_single(self):
+        table = 'test'
+        items_for_batch = [{"key1": {'S': 'value1'}}]
+        batch_write_items_single(boto3_session=self.session_mock, table_name=table,
+                                 items_for_batch=items_for_batch)
+        expected_request_items = {
+            'test': [
+                {
+                    'PutRequest': {
+                        'Item': {'key1': {'S': 'value1'}}
+                    }
+                }
+            ]
+        }
+        self.dynamodb_client_mock.batch_write_item.assert_called_with(
+            RequestItems=expected_request_items
+        )
+
+    def test_batch_get_items_single(self):
+        table = 'test'
+        items_for_batch = [{"key1": {'S': 'value1'}}]
+        batch_get_items_single(boto3_session=self.session_mock, table_name=table,
+                               items_for_batch=items_for_batch)
+        expected_request_items = {
+            'test': {
+                'Keys': [
+                    {'key1': {'S': 'value1'}}
+                ]
+            }
+        }
+        self.dynamodb_client_mock.batch_get_item.assert_called_with(
+            RequestItems=expected_request_items
+        )
+
+    def test_generate_list_of_attribute_updates(self):
+        list_of_attribute_updates = generate_list_of_attribute_updates(10)
+        self.assertEqual(len(list_of_attribute_updates), 10)
+
+    def test_generate_transaction_for_write_operation(self):
+        table = 'test'
+        items = [{"key1": {'S': 'value1'}}, {"key2": {'S': 'value2'}}]
+        result = generate_transaction_for_write_operation(table, items)
+        expected_result = [
+            {
+                'Put':
+                    {
+                        'Item': {"key1": {'S': 'value1'}},
+                        'TableName': 'test'
+                    }
+            },
+            {
+                'Put':
+                    {
+                        'Item': {"key2": {'S': 'value2'}},
+                        'TableName': 'test'
+                    }
+            }
+        ]
+        self.assertEqual(result, expected_result)
+
+    def test_generate_transaction_for_get_operation(self):
+        table = 'test'
+        items = [{"key1": {'S': 'value1'}}, {"key2": {'S': 'value2'}}]
+        result = generate_transaction_for_get_operation(table, items)
+        expected_result = [
+            {
+                'Get':
+                    {
+                        'Key': {"key1": {'S': 'value1'}},
+                        'TableName': 'test'
+                    }
+            },
+            {
+                'Get':
+                    {
+                        'Key': {"key2": {'S': 'value2'}},
+                        'TableName': 'test'
+                    }
+            }
+        ]
+        self.assertEqual(result, expected_result)
+
+    def test_generate_batch_for_write_operation(self):
+        table = 'test'
+        items = [{"key1": {'S': 'value1'}}, {"key2": {'S': 'value2'}}]
+        result = generate_batch_for_write_operation(table, items)
+        expected_result = {
+            'test': [
+                {
+                    'PutRequest': {
+                        'Item': {'key1': {'S': 'value1'}}
+                    }
+                },
+                {
+                    'PutRequest': {
+                        'Item': {'key2': {'S': 'value2'}}
+                    }
+                }
+            ]
+        }
+        self.assertEqual(result, expected_result)
+
+    def test_generate_batch_for_get_operation(self):
+        table = 'test'
+        items = [{"key1": {'S': 'value1'}}, {"key2": {'S': 'value2'}}]
+        result = generate_batch_for_get_operation(table, items)
+        expected_result = {
+            'test': {
+                'Keys': [
+                    {'key1': {'S': 'value1'}},
+                    {'key2': {'S': 'value2'}}
+                ]
+            }
+        }
+        self.assertEqual(result, expected_result)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.transact_write_items_single',
+           return_value=False)
+    def test_transact_write_item_async_stress_test_time_divided(self, transact_write_item_mock):
+        table = 'test'
+        items = [[{"key1": {'S': 'value1'}}]] * 10
+        transact_write_item_async_stress_test_time_divided(self.session_mock, table, items, 1, 0.2)
+        self.assertEqual(transact_write_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.transact_get_items_single',
+           return_value=False)
+    def test_transact_get_item_async_stress_test_time_divided(self, transact_get_item_mock):
+        table = 'test'
+        items = [[{"key1": {'S': 'value1'}}]] * 10
+        transact_get_item_async_stress_test_time_divided(self.session_mock, table, items, 1, 0.2)
+        self.assertEqual(transact_get_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.batch_write_items_single',
+           return_value=False)
+    def test_batch_write_item_async_stress_test_time_divided(self, batch_write_item_mock):
+        table = 'test'
+        items = [[{"key1": {'S': 'value1'}}]] * 10
+        batch_write_item_async_stress_test_time_divided(self.session_mock, table, items, 1, 0.2)
+        self.assertEqual(batch_write_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.batch_get_items_single',
+           return_value=False)
+    def test_batch_get_item_async_stress_test_time_divided(self, batch_get_item_mock):
+        table = 'test'
+        items = [[{"key1": {'S': 'value1'}}]] * 10
+        batch_get_item_async_stress_test_time_divided(self.session_mock, table, items, 1, 0.2)
+        self.assertEqual(batch_get_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.update_item_single',
+           return_value=False)
+    def test_update_item_async_stress_test_time_divided(self, update_item_mock):
+        test_key = {'some_key': 'some_value'}
+        list_of_attribute_updates = generate_list_of_attribute_updates(10)
+        update_item_async_stress_test_time_divided(self.session_mock, 'table_name', item=test_key,
+                                                   updates=list_of_attribute_updates, mu=1, sigma=0.2)
+        self.assertEqual(update_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.delete_item_single',
+           return_value=False)
+    def test_delete_item_async_stress_test_time_divided(self, delete_item_mock):
+        test_keys = [{'some_key': 'some_value'}] * 10
+        delete_item_async_stress_test_time_divided(self.session_mock, 'table_name', items=test_keys,
+                                                   mu=1, sigma=0.2)
+        self.assertEqual(delete_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.get_item_single',
+           return_value=False)
+    def test_get_item_async_stress_test_time_divided(self, get_item_mock):
+        test_key = {'some_key': 'some_value'}
+        get_item_async_stress_test_time_divided(self.session_mock, 'table_name', number=10,
+                                                item=test_key, mu=1, sigma=0.2)
+        self.assertEqual(get_item_mock.call_count, 10)
+
+    @patch('resource_manager.src.util.dynamo_db_utils.put_item_single',
+           return_value=False)
+    def test_put_item_async_stress_test_time_divided(self, put_item_mock):
+        items = list(range(0, 10))
+        put_item_async_stress_test_time_divided(self.session_mock, 'table_name', items=items, mu=1, sigma=0.2)
+        self.assertEqual(put_item_mock.call_count, 10)

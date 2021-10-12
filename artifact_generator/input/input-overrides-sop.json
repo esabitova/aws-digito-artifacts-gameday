@@ -2,6 +2,7 @@
   "type": "sop",
   "service": "elasticache",
   "name": "redis_increase_shards",
+  "fullName": "IncreaseRedisShardsInCluster",
   "displayName": "Increase shards in the cluster",
   "description": "Increase shards in the ElastiCache Redis replication group (cluster mode enabled)",
   "primaryResourceId": "ReplicationGroupId",

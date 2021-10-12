@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 start=$(date +%s)
 echo "========== Started pre-push git hook at $(date -R) =========="

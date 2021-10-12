@@ -48,6 +48,8 @@ Resources:
               - ecs:DescribeClusterInstances
               - ecs:UpdateContainerInstancesState
               - ecs:ListContainerInstances
+              - ecs:ListServices
+              - ecs:DescribeServices
               - cloudwatch:DescribeAlarms
               - fis:CreateExperimentTemplate
               - fis:StartExperiment

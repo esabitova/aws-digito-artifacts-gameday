@@ -1,0 +1,11 @@
+{
+  "displayName": "Network Load Balancer alarm for ClientTLSNegotiationErrorCount metric",
+  "description": "Alarm by Digito for Network load balancer, that reports number of TLS handshakes that failed during negotiation between a client and a TLS listener, is equal to or greater than the specified threshold",
+  "alarmName": "Digito-NetworkClientTLSNegotiationErrorCount_2020-04-01",
+  "alarmType": "Metric",
+  "alarmContentPath": "AlarmTemplate.yml",
+  "documentFormat": "YAML",
+  "tag": "load-balancer:alarm:network_client_tls_negotiation_error_count:2020-04-01",
+  "failureType": "SOFTWARE",
+  "minorVersion": "001"
+}

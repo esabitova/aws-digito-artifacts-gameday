@@ -15,7 +15,96 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Test SQS message size get close to threshold"
+description: >-
+            ## Id
+
+            Digito-ForceSQSCapacityFailureTest_2021-03-13
+
+            ## Intent
+
+            Test SQS behaviour after sending a message close to maximum allowed size. Wait for alarm for metric SentMessageSize to trigger when message size is higher than threshold which should be slightly less than 256kb
+
+            ## Type
+
+            TEST
+
+            ## Risk
+
+            Medium
+
+            ## Requirements:
+              * SQS queue
+              * Amazon CloudWatch alarm is setup for [SentMessageSize](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric. Should trigger when size of sent messages sent is above threshold that is slightly less than 256kb
+
+            ## Permission required for AutomationAssumeRole
+              * cloudwatch:DescribeAlarms
+              * sqs:SendMessage
+              * sqs:ReceiveMessage
+              * sqs:DeleteMessage
+              * ssm:GetParameters
+              * ssm:GetAutomationExecution
+              * ssm:StartAutomationExecution
+              * iam:PassRole
+
+            ##### In case queues are encrypted with a KMS key
+              * kms:GenerateDataKey
+              * kms:Decrypt
+              * kms:Encrypt
+
+            ## Supports Rollback
+
+            Yes. The document removes message which triggers the alarm
+
+            ## Cancellation behavior
+
+            The document removes message which triggers the alarm
+
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above
+
+            ### (Required) QueueUrl
+              * type: String
+              * description: The URL of the SQS queue
+
+            ### (Required) SentMessageSizeAlarmName
+              * type: String
+              * description: Amazon CloudWatch alarm for [SentMessageSize](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric. Should trigger when queue has messages higher than threshold that is slightly less than 256kb
+
+            ### (Optional) IsRollback
+              * type: String
+              * description: Run the rollback steps of the document. True or False. If True, the parameter PreviousExecutionId should also be specified
+              * default: false
+
+            ### (Optional) PreviousExecutionId
+              * type: String
+              * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
+
+            ## Details
+
+            The document injects failure by sending a message with a size above threshold of the specified alarm.
+            In case of issues users should manually remove the message.
+
+            ## Steps executed in normal flow
+              * CheckIsRollback
+              * AssertAlarmToBeGreenBeforeTest
+              * GetAlarmThreshold
+              * SendCapacityFailureMessage
+              * AssertAlarmToBeRed
+              * RollbackCurrentExecution
+              * AssertAlarmToBeGreen
+
+            ## Steps executed in rollback flow
+              * CheckIsRollback
+              * GetInputsFromPreviousExecution
+              * AssertInputsFromPreviousExecution
+              * PrepareRemoveOfFailureMessage
+              * RemovePreviousExecutionFailureMessage
+
+            ## Outputs
+
+            None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
@@ -30,15 +119,16 @@ parameters:
     description: (Required) Alarm which should be red after injection of the failure and green after the rollback process in the end of the test.
   IsRollback:
     type: String
-    description: (Optional) Provide true to cleanup appliance created in previous execution. Can be true or false
+    description: (Optional) Run the rollback steps of the document. True or False. If True, the parameter PreviousExecutionId should also be specified
     default: 'false'
   PreviousExecutionId:
     type: String
-    description: (Optional) Previous execution id for which resources need to be cleaned up.
+    description: (Optional) SSM execution ID of the previous execution of this document for which resources need to be cleaned up
     default: ''
 
 mainSteps:
   - name: CheckIsRollback
+    description: Check if document should be executed in rollback mode
     action: aws:branch
     inputs:
       Choices:
@@ -49,6 +139,7 @@ mainSteps:
         AssertAlarmToBeGreenBeforeTest
 
   - name: GetInputsFromPreviousExecution
+    description: Get input from previous execution. This will be used to validate that rollback is executed with the same input
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -65,6 +156,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: AssertInputsFromPreviousExecution
+    description: Validate that rollback is executed with the same input
     action: aws:branch
     inputs:
       Choices:
@@ -74,6 +166,7 @@ mainSteps:
     isEnd: true
 
   - name: PrepareRemoveOfFailureMessage
+    description: Get message id of the injected message
     action: aws:executeScript
     outputs:
       - Name: MessageId
@@ -91,6 +184,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
   - name: RemovePreviousExecutionFailureMessage
+    description: Delete injected message
     action: aws:executeScript
     inputs:
       Runtime: python3.6
@@ -106,6 +200,7 @@ mainSteps:
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
+    description: Ensure alarm is green before starting test. Fail if alarm is not green within expected time
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 600
     inputs:
@@ -117,6 +212,7 @@ mainSteps:
       DesiredValues: [ "OK" ]
 
   - name: GetAlarmThreshold
+    description: Get the provided alarm's threshold that to set message size higher than the threshold
     action: aws:executeScript
     outputs:
       - Name: SizeAboveThreshold
@@ -132,6 +228,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::cloudwatch_util.get_metric_alarm_threshold_values
 
   - name: SendCapacityFailureMessage
+    description: Send message to queue with a payload size bigger than the provided alarm's threshold
     action: aws:executeScript
     onFailure: 'step:RollbackCurrentExecution'
     onCancel: 'step:TriggerRollback'
@@ -151,6 +248,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.send_message_of_size
 
   - name: AssertAlarmToBeRed
+    description: Wait for expected alarm to be red after failure is injected
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 300
     onFailure: 'step:RollbackCurrentExecution'
@@ -164,6 +262,7 @@ mainSteps:
       DesiredValues: [ "ALARM" ]
 
   - name: RollbackCurrentExecution
+    description: Revert queue policy to initial state
     action: aws:executeScript
     onCancel: 'step:TriggerRollback'
     inputs:
@@ -179,6 +278,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.delete_message_by_id
 
   - name: AssertAlarmToBeGreen
+    description: Wait for the alarm to be green after test is complete
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 600
     inputs:

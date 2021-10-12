@@ -15,7 +15,65 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Scales the cluster up"
+description: >-
+            ## Id
+            Digito-ScaleUpDocumentDBClusterSOP_2020-09-21
+            ## Intent
+            Scale up Amazon Document DB cluster.
+            ## Type
+            SOP
+            ## Risk
+            High
+            ## Requirements:
+              * A Document DB cluster in "available" state with at least one DB instance in "available" state.
+
+            ## Permission required for AutomationAssumeRole
+              * rds:CreateDBInstance
+              * rds:DescribeDBClusters
+              * rds:DescribeDBInstances
+
+            ## Supports Rollback
+            No
+            ## Cancellation behavior
+            Fail
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above.
+
+            ### (Required) DBClusterIdentifier
+              * type: String
+              * description: Amazon Document DB cluster identifier.
+
+            ### (Required) NumberOfInstancesToCreate
+            * type: Integer
+            * description: The number of DB instances to create. Min: 1. Max: 5.
+
+            ### (Optional) DBInstanceClass
+              * type: String
+              * description: The class of new DB instances.
+
+            ## Details
+              Note that each new instance will have identifier that consists of cluster identifier followed by dash and random alphanumeric string.
+
+            ## Steps executed in normal flow
+              * RecordStartTime
+              * VerifyDBClusterAvailableStatusBeforeModification
+              * ValidateInput
+              * GetDBClusterEngine
+              * GetCurrentDBInstanceClass
+              * ScaleUpDocDbCLuster
+              * WaitForInstancesAvailableStatus
+              * OutputRecoveryTime
+
+            ## Steps executed in rollback flow
+              Rollback is not allowed.
+
+            ## Outputs
+            ### OutputRecoveryTime.RecoveryTime
+              * type: String
+              * description: overall recovery time for scaling up Amazon Document DB cluster.
+
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 outputs:
@@ -24,20 +82,21 @@ outputs:
 parameters:
   DBClusterIdentifier:
     type: String
-    description: (Required) DBClusterIdentifier
+    description: (Required) Amazon Document DB cluster identifier.
   DBInstanceClass:
     type: String
-    description: (Optional) The class of new DB instances
+    description: (Optional) The class of new DB instances.
     default: current
   NumberOfInstancesToCreate:
     type: Integer
-    description: (Optional) The number of DB instances to create. Max 5
+    description: (Optional) The number of DB instances to create. Min 1. Max 5.
     default: 1
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
   - name: RecordStartTime
+    description: On this step start the time recording.
     action: "aws:executeScript"
     outputs:
       - Name: StartTime
@@ -50,32 +109,115 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.imports
         SCRIPT_PLACEHOLDER::common_util.start_time
 
-  - name: PerformRecovery
-    # Check that the number of instances to create between 1 and 5 (inclusive)
-    # Determine DB cluster parameters:
-    #   Call [boto3.describe_db_clusters]
-    #     Parameters:
-    #       DBClusterIdentifier=params.DBClusterIdentifier
-    #     Take '.DBClusters[].Engine'
-    # if params.DBInstanceClass == "current", determine the latest used instance class
-    #   Call [boto3.describe_db_instances]
-    #     Parameters:
-    #       Filter = "db-cluster-id={params.DBClusterIdentifier}"
-    #     Take the latest '.DBInstances[].DBInstanceClass' order by '.DBInstances[].InstanceCreateTime'
-    # for i in range(0,params.NumberOfInstancesToCreate)
-    #   Call [boto3.create_db_instance]
-    #     Parameters:
-    #       DBInstanceIdentifier=params.DBClusterIdentifier + random_string
-    #       DBClusterIdentifier=params.DBClusterIdentifier
-    #       DBInstanceClass=(from prev step) if params.DBInstanceClass == "current" else if params.DBInstanceClass
-    #       Engine=(from previous step)
-    #     Take '.DBInstance.DBInstanceIdentifier'
-    # Make sure that all new instances are created and available. (Consider implementing it as a separate step)
-    #   Call [boto3.describe_db_instances]
-    #     Parameters:
-    #       Filter = "db-cluster-id={params.DBClusterIdentifier}"
-    #     Take '.DBInstances[].DBInstanceStatus' make sure it's "available"
+
+  - name: VerifyDBClusterAvailableStatusBeforeModification
+    description: On this step check, if the cluster is in "available" state.
+    action: aws:assertAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      PropertySelector: "$.DBClusters[0].Status"
+      DesiredValues:
+        - "available"
+
+  - name: ValidateInput
+    description: On this step check, if the input parameter is valid.
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: verify_number_is_in_inclusive_range
+      Script: |-
+        SCRIPT_PLACEHOLDER::common_util.imports
+        SCRIPT_PLACEHOLDER::common_util.check_required_params
+        SCRIPT_PLACEHOLDER::common_util.verify_number_is_in_inclusive_range
+      InputPayload:
+        NumberOfInstancesToCreate: '{{ NumberOfInstancesToCreate }}'
+        RangeMin: 1
+        RangeMax: 5
+
+  - name: GetDBClusterEngine
+    description: On this step retrieve Amazon Document DB cluster "Engine" value.
+    action: 'aws:executeAwsApi'
+    outputs:
+      - Name: Engine
+        Selector: $.DBClusters[0].Engine
+        Type: String
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+
+  - name: GetCurrentDBInstanceClass
+    description: >-
+                On this step retrieve DB instance "InstanceClass" value.
+                Either use provided input value or (if input value is "current") use current DB instance InstanceClass.
+    action: 'aws:executeScript'
+    outputs:
+      - Name: DBInstanceClass
+        Selector: $.Payload.DBInstanceClass
+        Type: String
+    inputs:
+      Runtime: python3.7
+      Handler: get_current_db_instance_class
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.check_required_params
+        SCRIPT_PLACEHOLDER::docdb_util.get_current_db_instance_class
+      InputPayload:
+        DBInstanceClass: '{{ DBInstanceClass }}'
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+
+  - name: ScaleUpDocDbCLuster
+    description: >-
+                On this step create new instances with provided Engine, InstanceClass in the cluster.
+                Each new instance will have identifier that consists of cluster identifier followed by dash and random alphanumeric string.
+    action: 'aws:executeScript'
+    outputs:
+      - Name: DBNewInstancesIdentifiers
+        Selector: $.Payload.DBInstancesIdentifiers
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: scale_up_cluster
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.check_required_params
+        SCRIPT_PLACEHOLDER::docdb_util.create_new_instance_random_az
+        SCRIPT_PLACEHOLDER::docdb_util.scale_up_cluster
+      InputPayload:
+        NumberOfInstancesToCreate: '{{ NumberOfInstancesToCreate }}'
+        DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+        DBInstanceClass: '{{ GetCurrentDBInstanceClass.DBInstanceClass }}'
+        DBClusterEngine: '{{ GetDBClusterEngine.Engine }}'
+
+  - name: WaitForInstancesAvailableStatus
+    description: On this step wait for instances provided in previous step are in "available" state.
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 1200
+    onFailure: Abort
+    inputs:
+      Service: docdb
+      Api: DescribeDBInstances
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+        - Name: "db-instance-id"
+          Values:
+            - '{{ ScaleUpDocDbCLuster.DBNewInstancesIdentifiers }}'
+      PropertySelector: "$.DBInstances..DBInstanceStatus"
+      DesiredValues:
+          - "available"
+
   - name: OutputRecoveryTime
+    description: On this step stop the time recording.
     action: "aws:executeScript"
     outputs:
       - Name: RecoveryTime
@@ -89,3 +231,4 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.recovery_time
       InputPayload:
         StartTime: "{{ RecordStartTime.StartTime }}"
+    isEnd: true

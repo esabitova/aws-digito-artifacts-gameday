@@ -766,10 +766,8 @@ def verify_alarm_metrics_exist_with_inputs(input_parameters_table, alarm_manager
 
 @then(parse('assert metrics for all alarms are populated'))
 def verify_alarm_metrics_exist_defaults(alarm_manager):
-    # Set 1200 secs by default because most alarms need more time to be triggered
-    # If the timeout is overreached 1200 secs then all asserts will be deleted from Cucumber feature file for an
-    # alarm based on agreement because it makes enourmously longer builds on CI`
-    verify_alarm_metrics_impl(1200, 15, alarm_manager, {})
+    # Set 900 secs by default because most alarms need more time to be triggered
+    verify_alarm_metrics_impl(900, 15, alarm_manager, {})
 
 
 @then(parse('assert metrics for all alarms are populated within {wait_sec:d} seconds, '
@@ -960,6 +958,7 @@ def stop_fis_experiment(boto3_session, resource_pool, ssm_test_cache, input_para
 
 @given(parse('cache values to "{cache_key}"\n{input_parameters}'))
 @when(parse('cache values to "{cache_key}"\n{input_parameters}'))
+@then(parse('cache values to "{cache_key}"\n{input_parameters}'))
 def cache_values(request, resource_pool, cfn_output_params, ssm_test_cache, cache_key, input_parameters,
                  cfn_installed_alarms):
     """

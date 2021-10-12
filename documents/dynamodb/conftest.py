@@ -15,7 +15,8 @@ from resource_manager.src.util.auto_scaling_utils import (
 from resource_manager.src.util.cloudwatch_utils import (
     delete_alarms_for_dynamo_db_table, get_metric_alarms_for_table)
 from resource_manager.src.util.common_test_utils import (extract_param_value,
-                                                         put_to_ssm_test_cache)
+                                                         put_to_ssm_test_cache,
+                                                         group_list_elements)
 from resource_manager.src.util.cw_util import get_metric_alarm_state
 from resource_manager.src.util.dynamo_db_utils import (
     DynamoDbIndexType, get_secondary_indexes, _get_global_table_all_regions, add_global_table_and_wait_for_active,
@@ -24,7 +25,12 @@ from resource_manager.src.util.dynamo_db_utils import (
     drop_and_wait_dynamo_db_table_if_exists, get_continuous_backups_status,
     get_contributor_insights_status_for_table_and_indexes,
     get_earliest_recovery_point_in_time, get_kinesis_destinations, get_stream_settings, get_time_to_live,
-    remove_global_table_and_wait_for_active, wait_table_to_be_active, put_item_async_stress_test)
+    remove_global_table_and_wait_for_active, wait_table_to_be_active, put_item_async_stress_test,
+    update_item_async_stress_test_time_divided, generate_list_of_attribute_updates,
+    delete_item_async_stress_test_time_divided,
+    batch_write_item_async_stress_test_time_divided, batch_get_item_async_stress_test_time_divided,
+    transact_write_item_async_stress_test_time_divided, transact_get_item_async_stress_test_time_divided,
+    put_item_async_stress_test_time_divided, get_item_async_stress_test_time_divided)
 from resource_manager.src.util.enums.alarm_state import AlarmState
 from resource_manager.src.util.param_utils import parse_param_value
 
@@ -249,6 +255,165 @@ def put_item_n_times(boto3_session, resource_pool, ssm_test_cache, number, input
     put_item_async_stress_test(boto3_session, table_name, items)
 
 
+@given(parsers.parse('put random test item "{number}" times divided by time '
+                     'and cache items as "{test_items_key}"\n{input_parameters}'))
+@when(parsers.parse('put random test item "{number}" times divided by time '
+                    'and cache items as "{test_items_key}"\n{input_parameters}'))
+def smooth_put_item_n_times_and_cache(boto3_session, resource_pool, ssm_test_cache,
+                                      number, test_items_key, input_parameters):
+    """
+    Writes item N times and caches items. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param number number of times which item should be written
+    :param test_items_key the name of the key in cache
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items = generate_random_item(boto3_session, table_name, int(number))
+    ssm_test_cache[test_items_key] = items
+    put_item_async_stress_test_time_divided(boto3_session, table_name, items, 90, 80.0)
+
+
+@given(parsers.parse('batch write random test items "{number}" times divided by time '
+                     'and cache items as "{test_items_key}"\n{input_parameters}'))
+@when(parsers.parse('batch write random test items "{number}" times divided by time '
+                    'and cache items as "{test_items_key}"\n{input_parameters}'))
+def smooth_batch_write_item_n_times_and_cache(boto3_session, resource_pool, ssm_test_cache,
+                                              number, test_items_key, input_parameters):
+    """
+    Batch writes items and caches. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param number number of items which should be created
+    :param test_items_key the name of the key in cache
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items = generate_random_item(boto3_session, table_name, int(number)) * 25
+    items_for_batch_operations = group_list_elements(items, 25)
+    ssm_test_cache[test_items_key] = items_for_batch_operations
+    batch_write_item_async_stress_test_time_divided(boto3_session, table_name, items_for_batch_operations, 90, 80.0)
+
+
+@given(parsers.parse('transact write random test items "{number}" times divided by time '
+                     'and cache items as "{test_items_key}"\n{input_parameters}'))
+@when(parsers.parse('transact write random test items "{number}" times divided by time '
+                    'and cache items as "{test_items_key}"\n{input_parameters}'))
+def smooth_transact_write_item_n_times_and_cache(boto3_session, resource_pool, ssm_test_cache,
+                                                 number, test_items_key, input_parameters):
+    """
+    Transact writes items and caches. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param number number of items which should be created
+    :param test_items_key the name of the key in cache
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items = generate_random_item(boto3_session, table_name, int(number)) * 25
+    items_for_transact_operations = group_list_elements(items, 25)
+    ssm_test_cache[test_items_key] = items_for_transact_operations
+    transact_write_item_async_stress_test_time_divided(boto3_session, table_name,
+                                                       items_for_transact_operations, 90, 80.0)
+
+
+@given(parsers.parse('get items from cache using key "{test_items_key}" '
+                     'and transact get it divided by time from dynamodb table\n{input_parameters}'))
+@when(parsers.parse('get items from cache using key "{test_items_key}" '
+                    'and transact get it divided by time from dynamodb table\n{input_parameters}'))
+@then(parsers.parse('get items from cache using key "{test_items_key}" '
+                    'and transact get it divided by time from dynamodb table\n{input_parameters}'))
+def smooth_transact_get_cached_items_from_dynamodb(boto3_session, resource_pool, ssm_test_cache,
+                                                   test_items_key, input_parameters):
+    """
+    Gets items from cache and transact requests it from DynamoDB. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param test_items_key the name of the key in cache
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items_for_transact_operations: list = ssm_test_cache[test_items_key]
+    transact_get_item_async_stress_test_time_divided(boto3_session, table_name,
+                                                     items_for_transact_operations, 90, 80.0)
+
+
+@given(parsers.parse('get items from cache using key "{test_items_key}" '
+                     'and batch get it divided by time from dynamodb table\n{input_parameters}'))
+@when(parsers.parse('get items from cache using key "{test_items_key}" '
+                    'and batch get it divided by time from dynamodb table\n{input_parameters}'))
+@then(parsers.parse('get items from cache using key "{test_items_key}" '
+                    'and batch get it divided by time from dynamodb table\n{input_parameters}'))
+def smooth_batch_get_cached_items_from_dynamodb(boto3_session, resource_pool, ssm_test_cache,
+                                                test_items_key, input_parameters):
+    """
+    Gets items from cache and batch requests it from DynamoDB. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param test_items_key the name of the key in cache
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items_for_batch_operations: list = ssm_test_cache[test_items_key]
+    batch_get_item_async_stress_test_time_divided(boto3_session, table_name, items_for_batch_operations, 90, 80.0)
+
+
+@given(parsers.parse('get item from cache using key "{test_item_key}" and get it '
+                     '"{number}" times divided by time from dynamodb table\n{input_parameters}'))
+@when(parsers.parse('get item from cache using key "{test_item_key}" and get it '
+                    '"{number}" times divided by time from dynamodb table\n{input_parameters}'))
+@then(parsers.parse('get item from cache using key "{test_item_key}" and get it '
+                    '"{number}" times divided by time from dynamodb table\n{input_parameters}'))
+def smooth_get_cached_items_from_dynamodb(boto3_session, resource_pool, ssm_test_cache,
+                                          test_item_key, number, input_parameters):
+    """
+    Gets item from cache and requests it from DynamoDB. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param test_item_key the name of the key in cache
+    :param number number of times item should be gotten
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    item: dict = ssm_test_cache[test_item_key]
+    get_item_async_stress_test_time_divided(boto3_session, table_name, int(number), item, 90, 80.0)
+
+
+@given(parsers.parse('get items from cache using key "{test_items_key}" '
+                     'and delete it divided by time from dynamodb table\n{input_parameters}'))
+@when(parsers.parse('get items from cache using key "{test_items_key}" '
+                    'and delete it divided by time from dynamodb table\n{input_parameters}'))
+@then(parsers.parse('get items from cache using key "{test_items_key}" '
+                    'and delete it divided by time from dynamodb table\n{input_parameters}'))
+def smooth_delete_cached_items_from_dynamodb(boto3_session, resource_pool, ssm_test_cache,
+                                             test_items_key, input_parameters):
+    """
+    Gets items from cache and deletes it from DynamoDB. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param test_items_key the name of the key in cache
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    items: list = ssm_test_cache[test_items_key]
+    delete_item_async_stress_test_time_divided(boto3_session, table_name, items, 90, 80.0)
+
+
 @given(parsers.parse('put random test item "{number}" times with condition "{condition_ref}"\n{input_parameters}'))
 @when(parsers.parse('put random test item "{number}" times with condition "{condition_ref}"\n{input_parameters}'))
 def put_item_with_condition(boto3_session, resource_pool, ssm_test_cache, number, condition_ref, input_parameters):
@@ -270,6 +435,26 @@ def get_items(boto3_session, resource_pool, ssm_test_cache, item_ref, number, in
     table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
     item: dict = ssm_test_cache[item_ref]
     get_item_async_stress_test(boto3_session, table_name, int(number), item)
+
+
+@given(parsers.parse('update test item "{item_ref}" "{number}" times divided by time\n{input_parameters}'))
+@when(parsers.parse('update test item "{item_ref}" "{number}" times divided by time\n{input_parameters}'))
+@then(parsers.parse('update test item "{item_ref}" "{number}" times divided by time\n{input_parameters}'))
+def smooth_update_item_n_times(boto3_session, resource_pool, ssm_test_cache, item_ref, number, input_parameters):
+    """
+    Gets item from cache and updates it in DynamoDB multiple time. Requests distributed by time.
+    :param boto3_session The boto3 session
+    :param resource_pool The resource pool
+    :param ssm_test_cache The test cache
+    :param item_ref the name of the key in cache
+    :param number the number of times item should be updated
+    :param input_parameters The input parameters from step definition
+    :return None
+    """
+    table_name: str = extract_param_value(input_parameters, "DynamoDBTableName", resource_pool, ssm_test_cache)
+    item: dict = ssm_test_cache[item_ref]
+    updates = generate_list_of_attribute_updates(int(number))
+    update_item_async_stress_test_time_divided(boto3_session, table_name, item, updates, 90, 80.0)
 
 
 @then(parsers.parse('assert scaling targets copied from {source_table_name_ref} to {target_table_name_ref}'))

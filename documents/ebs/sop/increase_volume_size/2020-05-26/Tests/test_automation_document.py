@@ -21,7 +21,10 @@ class TestIncreaseVolumeSize(unittest.TestCase):
         self.mock_ec2.describe_instances.return_value = {'Reservations': [{'Instances': [{'BlockDeviceMappings': [
             {'Ebs': {'VolumeId': 'vol-123123'}, 'DeviceName': '/dev/device'}
         ]}]}]}
-        self.mock_ec2.describe_volumes.side_effect = [{'Volumes': [{'Size': 8}]}, {'Volumes': [{'Size': 10}]}]
+        self.mock_ec2.describe_volumes.side_effect = [
+            {'Volumes': [{'VolumeId': 'vol-123123', 'Size': 8}]},
+            {'Volumes': [{'Size': 10}]}
+        ]
         self.mock_ssm.get_command_invocation.return_value = {'Status': 'Success', 'ResponseCode': 0}
         self.mock_ssm.send_command.return_value = {'Command': {'CommandId': 'Command1234'}}
 
@@ -38,7 +41,7 @@ class TestIncreaseVolumeSize(unittest.TestCase):
         }
         output = get_automation_doc().run_automation(step_input)
 
-        self.assertEqual(['RecordStartTime', 'EbsDescribeInstance', 'DescribeVolume', 'CheckLargerVolume',
+        self.assertEqual(['RecordStartTime', 'DescribeInstanceVolume', 'CheckLargerVolume',
                           'SizeValidationBranch', 'ModifyVolume', 'WaitForVolumeSize', 'AWS_RunShellScript',
                           'OutputRecoveryTime'],
                          output['python_simulation_steps'])
@@ -54,7 +57,7 @@ class TestIncreaseVolumeSize(unittest.TestCase):
                                      'echo "Resize completed"',
                                      "volsize=`df -h | grep /dev/mydevice | awk -F ' ' '{print $2}'`",
                                      'echo "New volume size: ${volsize}"',
-                                     '[ ${volsize} != ${originalsize} ] 2>/dev/null'],
+                                     '[ -n "${volsize}" ] && [ ${volsize} != ${originalsize} ] 2>/dev/null'],
                         'workingDirectory': [''],
                         'executionTimeout': ['3600']})
 
@@ -68,7 +71,7 @@ class TestIncreaseVolumeSize(unittest.TestCase):
         }
         output = get_automation_doc().run_automation(step_input)
 
-        self.assertEqual(['RecordStartTime', 'EbsDescribeInstance', 'DescribeVolume', 'CheckLargerVolume',
+        self.assertEqual(['RecordStartTime', 'DescribeInstanceVolume', 'CheckLargerVolume',
                           'SizeValidationBranch', 'OutputRecoveryTime'],
                          output['python_simulation_steps'])
 

@@ -16,8 +16,8 @@ from resource_manager.src.util import docdb_utils as docdb_utils
 from resource_manager.src.util.common_test_utils import extract_param_value, put_to_ssm_test_cache
 from resource_manager.src.util.param_utils import parse_param_values_from_table
 
-cache_number_of_instances_expression = 'cache current number of instances as "{cache_property}" "{step_key}" SSM ' \
-                                       'automation execution' \
+cache_number_of_instances_expression = 'cache current number of available instances as "{cache_property}" ' \
+                                       '"{step_key}" SSM automation execution' \
                                        '\n{input_parameters}'
 cache_value_expression = 'cache property "{cache_property}" in step "{step_key}" SSM automation execution' \
                          '\n{input_parameters}'

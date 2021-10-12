@@ -17,7 +17,7 @@ class CheckLargerVolume(PythonStep):
         return [Output(name='VolumeAlreadyGreater', selector='$.Payload', output_type=DataType.Boolean)]
 
     def get_inputs(self) -> List[str]:
-        return ['SizeGib', 'DescribeVolume.CurrentSizeGiB']
+        return ['SizeGib', 'DescribeInstanceVolume.CurrentSizeGiB']
 
     def get_description(self) -> str:
         return 'Check if requested volume size is greater than current. If not, we know to skip to the end.'

@@ -25,7 +25,7 @@ Feature: SSM automation document Digito-DrainECSContainerInstancesTest_2020-04-0
     And cache execution output value of "CreateTemplate.FISExperimentTemplateId" as "FISExperimentTemplateId" after SSM automation execution
       |ExecutionId               |
       |{{cache:SsmExecutionId>1}}|
-    And assert "CheckIsRollback,AssertAlarmToBeGreenBeforeTest,CreateTemplate,SleepForOneSecond,StartExperiment,AssertAlarmToBeRed,WaitExperiment,AssertExperimentCompleted,AssertAlarmToBeGreen,DeleteTemplate" steps are successfully executed in order
+    And assert "CheckIsRollback,AssertAlarmToBeGreenBeforeTest,CreateTemplate,SleepForOneSecond,StartExperiment,AssertAlarmToBeRed,WaitForServiceToBeRestored,WaitExperiment,AssertExperimentCompleted,AssertAlarmToBeGreen,DeleteTemplate" steps are successfully executed in order
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
     And cache number of tasks as "AmountOfTasks" "after" SSM execution

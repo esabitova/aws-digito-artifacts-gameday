@@ -96,8 +96,8 @@ def assert_equal_cpu_and_memory(ssm_test_cache,
             and container_definitions["memory"] == memory)
 
 
-@then(parsers.parse('waits until the ECSService is stable (tasks started or stopped)'
-                    '\n{input_parameters}'))
+@given(parsers.parse('waits until the ECSService is stable (tasks started or stopped)'
+                     '\n{input_parameters}'))
 def wait_services_stable(resource_pool, ssm_test_cache, boto3_session, input_parameters):
     ecs_cluster_name = common_test_utils.extract_param_value(input_parameters, 'ECSCluster',
                                                              resource_pool, ssm_test_cache)

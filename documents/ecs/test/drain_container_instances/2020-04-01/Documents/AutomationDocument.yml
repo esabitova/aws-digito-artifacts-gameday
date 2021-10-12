@@ -234,6 +234,19 @@ mainSteps:
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: [ "ALARM" ]
 
+  - name: WaitForServiceToBeRestored
+    action: aws:executeScript
+    description: Wait for all status tasks in ECS application to be in "RUNNING" state
+    inputs:
+      Runtime: python3.7
+      Handler: wait_services_stable
+      Script: |-
+        SCRIPT_PLACEHOLDER::ecs_util.imports
+        SCRIPT_PLACEHOLDER::ecs_util.check_required_params
+        SCRIPT_PLACEHOLDER::ecs_util.wait_services_stable
+      InputPayload:
+        ClusterName: '{{ClusterName}}'
+
   - name: WaitExperiment
     action: aws:waitForAwsResourceProperty
     onFailure: step:TriggerRollback

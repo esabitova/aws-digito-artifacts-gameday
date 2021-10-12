@@ -3,6 +3,7 @@
     "type": "test",
     "name": "my_test",
     "date": "2021-05-04",
+    "fullName": "DoMyServiceMyDocument",
     "displayName": "My Display Name",
     "description": "My Description",
     "primaryResourceId": "ResourceId",

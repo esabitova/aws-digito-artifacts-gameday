@@ -15,7 +15,125 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Test standard Queue behavior after receiving a message maximum allowed times"
+description: >-
+            ## Id
+
+            Digito-ForceSQSStandardQueueMaxReceiveFailureTest_2020-11-27
+
+            ## Intent
+
+            Test standard SQS behavior after receiving a message maximum allowed times. Wait for alarm for metric ApproximateNumberOfMessagesVisible for DLQ to trigger when number of messages on DLQ is more than 0
+
+            ## Type
+
+            TEST
+
+            ## Risk
+
+            High
+
+            ## Requirements:
+
+              * standard SQS queue with DLQ redrive policy set up
+              * Amazon CloudWatch alarm is setup for [ApproximateNumberOfMessagesVisible](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric for DLQ. Should trigger when number messages is more than 0
+
+            ## Depends on
+
+            Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11
+
+            ## Permission required for AutomationAssumeRole
+            * cloudwatch:DescribeAlarms
+            * sqs:GetQueueAttributes
+            * sqs:SetQueueAttributes
+            * sqs:ReceiveMessage
+            * sqs:SendMessage
+            * sqs:DeleteMessage
+            * sqs:GetQueueUrl
+            * ssm:StartAutomationExecution
+            * ssm:GetAutomationExecution
+            * ssm:GetParameters
+            * iam:PassRole
+
+            ##### In case queues are encrypted with a KMS key
+              * kms:GenerateDataKey
+              * kms:Decrypt
+              * kms:Encrypt
+
+            ##### To log output to CloudWatch
+              * logs:CreateLogStream
+              * logs:PutLogEvents
+              * logs:DescribeLogGroups
+              * logs:DescribeLogStreams
+
+            ## Supports Rollback
+
+            Yes. The document reverts redrive policy and visibility timeout and moves messages back from DLQ
+
+            ## Cancellation behavior
+
+            The document reverts redrive policy and visibility timeout and moves messages back from DLQ
+
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above
+
+            ### (Required) QueueUrl
+              * type: String
+              * description: The URL of the SQS queue
+
+            ### (Required) DeadLetterQueueAlarmName
+              * type: String
+              * description: Amazon CloudWatch alarm for [ApproximateNumberOfMessagesVisible](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html) metric for DLQ. Should trigger when number messages is more than 0
+
+            ### (Optional) IsRollback
+              * type: String
+              * description: Run the rollback steps of the document. True or False. If True, the parameter PreviousExecutionId should also be specified
+              * default: false
+
+            ### (Optional) PreviousExecutionId
+              * type: String
+              * description: SSM execution ID of the previous execution of this document for which resources need to be cleaned up
+
+            ## Details
+
+            The document injects failure by setting redrive policy to a small number of retries and visibility timeout
+            to zero and reading messages until they get redriven to DLQ. After test the document executes
+            Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11 SOP to move all messages back from DLQ. Note that messages
+            that have been already present in the DLQ before the test will also be moved to the main queue.
+            In case of issues users should manually remove messages from DLQ or use
+            Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11 document to send them back.
+
+            ## Steps executed in normal flow
+              * CheckIsRollback
+              * AssertAlarmToBeGreenBeforeTest
+              * BackupCurrentExecution
+              * GetUpdatedRedrivePolicy
+              * SetQueueAttributes
+              * ReadMessage
+              * AssertAlarmToBeRed
+              * GetDeadLetterQueueUrl
+              * RollbackCurrentExecution
+              * SleepBeforeGetNumberOfMessagesToMove
+              * GetNumberOfMessagesToMove
+              * MoveMessages
+              * AssertAlarmToBeGreen
+
+            ## Steps executed in rollback flow
+              * CheckIsRollback
+              * GetQueueUrlFromPreviousExecution
+              * AssertQueueUrl
+              * PrepareRollbackOfPreviousExecutionQueueAttributes
+              * GetDeadLetterQueueUrlFromPreviousExecution
+              * RollbackPreviousExecutionQueueAttributes
+              * GetDLQVisibilityTimeout
+              * WaitForDLQVisibilityTimeout
+              * GetNumberOfMessagesToMoveForPreviousExecution
+              * MoveMessagesForPreviousExecution
+
+            ## Outputs
+  
+            None
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 parameters:
@@ -31,15 +149,16 @@ parameters:
   IsRollback:
     type: String
     description: >-
-      (Optional) Run rollback step of the given previous execution (parameter `PreviousExecutionId`). Can be either true or false.
+      (Optional) Run the rollback steps of the document. True or False. If True, the parameter PreviousExecutionId should also be specified
     default: 'false'
   PreviousExecutionId:
     type: String
     description: >-
-      (Optional) Previous execution id for which resources need to be cleaned up.
+      (Optional) SSM execution ID of the previous execution of this document for which resources need to be cleaned up
     default: ''
 mainSteps:
   - name: CheckIsRollback
+    description: Check if document should be executed in rollback mode
     action: aws:branch
     inputs:
       Choices:
@@ -49,6 +168,7 @@ mainSteps:
       Default: AssertAlarmToBeGreenBeforeTest
 
   - name: GetQueueUrlFromPreviousExecution
+    description: Get input from previous execution. This will be used to validate that rollback is executed with the same input
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -65,6 +185,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_inputs_from_ssm_execution
 
   - name: AssertQueueUrl
+    description: Validate that rollback is executed with the same input
     action: aws:branch
     inputs:
       Choices:
@@ -74,6 +195,7 @@ mainSteps:
     isEnd: true
 
   - name: PrepareRollbackOfPreviousExecutionQueueAttributes
+    description: Get initital queue redrive policy
     action: aws:executeScript
     outputs:
       - Name: RedrivePolicy
@@ -95,6 +217,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
 
   - name: GetDeadLetterQueueUrlFromPreviousExecution
+    description: Get DLQ URL from redrive policy
     action: aws:executeScript
     outputs:
       - Name: QueueUrl
@@ -111,6 +234,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
 
   - name: RollbackPreviousExecutionQueueAttributes
+    description: Revert initial redrive policy
     action: aws:executeAwsApi
     inputs:
       Service: sqs
@@ -121,6 +245,7 @@ mainSteps:
         RedrivePolicy: '{{ PrepareRollbackOfPreviousExecutionQueueAttributes.RedrivePolicy }}'
 
   - name: GetDLQVisibilityTimeout
+    description: Get DLQ visibility timeout value
     action: aws:executeAwsApi
     outputs:
       - Name: VisibilityTimeout
@@ -134,11 +259,13 @@ mainSteps:
       QueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
 
   - name: WaitForDLQVisibilityTimeout
+    description: Wait for DLQ visiblity timeout time to ensure all messages are visible
     action: aws:sleep
     inputs:
       Duration: 'PT{{ GetDLQVisibilityTimeout.VisibilityTimeout }}S'
 
   - name: GetNumberOfMessagesToMoveForPreviousExecution
+    description: Count number of messages on DLQ to be moved back
     action: aws:executeAwsApi
     outputs:
       - Name: ApproximateNumberOfMessages
@@ -152,6 +279,7 @@ mainSteps:
       QueueUrl: '{{ GetDeadLetterQueueUrlFromPreviousExecution.QueueUrl }}'
 
   - name: MoveMessagesForPreviousExecution
+    description: Execute Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11 SOP to move messages back from DLQ to queue
     action: aws:executeAutomation
     maxAttempts: 3
     timeoutSeconds: 600
@@ -166,6 +294,7 @@ mainSteps:
     isEnd: true
 
   - name: AssertAlarmToBeGreenBeforeTest
+    description: Ensure alarm is green before starting test. Fail if alarm is not green within expected time
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 600
     inputs:
@@ -177,6 +306,7 @@ mainSteps:
       DesiredValues: ["OK"]
 
   - name: BackupCurrentExecution
+    description: Backup initial redrive policy for rollback
     action: aws:executeAwsApi
     outputs:
       - Name: QueueArn
@@ -198,6 +328,7 @@ mainSteps:
       QueueUrl: '{{ QueueUrl }}'
 
   - name: GetUpdatedRedrivePolicy
+    description: Generate redrive policy with small receive count to force messages go to DLQ
     action: aws:executeScript
     outputs:
       - Name: RedrivePolicy
@@ -215,6 +346,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.update_max_receive_count
 
   - name: SetQueueAttributes
+    description: Set queue redrive policy to the generated one
     action: aws:executeAwsApi
     onFailure: 'step:RollbackCurrentExecution'
     onCancel: 'step:TriggerRollback'
@@ -227,6 +359,7 @@ mainSteps:
         VisibilityTimeout: "0"
 
   - name: ReadMessage
+    description: Read messages on queue until they are moved to DLQ
     action: aws:executeScript
     onFailure: 'step:GetDeadLetterQueueUrl'
     onCancel: 'step:TriggerRollback'
@@ -248,6 +381,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.receive_messages_by_events
 
   - name: AssertAlarmToBeRed
+    description: Wait for expected alarm to be red after failure is injected
     action: aws:waitForAwsResourceProperty
     onFailure: 'step:GetDeadLetterQueueUrl'
     onCancel: 'step:TriggerRollback'
@@ -261,6 +395,7 @@ mainSteps:
       DesiredValues: [ "ALARM" ]
 
   - name: GetDeadLetterQueueUrl
+    description: Get DLQ URL from redrive policy
     action: aws:executeScript
     onCancel: 'step:TriggerRollback'
     outputs:
@@ -278,6 +413,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::sqs_util.get_dead_letter_queue_url
 
   - name: RollbackCurrentExecution
+    description: Revert redrive policy to initial state
     action: aws:executeAwsApi
     onCancel: 'step:TriggerRollback'
     inputs:
@@ -289,12 +425,14 @@ mainSteps:
         VisibilityTimeout: '{{ BackupCurrentExecution.VisibilityTimeout }}'
 
   - name: SleepBeforeGetNumberOfMessagesToMove
+    description: Sleep for 1 minute for ApproximateNumberOfMessages metric to become stable
     action: "aws:sleep"
     onCancel: 'step:TriggerRollback'
     inputs:
       Duration: "PT60S"
 
   - name: GetNumberOfMessagesToMove
+    description: Get number of messages on DLQ to move back
     action: aws:executeAwsApi
     onCancel: 'step:TriggerRollback'
     outputs:
@@ -309,6 +447,7 @@ mainSteps:
       QueueUrl: '{{ GetDeadLetterQueueUrl.QueueUrl }}'
 
   - name: MoveMessages
+    description: Execute Digito-MoveSQSMessagesBetweenQueuesSOP_2021-03-11 SOP to move messages back from DLQ
     action: aws:executeAutomation
     onCancel: 'step:TriggerRollback'
     maxAttempts: 3
@@ -323,6 +462,7 @@ mainSteps:
         AutomationAssumeRole: '{{ AutomationAssumeRole }}'
 
   - name: AssertAlarmToBeGreen
+    description: Wait for the alarm to be green after test is complete
     action: aws:waitForAwsResourceProperty
     timeoutSeconds: 600
     inputs:
@@ -334,6 +474,7 @@ mainSteps:
       DesiredValues: [ "OK" ]
     isEnd: true
   - name: TriggerRollback
+    description: This step is executed when ssm document is cancelled while it was in progress. This step starts a new execution of document in rollback mode to rollback the changes made as part of normal execution
     action: 'aws:executeScript'
     onFailure: Abort
     outputs:

@@ -1,4 +1,4 @@
 Digito-UpdateDynamoDBTableProvisionedCapacitySOP_2020-04-01
 Digito-RestoreDynamoDBTableToPointInTimeSOP_2020-04-01
 Digito-RestoreDynamoDBTableFromBackupSOP_2020-04-01
-Digito-ForceDynamoDbTableReadThrottlingTest_2020-09-21
+Digito-ForceDynamoDBTableReadThrottlingTest_2020-09-21

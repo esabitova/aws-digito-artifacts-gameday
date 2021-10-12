@@ -1,0 +1,27 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  SNSTopicARN:
+    Type: String
+Resources:
+  ${AlarmLogicalId}:
+    Type: "AWS::CloudWatch::Alarm"
+    Properties:
+      AlarmName: ${AlarmName}
+      AlarmDescription: "Alarm by Digito for Amazon DynamoDB, that reports elapsed time for successful requests with regards to BatchGetItem operation, is equal to or greater than the specified ${Threshold}."
+      AlarmActions:
+        - Ref: SNSTopicARN
+      MetricName: SuccessfulRequestLatency
+      Namespace: AWS/DynamoDB
+      Dimensions:
+        - Name: TableName
+          Value: ${DynamoDbTable}
+        - Name: Operation
+          Value: BatchGetItem
+      Period: 60
+      ExtendedStatistic: p70
+      Threshold: ${Threshold}
+      EvaluationPeriods: ${EvaluationPeriods}
+      DatapointsToAlarm: ${DatapointsToAlarm}
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: missing

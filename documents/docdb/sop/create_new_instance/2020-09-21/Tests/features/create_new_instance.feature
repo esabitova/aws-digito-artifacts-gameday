@@ -20,7 +20,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache one of cluster azs in property "RandomClusterAZ" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of available instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And cache property "ExpectedAvailabilityZone" in step "before" SSM automation execution
@@ -32,7 +32,7 @@ Feature: SSM automation document to recover the database into a known good state
     Then SSM automation document "Digito-CreateNewDocumentDBInstanceSOP_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of available instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then sleep for "60" seconds
@@ -59,7 +59,7 @@ Feature: SSM automation document to recover the database into a known good state
       | documents/docdb/sop/create_new_instance/2020-09-21/Documents/AutomationAssumeRoleTemplate.yml | ASSUME_ROLE  |                          |                            |                                                |                                                |                                           |                                        |                                                  |                                                               |                                                           |                                     |
     And published "Digito-CreateNewDocumentDBInstanceSOP_2020-09-21" SSM document
     And cache generated instance identifier as "InstanceId" at step "before"
-    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of available instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     When SSM automation document "Digito-CreateNewDocumentDBInstanceSOP_2020-09-21" executed
@@ -68,7 +68,7 @@ Feature: SSM automation document to recover the database into a known good state
     Then SSM automation document "Digito-CreateNewDocumentDBInstanceSOP_2020-09-21" execution in status "Success"
       | ExecutionId                |
       | {{cache:SsmExecutionId>1}} |
-    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of available instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then sleep for "60" seconds

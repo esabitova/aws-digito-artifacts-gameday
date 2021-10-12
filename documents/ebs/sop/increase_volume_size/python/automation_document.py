@@ -1,5 +1,5 @@
 from adk.src.adk.builtin_steps.automation.aws_api.ebs_repo import \
-    ebs_describe_instance_volume, ebs_describe_volume, resize_volume
+    ebs_describe_instance_volume, resize_volume
 from adk.src.adk.builtin_steps.automation.execute_script.util.output_recovery_time import OutputRecoveryTime
 from adk.src.adk.builtin_steps.automation.execute_script.util.record_start_time import RecordStartTime
 from adk.src.adk.builtin_steps.automation.run_commands import run_shell_script
@@ -23,7 +23,6 @@ def get_automation_doc():
         steps=[
             RecordStartTime(),
             ebs_describe_instance_volume(),
-            ebs_describe_volume(),
             CheckLargerVolume(),
             BranchStep('SizeValidationBranch', choices=[
                 Choice(constant=True, input_to_test='CheckLargerVolume.VolumeAlreadyGreater',
@@ -42,7 +41,7 @@ def get_automation_doc():
                     'echo "Resize completed"',
                     "volsize=`df -h | grep {{ DeviceName }} | awk -F ' ' '{print $2}'`",
                     'echo "New volume size: ${volsize}"',
-                    "[ ${volsize} != ${originalsize} ] 2>/dev/null"
+                    '[ -n "${volsize}" ] && [ ${volsize} != ${originalsize} ] 2>/dev/null'
                 ],
                 instance_ids_input='InstanceIdentifier'),
             OutputRecoveryTime()

@@ -1,5 +1,7 @@
 import random
+import time
 import uuid
+from itertools import islice
 
 import jsonpath_ng
 from boto3 import Session
@@ -222,3 +224,32 @@ def do_cache_by_method_of_service(cache_key, method_name, parameters, service_cl
             else:
                 target_value = [f.value for f in found]
             put_to_ssm_test_cache(ssm_test_cache, cache_key, cache_property, target_value)
+
+
+def group_list_elements(lst, chunk_size):
+    """
+    Splits list by chunks. Returns list of lists.
+    :param lst - list of elements
+    :param chunk_size - size of chunk (sublist)
+    :return list
+    Example:
+    lst = [1, 3, 2, 4, 5, 6, 7, 8, 9, 0, 4, 3, 0]
+    chunk_size = 3
+    returns [[1, 3, 2], [4, 5, 6], [7, 8, 9], [0, 4, 3], [0]]
+    """
+    lst = iter(lst)
+    chunked_list = [group for group in iter(lambda: list(islice(lst, chunk_size)), [])]
+    return chunked_list
+
+
+def execute_function_with_gaussian_delay(func, mu, sigma, *args, **kwargs):
+    """
+    Executes provided function with random delay using normal distribution
+    :param func - function will be executed
+    :param mu - median for gaussian distribution
+    :param sigma - normal deviation
+    *args and **kwargs will be provided to function directly
+    :return func(*args, **kwargs)
+    """
+    time.sleep(abs(random.gauss(mu, sigma)))
+    return func(*args, **kwargs)

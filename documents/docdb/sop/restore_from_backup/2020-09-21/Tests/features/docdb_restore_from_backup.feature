@@ -19,7 +19,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache cluster params includingAZ="True" in object "ClusterParams" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of available instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And wait for cluster snapshot creation for "600" seconds
@@ -40,7 +40,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache cluster params includingAZ="True" in object "ClusterParams" in step "after"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of available instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"
@@ -65,7 +65,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache cluster params includingAZ="True" in object "ClusterParams" in step "before"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of instances as "NumberOfInstances" "before" SSM automation execution
+    And cache current number of available instances as "NumberOfInstances" "before" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     And wait for cluster snapshot creation for "600" seconds
@@ -86,7 +86,7 @@ Feature: SSM automation document to recover the database into a known good state
     And cache cluster params includingAZ="True" in object "ClusterParams" in step "after"
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
-    And cache current number of instances as "ActualNumberOfInstances" "after" SSM automation execution
+    And cache current number of available instances as "ActualNumberOfInstances" "after" SSM automation execution
       | DBClusterIdentifier                              |
       | {{cfn-output:DocDbTemplate>DBClusterIdentifier}} |
     Then assert "ActualNumberOfInstances" at "after" became equal to "NumberOfInstances" at "before"

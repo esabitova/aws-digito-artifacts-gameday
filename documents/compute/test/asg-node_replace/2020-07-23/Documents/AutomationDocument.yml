@@ -137,6 +137,10 @@ mainSteps:
   - name: CancelInstanceRefresh
     action: 'aws:executeScript'
     onFailure: Abort
+    outputs:
+      - Name: InstanceRefreshId
+        Selector: $.Payload.InstanceRefreshId
+        Type: String
     inputs:
       Runtime: python3.6
       Handler: cancel_instance_refresh
@@ -146,6 +150,19 @@ mainSteps:
         SCRIPT_PLACEHOLDER::asg_util.imports
 
         SCRIPT_PLACEHOLDER::asg_util.cancel_instance_refresh
+  - name: WaitForRefreshToBeCancelled
+    action: 'aws:waitForAwsResourceProperty'
+    timeoutSeconds: 3600
+    onFailure: Abort
+    inputs:
+      Service: autoscaling
+      Api: DescribeInstanceRefreshes
+      PropertySelector: '$.InstanceRefreshes[0].Status'
+      DesiredValues:
+        - Cancelled
+      AutoScalingGroupName: '{{GetInputsFromPreviousExecution.AutoScalingGroupName}}'
+      InstanceRefreshIds:
+        - '{{CancelInstanceRefresh.InstanceRefreshId}}'
     isEnd: true
   - name: TriggerRollback
     action: 'aws:executeScript'

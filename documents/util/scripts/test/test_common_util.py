@@ -391,3 +391,54 @@ class TestCommonUtil(unittest.TestCase):
         with pytest.raises(KeyError) as key_error:
             common_util.raise_exception({}, {})
         assert 'Requires ErrorMessage in events' in str(key_error.value)
+
+    # Test verify_number_is_in_inclusive_range
+    def test_verify_number_is_in_inclusive_range(self):
+        events = {
+            'NumberOfInstancesToCreate': 5,
+            'RangeMin': 1,
+            'RangeMax': 5
+        }
+        response = common_util.verify_number_is_in_inclusive_range(events, None)
+        self.assertTrue(response)
+
+    def test_verify_number_is_not_in_inclusive_range(self):
+        events = {
+            'NumberOfInstancesToCreate': 0,
+            'RangeMin': 1,
+            'RangeMax': 5
+        }
+        self.assertRaises(AssertionError, common_util.verify_number_is_in_inclusive_range, events, None)
+
+    def test_verify_number_if_empty_events(self):
+        self.assertRaises(KeyError, common_util.verify_number_is_in_inclusive_range, {}, None)
+
+    def test_verify_number_if_none(self):
+        events = {
+            'NumberOfInstancesToCreate': None,
+            'RangeMin': 1,
+            'RangeMax': 5
+        }
+        self.assertRaises(ValueError, common_util.verify_number_is_in_inclusive_range, events, None)
+
+    def test_verify_number_if_range_min_missing(self):
+        events = {
+            'NumberOfInstancesToCreate': 2,
+            'RangeMax': 5
+        }
+        self.assertRaises(KeyError, common_util.verify_number_is_in_inclusive_range, events, None)
+
+    def test_verify_number_if_range_max_missing(self):
+        events = {
+            'NumberOfInstancesToCreate': 2,
+            'RangeMin': 1
+        }
+        self.assertRaises(KeyError, common_util.verify_number_is_in_inclusive_range, events, None)
+
+    def test_verify_number_if_not_integer(self):
+        events = {
+            'NumberOfInstancesToCreate': '',
+            'RangeMin': 1,
+            'RangeMax': 5
+        }
+        self.assertRaises(ValueError, common_util.verify_number_is_in_inclusive_range, events, None)

@@ -1,6 +1,8 @@
 import logging
 import random
 import time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from operator import itemgetter
 from typing import List
@@ -418,3 +420,105 @@ def wait_for_available_instances(events, context):
         logger.debug(f'{message} describe_db_instances response: {response}, db_instance_identifiers:'
                      f' {db_instance_identifiers}')
         raise TimeoutError(message)
+
+
+def check_required_params(required_params, events):
+    """
+    Check for required parameters in events.
+    """
+    for key in required_params:
+        if not events.get(key):
+            raise KeyError(f'Requires {key} in events')
+
+
+def get_current_db_instance_class(events, context):
+    """
+    Determine the currently used instance class if not explicitly provided.
+    """
+    required_params = ['DBClusterIdentifier', 'DBInstanceClass']
+    check_required_params(required_params, events)
+
+    if events['DBInstanceClass'] != 'current':
+        return {'DBInstanceClass': events['DBInstanceClass']}
+
+    docdb = boto3.client('docdb')
+    paginator = docdb.get_paginator('describe_db_instances')
+    page_iterator = paginator.paginate(
+        Filters=[{"Name": "db-cluster-id", "Values": [events['DBClusterIdentifier']]}]
+    )
+    filtered_iterator = page_iterator.search("sort_by(DBInstances, &to_string(InstanceCreateTime))[-1]")
+    filtered_instances = list(filtered_iterator)
+    if not filtered_instances:
+        raise Exception(
+            f"No instances found for cluster {events['DBClusterIdentifier']}")
+    else:
+        return {'DBInstanceClass': filtered_instances[0]['DBInstanceClass']}
+
+
+def create_new_instance_random_az(instance_params):
+    """
+    Create a new instance with provided Identifier, Engine and InstanceClass in specified cluster.
+    List of parameters doesn't include AZ.
+    """
+    docdb = boto3.client('docdb')
+    response = docdb.create_db_instance(
+        DBInstanceIdentifier=instance_params['DBInstanceIdentifier'],
+        DBInstanceClass=instance_params['DBInstanceClass'],
+        Engine=instance_params['Engine'],
+        DBClusterIdentifier=instance_params['DBClusterIdentifier']
+    )
+    return response['DBInstance']['DBInstanceIdentifier']
+
+
+def scale_up_cluster(events, context):
+    """
+    Add new instances to the cluster.
+    The amount of instances to add == events['NumberOfInstancesToCreate'].
+    """
+    required_params = [
+        'NumberOfInstancesToCreate',
+        'DBClusterIdentifier',
+        'DBInstanceClass',
+        'DBClusterEngine'
+    ]
+    check_required_params(required_params, events)
+
+    amount = int(events['NumberOfInstancesToCreate'])
+    identifiers = []
+    for _ in range(amount):
+        rnd = str(uuid.uuid4()).split('-')[-1]
+        identifier = f"{events['DBClusterIdentifier']}-{rnd}"
+        new_event = {
+            'DBClusterIdentifier': events['DBClusterIdentifier'],
+            'DBInstanceIdentifier': identifier,
+            'DBInstanceClass': events['DBInstanceClass'],
+            'Engine': events['DBClusterEngine'],
+        }
+        create_new_instance_random_az(new_event)
+        identifiers.append(identifier)
+
+    return {'DBInstancesIdentifiers': identifiers}
+
+
+def delete_docdb_instance(identifier):
+    """
+    Delete one instance and wait for its removal.
+    """
+    docdb = boto3.client('docdb')
+    docdb.delete_db_instance(DBInstanceIdentifier=identifier)
+    waiter = docdb.get_waiter('db_instance_deleted')
+    waiter.wait(
+        DBInstanceIdentifier=identifier
+    )
+
+
+def delete_list_of_instances(instance_identifiers):
+    """
+    Delete instances and wait for removal.
+    """
+    if not instance_identifiers:
+        return None
+    with ThreadPoolExecutor(max_workers=5) as t_executor:
+        for identifier in instance_identifiers:
+            t_executor.submit(delete_docdb_instance, identifier)
+    return instance_identifiers

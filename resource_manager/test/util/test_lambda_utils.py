@@ -251,6 +251,26 @@ class TestLambdaUtil(unittest.TestCase):
 
         self.assertLess(abs(end_stress - mock_sleep.time()), delay_among_chunks + 0.1)
         self.assertLessEqual(self.mock_lambda.invoke.call_count, (1 + overall_stress_time
-                             / delay_among_chunks) * number_in_each_chunk)
+                                                                  / delay_among_chunks) * number_in_each_chunk)
         self.assertGreaterEqual(self.mock_lambda.invoke.call_count, overall_stress_time
                                 * number_in_each_chunk / delay_among_chunks - 1)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_do_wait_for_memory_changed_valid(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+        memory = 128
+        self.mock_lambda.get_function.return_value = mock_get_function(200, memory)
+        lambda_utils.do_wait_for_memory_changed(LAMBDA_ARN, memory, 100, self.session_mock)
+
+    @patch('time.sleep')
+    @patch('time.time')
+    def test_do_wait_for_memory_changed_error(self, patched_time, patched_sleep):
+        mock_sleep = MockSleep()
+        patched_time.side_effect = mock_sleep.time
+        patched_sleep.side_effect = mock_sleep.sleep
+        memory = 128
+        self.mock_lambda.get_function.return_value = mock_get_function(200, memory)
+        self.assertRaises(TimeoutError, lambda_utils.do_wait_for_memory_changed, LAMBDA_ARN, 256, 1, self.session_mock)
