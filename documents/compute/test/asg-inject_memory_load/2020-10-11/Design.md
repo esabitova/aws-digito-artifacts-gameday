@@ -37,18 +37,19 @@ Rollback is supported to terminate stress testing in case if critical applicatio
 ### SyntheticAlarmName
   * type: String
   * description: (Required) Alarm which should be green after test
-### Duration
+### DurationSeconds
   * type: String
   * description: (Optional) The duration of the attack in seconds (default/recommended 300)
   * default: '300'
-### Vm
+### Workers:
   * type: String
-  * description: (Optional) Number of VM stressors
+  * description: "(Optional) The number of virtual memory stressors (default: 1)"
   * default: '1'
-### MemoryLoadPercentage
+### LoadPercent:
   * type: String
-  * description: (Optional) The ASG EC2 instance Memory load percentage (default 1%)
-  * default: '50'
+  * description: (Optional) Specify the target memory load percentage. Valid values are between 0 (no load) and 100 (full load) (default - 100)
+  * default: "100"
+  * allowedPattern: "^(100|[1-9]?[0-9])$"
 ### PercentageOfInstances
   * type: Integer
   * description: (Optional) Percentage of ASG EC2 instances to be impacted

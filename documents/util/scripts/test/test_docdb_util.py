@@ -3,6 +3,7 @@ import unittest
 import uuid
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, call
+
 from botocore.paginate import PageIterator
 
 import pytest
@@ -12,7 +13,8 @@ from documents.util.scripts.src.docdb_util import count_cluster_instances, verif
     backup_cluster_instances_type, restore_to_point_in_time, restore_db_cluster_instances, rename_replaced_db_cluster, \
     rename_replaced_db_instances, rename_restored_db_instances, get_latest_snapshot_id, restore_db_cluster, \
     restore_security_group_ids, get_db_cluster_properties, wait_for_available_instances, \
-    get_current_db_instance_class, scale_up_cluster, delete_list_of_instances
+    get_current_db_instance_class, scale_up_cluster, delete_list_of_instances, scale_down_cluster, \
+    get_instances_to_delete, validate_cluster_members_amount, create_docdb_instance
 from documents.util.scripts.test.common_test_util import assert_having_all_not_empty_arguments_in_events
 from documents.util.scripts.test.mock_sleep import MockSleep
 
@@ -181,6 +183,47 @@ DESCRIBE_DB_INSTANCES_RESPONSE = {
 DELETE_LIST_OF_INSTANCES_RESPONSE = [
     f'{DOCDB_CLUSTER_ID}-instance-1',
     f'{DOCDB_CLUSTER_ID}-instance-2'
+]
+
+DOCDB_CLUSTER_MEMBERS = [
+    {
+        "DBInstanceIdentifier": DOCDB_INSTANCE_ID,
+        "IsClusterWriter": True,
+        "DBClusterParameterGroupStatus": "in-sync",
+        "PromotionTier": 1
+    },
+    {
+        "DBInstanceIdentifier": f"{DOCDB_INSTANCE_ID}-01",
+        "IsClusterWriter": False,
+        "DBClusterParameterGroupStatus": "in-sync",
+        "PromotionTier": 1
+    },
+    {
+        "DBInstanceIdentifier": f"{DOCDB_INSTANCE_ID}-02",
+        "IsClusterWriter": False,
+        "DBClusterParameterGroupStatus": "in-sync",
+        "PromotionTier": 1
+    },
+    {
+        "DBInstanceIdentifier": f"{DOCDB_INSTANCE_ID}-03",
+        "IsClusterWriter": False,
+        "DBClusterParameterGroupStatus": "in-sync",
+        "PromotionTier": 1
+    }
+]
+DOCDB_SMALL_CLUSTER_MEMBERS = [
+    {
+        "DBInstanceIdentifier": DOCDB_INSTANCE_ID,
+        "IsClusterWriter": True,
+        "DBClusterParameterGroupStatus": "in-sync",
+        "PromotionTier": 1
+    },
+    {
+        "DBInstanceIdentifier": f"{DOCDB_INSTANCE_ID}-01",
+        "IsClusterWriter": False,
+        "DBClusterParameterGroupStatus": "in-sync",
+        "PromotionTier": 1
+    }
 ]
 
 
@@ -1262,3 +1305,97 @@ class TestDocDBUtil(unittest.TestCase):
         instance_identifiers = []
         response = delete_list_of_instances(instance_identifiers)
         self.assertIsNone(response)
+
+    # Test create docdb instance
+    def test_create_docdb_instance(self):
+        events = {
+            'DBInstanceIdentifier': f'{DOCDB_INSTANCE_ID}-01',
+            'DBInstanceClass': DOCDB_INSTANCE_CLASS,
+            'Engine': DOCDB_ENGINE,
+            'DBClusterIdentifier': DOCDB_CLUSTER_ID
+        }
+        response = create_docdb_instance(events)
+        self.assertIsNone(response)
+
+    # Test validate cluster members amount
+    def test_validate_cluster_members_amount_1(self):
+        events = {
+            'DBClusterMembers': DB_CLUSER['DBClusterMembers']
+        }
+        self.assertRaises(AssertionError, validate_cluster_members_amount, events, None)
+
+    # Test scale down cluster
+    def test_scale_down_cluster(self):
+        events = {
+            'DBInstancesIdentifiersToDelete': [f'{DOCDB_INSTANCE_ID}-01']
+        }
+        response = scale_down_cluster(events, None)
+        self.assertIsNone(response)
+
+    def test_scale_down_cluster_empty_list(self):
+        events = {
+            'DBInstancesIdentifiersToDelete': []
+        }
+        self.assertRaises(KeyError, scale_down_cluster, events, None)
+
+    # Test get instances to delete
+    def test_get_instances_to_delete_missing_members(self):
+        events = {
+            'NumberOfDBInstancesToDelete': 6
+        }
+        self.assertRaises(KeyError, get_instances_to_delete, events, None)
+
+    def test_get_instances_to_delete_missing_number_and_ids(self):
+        events = {
+            'DBClusterMembers': DOCDB_CLUSTER_MEMBERS
+        }
+        self.assertRaises(KeyError, get_instances_to_delete, events, None)
+
+    def test_get_instances_to_delete_by_number_less_than_cluster_allow(self):
+        events = {
+            'DBClusterMembers': DOCDB_CLUSTER_MEMBERS,
+            'NumberOfDBInstancesToDelete': 1
+        }
+        response = get_instances_to_delete(events, None)
+        self.assertEqual(1, len(response['DBInstancesIdentifiersToDelete']))
+
+    def test_get_instances_to_delete_by_number_more_than_cluster_allow(self):
+        events = {
+            'DBClusterMembers': DOCDB_CLUSTER_MEMBERS,
+            'NumberOfDBInstancesToDelete': 3
+        }
+        self.assertRaises(ValueError, get_instances_to_delete, events, None)
+
+    def test_get_instances_to_delete_by_ids(self):
+        events = {
+            'DBClusterMembers': DOCDB_CLUSTER_MEMBERS,
+            'DBInstancesIdentifiersToDelete': [f'{DOCDB_INSTANCE_ID}-01']
+        }
+        expected_response = {
+            'DBInstancesIdentifiersToDelete': [f'{DOCDB_INSTANCE_ID}-01']
+        }
+        response = get_instances_to_delete(events, None)
+        self.assertListEqual(
+            expected_response['DBInstancesIdentifiersToDelete'], response['DBInstancesIdentifiersToDelete']
+        )
+
+    def test_get_instances_to_delete_by_ids_no_intersection(self):
+        events = {
+            'DBClusterMembers': DOCDB_SMALL_CLUSTER_MEMBERS,
+            'DBInstancesIdentifiersToDelete': ['something']
+        }
+        self.assertRaises(ValueError, get_instances_to_delete, events, None)
+
+    def test_get_instances_to_delete_writer(self):
+        events = {
+            'DBClusterMembers': DOCDB_CLUSTER_MEMBERS,
+            'DBInstancesIdentifiersToDelete': [DOCDB_INSTANCE_ID, f'{DOCDB_INSTANCE_ID}-01']
+        }
+        self.assertRaises(ValueError, get_instances_to_delete, events, None)
+
+    def test_get_instances_to_delete_by_ids_too_many(self):
+        events = {
+            'DBClusterMembers': DOCDB_SMALL_CLUSTER_MEMBERS,
+            'DBInstancesIdentifiersToDelete': [f'{DOCDB_INSTANCE_ID}-01']
+        }
+        self.assertRaises(AssertionError, get_instances_to_delete, events, None)

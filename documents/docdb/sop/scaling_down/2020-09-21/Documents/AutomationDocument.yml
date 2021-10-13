@@ -15,7 +15,69 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 ---
-description: "Scales the cluster down"
+description: >-
+            ## Id
+            Digito-ScaleDownDocumentDBClusterSOP_2020-09-21
+            ## Intent
+            Scale down Amazon Document DB cluster.
+            ## Type
+            SOP
+            ## Risk
+            High
+            ## Requirements:
+              * An Amazon Document DB cluster in "available" state with at least 3 DB instances in "available" state.
+
+            ## Permissions required for AutomationAssumeRole
+              * rds:CreateDBInstance
+              * rds:DeleteDBInstance
+              * rds:DescribeDBClusters
+              * rds:DescribeDBInstances
+
+            ## Supports Rollback
+            No
+            ## Cancellation behavior
+            Fail
+            ## Inputs
+            ### (Required) AutomationAssumeRole
+              * type: String
+              * description: ARN of the IAM role with permissions listed above.
+
+            ### (Required) DBClusterIdentifier
+              * type: String
+              * description: Amazon Document DB cluster identifier.
+              * allowedPattern: "[a-zA-Z0-9_.-]+"
+
+            ### (Optional) NumberOfInstancesToDelete
+            * type: Integer
+            * description: The number of DB instances to delete. Ignored if at least one DBInstancesIdentifiersToDelete specified.
+            * default: 1
+
+            ### (Optional) DBInstancesIdentifiersToDelete
+              * type: StringList
+              * description: The list of identifiers of instances to be deleted.
+              * default: []
+
+            ## Details
+              The cluster after modification should satisfy the condition: 1 Primary + 1 Replica instances are available.
+              Note, that either 'NumberOfInstancesToDelete' or 'DBInstancesIdentifiersToDelete' should be provided.
+
+            ## Steps executed in normal flow
+              * RecordStartTime
+              * VerifyDBClusterAvailableStatusBeforeModification
+              * GetDbClusterMembers
+              * ValidateClusterMembersAmount
+              * GetDBInstancesToDelete
+              * ScaleDownDocDbCLuster
+              * WaitForInstancesAvailableStatus
+              * OutputRecoveryTime
+
+            ## Steps executed in rollback flow
+              Rollback is not allowed.
+
+            ## Outputs
+            ### OutputRecoveryTime.RecoveryTime
+              * type: String
+              * description: overall recovery time for scaling up Amazon Document DB cluster.
 schemaVersion: "0.3"
 assumeRole: "{{ AutomationAssumeRole }}"
 outputs:
@@ -24,20 +86,22 @@ outputs:
 parameters:
   DBClusterIdentifier:
     type: String
-    description: (Required) DBClusterIdentifier
+    description: (Required) Amazon Document DB cluster identifier.
+    allowedPattern: "[a-zA-Z0-9_.-]+"
   NumberOfDBInstancesToDelete:
     type: Integer
-    description: (Optional) The number of DB instances to delete
+    description: (Optional) The number of DB instances to delete. Ignored if at least one DBInstancesIdentifiersToDelete specified.
     default: 1
   DBInstancesIdentifiersToDelete:
     type: StringList
-    description: (Optional) The list of identifiers of instances to be deleted. The parameter `DBInstancesToDelete` is ignored if at least one DBInstanceIdentifier specified.
+    description: (Optional) The list of identifiers of instances to be deleted.
     default: []
   AutomationAssumeRole:
     type: String
     description: (Required) The ARN of the role that allows Automation to perform the actions on your behalf.
 mainSteps:
   - name: RecordStartTime
+    description: On this step start the time recording.
     action: 'aws:executeScript'
     outputs:
       - Name: StartTime
@@ -50,49 +114,105 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.imports
         SCRIPT_PLACEHOLDER::common_util.start_time
 
-  - name: PerformRecovery
-    # if params.DBInstancesIdentifiersToDelete is empty
-    #   Determine cluster parameters and the number of instances to delete
-    #     Call [boto3.describe_db_clusters]
-    #       Parameters:
-    #         DBClusterIdentifier=params.DBClusterIdentifier
-    #       Take '.DBClusters[].DBClusterMembers[]'
-    #         SSM should leave at least 1 read replica alive. 
-    #         RealNumberToDelete = min('.DBClusters[].DBClusterMembers[]' - 2, params.NumberOfDBInstancesToDelete)
-    #           EXAMPLE: Cluster has 3 instances - 1 Primary and 2 Replicas. Therefore '.DBClusters[].DBClusterMembers[]' - 2 = 1, we can delete only one replica.
-    #         Take RealNumberToDelete number of instances from  '.DBClusters[].DBClusterMembers[]' where ".DBClusters[].DBClusterMembers[].IsClusterWriter" == False
-    #         explicitly log this calculations
-    #       Delete instances
-    #         Call [boto3.delete_db_instance] for selected instances
-    #           Params:
-    #             DBInstanceIdentifier=(an instance identifier)
-    #       Make sure instances deleted
-    #         Call [boto3.describe_db_clusters] to make sure selected instance are gone
-    #           Parameters:
-    #             DBClusterIdentifier=params.DBClusterIdentifier
-    #           Take '.DBClusters[].DBClusterMembers[]'
-    # otherwise
-    #   Determine cluster parameters and the number of instances to delete
-    #     Call [boto3.describe_db_clusters]
-    #       Parameters:
-    #         DBClusterIdentifier=params.DBClusterIdentifier
-    #       Take '.DBClusters[].DBClusterMembers[].DBInstanceIdentifier' and match with params.DBInstancesIdentifiersToDelete.
-    #       SSM should leave at least 1 read replica alive. Cut the params.DBInstancesIdentifiersToDelete collection if needed to follow this rule
-    #         if params.DBInstancesIdentifiersToDelete includes master try to exclude it first. If rule of "master + 1 read replica" isn't fulfilled, remove another item from collection
-    #         explicitly log this actions
-    #   For each of params.DBInstancesIdentifiersToDelete
-    #     ignore if the given instance identifier doesn't exist. Log these kind of errors
-    #     Call [boto3.delete_db_instance]
-    #       Params:
-    #         DBInstanceIdentifier=(an instance identifier)
-    #   Make sure instances deleted
-    #     Call [boto3.describe_db_clusters] to make sure selected instance are gone
-    #       Parameters:
-    #         DBClusterIdentifier=params.DBClusterIdentifier
-    #       Take '.DBClusters[].DBClusterMembers[]'   
-  
+
+  - name: VerifyDBClusterAvailableStatusBeforeModification
+    description: On this step check, if the cluster is in "available" state.
+    action: aws:assertAwsResourceProperty
+    onFailure: Abort
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      DBClusterIdentifier: '{{ DBClusterIdentifier }}'
+      PropertySelector: "$.DBClusters[0].Status"
+      DesiredValues:
+        - "available"
+
+  - name: GetDbClusterMembers
+    description: On this step retrieve DBClusterMembers.
+    action: aws:executeAwsApi
+    outputs:
+      - Name: DBClusterMembers
+        Selector: $.DBClusters[0].DBClusterMembers
+        Type: MapList
+    inputs:
+      Service: docdb
+      Api: DescribeDBClusters
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+
+  - name: ValidateClusterMembersAmount
+    description: On this step validate that cluster contains at least 3 memebers.
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: validate_cluster_members_amount
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.check_required_params
+        SCRIPT_PLACEHOLDER::docdb_util.validate_cluster_members_amount
+      InputPayload:
+        DBClusterMembers: '{{ GetDbClusterMembers.DBClusterMembers }}'
+
+  - name: GetDBInstancesToDelete
+    description: >-
+                On this step define the instances to delete according to the input parameters.
+                Consider that the cluster should have 1 Primary and 1 Replica after the follow-up modification.
+    action: 'aws:executeScript'
+    onFailure: Abort
+    outputs:
+      - Name: DBInstancesIdentifiersToDelete
+        Selector: $.Payload.DBInstancesIdentifiersToDelete
+        Type: StringList
+    inputs:
+      Runtime: python3.7
+      Handler: get_instances_to_delete
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.check_required_params
+        SCRIPT_PLACEHOLDER::docdb_util.get_instances_to_delete_by_number
+        SCRIPT_PLACEHOLDER::docdb_util.get_instances_to_delete_by_ids
+        SCRIPT_PLACEHOLDER::docdb_util.get_instances_to_delete
+      InputPayload:
+        DBClusterMembers: '{{ GetDbClusterMembers.DBClusterMembers }}'
+        NumberOfDBInstancesToDelete: '{{ NumberOfDBInstancesToDelete }}'
+        DBInstancesIdentifiersToDelete: '{{ DBInstancesIdentifiersToDelete }}'
+
+  - name: ScaleDownDocDbCLuster
+    description: On this step delete instances by ids provided in the previous step.
+    action: 'aws:executeScript'
+    onFailure: Abort
+    inputs:
+      Runtime: python3.7
+      Handler: scale_down_cluster
+      Script: |-
+        SCRIPT_PLACEHOLDER::docdb_util.imports
+        SCRIPT_PLACEHOLDER::docdb_util.check_required_params
+        SCRIPT_PLACEHOLDER::docdb_util.scale_down_cluster
+      InputPayload:
+        DBInstancesIdentifiersToDelete: '{{ GetDBInstancesToDelete.DBInstancesIdentifiersToDelete }}'
+
+  - name: WaitForInstancesAvailableStatus
+    description: On this step wait for instances are in "available" state.
+    action: aws:waitForAwsResourceProperty
+    maxAttempts: 1
+    timeoutSeconds: 900
+    onFailure: Abort
+    inputs:
+      Service: docdb
+      Api: DescribeDBInstances
+      Filters:
+        - Name: "db-cluster-id"
+          Values:
+            - '{{ DBClusterIdentifier }}'
+      PropertySelector: "$.DBInstances..DBInstanceStatus"
+      DesiredValues:
+          - "available"
 
   - name: OutputRecoveryTime
+    description: On this step stop the time recording.
     action: 'aws:executeScript'
     outputs:
       - Name: RecoveryTime
@@ -106,3 +226,4 @@ mainSteps:
         SCRIPT_PLACEHOLDER::common_util.recovery_time
       InputPayload:
         StartTime: '{{ RecordStartTime.StartTime }}'
+    isEnd: true

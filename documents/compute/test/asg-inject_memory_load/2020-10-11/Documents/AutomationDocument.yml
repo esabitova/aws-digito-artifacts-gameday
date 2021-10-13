@@ -28,18 +28,19 @@ parameters:
   MemoryUtilizationAlarmName:
     type: String
     description: (Required) ASG MemoryUtilization alarm which should be green after test
-  Duration:
+  DurationSeconds:
     type: String
     description: (Optional) The duration of the attack in seconds (default/recommended 300)
     default: '300'
-  Vm:
+  Workers:
     type: String
-    description: (Optional) Number of VM stressors
+    description: "(Optional) The number of virtual memory stressors (default: 1)"
     default: '1'
-  MemoryLoadPercentage:
+  LoadPercent:
     type: String
-    description: (Optional) The ASG EC2 instance Memory load percentage (default 50%)
-    default: '50'
+    description: (Optional) Specify the target memory load percentage. Valid values are between 0 (no load) and 100 (full load) (default - 100)
+    default: "100"
+    allowedPattern: "^(100|[1-9]?[0-9])$"
   PercentageOfInstances:
     type: Integer
     description: (Optional) Percentage of ASG EC2 instances to be impacted (default 1)
@@ -117,14 +118,9 @@ mainSteps:
       InstanceIds:
         - '{{GetInstancesByPercentage.InstanceIds}}'
       Parameters:
-        MemoryLoadPercentage: '{{ MemoryLoadPercentage }}'
-        Vm: '{{Vm}}'
-        Duration: '{{Duration}}'
-  - name: WaitExpectedRecoveryTime
-    action: 'aws:sleep'
-    onFailure: Abort
-    inputs:
-      Duration: 'PT{{ExpectedRecoveryTime}}S'
+        Percent: '{{LoadPercent}}'
+        Workers: '{{Workers}}'
+        DurationSeconds: '{{DurationSeconds}}'
   - name: AssertAlarmTriggered
     action: 'aws:executeScript'
     inputs:
@@ -132,11 +128,16 @@ mainSteps:
       Handler: verify_alarm_triggered
       InputPayload:
         AlarmName: '{{MemoryUtilizationAlarmName}}'
-        DurationInMinutes: '{{Duration}}'
+        DurationInSeconds: '{{DurationSeconds}}'
       Script: |-
         SCRIPT_PLACEHOLDER::cloudwatch_util.imports
 
         SCRIPT_PLACEHOLDER::cloudwatch_util.verify_alarm_triggered
+  - name: WaitExpectedRecoveryTime
+    action: 'aws:sleep'
+    onFailure: Abort
+    inputs:
+      Duration: 'PT{{ExpectedRecoveryTime}}S'
   - name: AssertAlarmToBeGreen
     action: aws:assertAwsResourceProperty
     maxAttempts: 10
@@ -149,25 +150,6 @@ mainSteps:
           - "{{MemoryUtilizationAlarmName}}"
       PropertySelector: "$.MetricAlarms[0].StateValue"
       DesiredValues: ["OK"]
-  - name: VerifyMemoryStress
-    action: 'aws:executeScript'
-    onFailure: Abort
-    inputs:
-      Runtime: python3.6
-      Handler: verify_memory_stress
-      InputPayload:
-        InstanceIds: '{{GetInstancesByPercentage.InstanceIds}}'
-        StressPercentage: '{{MemoryLoadPercentage}}'
-        StressDuration: '{{Duration}}'
-        ExpectedRecoveryTime: '{{ExpectedRecoveryTime}}'
-        MetricNamespace: 'CWAgent'
-        AutoScalingGroupName: '{{AutoScalingGroupName}}'
-      Script: |-
-        SCRIPT_PLACEHOLDER::cloudwatch_util.imports
-        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_ec2_stress
-        SCRIPT_PLACEHOLDER::cloudwatch_util.get_ec2_metric_max_datapoint
-
-        SCRIPT_PLACEHOLDER::cloudwatch_util.verify_memory_stress
     isEnd: true
   - name: GetInputsFromPreviousExecution
     action: aws:executeScript
@@ -211,7 +193,7 @@ mainSteps:
         SCRIPT_PLACEHOLDER::ssm_execution_util.imports
 
         SCRIPT_PLACEHOLDER::ssm_execution_util.get_output_from_ssm_step_execution
-  - name: TerminateMemoryStressing
+  - name: KillStressCommandOnRollback
     action: 'aws:executeAutomation'
     onFailure: Abort
     inputs:
@@ -219,7 +201,7 @@ mainSteps:
       RuntimeParameters:
         AutomationAssumeRole: '{{AutomationAssumeRole}}'
         AutoScalingGroupName: '{{AutoScalingGroupName}}'
-        InstanceIds: '{{GetInstancesByPercentage.InstanceIds}}'
+        InstanceIds: '{{GetPreviousExecutionDetails.InstanceIds}}'
     isEnd: true
   - name: TriggerRollback
     action: 'aws:executeScript'
