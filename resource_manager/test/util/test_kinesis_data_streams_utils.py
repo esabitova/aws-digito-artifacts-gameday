@@ -60,8 +60,8 @@ class KinesisDataStreamsTestUtils(unittest.TestCase):
     @patch('resource_manager.src.util.kinesis_data_streams_utils.get_records',
            return_value=False)
     def test_get_records_in_batch_async(self, get_records_mock):
-        shard_id = self.mock_kinesis_service.describe_stream(StreamName=STREAM_NAME)['StreamDescription']['Shards'][0]
-        ['ShardId']
+        shard_id = self.mock_kinesis_service.describe_stream(
+            StreamName=STREAM_NAME)['StreamDescription']['Shards'][0]['ShardId']
         kinesis_data_streams_utils.get_records_in_batch_async(self.session_mock, STREAM_NAME, MESSAGES_NUMBER,
                                                               THREAD_NUMBER, DELAY_SEC)
         self.mock_kinesis_service.called
