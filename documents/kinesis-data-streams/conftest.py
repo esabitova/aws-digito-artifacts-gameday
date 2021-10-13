@@ -14,6 +14,14 @@ from resource_manager.src.util.common_test_utils import (extract_param_value)
 @given(parsers.parse('put "{messages_to_sent_number}" records to Kinesis Data Stream\n{input_parameters}'))
 def put_records_separately_to_kinesis_data_stream(ssm_test_cache, resource_pool, boto3_session,
                                                   messages_to_sent_number, input_parameters):
+    """
+    Put records to Amazon Kinesis Data Streams separately
+    :param ssm_test_cache: The ssm test cache
+    :param resource_pool: The resource pool
+    :param boto3_session: The boto3 session
+    :param messages_to_sent_number: The number of messages
+    :param input_parameters: The input parameters
+    """
     kinesis_data_stream_name = extract_param_value(input_parameters, 'KinesisDataStreamName', resource_pool,
                                                    ssm_test_cache)
     client = boto3_session.client('kinesis')
@@ -29,6 +37,14 @@ def put_records_separately_to_kinesis_data_stream(ssm_test_cache, resource_pool,
 @given(parsers.parse('put "{messages_to_sent_number}" records in a batch to Kinesis Data Stream\n{input_parameters}'))
 def put_records_in_batch_to_kinesis_data_stream(ssm_test_cache, resource_pool, boto3_session,
                                                 messages_to_sent_number, input_parameters):
+    """
+    Put records to Amazon Kinesis Data Streams in the batch
+    :param ssm_test_cache: The ssm test cache
+    :param resource_pool: The resource pool
+    :param boto3_session: The boto3 session
+    :param messages_to_sent_number: The number of messages
+    :param input_parameters: The input parameters
+    """
     kinesis_data_stream_name = extract_param_value(input_parameters, 'KinesisDataStreamName', resource_pool,
                                                    ssm_test_cache)
     client = boto3_session.client('kinesis')
@@ -50,6 +66,17 @@ def put_records_in_batch_to_kinesis_data_stream(ssm_test_cache, resource_pool, b
 def put_records_async_to_kinesis_data_stream(ssm_test_cache, resource_pool, boto3_session,
                                              messages_to_sent_number, threads_number, delay_in_secs_between_threads,
                                              input_parameters):
+    """
+    Stress test for Kinesis Data Streams to put records in a batch asynchronously to perform stress test.
+    Use multiple threads to make lots of simultaneous PutRecords requests.
+    :param ssm_test_cache: The ssm test cache
+    :param resource_pool: The resource pool
+    :param boto3_session: The boto3 session
+    :param messages_to_sent_number: The number of messages in each batch
+    :param threads_number: The number of threads to be used to sent records
+    :param delay_in_secs_between_threads: The delay in seconds between threads
+    :param input_parameters: The input parameters
+    """
     kinesis_data_stream_name = extract_param_value(input_parameters, 'KinesisDataStreamName', resource_pool,
                                                    ssm_test_cache)
     kinesis_data_streams_utils.put_records_in_batch_async(boto3_session, kinesis_data_stream_name,
@@ -66,6 +93,17 @@ def put_records_async_to_kinesis_data_stream(ssm_test_cache, resource_pool, boto
 def get_records_async_from_kinesis_data_stream(ssm_test_cache, resource_pool, boto3_session,
                                                messages_to_get_number, threads_number, delay_in_secs_between_threads,
                                                error_code, input_parameters):
+    """
+    Get records from Amazon Kinesis Data Streams in the batch asynchronously
+    :param ssm_test_cache: The ssm test cache
+    :param resource_pool: The resource pool
+    :param boto3_session: The boto3 session
+    :param messages_to_get_number: The number of messages in each batch
+    :param threads_number: The number of threads to be used to get records
+    :param delay_in_secs_between_threads: The delay in seconds between threads
+    :param error_code: The error code associated to a ClientError exception
+    :param input_parameters: The input parameters
+    """
     kinesis_data_stream_name = extract_param_value(input_parameters, 'KinesisDataStreamName', resource_pool,
                                                    ssm_test_cache)
     try:
@@ -81,6 +119,14 @@ def get_records_async_from_kinesis_data_stream(ssm_test_cache, resource_pool, bo
 @given(parsers.parse('get maximum "{records_limit:d}" records from Kinesis Data Stream\n{input_parameters}'))
 def get_latest_records_from_kinesis_data_stream(ssm_test_cache, resource_pool, boto3_session,
                                                 records_limit, input_parameters):
+    """
+    Get latest records from Amazon Kinesis Data Streams
+    :param ssm_test_cache: The ssm test cache
+    :param resource_pool: The resource pool
+    :param boto3_session: The boto3 session
+    :param records_limit: Number of records retrieved from Amazon Kinesis Data Streams
+    :param input_parameters: The input parameters
+    """
     kinesis_data_stream_name = extract_param_value(input_parameters, 'KinesisDataStreamName', resource_pool,
                                                    ssm_test_cache)
     client = boto3_session.client('kinesis')

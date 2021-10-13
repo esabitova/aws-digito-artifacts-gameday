@@ -15,6 +15,7 @@ Feature: SSM automation document Digito-DecreaseNumberOfKinesisDataStreamsShards
     And cache by "describe_stream_summary" method of "kinesis" to "before"
       | Input-StreamName                                       | Output-OldShardCount                      |
       | {{cfn-output:KinesisDataStream>KinesisDataStreamName}} | $.StreamDescriptionSummary.OpenShardCount |
+#    Because we have ShardCount:1 in the CFN template we need to increase the number of shards before decreasing.
     And calculate "{{cache:before>OldShardCount}}" "*" "2" and cache result as "ExpectedShardCount" "before" SSM automation execution
     And SSM automation document "Digito-UpdateKinesisDataStreamsShardCountSOP_2020-10-26" executed
       | StreamName                                             | AutomationAssumeRole                                                                                 | TargetShardCount |

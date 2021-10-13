@@ -1,6 +1,6 @@
 {
-  "displayName": "Test system behavior if Kinesis Data Streams shards has been decreased",
-  "description": "Test system behavior if Kinesis Data Streams shards has been decreased and the alarm based on WriteProvisionedThroughputExceeded has been moved to ALARM state",
+  "displayName": "Test system behavior if Amazon Kinesis Data Streams shards has been decreased",
+  "description": "Test system behavior if Amazon Kinesis Data Streams shards has been decreased and the alarm based on WriteProvisionedThroughputExceeded has been moved to ALARM state",
   "dependsOn": "Digito-UpdateKinesisDataStreamsShardCountSOP_2020-10-26",
   "assumeRoleCfnPath": "AutomationAssumeRoleTemplate.yml",
   "documentContentPath": "AutomationDocument.yml",

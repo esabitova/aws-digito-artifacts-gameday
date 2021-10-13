@@ -57,8 +57,8 @@ def put_records(boto3_session, stream_name: str, records: list):
 def get_records(boto3_session, shard_iterator: str, limit: int):
     """
     Get records from Amazon Kinesis Data Streams in the batch
-    :param limit:
-    :param shard_iterator:
+    :param limit: Number of records retrieved from Amazon Kinesis Data Streams
+    :param shard_iterator: The shard iterator
     :param boto3_session The boto3 session
     """
     client = boto3_session.client('kinesis')
@@ -67,6 +67,14 @@ def get_records(boto3_session, shard_iterator: str, limit: int):
 
 def get_records_in_batch_async(boto3_session, stream_name, messages_to_get_number, threads_number,
                                delay_in_secs_between_threads):
+    """
+    Get records from Amazon Kinesis Data Streams in the batch asynchronously
+    :param boto3_session: The boto3 session
+    :param stream_name: The stream name
+    :param messages_to_get_number: The number of messages in each batch
+    :param threads_number: The number of threads to be used to get records
+    :param delay_in_secs_between_threads: The delay in seconds between threads
+    """
     futures = []
     logging.info(f'Start Kinesis Data Streams GetRecords asynchronously in the {threads_number} threads')
     client = boto3_session.client('kinesis')
